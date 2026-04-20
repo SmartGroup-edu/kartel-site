@@ -25,11 +25,67 @@ export const metadata = {
     "Петр Картель",
     "Валентина Картель",
   ],
+  alternates: {
+    canonical: "/family",
+    languages: {
+      "en": "https://kartel.org.uk/family?lang=EN",
+      "ru": "https://kartel.org.uk/family?lang=RU",
+      "x-default": "https://kartel.org.uk/family",
+    },
+  },
+  openGraph: {
+    type: "website" as const,
+    locale: "en_GB",
+    alternateLocale: "ru_RU",
+    siteName: "KARTEL",
+    title: "Kartel Family Members — London",
+    description:
+      "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
+    url: "https://kartel.org.uk/family",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.",
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "Kartel Family Members — London",
+    description:
+      "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
+    images: [
+      {
+        url: "/opengraph-image",
+        alt: "KARTEL — Coat of Arms of the Kartel Family",
+      },
+    ],
+  },
 };
 
 const structuredData = {
   "@context": "https://schema.org",
   "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://kartel.org.uk",
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Family",
+          "item": "https://kartel.org.uk/family",
+        },
+      ],
+    },
     {
       "@type": "CollectionPage",
       "name": "Kartel Family Members",

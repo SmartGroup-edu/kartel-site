@@ -1,0 +1,26 @@
+{
+  "name": "KARTEL — Family Coat of Arms",
+  "short_name": "KARTEL",
+  "description": "Kartel family coat of arms, legacy, and identity. London.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eeebe5",
+  "theme_color": "#9b723a",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

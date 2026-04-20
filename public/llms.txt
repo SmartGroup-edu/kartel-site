@@ -1,0 +1,53 @@
+# KARTEL — Family Coat of Arms & Legacy
+
+> The official website of the Kartel family, presenting their heraldic coat of arms, family legacy, and identity. Based in London, United Kingdom.
+
+## About
+
+The Kartel family coat of arms (Latin motto: "Virtus et Potestas" — Strength and Power) is a heraldic composition featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, and wings. The site presents a detailed description of every element and its symbolic meaning, in both English and Russian.
+
+## Key Facts
+
+- **Family name**: Kartel (Картель)
+- **Motto**: Virtus et Potestas (Strength and Power / Сила и Власть)
+- **Location**: London, United Kingdom
+- **Languages**: English, Russian
+- **Domain**: kartel.org.uk
+
+## Family Members
+
+- Igor Gor Kartel (Игорь Гор Картель) — Family representative in London
+- Diana Kartel (Диана Картель)
+- Dominika Kartel (Доминика Картель) — Next generation
+- Arina Kartel (Арина Картель) — Next generation
+- Igor Kaid Kartel (Игорь Каид Картель) — Next generation
+- Feliks Kartel (Феликс Картель) — Next generation
+- Piotr Kartel (Петр Картель) — Elder generation
+- Valentina Kartel (Валентина Картель) — Elder generation
+
+## Coat of Arms Elements
+
+- **Griffin**: Superiority, protection, foresight. Combines lion (earthly) and eagle (celestial).
+- **Staff/Crook**: Christian faith, spiritual authority, service.
+- **Crossed Keys**: Knowledge, sacred mystery, faith and reason united. Historically linked to Apostle Peter.
+- **Wings**: Divine protection, trust, belonging. Also references elite Polish cavalry (Husaria).
+- **Coronet**: Wisdom, justice, willpower. Authority earned by merit, not birthright.
+- **Fleur-de-lis (3)**: Purity of intention, nobility of spirit.
+- **Swords (2)**: Readiness to defend family, principles, and convictions.
+- **Motto ribbon**: "Virtus et Potestas" — Strength and Power.
+
+## Heraldic Colours
+
+- **Gold & Black**: Nobility, wisdom, willpower, endurance, discipline.
+- **Silver & Red**: Truth, virtue, courage, passion, leadership, strength of spirit.
+
+## Pages
+
+- [Home](https://kartel.org.uk/) — Coat of arms description and symbolism
+- [Family](https://kartel.org.uk/family) — Family members by generation
+- [Full content for LLMs](https://kartel.org.uk/llms-full.txt) — Complete text of all pages
+
+## Contact
+
+- Website: https://kartel.org.uk
+- Email: gor@kartel.org.uk
