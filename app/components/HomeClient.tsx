@@ -155,14 +155,20 @@ This combination precisely expresses the emotional and spiritual code of the Kar
                 {t.title}
               </h1>
               <div className="mt-8 flex justify-center lg:justify-start">
+                <span id="crest-desc" className="sr-only">
+                  {lang === "EN"
+                    ? "Heraldic coat of arms featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the motto Virtus et Potestas. Click to view full size."
+                    : "Геральдический герб с грифоном, скрещёнными ключами, короной, мечами, лилиями, крыльями и девизом Virtus et Potestas. Нажмите для увеличения."}
+                </span>
                 <button
                   onClick={() => setLightboxOpen(true)}
                   className="cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#9b723a]"
-                  aria-label="View coat of arms full size"
+                  aria-label={lang === "EN" ? "View coat of arms full size" : "Открыть герб в полном размере"}
+                  aria-describedby="crest-desc"
                 >
                   <ParallaxImage
                     src="/crest.jpeg"
-                    alt="Kartel family coat of arms — Virtus et Potestas"
+                    alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Герб семьи Картель — Virtus et Potestas"}
                     width={540}
                     height={540}
                     priority
@@ -267,7 +273,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
       <ImageLightbox
         src="/crest.jpeg"
         webpSrc="/crest.webp"
-        alt="Kartel family coat of arms — Virtus et Potestas"
+        alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Герб семьи Картель — Virtus et Potestas"}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />

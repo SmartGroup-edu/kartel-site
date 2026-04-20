@@ -64,6 +64,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   other: {
     "theme-color": "#9b723a",
+    "author": "Kartel Family",
   },
 };
 
@@ -74,6 +75,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased scroll-smooth">
+      <head>
+        <link rel="author" href="/humans.txt" />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <noscript>

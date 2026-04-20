@@ -138,6 +138,9 @@ const structuredData = {
         "email": "gor@kartel.org.uk",
         "contactType": "general",
       },
+      "sameAs": [
+        "https://kartel.org.uk",
+      ],
       "member": [
         { "@type": "Person", "name": "Igor Gor Kartel" },
         { "@type": "Person", "name": "Diana Kartel" },

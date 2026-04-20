@@ -1,0 +1,7 @@
+# Security policy for kartel.org.uk
+# https://securitytxt.org/ (RFC 9116)
+
+Contact: mailto:gor@kartel.org.uk
+Preferred-Languages: en, ru
+Canonical: https://kartel.org.uk/.well-known/security.txt
+Expires: 2027-04-20T00:00:00.000Z

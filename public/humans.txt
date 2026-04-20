@@ -1,0 +1,13 @@
+/* TEAM */
+Name: Igor Gor Kartel
+Role: Family representative
+Location: London, United Kingdom
+Contact: gor@kartel.org.uk
+
+/* SITE */
+Last update: 2026-04-20
+Language: English, Russian
+Standards: HTML5, CSS3, Schema.org, WCAG 2.1 AA
+Components: Next.js 16, React 19, Tailwind CSS 4
+Hosting: Vercel
+Domain: kartel.org.uk
