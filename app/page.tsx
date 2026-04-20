@@ -126,6 +126,7 @@ const structuredData = {
     },
     {
       "@type": "Organization",
+      "@id": "https://kartel.org.uk/#organization",
       "name": "Kartel Family",
       "alternateName": "Семья Картель",
       "url": "https://kartel.org.uk",
@@ -159,6 +160,35 @@ const structuredData = {
         { "@type": "Person", "name": "Петр Картель" },
         { "@type": "Person", "name": "Валентина Картель" },
       ],
+    },
+  ],
+};
+
+const siteNavData = {
+  "@context": "https://schema.org",
+  "@type": "SiteNavigationElement",
+  "name": "Main Navigation",
+  "url": "https://kartel.org.uk",
+  "hasPart": [
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Home",
+      "url": "https://kartel.org.uk",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Meaning",
+      "url": "https://kartel.org.uk/#meaning",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Legacy",
+      "url": "https://kartel.org.uk/#legacy",
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "name": "Family",
+      "url": "https://kartel.org.uk/family",
     },
   ],
 };
@@ -226,6 +256,10 @@ export default function Page() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavData) }}
       />
       <script
         type="application/ld+json"
