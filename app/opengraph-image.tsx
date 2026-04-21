@@ -1,23 +1,21 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "fs/promises";
+import { join } from "path";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const alt = "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OGImage() {
-  const crestUrl = new URL("/crest.jpeg", "https://kartel.org.uk");
   let crestSrc: string | null = null;
 
   try {
-    const res = await fetch(crestUrl);
-    if (res.ok) {
-      const buf = await res.arrayBuffer();
-      const base64 = Buffer.from(buf).toString("base64");
-      crestSrc = `data:image/jpeg;base64,${base64}`;
-    }
+    const buf = await readFile(join(process.cwd(), "public", "crest.jpeg"));
+    const base64 = buf.toString("base64");
+    crestSrc = `data:image/jpeg;base64,${base64}`;
   } catch {
-    // Fallback to text-only if fetch fails
+    // Fallback to text-only if file read fails
   }
 
   return new ImageResponse(

@@ -2,7 +2,7 @@
 
 interface SectionDotsProps {
   sections: { id: string; label: string }[];
-  activeSection: string;
+  activeSection: string | null;
 }
 
 export default function SectionDots({ sections, activeSection }: SectionDotsProps) {

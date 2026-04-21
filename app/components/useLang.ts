@@ -31,6 +31,10 @@ export function useLang(defaultLang: Lang = "EN") {
     const next = lang === "EN" ? "RU" : "EN";
     setLang(next);
     localStorage.setItem("kartel-lang", next);
+    // Keep URL in sync so shared links preserve the language
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", next);
+    window.history.replaceState({}, "", url.toString());
   }, [lang]);
 
   return { lang, toggleLang, isReady } as const;

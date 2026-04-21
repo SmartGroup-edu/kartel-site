@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
+import { useScrollY } from "./useScrollY";
 
 interface MottoBannerProps {
   lang: "EN" | "RU";
@@ -10,28 +11,23 @@ export default function MottoBanner({ lang }: MottoBannerProps) {
   const translation =
     lang === "EN" ? "Strength and Power" : "Сила и Власть";
   const ref = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
-
-  const handleScroll = useCallback(() => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const windowH = window.innerHeight;
-    // Only calculate when banner is in/near viewport
-    if (rect.bottom < -100 || rect.top > windowH + 100) return;
-    // Parallax: shift text relative to scroll position
-    const center = rect.top + rect.height / 2;
-    const delta = (center - windowH / 2) / windowH;
-    setOffset(delta * -30); // max ±30px shift
-  }, []);
+  const scrollY = useScrollY();
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    // Respect reduced motion
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [handleScroll]);
+  let offset = 0;
+  if (!reduced && ref.current) {
+    const rect = ref.current.getBoundingClientRect();
+    const windowH = window.innerHeight;
+    if (!(rect.bottom < -100 || rect.top > windowH + 100)) {
+      const center = rect.top + rect.height / 2;
+      const delta = (center - windowH / 2) / windowH;
+      offset = delta * -30;
+    }
+  }
 
   return (
     <div ref={ref} className="relative overflow-hidden bg-[var(--foreground)] py-10 sm:py-14 lg:py-16">

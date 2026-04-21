@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface ShareButtonsProps {
   url: string;
@@ -11,6 +11,11 @@ interface ShareButtonsProps {
 export default function ShareButtons({ url, title, lang }: ShareButtonsProps) {
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    setCanShare("share" in navigator);
+  }, []);
 
   const handleNativeShare = useCallback(async () => {
     if (navigator.share) {
@@ -70,7 +75,7 @@ export default function ShareButtons({ url, title, lang }: ShareButtonsProps) {
       </a>
 
       {/* Native share (mobile) */}
-      {"share" in (typeof navigator !== "undefined" ? navigator : {}) && (
+      {canShare && (
         <button
           onClick={handleNativeShare}
           aria-label={label}

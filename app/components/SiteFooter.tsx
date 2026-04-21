@@ -6,7 +6,7 @@ interface SiteFooterProps {
 
 export default function SiteFooter({ motto, copy, maxWidth = "max-w-7xl" }: SiteFooterProps) {
   return (
-    <footer className="border-t border-[var(--border)] bg-[var(--surface)] transition-colors duration-300" role="contentinfo">
+    <footer className="border-t border-[var(--border)] bg-[var(--surface)] transition-colors duration-300">
       <div className={`mx-auto ${maxWidth} px-4 py-8 sm:px-6 lg:px-10 lg:py-10`}>
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="font-serif text-[16px] italic tracking-wide text-[var(--accent)] sm:text-[18px]">

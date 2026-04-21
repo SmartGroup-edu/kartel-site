@@ -1,5 +1,5 @@
 // KARTEL Service Worker — Offline-first caching
-const CACHE_NAME = "kartel-v1";
+const CACHE_NAME = "kartel-20260420";
 const STATIC_ASSETS = [
   "/",
   "/family",

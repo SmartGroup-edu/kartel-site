@@ -65,6 +65,7 @@ h1, h2, h3, h4, h5, h6 {
 
 p {
   text-wrap: pretty;
+  hyphens: auto;
 }
 
 /* Selection color matching the gold accent */
@@ -187,14 +188,14 @@ p {
     font-size: 12pt;
   }
 
-  header[role="banner"],
+  header,
   button,
   nav,
   [aria-label="Back to top"] {
     display: none !important;
   }
 
-  footer[role="contentinfo"] {
+  footer {
     border-top: 1px solid #999;
     padding-top: 12pt;
   }

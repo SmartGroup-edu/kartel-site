@@ -32,7 +32,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, maxWidth = "max
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur transition-colors duration-300" role="banner">
+    <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur transition-colors duration-300">
       <div className={`mx-auto flex ${maxWidth} items-center justify-between px-4 py-4 sm:px-6 lg:px-10 lg:py-5`}>
         <a
           href={`/?lang=${lang}`}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import Image from "next/image";
+import { useScrollY } from "./useScrollY";
 
 interface ParallaxImageProps {
   src: string;
@@ -12,11 +13,6 @@ interface ParallaxImageProps {
   className?: string;
   speed?: number; // 0 = no parallax, 0.1 = subtle, 0.3 = strong
   sizes?: string;
-}
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export default function ParallaxImage({
@@ -30,26 +26,20 @@ export default function ParallaxImage({
   sizes,
 }: ParallaxImageProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState(0);
-  const reduced = useRef(false);
+  const scrollY = useScrollY();
+  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    reduced.current = prefersReducedMotion();
-    if (reduced.current) return;
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
-    const onScroll = () => {
-      const el = ref.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const center = rect.top + rect.height / 2;
-      const viewCenter = window.innerHeight / 2;
-      setOffset((center - viewCenter) * speed);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [speed]);
+  let offset = 0;
+  if (!reduced && ref.current) {
+    const rect = ref.current.getBoundingClientRect();
+    const center = rect.top + rect.height / 2;
+    const viewCenter = window.innerHeight / 2;
+    offset = (center - viewCenter) * speed;
+  }
 
   return (
     <div ref={ref} className="overflow-hidden">
@@ -62,7 +52,7 @@ export default function ParallaxImage({
         sizes={sizes}
         className={className}
         style={{
-          transform: reduced.current ? undefined : `translateY(${offset}px)`,
+          transform: reduced ? undefined : `translateY(${offset}px)`,
           transition: "transform 0.1s linear",
         }}
       />
