@@ -173,6 +173,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
                     height={540}
                     priority
                     speed={0.06}
+                    sizes="(max-width: 640px) 280px, (max-width: 1024px) 380px, 540px"
                     className="w-full max-w-[280px] object-contain sm:max-w-[380px] lg:max-w-[540px]"
                   />
                 </button>

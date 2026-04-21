@@ -1,11 +1,16 @@
 {
-  "name": "KARTEL — Family Coat of Arms",
+  "name": "KARTEL — Family Coat of Arms & Legacy",
   "short_name": "KARTEL",
-  "description": "Kartel family coat of arms, legacy, and identity. London.",
-  "start_url": "/",
+  "description": "Kartel family coat of arms, legacy, and identity based in London. Virtus et Potestas.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#eeebe5",
   "theme_color": "#9b723a",
+  "lang": "en-GB",
+  "dir": "ltr",
+  "categories": ["education", "lifestyle"],
   "icons": [
     {
       "src": "/favicon.ico",
@@ -13,14 +18,38 @@
       "type": "image/x-icon"
     },
     {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Family Members",
+      "short_name": "Family",
+      "url": "/family",
+      "description": "View all Kartel family members"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }

@@ -83,6 +83,7 @@ export default function RootLayout({
           }}
         />
         <link rel="author" href="/humans.txt" />
+        <meta name="color-scheme" content="light dark" />
       </head>
       <body className="min-h-full flex flex-col">
         {children}

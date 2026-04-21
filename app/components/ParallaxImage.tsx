@@ -11,6 +11,7 @@ interface ParallaxImageProps {
   priority?: boolean;
   className?: string;
   speed?: number; // 0 = no parallax, 0.1 = subtle, 0.3 = strong
+  sizes?: string;
 }
 
 function prefersReducedMotion(): boolean {
@@ -26,6 +27,7 @@ export default function ParallaxImage({
   priority,
   className = "",
   speed = 0.08,
+  sizes,
 }: ParallaxImageProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState(0);
@@ -57,6 +59,7 @@ export default function ParallaxImage({
         width={width}
         height={height}
         priority={priority}
+        sizes={sizes}
         className={className}
         style={{
           transform: reduced.current ? undefined : `translateY(${offset}px)`,

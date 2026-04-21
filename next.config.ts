@@ -42,6 +42,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    viewTransition: true,
+  },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    deviceSizes: [280, 380, 540, 640, 750, 828, 1080, 1200],
+  },
   async headers() {
     return [
       {
