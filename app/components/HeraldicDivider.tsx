@@ -7,7 +7,7 @@ export default function HeraldicDivider() {
         viewBox="0 0 120 20"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-[#c4b89a]"
+        className="text-[var(--muted-light)] transition-colors duration-300"
       >
         <path
           d="M0 10 Q15 0 30 10 Q45 20 60 10 Q75 0 90 10 Q105 20 120 10"

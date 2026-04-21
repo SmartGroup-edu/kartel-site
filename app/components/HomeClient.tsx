@@ -132,8 +132,8 @@ This combination precisely expresses the emotional and spiritual code of the Kar
 
   if (!isReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eeebe5]">
-        <span className="font-serif text-[24px] tracking-[0.12em] text-[#9b723a] sm:text-[28px]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <span className="font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px]">
           KARTEL
         </span>
       </div>
@@ -141,7 +141,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
   }
 
   return (
-    <div className="min-h-screen bg-[#eeebe5] text-[#2b2824]">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <ReadingProgress />
       <SkipToContent />
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} />
@@ -151,7 +151,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
         <article id="home" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
           <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">
             <FadeInSection>
-              <h1 className="whitespace-pre-line text-center font-serif text-[28px] leading-[1.2] text-[#9b723a] sm:text-[38px] lg:text-left lg:text-[58px]">
+              <h1 className="whitespace-pre-line text-center font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[38px] lg:text-left lg:text-[58px]">
                 {t.title}
               </h1>
               <div className="mt-8 flex justify-center lg:justify-start">
@@ -162,7 +162,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
                 </span>
                 <button
                   onClick={() => setLightboxOpen(true)}
-                  className="cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#9b723a]"
+                  className="cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
                   aria-label={lang === "EN" ? "View coat of arms full size" : "Открыть герб в полном размере"}
                   aria-describedby="crest-desc"
                 >
@@ -180,7 +180,7 @@ This combination precisely expresses the emotional and spiritual code of the Kar
             </FadeInSection>
 
             <FadeInSection>
-              <div className="drop-cap max-w-[700px] text-[16px] leading-[1.75] text-[#37332e] sm:text-[18px] lg:text-[22px] lg:leading-[1.65]">
+              <div className="drop-cap max-w-[700px] text-[16px] leading-[1.75] text-[var(--text-body)] sm:text-[18px] lg:text-[22px] lg:leading-[1.65]">
                 {t.intro.split("\n\n").map((p, idx) => (
                   <p key={idx} className="mb-5 text-left">{p}</p>
                 ))}
@@ -192,23 +192,23 @@ This combination precisely expresses the emotional and spiritual code of the Kar
         <HeraldicDivider />
 
         {/* Meaning */}
-        <section id="meaning" className="border-t border-[#d7d1c7]">
+        <section id="meaning" className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
             <FadeInSection>
-              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[#9b723a] sm:text-[28px] lg:mb-12 lg:text-[36px]">
+              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
                 {t.meaningTitle}
               </h2>
             </FadeInSection>
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
               <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[#3a3630] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
+                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
                   {t.leftCol.split("\n\n").map((p, idx) => (
                     <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
                   ))}
                 </div>
               </FadeInSection>
               <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[#3a3630] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
+                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
                   {t.rightCol.split("\n\n").map((p, idx) => (
                     <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
                   ))}
@@ -221,23 +221,23 @@ This combination precisely expresses the emotional and spiritual code of the Kar
         <HeraldicDivider />
 
         {/* Legacy */}
-        <section id="legacy" className="border-t border-[#d7d1c7]">
+        <section id="legacy" className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
             <FadeInSection>
-              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[#9b723a] sm:text-[28px] lg:mb-12 lg:text-[36px]">
+              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
                 {t.legacyTitle}
               </h2>
             </FadeInSection>
             <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
               <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[#3a3630] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
+                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
                   {t.finalLeft.split("\n\n").map((p, idx) => (
                     <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
                   ))}
                 </div>
               </FadeInSection>
               <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[#3a3630] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
+                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
                   {t.finalRight.split("\n\n").map((p, idx) => (
                     <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
                   ))}
@@ -250,17 +250,17 @@ This combination precisely expresses the emotional and spiritual code of the Kar
         <HeraldicDivider />
 
         {/* Names */}
-        <aside className="border-t border-[#d7d1c7]" aria-label={lang === "EN" ? "Family names" : "Имена семьи"}>
+        <aside className="border-t border-[var(--border)]" aria-label={lang === "EN" ? "Family names" : "Имена семьи"}>
           <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
             <FadeInSection>
-              <h3 className="mb-6 text-center font-serif text-[18px] tracking-wide text-[#9b723a] sm:text-[20px] lg:text-[22px]">
+              <h3 className="mb-6 text-center font-serif text-[18px] tracking-wide text-[var(--accent)] sm:text-[20px] lg:text-[22px]">
                 {t.namesTitle}
               </h3>
-              <div className="grid gap-6 text-center text-[14px] leading-[1.9] text-[#3a3630] sm:text-[15px] md:grid-cols-2 lg:text-[16px]">
+              <div className="grid gap-6 text-center text-[14px] leading-[1.9] text-[var(--text-secondary)] sm:text-[15px] md:grid-cols-2 lg:text-[16px]">
                 <div>{t.namesRu.map((name) => (<p key={name}>{name}</p>))}</div>
                 <div>{t.namesEn.map((name) => (<p key={name}>{name}</p>))}</div>
               </div>
-              <p className="mt-8 text-center text-[12px] tracking-[0.08em] text-[#6f685c] sm:text-[13px] lg:text-[14px]">
+              <p className="mt-8 text-center text-[12px] tracking-[0.08em] text-[var(--muted)] sm:text-[13px] lg:text-[14px]">
                 {t.namesFooter}
               </p>
             </FadeInSection>

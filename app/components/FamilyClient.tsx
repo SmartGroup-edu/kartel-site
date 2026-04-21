@@ -96,8 +96,8 @@ export default function FamilyClient() {
 
   if (!isReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#eeebe5]">
-        <span className="font-serif text-[24px] tracking-[0.12em] text-[#9b723a] sm:text-[28px]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+        <span className="font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px]">
           KARTEL
         </span>
       </div>
@@ -105,18 +105,18 @@ export default function FamilyClient() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#eeebe5] text-[#2b2824]">
+    <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
       <SkipToContent />
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth="max-w-6xl" />
 
       <main id="main-content" className="mx-auto max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
         {/* Hero */}
         <FadeInSection>
-          <header className="border-b border-[#d7d1c7] pb-8">
-            <h1 className="font-serif text-[28px] leading-[1.2] text-[#9b723a] sm:text-[36px] lg:text-[48px]">
+          <header className="border-b border-[var(--border)] pb-8">
+            <h1 className="font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[36px] lg:text-[48px]">
               {t.title}
             </h1>
-            <p className="mt-6 max-w-4xl text-[16px] leading-[1.8] text-[#3a3630] sm:text-[18px] lg:text-[19px]">
+            <p className="mt-6 max-w-4xl text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[19px]">
               {t.intro}
             </p>
           </header>
@@ -128,7 +128,7 @@ export default function FamilyClient() {
 
             <section className="py-8 lg:py-12" aria-label={group.title}>
               <FadeInSection>
-                <h2 className="mb-6 font-serif text-[18px] tracking-wide text-[#9b723a] sm:text-[20px] lg:mb-8 lg:text-[22px]">
+                <h2 className="mb-6 font-serif text-[18px] tracking-wide text-[var(--accent)] sm:text-[20px] lg:mb-8 lg:text-[22px]">
                   {group.title}
                 </h2>
               </FadeInSection>
@@ -137,17 +137,17 @@ export default function FamilyClient() {
                 {group.members.map((p) => (
                   <FadeInSection key={p.name}>
                     <article
-                      className="group h-full border border-[#d7d1c7] bg-[#f4f1eb] p-5 transition-all duration-200 hover:border-[#c4b89a] hover:shadow-md sm:p-6"
+                      className="group h-full border border-[var(--border)] bg-[var(--surface)] p-5 transition-all duration-200 hover:border-[var(--muted-light)] hover:shadow-md sm:p-6"
                       itemScope
                       itemType="https://schema.org/Person"
                     >
                       <h3
-                        className="font-serif text-[20px] leading-[1.3] text-[#9b723a] transition-colors group-hover:text-[#85612f] sm:text-[22px] lg:text-[24px]"
+                        className="font-serif text-[20px] leading-[1.3] text-[var(--accent)] transition-colors group-hover:text-[var(--accent-hover)] sm:text-[22px] lg:text-[24px]"
                         itemProp="name"
                       >
                         {p.name}
                       </h3>
-                      <p className="mt-3 text-[15px] leading-[1.8] text-[#3a3630] sm:text-[16px]" itemProp="description">
+                      <p className="mt-3 text-[15px] leading-[1.8] text-[var(--text-secondary)] sm:text-[16px]" itemProp="description">
                         {p.description}
                       </p>
                       <meta itemProp="familyName" content="Kartel" />
