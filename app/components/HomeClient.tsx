@@ -14,6 +14,7 @@ import BackToTop from "./BackToTop";
 import SkipToContent from "./SkipToContent";
 import ReadingProgress from "./ReadingProgress";
 import ShareButtons from "./ShareButtons";
+import CrestExplorer from "./CrestExplorer";
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
@@ -217,6 +218,15 @@ This combination precisely expresses the emotional and spiritual code of the Kar
                 </div>
               </FadeInSection>
             </div>
+          </div>
+        </section>
+
+        {/* Interactive Explorer */}
+        <section className="border-t border-[var(--border)]" aria-label={lang === "EN" ? "Interactive coat of arms explorer" : "Интерактивный просмотр герба"}>
+          <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
+            <FadeInSection>
+              <CrestExplorer lang={lang} />
+            </FadeInSection>
           </div>
         </section>
 

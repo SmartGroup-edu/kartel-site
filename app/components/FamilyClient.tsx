@@ -7,6 +7,7 @@ import FadeInSection from "./FadeInSection";
 import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import SkipToContent from "./SkipToContent";
+import FamilyTree from "./FamilyTree";
 
 type Generation = "elder" | "current" | "next";
 
@@ -121,6 +122,15 @@ export default function FamilyClient() {
             </p>
           </header>
         </FadeInSection>
+
+        {/* Family Tree Visualization */}
+        <FadeInSection>
+          <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family tree" : "Родословное древо"}>
+            <FamilyTree lang={lang} />
+          </section>
+        </FadeInSection>
+
+        <HeraldicDivider />
 
         {groupByGeneration(t.people, t.generationLabels).map((group) => (
           <div key={group.key}>
