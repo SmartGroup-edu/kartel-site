@@ -16,6 +16,8 @@ import ReadingProgress from "./ReadingProgress";
 import ShareButtons from "./ShareButtons";
 import CrestExplorer from "./CrestExplorer";
 import HeraldicPalette from "./HeraldicPalette";
+import MottoBanner from "./MottoBanner";
+import SectionDots from "./SectionDots";
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
@@ -148,6 +150,14 @@ This combination precisely expresses the emotional and spiritual code of the Kar
       <ReadingProgress />
       <SkipToContent />
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} />
+      <SectionDots
+        sections={[
+          { id: "home", label: t.navHome },
+          { id: "meaning", label: t.navMeaning },
+          { id: "legacy", label: t.navLegacy },
+        ]}
+        activeSection={activeSection}
+      />
 
       <main id="main-content" role="main">
         {/* Hero */}
@@ -193,7 +203,9 @@ This combination precisely expresses the emotional and spiritual code of the Kar
           </div>
         </article>
 
-        <HeraldicDivider />
+        <FadeInSection>
+          <MottoBanner lang={lang} />
+        </FadeInSection>
 
         {/* Meaning */}
         <section id="meaning" className="border-t border-[var(--border)]">
