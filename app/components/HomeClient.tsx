@@ -15,6 +15,7 @@ import SkipToContent from "./SkipToContent";
 import ReadingProgress from "./ReadingProgress";
 import ShareButtons from "./ShareButtons";
 import CrestExplorer from "./CrestExplorer";
+import HeraldicPalette from "./HeraldicPalette";
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
@@ -256,6 +257,13 @@ This combination precisely expresses the emotional and spiritual code of the Kar
                 </div>
               </FadeInSection>
             </div>
+
+            {/* Colour Palette */}
+            <FadeInSection>
+              <div className="mt-12 border-t border-[var(--border)] pt-12 lg:mt-16 lg:pt-16">
+                <HeraldicPalette lang={lang} />
+              </div>
+            </FadeInSection>
           </div>
         </section>
 

@@ -8,6 +8,7 @@ import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import SkipToContent from "./SkipToContent";
 import FamilyTree from "./FamilyTree";
+import FamilyTimeline from "./FamilyTimeline";
 
 type Generation = "elder" | "current" | "next";
 
@@ -127,6 +128,13 @@ export default function FamilyClient() {
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family tree" : "Родословное древо"}>
             <FamilyTree lang={lang} />
+          </section>
+        </FadeInSection>
+
+        {/* Family Chronicle Timeline */}
+        <FadeInSection>
+          <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family chronicle" : "Семейная хроника"}>
+            <FamilyTimeline lang={lang} />
           </section>
         </FadeInSection>
 
