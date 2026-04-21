@@ -13,6 +13,7 @@ import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import SkipToContent from "./SkipToContent";
 import ReadingProgress from "./ReadingProgress";
+import ShareButtons from "./ShareButtons";
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
@@ -267,6 +268,17 @@ This combination precisely expresses the emotional and spiritual code of the Kar
             </FadeInSection>
           </div>
         </aside>
+
+        {/* Share */}
+        <FadeInSection>
+          <div className="border-t border-[var(--border)] py-8 lg:py-10">
+            <ShareButtons
+              url="https://kartel.org.uk"
+              title={lang === "EN" ? "KARTEL — Family Coat of Arms & Legacy" : "КАРТЕЛЬ — Фамильный герб и наследие"}
+              lang={lang}
+            />
+          </div>
+        </FadeInSection>
       </main>
 
       <SiteFooter motto={t.footerMotto} copy={t.footerCopy} />

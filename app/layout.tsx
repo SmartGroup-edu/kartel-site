@@ -87,6 +87,11 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))`,
+          }}
+        />
         <noscript>
           <div style={{ maxWidth: "800px", margin: "40px auto", padding: "0 20px", fontFamily: "Georgia, serif", color: "#2b2824" }}>
             <h1 style={{ color: "#9b723a", fontSize: "32px", marginBottom: "16px" }}>KARTEL — Coat of Arms of the Kartel Family</h1>
