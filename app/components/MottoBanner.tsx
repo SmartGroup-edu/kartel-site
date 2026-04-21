@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef, useState, useEffect, useCallback } from "react";
+
 interface MottoBannerProps {
   lang: "EN" | "RU";
 }
@@ -7,14 +9,56 @@ interface MottoBannerProps {
 export default function MottoBanner({ lang }: MottoBannerProps) {
   const translation =
     lang === "EN" ? "Strength and Power" : "Сила и Власть";
+  const ref = useRef<HTMLDivElement>(null);
+  const [offset, setOffset] = useState(0);
+
+  const handleScroll = useCallback(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const windowH = window.innerHeight;
+    // Only calculate when banner is in/near viewport
+    if (rect.bottom < -100 || rect.top > windowH + 100) return;
+    // Parallax: shift text relative to scroll position
+    const center = rect.top + rect.height / 2;
+    const delta = (center - windowH / 2) / windowH;
+    setOffset(delta * -30); // max ±30px shift
+  }, []);
+
+  useEffect(() => {
+    // Respect reduced motion
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   return (
-    <div className="relative overflow-hidden bg-[var(--foreground)] py-10 sm:py-14 lg:py-16">
+    <div ref={ref} className="relative overflow-hidden bg-[var(--foreground)] py-10 sm:py-14 lg:py-16">
+      {/* Subtle background pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `repeating-linear-gradient(
+            45deg,
+            var(--accent) 0px,
+            var(--accent) 1px,
+            transparent 1px,
+            transparent 12px
+          )`,
+        }}
+      />
+
       {/* Decorative corner elements */}
       <div className="absolute left-4 top-4 h-8 w-8 border-l-2 border-t-2 border-[var(--accent)]/30 sm:left-8 sm:top-6 sm:h-10 sm:w-10" aria-hidden="true" />
       <div className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-[var(--accent)]/30 sm:bottom-6 sm:right-8 sm:h-10 sm:w-10" aria-hidden="true" />
 
-      <div className="mx-auto max-w-4xl px-6 text-center">
+      {/* Parallax content */}
+      <div
+        className="relative mx-auto max-w-4xl px-6 text-center transition-transform duration-100 ease-out"
+        style={{ transform: `translateY(${offset}px)` }}
+      >
         {/* Decorative line */}
         <div className="mx-auto mb-5 h-px w-16 bg-[var(--accent)]/40 sm:w-20" aria-hidden="true" />
 

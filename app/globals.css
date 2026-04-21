@@ -228,4 +228,61 @@ p {
   .font-serif {
     color: black !important;
   }
+
+  /* Hide interactive-only elements */
+  [aria-label="Section navigation"],
+  [aria-label="Interactive coat of arms explorer"],
+  [aria-label="Интерактивный просмотр герба"] {
+    display: none !important;
+  }
+
+  /* Motto banner — keep but simplify */
+  [lang="la"] {
+    color: black !important;
+    font-size: 18pt;
+  }
+
+  /* Family tree — linearize for print */
+  [aria-label="Family tree"] svg,
+  [aria-label="Родословное древо"] svg {
+    display: none !important;
+  }
+
+  [aria-label="Family tree"] [role="button"],
+  [aria-label="Родословное древо"] [role="button"] {
+    border: 1px solid #999 !important;
+    background: white !important;
+    padding: 6pt 8pt !important;
+    margin: 4pt !important;
+    min-width: auto !important;
+    page-break-inside: avoid;
+  }
+
+  /* Timeline — ensure clean print */
+  [role="list"][aria-label*="Chronicle"],
+  [role="list"][aria-label*="хроника"] {
+    page-break-inside: avoid;
+  }
+
+  [role="listitem"] {
+    page-break-inside: avoid;
+    border-left: 1px solid #999 !important;
+  }
+
+  /* Colour palette — show swatches with borders */
+  [aria-expanded] {
+    border: 1px solid #999 !important;
+    page-break-inside: avoid;
+  }
+
+  /* Section borders */
+  section {
+    border-color: #ccc !important;
+  }
+
+  /* Force all text visible */
+  [class*="opacity-0"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

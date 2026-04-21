@@ -166,6 +166,22 @@ const structuredData = {
       "description": "Elder generation of the Kartel family.",
       "memberOf": { "@id": "https://kartel.org.uk/#organization" },
     },
+    {
+      "@type": "ItemList",
+      "@id": "https://kartel.org.uk/family#chronicle",
+      "name": "Kartel Family Chronicle",
+      "alternateName": "Семейная хроника Картель",
+      "description": "Key milestones in the history of the Kartel family.",
+      "numberOfItems": 6,
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "The Kartel Name", "description": "The family name Kartel carries an echo of strength and unity — the foundation of identity across generations." },
+        { "@type": "ListItem", "position": 2, "name": "Piotr & Valentina Kartel", "description": "The elder generation laid the foundation of values, discipline, and faith." },
+        { "@type": "ListItem", "position": 3, "name": "A New Chapter in London", "description": "The family established its presence in London, bringing heritage and ambition to a new horizon." },
+        { "@type": "ListItem", "position": 4, "name": "Igor Gor & Diana Kartel", "description": "The present generation carries forward the family name with purpose." },
+        { "@type": "ListItem", "position": 5, "name": "Dominika, Arina, Igor Kaid & Feliks", "description": "The next generation — the living continuation of the Kartel legacy." },
+        { "@type": "ListItem", "position": 6, "name": "Virtus et Potestas", "description": "The creation of the family coat of arms — a heraldic symbol uniting all generations." },
+      ],
+    },
   ],
 };
 
