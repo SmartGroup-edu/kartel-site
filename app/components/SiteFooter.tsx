@@ -17,14 +17,14 @@ export default function SiteFooter({ motto, copy, maxWidth = "max-w-7xl" }: Site
           <nav aria-label="Footer links" className="mt-1 flex items-center gap-4 text-[11px] tracking-[0.05em] text-[var(--muted-light)] sm:text-[12px]">
             <a
               href="mailto:gor@kartel.org.uk"
-              className="transition-colors hover:text-[var(--accent)]"
+              className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               gor@kartel.org.uk
             </a>
             <span aria-hidden="true" className="text-[var(--border)]">·</span>
             <a
               href="/sitemap.xml"
-              className="transition-colors hover:text-[var(--accent)]"
+              className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               Sitemap
             </a>
