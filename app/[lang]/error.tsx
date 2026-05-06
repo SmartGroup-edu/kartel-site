@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useLang } from "./components/useLang";
+import { useParams } from "next/navigation";
 
 const text = {
-  EN: { heading: "Error", message: "Something went wrong. Please try again.", cta: "TRY AGAIN" },
-  RU: { heading: "Ошибка", message: "Что-то пошло не так. Пожалуйста, попробуйте ещё раз.", cta: "ПОВТОРИТЬ" },
+  en: { heading: "Error", message: "Something went wrong. Please try again.", cta: "TRY AGAIN" },
+  ru: { heading: "Ошибка", message: "Что-то пошло не так. Пожалуйста, попробуйте ещё раз.", cta: "ПОВТОРИТЬ" },
 };
 
 export default function Error({
@@ -15,7 +15,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const { lang } = useLang();
+  const params = useParams<{ lang: string }>();
+  const lang = (params?.lang === "ru" ? "ru" : "en") as keyof typeof text;
   const t = text[lang];
 
   useEffect(() => {

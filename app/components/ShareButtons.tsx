@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 interface ShareButtonsProps {
   url: string;
@@ -8,14 +8,19 @@ interface ShareButtonsProps {
   lang: "EN" | "RU";
 }
 
+const noopSubscribe = () => () => {};
+const getCanShareSnapshot = () =>
+  typeof navigator !== "undefined" && "share" in navigator;
+const getCanShareServerSnapshot = () => false;
+
 export default function ShareButtons({ url, title, lang }: ShareButtonsProps) {
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    setCanShare("share" in navigator);
-  }, []);
+  const canShare = useSyncExternalStore(
+    noopSubscribe,
+    getCanShareSnapshot,
+    getCanShareServerSnapshot
+  );
 
   const handleNativeShare = useCallback(async () => {
     if (navigator.share) {

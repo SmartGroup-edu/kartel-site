@@ -1,5 +1,10 @@
-// KARTEL Service Worker — Offline-first caching
-const CACHE_NAME = "kartel-20260420";
+export const dynamic = "force-static";
+
+const VERSION =
+  process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ?? `dev-${Date.now()}`;
+
+const SW_CONTENT = `// KARTEL Service Worker — Offline-first caching
+const CACHE_NAME = "kartel-${VERSION}";
 const STATIC_ASSETS = [
   "/",
   "/family",
@@ -51,7 +56,7 @@ self.addEventListener("fetch", (event) => {
 
   // Static assets: cache-first
   if (
-    url.pathname.match(/\.(jpeg|webp|png|svg|ico|js|css|woff2?)$/) ||
+    url.pathname.match(/\\.(jpeg|webp|png|svg|ico|js|css|woff2?)$/) ||
     url.pathname.startsWith("/_next/static/")
   ) {
     event.respondWith(
@@ -68,3 +73,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
+`;
+
+export function GET() {
+  return new Response(SW_CONTENT, {
+    headers: {
+      "Content-Type": "application/javascript; charset=utf-8",
+      "Service-Worker-Allowed": "/",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+    },
+  });
+}

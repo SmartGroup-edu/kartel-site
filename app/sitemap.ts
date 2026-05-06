@@ -7,26 +7,54 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [
     {
-      url: `${BASE}/`,
+      url: `${BASE}/en`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 1.0,
       alternates: {
         languages: {
-          en: `${BASE}/?lang=EN`,
-          ru: `${BASE}/?lang=RU`,
+          en: `${BASE}/en`,
+          ru: `${BASE}/ru`,
+          "x-default": `${BASE}/en`,
         },
       },
     },
     {
-      url: `${BASE}/family`,
+      url: `${BASE}/ru`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 1.0,
+      alternates: {
+        languages: {
+          en: `${BASE}/en`,
+          ru: `${BASE}/ru`,
+          "x-default": `${BASE}/en`,
+        },
+      },
+    },
+    {
+      url: `${BASE}/en/family`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.8,
       alternates: {
         languages: {
-          en: `${BASE}/family?lang=EN`,
-          ru: `${BASE}/family?lang=RU`,
+          en: `${BASE}/en/family`,
+          ru: `${BASE}/ru/family`,
+          "x-default": `${BASE}/en/family`,
+        },
+      },
+    },
+    {
+      url: `${BASE}/ru/family`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/family`,
+          ru: `${BASE}/ru/family`,
+          "x-default": `${BASE}/en/family`,
         },
       },
     },

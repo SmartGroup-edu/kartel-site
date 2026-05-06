@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { useScrollY } from "./useScrollY";
 
 interface MottoBannerProps {
@@ -11,23 +11,25 @@ export default function MottoBanner({ lang }: MottoBannerProps) {
   const translation =
     lang === "EN" ? "Strength and Power" : "Сила и Власть";
   const ref = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const scrollY = useScrollY();
-  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
-
-  let offset = 0;
-  if (!reduced && ref.current) {
-    const rect = ref.current.getBoundingClientRect();
-    const windowH = window.innerHeight;
-    if (!(rect.bottom < -100 || rect.top > windowH + 100)) {
-      const center = rect.top + rect.height / 2;
-      const delta = (center - windowH / 2) / windowH;
-      offset = delta * -30;
+    const el = ref.current;
+    const content = contentRef.current;
+    if (!el || !content) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      content.style.transform = "";
+      return;
     }
-  }
+    const rect = el.getBoundingClientRect();
+    const windowH = window.innerHeight;
+    if (rect.bottom < -100 || rect.top > windowH + 100) return;
+    const center = rect.top + rect.height / 2;
+    const delta = (center - windowH / 2) / windowH;
+    const offset = delta * -30;
+    content.style.transform = `translateY(${offset}px)`;
+  }, [scrollY]);
 
   return (
     <div ref={ref} className="relative overflow-hidden bg-[var(--foreground)] py-10 sm:py-14 lg:py-16">
@@ -52,8 +54,8 @@ export default function MottoBanner({ lang }: MottoBannerProps) {
 
       {/* Parallax content */}
       <div
+        ref={contentRef}
         className="relative mx-auto max-w-4xl px-6 text-center transition-transform duration-100 ease-out"
-        style={{ transform: `translateY(${offset}px)` }}
       >
         {/* Decorative line */}
         <div className="mx-auto mb-5 h-px w-16 bg-[var(--accent)]/40 sm:w-20" aria-hidden="true" />

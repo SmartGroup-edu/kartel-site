@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
-import { useLang } from "./useLang";
+import { useLangToggle, type Lang } from "./useLang";
 import { useActiveSection } from "./useActiveSection";
 import { useSectionKeyboard } from "./useSectionKeyboard";
 import SiteHeader from "./SiteHeader";
@@ -22,8 +22,9 @@ import { homeContent } from "../content/home";
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
-export default function HomeClient() {
-  const { lang, toggleLang, isReady } = useLang();
+export default function HomeClient({ lang }: { lang: Lang }) {
+  const toggleLang = useLangToggle(lang);
+  const langPath = lang.toLowerCase();
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const t = homeContent[lang];
@@ -34,18 +35,8 @@ export default function HomeClient() {
     { label: t.navHome, href: "#home", active: activeSection === "home" },
     { label: t.navMeaning, href: "#meaning", active: activeSection === "meaning" },
     { label: t.navLegacy, href: "#legacy", active: activeSection === "legacy" },
-    { label: t.navFamily, href: `/family?lang=${lang}` },
-  ], [t, activeSection, lang]);
-
-  if (!isReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
-        <span className="font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px]">
-          KARTEL
-        </span>
-      </div>
-    );
-  }
+    { label: t.navFamily, href: `/${langPath}/family` },
+  ], [t, activeSection, langPath]);
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
@@ -205,7 +196,7 @@ export default function HomeClient() {
         <FadeInSection>
           <div className="border-t border-[var(--border)] py-8 lg:py-10">
             <ShareButtons
-              url="https://kartel.org.uk"
+              url={`https://kartel.org.uk/${langPath}`}
               title={lang === "EN" ? "KARTEL — Family Coat of Arms & Legacy" : "КАРТЕЛЬ — Фамильный герб и наследие"}
               lang={lang}
             />

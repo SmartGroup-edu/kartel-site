@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect } from "react";
 import { useFocusTrap } from "./useFocusTrap";
 
 interface ImageLightboxProps {
@@ -12,52 +12,38 @@ interface ImageLightboxProps {
 }
 
 export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: ImageLightboxProps) {
-  const [visible, setVisible] = useState(false);
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   useEffect(() => {
-    if (isOpen) {
-      // Delay to allow the backdrop to render before animating in
-      requestAnimationFrame(() => setVisible(true));
-      document.body.style.overflow = "hidden";
-    } else {
-      setVisible(false);
-      document.body.style.overflow = "";
-    }
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
 
-  const handleClose = useCallback(() => {
-    setVisible(false);
-    setTimeout(onClose, 300);
-  }, [onClose]);
-
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isOpen, handleClose]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
     <div
       ref={trapRef}
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 transition-opacity duration-300 ${
-        visible ? "opacity-100" : "opacity-0"
-      }`}
-      onClick={handleClose}
+      className="fixed inset-0 z-50 flex animate-lightbox-in items-center justify-center bg-black/80"
+      onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={alt}
     >
       <button
-        onClick={handleClose}
+        onClick={onClose}
         className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         aria-label="Close"
       >
@@ -67,14 +53,11 @@ export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: Im
       </button>
 
       <div
-        className={`max-h-[90vh] max-w-[90vw] transition-transform duration-300 ${
-          visible ? "scale-100" : "scale-95"
-        }`}
+        className="max-h-[90vh] max-w-[90vw] animate-lightbox-zoom-in"
         onClick={(e) => e.stopPropagation()}
       >
         <picture>
           {webpSrc && <source srcSet={webpSrc} type="image/webp" />}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
             alt={alt}

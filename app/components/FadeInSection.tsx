@@ -2,11 +2,6 @@
 
 import { useRef, useState, useEffect } from "react";
 
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 export default function FadeInSection({
   children,
   className = "",
@@ -16,15 +11,8 @@ export default function FadeInSection({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const reduced = useRef(false);
 
   useEffect(() => {
-    reduced.current = prefersReducedMotion();
-    if (reduced.current) {
-      setVisible(true);
-      return;
-    }
-
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
@@ -43,8 +31,10 @@ export default function FadeInSection({
   return (
     <div
       ref={ref}
-      className={`transition-all duration-700 ease-out ${
-        visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+      className={`motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
+        visible
+          ? "translate-y-0 opacity-100"
+          : "motion-safe:translate-y-6 motion-safe:opacity-0"
       } ${className}`}
     >
       {children}

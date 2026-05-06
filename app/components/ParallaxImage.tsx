@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import Image from "next/image";
 import { useScrollY } from "./useScrollY";
 
@@ -26,24 +26,28 @@ export default function ParallaxImage({
   sizes,
 }: ParallaxImageProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const scrollY = useScrollY();
-  const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
-    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  }, []);
-
-  let offset = 0;
-  if (!reduced && ref.current) {
-    const rect = ref.current.getBoundingClientRect();
+    const el = ref.current;
+    const img = imgRef.current;
+    if (!el || !img) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      img.style.transform = "";
+      return;
+    }
+    const rect = el.getBoundingClientRect();
     const center = rect.top + rect.height / 2;
     const viewCenter = window.innerHeight / 2;
-    offset = (center - viewCenter) * speed;
-  }
+    const offset = (center - viewCenter) * speed;
+    img.style.transform = `translateY(${offset}px)`;
+  }, [scrollY, speed]);
 
   return (
     <div ref={ref} className="overflow-hidden">
       <Image
+        ref={imgRef}
         src={src}
         alt={alt}
         width={width}
@@ -51,10 +55,7 @@ export default function ParallaxImage({
         priority={priority}
         sizes={sizes}
         className={className}
-        style={{
-          transform: reduced ? undefined : `translateY(${offset}px)`,
-          transition: "transform 0.1s linear",
-        }}
+        style={{ transition: "transform 0.1s linear" }}
       />
     </div>
   );

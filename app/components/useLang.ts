@@ -1,41 +1,35 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useCallback } from "react";
 
 export type Lang = "EN" | "RU";
 
-export function useLang(defaultLang: Lang = "EN") {
-  const [lang, setLang] = useState<Lang>(defaultLang);
-  const [isReady, setIsReady] = useState(false);
+const LOCALE_SEGMENTS = new Set(["en", "ru"]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlLang = params.get("lang");
-    if (urlLang === "RU" || urlLang === "EN") {
-      setLang(urlLang);
-    } else {
-      const stored = localStorage.getItem("kartel-lang");
-      if (stored === "RU" || stored === "EN") setLang(stored);
-    }
-    setIsReady(true);
-  }, []);
+function buildPathForLang(pathname: string, nextLower: "en" | "ru"): string {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    return `/${nextLower}`;
+  }
+  if (LOCALE_SEGMENTS.has(segments[0])) {
+    segments[0] = nextLower;
+  } else {
+    segments.unshift(nextLower);
+  }
+  return "/" + segments.join("/");
+}
 
-  // Keep <html lang="..."> in sync with the selected language
-  useEffect(() => {
-    if (isReady) {
-      document.documentElement.lang = lang === "RU" ? "ru" : "en";
-    }
-  }, [lang, isReady]);
+/**
+ * Returns a `toggleLang` callback that navigates between /en and /ru while
+ * preserving the rest of the path (e.g. /en/family ↔ /ru/family).
+ */
+export function useLangToggle(currentLang: Lang) {
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const toggleLang = useCallback(() => {
-    const next = lang === "EN" ? "RU" : "EN";
-    setLang(next);
-    localStorage.setItem("kartel-lang", next);
-    // Keep URL in sync so shared links preserve the language
-    const url = new URL(window.location.href);
-    url.searchParams.set("lang", next);
-    window.history.replaceState({}, "", url.toString());
-  }, [lang]);
-
-  return { lang, toggleLang, isReady } as const;
+  return useCallback(() => {
+    const nextLower: "en" | "ru" = currentLang === "EN" ? "ru" : "en";
+    router.push(buildPathForLang(pathname || "/", nextLower));
+  }, [currentLang, pathname, router]);
 }

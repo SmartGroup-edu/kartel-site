@@ -1,25 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useLang } from "./components/useLang";
+import { useParams } from "next/navigation";
 
 const text = {
-  EN: { message: "This page does not exist.", cta: "RETURN HOME" },
-  RU: { message: "Эта страница не существует.", cta: "НА ГЛАВНУЮ" },
+  en: { message: "This page does not exist.", cta: "RETURN HOME" },
+  ru: { message: "Эта страница не существует.", cta: "НА ГЛАВНУЮ" },
 };
 
 export default function NotFound() {
-  const { lang } = useLang();
+  const params = useParams<{ lang: string }>();
+  const lang = (params?.lang === "ru" ? "ru" : "en") as keyof typeof text;
   const t = text[lang];
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 text-center">
-      <a
-        href={`/?lang=${lang}`}
+      <Link
+        href={`/${lang}`}
         className="mb-8 font-serif text-[20px] tracking-[0.12em] text-[var(--accent)] transition-opacity hover:opacity-80 sm:text-[24px]"
       >
         KARTEL
-      </a>
+      </Link>
       <h1 className="font-serif text-[72px] leading-none text-[var(--accent)] sm:text-[96px]">
         404
       </h1>
@@ -32,7 +33,7 @@ export default function NotFound() {
         {t.message}
       </p>
       <Link
-        href={`/?lang=${lang}`}
+        href={`/${lang}`}
         className="mt-8 border border-[var(--accent)] px-6 py-3 text-sm tracking-[0.1em] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       >
         {t.cta}

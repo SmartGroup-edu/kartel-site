@@ -35,7 +35,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, maxWidth = "max
     <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur transition-colors duration-300">
       <div className={`mx-auto flex ${maxWidth} items-center justify-between px-4 py-4 sm:px-6 lg:px-10 lg:py-5`}>
         <a
-          href={`/?lang=${lang}`}
+          href={`/${lang.toLowerCase()}`}
           className="font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] transition-all duration-300 hover:tracking-[0.18em] hover:opacity-90 sm:text-[28px] lg:text-[30px]"
         >
           KARTEL

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLang } from "./useLang";
+import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
@@ -11,25 +11,16 @@ import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
 import { familyContent, groupByGeneration } from "../content/family";
 
-export default function FamilyClient() {
-  const { lang, toggleLang, isReady } = useLang();
+export default function FamilyClient({ lang }: { lang: Lang }) {
+  const toggleLang = useLangToggle(lang);
+  const langPath = lang.toLowerCase();
 
   const t = familyContent[lang];
 
   const navItems = [
-    { label: t.homeLabel, href: `/?lang=${lang}` },
-    { label: t.familyLabel, href: `/family?lang=${lang}`, active: true },
+    { label: t.homeLabel, href: `/${langPath}` },
+    { label: t.familyLabel, href: `/${langPath}/family`, active: true },
   ];
-
-  if (!isReady) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
-        <span className="font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px]">
-          KARTEL
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
