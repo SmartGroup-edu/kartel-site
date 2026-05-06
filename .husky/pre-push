@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+# Fast pre-push gate: run lint and typecheck before allowing push to main.
+# Build is intentionally not run here (slow); CI catches it.
+set -e
+echo "→ pre-push: lint"
+npm run lint
+echo "→ pre-push: typecheck"
+npx tsc --noEmit

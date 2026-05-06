@@ -3,18 +3,23 @@
 :root {
   --background: #eeebe5;
   --foreground: #2b2824;
-  --accent: #9b723a;
+  /* WCAG AA on light bg #eeebe5 — accent darkened from #9b723a (3.65:1) to
+     #876035 (4.7:1) so it can be used for body & UI text, not just headings. */
+  --accent: #876035;
   --accent-hover: #b8884a;
   --muted: #6f685c;
-  --muted-light: #9a9488;
+  /* --muted-light was #9a9488 (2.47:1) — failed WCAG everywhere it appeared
+     as text. Darkened to meet 4.5:1 for the small "hint" labels that use it. */
+  --muted-light: #6e6759;
   --border: #d7d1c7;
   --surface: #e8e4dd;
   --text-body: #37332e;
   --text-secondary: #3a3630;
-  --text-nav: #786e5e;
-  --selection-bg: rgba(155, 114, 58, 0.2);
+  /* --text-nav was #786e5e (4.18:1) — borderline. Darkened to 5:1+. */
+  --text-nav: #5e5547;
+  --selection-bg: rgba(135, 96, 53, 0.2);
   --header-bg: rgba(238, 235, 229, 0.95);
-  --drop-cap: #9b723a;
+  --drop-cap: #876035;
 }
 
 .dark {
@@ -23,7 +28,9 @@
   --accent: #c9964e;
   --accent-hover: #daa85e;
   --muted: #9a9488;
-  --muted-light: #6f685c;
+  /* In dark mode --muted-light was #6f685c (3.16:1 on #1a1816) — failed AA.
+     Lightened so small hint text meets 4.5:1. */
+  --muted-light: #918878;
   --border: #332e28;
   --surface: #231f1b;
   --text-body: #c4bfb5;

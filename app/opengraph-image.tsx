@@ -83,7 +83,7 @@ export default async function OGImage() {
               display: "flex",
               fontSize: 64,
               letterSpacing: "0.15em",
-              color: "#9b723a",
+              color: "#876035",
               marginBottom: 12,
             }}
           >
@@ -109,7 +109,7 @@ export default async function OGImage() {
               display: "flex",
               fontSize: 20,
               fontStyle: "italic",
-              color: "#9b723a",
+              color: "#876035",
               marginTop: 20,
             }}
           >
@@ -132,7 +132,7 @@ export default async function OGImage() {
             style={{
               display: "flex",
               fontSize: 14,
-              color: "#9a9488",
+              color: "#7a7468",
               letterSpacing: "0.1em",
               marginTop: 16,
             }}

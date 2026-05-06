@@ -15,7 +15,7 @@ function applyTheme(resolved: "light" | "dark") {
   }
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute("content", resolved === "dark" ? "#1a1816" : "#9b723a");
+    meta.setAttribute("content", resolved === "dark" ? "#1a1816" : "#876035");
   }
 }
 

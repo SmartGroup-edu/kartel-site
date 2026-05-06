@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
 import { useLangToggle, type Lang } from "./useLang";
@@ -14,11 +15,16 @@ import BackToTop from "./BackToTop";
 import SkipToContent from "./SkipToContent";
 import ReadingProgress from "./ReadingProgress";
 import ShareButtons from "./ShareButtons";
-import CrestExplorer from "./CrestExplorer";
 import HeraldicPalette from "./HeraldicPalette";
 import MottoBanner from "./MottoBanner";
 import SectionDots from "./SectionDots";
 import { homeContent } from "../content/home";
+
+// Below-the-fold interactive widget — split into its own chunk so the
+// 8 heraldic-element descriptions (~16KB of EN+RU prose) don't ship with
+// the initial page bundle. SSR is preserved so the section text still
+// lands in the prerendered HTML for SEO.
+const CrestExplorer = dynamic(() => import("./CrestExplorer"));
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 

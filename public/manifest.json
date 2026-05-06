@@ -2,12 +2,12 @@
   "name": "KARTEL — Family Coat of Arms & Legacy",
   "short_name": "KARTEL",
   "description": "Kartel family coat of arms, legacy, and identity based in London. Virtus et Potestas.",
-  "start_url": "/?source=pwa",
+  "start_url": "/en?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#eeebe5",
-  "theme_color": "#9b723a",
+  "theme_color": "#876035",
   "lang": "en-GB",
   "dir": "ltr",
   "categories": ["education", "lifestyle"],
@@ -46,7 +46,7 @@
     {
       "name": "Family Members",
       "short_name": "Family",
-      "url": "/family",
+      "url": "/en/family",
       "description": "View all Kartel family members"
     }
   ],

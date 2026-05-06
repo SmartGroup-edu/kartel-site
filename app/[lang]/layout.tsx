@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "../globals.css";
 
 const LOCALES = ["en", "ru"] as const;
@@ -130,8 +132,18 @@ export async function generateMetadata({
       follow: true,
     },
     manifest: "/manifest.json",
+    verification: {
+      // Set GOOGLE_SITE_VERIFICATION / BING_SITE_VERIFICATION env vars in
+      // Vercel project settings; values come from Search Console / Bing Webmaster.
+      ...(process.env.GOOGLE_SITE_VERIFICATION
+        ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+        : {}),
+      ...(process.env.BING_SITE_VERIFICATION
+        ? { other: { "msvalidate.01": process.env.BING_SITE_VERIFICATION } }
+        : {}),
+    },
     other: {
-      "theme-color": "#9b723a",
+      "theme-color": "#876035",
       author: "Kartel Family",
     },
   };
@@ -153,7 +165,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#9b723a')}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#876035')}catch(e){}})()`,
           }}
         />
         <link rel="author" href="/humans.txt" />
@@ -161,6 +173,8 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
+        <Analytics />
+        <SpeedInsights />
         <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))`,
@@ -168,13 +182,13 @@ export default async function RootLayout({
         />
         <noscript>
           <div style={{ maxWidth: "800px", margin: "40px auto", padding: "0 20px", fontFamily: "Georgia, serif", color: "#2b2824" }}>
-            <h1 style={{ color: "#9b723a", fontSize: "32px", marginBottom: "16px" }}>
+            <h1 style={{ color: "#876035", fontSize: "32px", marginBottom: "16px" }}>
               KARTEL
             </h1>
             <p style={{ fontSize: "18px", lineHeight: "1.8", marginBottom: "16px" }}>
               {ns.intro}
             </p>
-            <h2 style={{ color: "#9b723a", fontSize: "24px", marginBottom: "12px" }}>
+            <h2 style={{ color: "#876035", fontSize: "24px", marginBottom: "12px" }}>
               {ns.membersHeading}
             </h2>
             <p style={{ fontSize: "16px", lineHeight: "1.9" }}>{ns.members}</p>
