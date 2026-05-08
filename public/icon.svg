@@ -1,4 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="8" fill="#2b2824"/>
-  <text x="32" y="44" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="32" font-weight="bold" fill="#876035" letter-spacing="2">K</text>
+  <g fill="#876035">
+    <rect x="18" y="12" width="8" height="40"/>
+    <polygon points="26,28 44,12 52,12 32,32"/>
+    <polygon points="32,32 52,52 44,52 26,36"/>
+  </g>
 </svg>
