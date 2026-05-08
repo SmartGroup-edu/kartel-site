@@ -119,12 +119,17 @@ export async function generateMetadata({
     },
     icons: {
       icon: [
-        { url: "/favicon.ico", sizes: "48x48" },
+        // Vector variant for browsers that support it. Has the K mark inline.
         { url: "/icon.svg", type: "image/svg+xml" },
+        // Generated at app/icon.tsx — clean K mark for tab/address-bar use.
+        { url: "/icon", type: "image/png", sizes: "32x32" },
+        // Full coat of arms for PWA install (referenced by manifest too).
         { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
       ],
       apple: [
-        { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+        // Generated at app/apple-icon.tsx — K mark on dark, no rounded corners
+        // (iOS rounds them itself).
+        { url: "/apple-icon", sizes: "180x180", type: "image/png" },
       ],
     },
     robots: {
