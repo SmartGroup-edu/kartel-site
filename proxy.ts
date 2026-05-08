@@ -42,6 +42,6 @@ export const config = {
   // Skip Next internals, static assets, sitemap, robots, sw, llms files, and any
   // path with a file extension (favicon, images, etc.).
   matcher: [
-    "/((?!_next|api|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|.*\\.).*)",
+    "/((?!_next|api|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|icon|apple-icon|.*\\.).*)",
   ],
 };
