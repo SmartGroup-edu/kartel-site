@@ -214,10 +214,16 @@ function buildStructuredData(lang: Locale) {
         "@type": "Person",
         "name": "Piotr Kartel",
         "alternateName": "Петр Картель",
+        "birthDate": "1955-02-08",
+        "deathDate": "2026-01-03",
+        "birthPlace": {
+          "@type": "Place",
+          "name": lang === "en" ? "Belarus" : "Беларусь",
+        },
         "description":
           lang === "en"
-            ? "Elder generation of the Kartel family."
-            : "Старшее поколение семьи Картель.",
+            ? "Elder generation of the Kartel family. 1955–2026. In memoriam."
+            : "Старшее поколение семьи Картель. 1955–2026. Светлая память.",
         "memberOf": { "@id": "https://kartel.org.uk/#organization" },
       },
       {
