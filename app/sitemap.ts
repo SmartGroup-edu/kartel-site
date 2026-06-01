@@ -2,9 +2,12 @@ import type { MetadataRoute } from "next";
 
 const BASE = "https://kartel.org.uk";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
+// Fixed content-revision date — bump when the page content materially changes.
+// A constant keeps the generated sitemap deterministic across builds and avoids
+// a lastModified that churns on every deploy (which misleads crawlers).
+const now = new Date("2026-06-01");
 
+export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: `${BASE}/en`,
