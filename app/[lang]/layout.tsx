@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -66,6 +66,18 @@ const noscriptContent: Record<Locale, { intro: string; membersHeading: string; m
 export async function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
+
+// Next 16 split viewport (incl. themeColor) out of metadata. Static across
+// locales; media-aware so the SSR theme-color matches prefers-color-scheme
+// (the inline head script additionally honours the manual localStorage toggle).
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#876035" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1816" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+};
 
 export async function generateMetadata({
   params,
@@ -148,7 +160,7 @@ export async function generateMetadata({
         : {}),
     },
     other: {
-      "theme-color": "#876035",
+      // theme-color now lives in the viewport export (Next 16).
       author: "Kartel Family",
     },
   };
