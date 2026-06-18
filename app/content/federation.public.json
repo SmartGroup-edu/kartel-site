@@ -9,7 +9,7 @@
     { "key": "campus", "name": "Campus (campusCode)", "status": "active" }
   ],
   "contracts": [
-    { "key": "membership", "name": "MembershipEdge", "status": "ratified · dormant", "note": "Read-projection contract; not a layer; Core stores no membership data." }
+    { "key": "membership", "name": "MembershipEdge", "status": "active", "note": "ACTIVE operational read-projection contract (R0 EO 2026-06-18); not a layer; Core stores no membership data; federation-facing membership conforms to it." }
   ],
   "platforms": [
     { "key": "rusjaz", "name": "RusJAz", "role": "Consumer", "cpifLinked": "10-19", "layers": { "identity": "connected", "geography": "consumed", "organisation": "anchored", "campus": "anchored" } },
