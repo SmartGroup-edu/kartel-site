@@ -80,6 +80,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     },
     {
+      url: `${BASE}/en/registry/organisations`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/organisations`,
+          ru: `${BASE}/ru/registry/organisations`,
+          "x-default": `${BASE}/en/registry/organisations`,
+        },
+      },
+    },
+    {
+      url: `${BASE}/ru/registry/organisations`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/organisations`,
+          ru: `${BASE}/ru/registry/organisations`,
+          "x-default": `${BASE}/en/registry/organisations`,
+        },
+      },
+    },
+    {
       url: `${BASE}/en/family/crest`,
       lastModified: now,
       changeFrequency: "monthly",
