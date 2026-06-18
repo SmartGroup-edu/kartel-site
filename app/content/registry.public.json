@@ -40,16 +40,16 @@
     }
   ],
   "projects": [
-    { "key": "moypolk", "name": "MoyPolk", "type": "project", "url": "https://moypolk.uk",
+    { "key": "moypolk", "name": "MoyPolk", "type": "project", "url": "https://moypolk.uk", "role": "Producer / Steward",
       "layers": { "identity": "connected", "geography": "producer / steward", "organisation": "pending", "events": "geo-anchored", "audit": "steward" },
       "summary": "Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy." },
-    { "key": "rusjaz", "name": "RusJAz", "type": "project", "url": "https://rusjaz.com",
+    { "key": "rusjaz", "name": "RusJAz", "type": "project", "url": "https://rusjaz.com", "role": "Consumer",
       "layers": { "identity": "connected", "geography": "consumed", "organisation": "pending", "events": "geo-anchored" },
       "summary": "Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography." },
-    { "key": "community-group", "name": "Community Group", "type": "project", "url": "https://community.group",
+    { "key": "community-group", "name": "Community Group", "type": "project", "url": "https://community.group", "role": "Consumer",
       "layers": { "identity": "connected", "geography": "consumed", "organisation": "pending" },
       "summary": "Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer." },
-    { "key": "rusjazz", "name": "RusJAzz", "type": "future-module", "url": null,
+    { "key": "rusjazz", "name": "RusJAzz", "type": "future-module", "url": null, "role": "Planned",
       "layers": { "identity": "planned", "geography": "planned", "organisation": "planned" },
       "summary": "Future module. Builds against the Federation Integration Gate from day one." }
   ],
