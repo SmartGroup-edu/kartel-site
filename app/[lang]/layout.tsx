@@ -18,29 +18,29 @@ const meta: Record<Locale, {
 }> = {
   en: {
     title: {
-      default: "KARTEL — Coat of Arms, Legacy, London",
+      default: "KARTEL Core — federation authority, registry, governance",
       template: "%s | KARTEL",
     },
     description:
-      "Kartel family coat of arms, family legacy, and identity based in London. Virtus et Potestas.",
-    ogTitle: "KARTEL — Coat of Arms, Legacy, London",
-    twTitle: "KARTEL — Coat of Arms, Legacy, London",
+      "KARTEL Core — the authority surface of a federation of cultural and educational platforms. Canonical identity, geography, organisations, and governance. Virtus et Potestas.",
+    ogTitle: "KARTEL Core — federation authority, registry, governance",
+    twTitle: "KARTEL Core — federation authority, registry, governance",
     twDescription:
-      "Kartel family coat of arms, family legacy, and identity based in London.",
+      "The authority surface of the KARTEL ecosystem — canonical layers, registry, governance.",
     locale: "en_GB",
     altLocale: "ru_RU",
   },
   ru: {
     title: {
-      default: "КАРТЕЛЬ — Фамильный герб, наследие, Лондон",
+      default: "KARTEL Core — авторитетность федерации, реестр, governance",
       template: "%s | КАРТЕЛЬ",
     },
     description:
-      "Фамильный герб семьи Картель, наследие и идентичность. Базируется в Лондоне. Virtus et Potestas.",
-    ogTitle: "КАРТЕЛЬ — Фамильный герб, наследие, Лондон",
-    twTitle: "КАРТЕЛЬ — Фамильный герб, наследие, Лондон",
+      "KARTEL Core — слой авторитетности федерации культурных и образовательных платформ. Каноническая идентичность, география, организации и governance. Virtus et Potestas.",
+    ogTitle: "KARTEL Core — авторитетность федерации, реестр, governance",
+    twTitle: "KARTEL Core — авторитетность федерации, реестр, governance",
     twDescription:
-      "Фамильный герб семьи Картель, наследие и идентичность. Базируется в Лондоне.",
+      "Слой авторитетности экосистемы KARTEL — канонические слои, реестр, governance.",
     locale: "ru_RU",
     altLocale: "en_GB",
   },
@@ -49,17 +49,17 @@ const meta: Record<Locale, {
 const noscriptContent: Record<Locale, { intro: string; membersHeading: string; members: string }> = {
   en: {
     intro:
-      "The Kartel family coat of arms is a heraldic composition featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the Latin motto “Virtus et Potestas” (Strength and Power). Based in London, United Kingdom.",
-    membersHeading: "Family Members",
+      "KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume. Motto: Virtus et Potestas.",
+    membersHeading: "Ecosystem",
     members:
-      "Piotr Kartel & Valentina Kartel — Elder generation; Igor Gor Kartel — Family representative in London; Diana Kartel — Present generation; Dominika, Arina, Igor Kaid, Feliks Kartel — Next generation.",
+      "MoyPolk · RusJAz · Community Group · RusJAzz (planned). Family Heritage is kept as a separate area at /family.",
   },
   ru: {
     intro:
-      "Фамильный герб Картель — геральдическая композиция с грифоном, скрещёнными ключами, короной, мечами, лилиями, крыльями и латинским девизом «Virtus et Potestas» (Сила и Власть). Базируется в Лондоне, Великобритания.",
-    membersHeading: "Члены семьи",
+      "KARTEL Core — слой авторитетности федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
+    membersHeading: "Экосистема",
     members:
-      "Пётр Картель и Валентина Картель — старшее поколение; Игорь Гор Картель — представитель семьи в Лондоне; Диана Картель — настоящее поколение; Доминика, Арина, Игорь Каид, Феликс Картель — следующее поколение.",
+      "MoyPolk · RusJAz · Community Group · RusJAzz (план). Семейное наследие — отдельный раздел на /family.",
   },
 };
 
