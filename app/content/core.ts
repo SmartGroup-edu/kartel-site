@@ -8,7 +8,7 @@ export const coreContent = {
     nav: [
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers" },
-      { label: "Projects", href: "/en/registry#projects" },
+      { label: "Projects", href: "/en/registry/projects" },
       { label: "Family Heritage", href: "/en/family" },
     ],
     motto: "Virtus et Potestas",
@@ -32,7 +32,7 @@ export const coreContent = {
     registryButtons: [
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers" },
-      { label: "Projects", href: "/en/registry#projects" },
+      { label: "Projects", href: "/en/registry/projects" },
       { label: "Core", href: "/en/registry" },
     ],
     familyTitle: "Family Heritage",
@@ -44,7 +44,7 @@ export const coreContent = {
     nav: [
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Проекты", href: "/ru/registry#projects" },
+      { label: "Проекты", href: "/ru/registry/projects" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
     motto: "Virtus et Potestas",
@@ -68,7 +68,7 @@ export const coreContent = {
     registryButtons: [
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Проекты", href: "/ru/registry#projects" },
+      { label: "Проекты", href: "/ru/registry/projects" },
       { label: "Core", href: "/ru/registry" },
     ],
     familyTitle: "Семейное наследие",

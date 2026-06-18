@@ -7,7 +7,7 @@ export const layersContent = {
     nav: [
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers", active: true },
-      { label: "Projects", href: "/en/registry#projects" },
+      { label: "Projects", href: "/en/registry/projects" },
       { label: "Family Heritage", href: "/en/family" },
     ],
     motto: "Virtus et Potestas",
@@ -36,7 +36,7 @@ export const layersContent = {
     nav: [
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers", active: true },
-      { label: "Проекты", href: "/ru/registry#projects" },
+      { label: "Проекты", href: "/ru/registry/projects" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
     motto: "Virtus et Potestas",
