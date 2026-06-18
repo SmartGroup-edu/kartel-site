@@ -132,6 +132,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     },
     {
+      url: `${BASE}/en/registry/federation`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/federation`,
+          ru: `${BASE}/ru/registry/federation`,
+          "x-default": `${BASE}/en/registry/federation`,
+        },
+      },
+    },
+    {
+      url: `${BASE}/ru/registry/federation`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/federation`,
+          ru: `${BASE}/ru/registry/federation`,
+          "x-default": `${BASE}/en/registry/federation`,
+        },
+      },
+    },
+    {
       url: `${BASE}/en/family/crest`,
       lastModified: now,
       changeFrequency: "monthly",
