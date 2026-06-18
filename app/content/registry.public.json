@@ -1,0 +1,63 @@
+{
+  "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
+  "version": 0,
+  "updated": "2026-06-18",
+  "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
+  "canonicalLayers": [
+    { "key": "identity",     "name": "Identity (CPIF)",        "kind": "service",  "owner": "KARTEL Core", "steward": "RusJAz (Keycloak realm)", "status": "live" },
+    { "key": "geography",    "name": "Geography (ITL1)",       "kind": "service",  "owner": "KARTEL Core", "steward": "MoyPolk (taxonomy API)",  "status": "live" },
+    { "key": "organisation", "name": "Organisation Anchor",    "kind": "contract", "owner": "KARTEL Core", "steward": "—",                       "status": "pending" },
+    { "key": "permissions",  "name": "Permission Delegation",  "kind": "contract", "owner": "KARTEL Core", "steward": "RusJAz",                  "status": "draft" },
+    { "key": "membership",   "name": "Membership Edge",        "kind": "contract", "owner": "KARTEL Core", "steward": "RusJAz",                  "status": "draft" },
+    { "key": "event_geo",    "name": "Event Geo-Anchor",       "kind": "contract", "owner": "KARTEL Core", "steward": "community.group",         "status": "draft" },
+    { "key": "notification", "name": "Notification Envelope",  "kind": "contract", "owner": "KARTEL Core", "steward": "community.group",         "status": "draft" },
+    { "key": "audit",        "name": "Audit Envelope",         "kind": "contract", "owner": "KARTEL Core", "steward": "MoyPolk",                 "status": "draft" }
+  ],
+  "coreServices": [
+    { "key": "identity", "name": "Keycloak (CPIF)",  "endpoint": "https://auth.kartel.org.uk/realms/kartel-ecosystem", "status": "live" },
+    { "key": "geography", "name": "Taxonomy API",    "endpoint": "https://moypolk.uk/api/public/taxonomy/regions/v1", "servedBy": "MoyPolk", "owner": "KARTEL Core", "content": "UK ITL1 canonical", "version": "1.1.0", "status": "live" }
+  ],
+  "projects": [
+    { "key": "moypolk", "name": "MoyPolk", "type": "project", "url": "https://moypolk.uk",
+      "layers": { "identity": "connected", "geography": "producer / steward", "organisation": "pending", "events": "geo-anchored", "audit": "steward" },
+      "summary": "Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy." },
+    { "key": "rusjaz", "name": "RusJAz", "type": "project", "url": "https://rusjaz.com",
+      "layers": { "identity": "connected", "geography": "consumed", "organisation": "pending", "events": "geo-anchored" },
+      "summary": "Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography." },
+    { "key": "community-group", "name": "Community Group", "type": "project", "url": "https://community.group",
+      "layers": { "identity": "connected", "geography": "consumed", "organisation": "pending" },
+      "summary": "Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer." },
+    { "key": "rusjazz", "name": "RusJAzz", "type": "future-module", "url": null,
+      "layers": { "identity": "planned", "geography": "planned", "organisation": "planned" },
+      "summary": "Future module. Builds against the Federation Integration Gate from day one." }
+  ],
+  "federationGate": {
+    "rule": "No new KARTEL project may enter production unless it passes all 8 items.",
+    "items": [
+      { "key": "cpif_authentication", "name": "CPIF authentication", "description": "Federated identity via the shared Keycloak realm; local mirror of the subject." },
+      { "key": "canonical_geography", "name": "Canonical geography", "description": "Store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions." },
+      { "key": "organisation_anchor", "name": "Organisation anchor", "description": "Reference canonical organisations; do not author canonical orgs locally." },
+      { "key": "membership_contract", "name": "Membership contract", "description": "Conform membership edges to the shared shape." },
+      { "key": "permission_pattern", "name": "Permission pattern", "description": "Local roles; delegation-grant pattern; no global role catalogue." },
+      { "key": "event_geo_anchor", "name": "Event geo-anchor", "description": "Anchor events to a CanonicalRegionCode." },
+      { "key": "notification_envelope", "name": "Notification envelope", "description": "Conform notifications to the shared envelope." },
+      { "key": "audit_envelope", "name": "Audit envelope", "description": "Append-only audit conforming to the shared envelope." }
+    ]
+  },
+  "contracts": {
+    "package": "@kartel/contracts",
+    "note": "Types only — no runtime logic. Conformance = federation. Domain vocabularies stay local; only the shape is shared.",
+    "keys": [
+      { "name": "CpifSubjectId", "description": "One identity — the mirrored Keycloak subject." },
+      { "name": "CanonicalRegionCode", "description": "One geography — the ITL1 canonical region code." }
+    ],
+    "interfaces": [
+      { "name": "IdentityContract", "description": "Keycloak/OIDC identity." },
+      { "name": "GeographyContract", "description": "The canonical taxonomy API." }
+    ],
+    "contracts": [
+      { "name": "OrgAnchor" }, { "name": "PermissionGrant" }, { "name": "MembershipEdge" },
+      { "name": "ActivityGeoAnchor" }, { "name": "NotificationEnvelope" }, { "name": "AuditEnvelope" }
+    ]
+  }
+}
