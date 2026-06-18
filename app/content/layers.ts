@@ -7,6 +7,7 @@ export const layersContent = {
     nav: [
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers", active: true },
+      { label: "Organisations", href: "/en/registry/organisations" },
       { label: "Projects", href: "/en/registry/projects" },
       { label: "Family Heritage", href: "/en/family" },
     ],
@@ -36,6 +37,7 @@ export const layersContent = {
     nav: [
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers", active: true },
+      { label: "Организации", href: "/ru/registry/organisations" },
       { label: "Проекты", href: "/ru/registry/projects" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
