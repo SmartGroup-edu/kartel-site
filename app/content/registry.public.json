@@ -17,6 +17,28 @@
     { "key": "identity", "name": "Keycloak (CPIF)",  "endpoint": "https://auth.kartel.org.uk/realms/kartel-ecosystem", "status": "live" },
     { "key": "geography", "name": "Taxonomy API",    "endpoint": "https://moypolk.uk/api/public/taxonomy/regions/v1", "servedBy": "MoyPolk", "owner": "KARTEL Core", "content": "UK ITL1 canonical", "version": "1.1.0", "status": "live" }
   ],
+  "layerRegistry": [
+    {
+      "key": "identity", "name": "Identity Registry", "purpose": "One federated identity across every platform — a single person is the same subject everywhere.",
+      "canonicalKey": "CPIF Subject ID (cpifSubjectId)", "authority": "KARTEL Core", "steward": "Keycloak realm kartel-ecosystem",
+      "consumers": ["MoyPolk", "RusJAz", "Community Group"], "contract": "IdentityContract", "status": "active"
+    },
+    {
+      "key": "geography", "name": "Geography Registry", "purpose": "One canonical UK region taxonomy. Platforms consume; they never self-author regions.",
+      "canonicalKey": "CanonicalRegionCode (ITL1, e.g. TLI)", "authority": "KARTEL Core", "steward": "MoyPolk (taxonomy API)",
+      "consumers": ["MoyPolk", "RusJAz", "Community Group"], "contract": "GeographyContract", "status": "active"
+    },
+    {
+      "key": "organisation", "name": "Organisation Registry", "purpose": "One canonical organisation hierarchy: CEA → Foundation → School → Venue.",
+      "canonicalKey": "canonicalOrgCode (readable, not UUID)", "authority": "KARTEL Core", "steward": "KARTEL Core (Core-owned registry)",
+      "consumers": ["RusJAz", "Community Group"], "contract": "OrgAnchor", "status": "pending"
+    },
+    {
+      "key": "federation", "name": "Federation Registry", "purpose": "The integration gate every project passes before production — the federation's rule of admission.",
+      "canonicalKey": "Federation Integration Gate (8 items)", "authority": "KARTEL Core", "steward": "KARTEL Core",
+      "consumers": ["all projects"], "contract": "Federation Gate", "status": "active"
+    }
+  ],
   "projects": [
     { "key": "moypolk", "name": "MoyPolk", "type": "project", "url": "https://moypolk.uk",
       "layers": { "identity": "connected", "geography": "producer / steward", "organisation": "pending", "events": "geo-anchored", "audit": "steward" },

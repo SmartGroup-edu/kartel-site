@@ -7,7 +7,7 @@ export const coreContent = {
   EN: {
     nav: [
       { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry#layers" },
+      { label: "Layers", href: "/en/registry/layers" },
       { label: "Projects", href: "/en/registry#projects" },
       { label: "Family Heritage", href: "/en/family" },
     ],
@@ -31,7 +31,7 @@ export const coreContent = {
     registryLede: "The canonical record of layers, projects, ownership, and the Federation Gate.",
     registryButtons: [
       { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry#layers" },
+      { label: "Layers", href: "/en/registry/layers" },
       { label: "Projects", href: "/en/registry#projects" },
       { label: "Core", href: "/en/registry" },
     ],
@@ -43,7 +43,7 @@ export const coreContent = {
   RU: {
     nav: [
       { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry#layers" },
+      { label: "Слои", href: "/ru/registry/layers" },
       { label: "Проекты", href: "/ru/registry#projects" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
@@ -67,7 +67,7 @@ export const coreContent = {
     registryLede: "Канонический учёт слоёв, проектов, владения и Federation Gate.",
     registryButtons: [
       { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry#layers" },
+      { label: "Слои", href: "/ru/registry/layers" },
       { label: "Проекты", href: "/ru/registry#projects" },
       { label: "Core", href: "/ru/registry" },
     ],
