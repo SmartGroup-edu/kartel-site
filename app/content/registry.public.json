@@ -1,6 +1,6 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 1,
+  "version": 2,
   "updated": "2026-06-18",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
@@ -23,6 +23,14 @@
     {
       "key": "organisation",
       "name": "Organisation Anchor",
+      "kind": "registry",
+      "owner": "KARTEL Core",
+      "steward": "KARTEL Core",
+      "status": "active"
+    },
+    {
+      "key": "campus",
+      "name": "Campus Anchor",
       "kind": "registry",
       "owner": "KARTEL Core",
       "steward": "KARTEL Core",
@@ -133,6 +141,19 @@
       "status": "active"
     },
     {
+      "key": "campus",
+      "name": "Campus Registry",
+      "purpose": "One canonical identity per accredited operating centre. A campus may be SCHOOL-tier (owns accreditation, classes, governance); orthogonal to its institution, not a child of it.",
+      "canonicalKey": "campusCode (readable, e.g. ZNANIYE-CHELSEA)",
+      "authority": "KARTEL Core",
+      "steward": "KARTEL Core (Core-owned registry)",
+      "consumers": [
+        "RusJAz"
+      ],
+      "contract": "CampusAnchor",
+      "status": "active"
+    },
+    {
       "key": "federation",
       "name": "Federation Registry",
       "purpose": "The integration gate every project passes before production — the federation's rule of admission.",
@@ -172,9 +193,10 @@
         "identity": "connected",
         "geography": "consumed",
         "organisation": "anchored",
+        "campus": "anchored",
         "events": "geo-anchored"
       },
-      "summary": "Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography."
+      "summary": "Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography, organisation + campus anchors."
     },
     {
       "key": "community-group",
@@ -204,7 +226,7 @@
     }
   ],
   "organisationRegistry": {
-    "authority": "KARTEL Core owns the canonical organisation registry. Platforms consume; they do not author canonical organisations. canonicalOrgCode is a readable key (not a UUID). The registry holds INSTITUTIONS only (per the ratified Org Architecture CEA → Foundation → School). Physical locations/campuses are a SEPARATE layer (Campus Registry, future P3D) keyed by campusCode — never an organisation anchor. This prevents duplicating members, accreditation, finance, and governance per location.",
+    "authority": "KARTEL Core owns the canonical organisation registry. Platforms consume; they do not author canonical organisations. canonicalOrgCode is a readable key (not a UUID). The registry holds INSTITUTIONS only (per the ratified Org Architecture CEA → Foundation → School). Operating accredited centres are anchored separately in the Campus Registry (campusCode) — orthogonal to, not a child of, the institution. This keeps brand identity (canonicalOrgCode) distinct from operating-centre identity (campusCode).",
     "key": "canonicalOrgCode",
     "status": "active",
     "organisations": [
@@ -233,31 +255,31 @@
         "parent": "RUSJAZ-FDN"
       }
     ],
-    "campusesFuture": {
-      "note": "Locations/campuses — NOT organisations. Modelled in the future Campus Registry (P3D) with a campusCode, anchored to their organisation.",
-      "key": "campusCode (future)",
-      "examples": [
-        {
-          "campusCode": "ZNANIYE-STRATFORD",
-          "org": "ZNANIYE",
-          "location": "Stratford"
-        },
-        {
-          "campusCode": "ZNANIYE-CHELSEA",
-          "org": "ZNANIYE",
-          "location": "Chelsea"
-        },
-        {
-          "campusCode": "ZNANIYE-EALING",
-          "org": "ZNANIYE",
-          "location": "Ealing"
-        },
-        {
-          "campusCode": "BALTICA-LEEDS",
-          "org": "BALTICA",
-          "location": "Leeds"
-        }
-      ]
+    "supersedes": "The earlier campusesFuture stub is now realised as the top-level campusRegistry."
+  },
+  "campusRegistry": {
+    "authority": "KARTEL Core owns the canonical Campus Registry. A campus is an ACCREDITED OPERATING CENTRE — it may own accreditation, classes, curriculum grants and governance, so it is SCHOOL-tier, NOT a Venue. (Venue ≠ Campus: a Venue is a physical room/hall/building BELOW school tier; a Campus is the accreditable centre itself.) campusCode and canonicalOrgCode are ORTHOGONAL dimensions, not parent-child: canonicalOrgCode = institutional/brand identity; campusCode = operating-centre identity. Platforms consume campusCode; they do not author campuses. Established by R0 ratification 2026-06-18 (P3D), informed by the P3D.2 venue-reality audit.",
+    "key": "campusCode",
+    "status": "active",
+    "campuses": [
+      {
+        "code": "ZNANIYE-CHELSEA",
+        "location": "Chelsea",
+        "institution": "ZNANIYE"
+      },
+      {
+        "code": "ZNANIYE-EALING",
+        "location": "Ealing",
+        "institution": "ZNANIYE"
+      },
+      {
+        "code": "BALTICA-LEEDS",
+        "location": "Leeds",
+        "institution": "BALTICA"
+      }
+    ],
+    "excluded": {
+      "note": "ZNANIYE-STRATFORD is NOT registered — it exists in business reality but has no platform object (rule: no business-reality-only objects). It joins when it becomes a real system object."
     }
   },
   "federationGate": {
@@ -331,6 +353,9 @@
     "contracts": [
       {
         "name": "OrgAnchor"
+      },
+      {
+        "name": "CampusAnchor"
       },
       {
         "name": "PermissionGrant"

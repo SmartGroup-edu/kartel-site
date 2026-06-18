@@ -9,6 +9,7 @@ export const organisationsContent = {
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers" },
       { label: "Organisations", href: "/en/registry/organisations", active: true },
+      { label: "Campuses", href: "/en/registry/campuses" },
       { label: "Projects", href: "/en/registry/projects" },
       { label: "Family Heritage", href: "/en/family" },
     ],
@@ -16,7 +17,7 @@ export const organisationsContent = {
     copy: "© 2026 KARTEL · Core authority surface",
     metaTitle: "KARTEL Core — Organisation Registry (canonical institutions)",
     metaDescription:
-      "The canonical organisation registry of the KARTEL ecosystem: the institutions CEA, RusJAz Foundation, Znaniye and Baltica, each with a readable canonicalOrgCode. Institutions only — campuses and venues are a separate future layer.",
+      "The canonical organisation registry of the KARTEL ecosystem: the institutions CEA, RusJAz Foundation, Znaniye and Baltica, each with a readable canonicalOrgCode. Institutions only — operating campuses are anchored separately in the Campus Registry.",
     eyebrow: "Canonical layer · Organisation",
     title: "Organisation Registry",
     intro:
@@ -33,14 +34,11 @@ export const organisationsContent = {
       SCHOOL: "School",
     },
     rootLabel: "— (root)",
-    campusesTitle: "Campuses & venues — a future layer",
+    campusesTitle: "Campuses — a separate canonical layer",
     campusesNote:
-      "Physical locations are not institutions. A school that teaches in several places is one institution with several campuses — listing each campus as its own organisation would duplicate its members, accreditation, finance and governance. Campuses will therefore be modelled in a separate future Campus Registry, keyed by campusCode and anchored to their institution. Shown below for orientation only — not yet canonical.",
-    campusFields: {
-      campusCode: "Campus code (future)",
-      org: "Institution",
-      location: "Location",
-    },
+      "Operating accredited centres are anchored separately, by campusCode. An institution (canonicalOrgCode) is brand identity; a campus (campusCode) is operating-centre identity. The two are orthogonal — not parent and child.",
+    campusesHref: "/en/registry/campuses",
+    campusesLinkLabel: "Open the Campus Registry",
     publicNote:
       "Public registry — canonical codes, names and hierarchy only. No operational data, no internal identifiers, no personal data. Those live in the access-controlled internal surface, never here.",
   },
@@ -49,6 +47,7 @@ export const organisationsContent = {
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers" },
       { label: "Организации", href: "/ru/registry/organisations", active: true },
+      { label: "Кампусы", href: "/ru/registry/campuses" },
       { label: "Проекты", href: "/ru/registry/projects" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
@@ -56,7 +55,7 @@ export const organisationsContent = {
     copy: "© 2026 KARTEL · Слой канонической авторитетности",
     metaTitle: "KARTEL Core — реестр организаций (канонические учреждения)",
     metaDescription:
-      "Канонический реестр организаций экосистемы KARTEL: учреждения CEA, RusJAz Foundation, «Знание» и «Балтика», каждое со своим читаемым canonicalOrgCode. Только учреждения — кампусы и площадки выделены в отдельный будущий слой.",
+      "Канонический реестр организаций экосистемы KARTEL: учреждения CEA, RusJAz Foundation, «Знание» и «Балтика», каждое со своим читаемым canonicalOrgCode. Только учреждения — действующие кампусы закрепляются отдельно, в реестре кампусов.",
     eyebrow: "Канонический слой · Организация",
     title: "Реестр организаций",
     intro:
@@ -73,14 +72,11 @@ export const organisationsContent = {
       SCHOOL: "Школа",
     },
     rootLabel: "— (корень)",
-    campusesTitle: "Кампусы и площадки — будущий слой",
+    campusesTitle: "Кампусы — отдельный канонический слой",
     campusesNote:
-      "Физические локации — это не учреждения. Школа, которая преподаёт в нескольких местах, — это одно учреждение с несколькими кампусами; если записать каждый кампус отдельной организацией, мы продублируем её участников, аккредитацию, финансы и управление. Поэтому кампусы будут вынесены в отдельный будущий реестр кампусов с ключом campusCode, привязанным к своему учреждению. Ниже — только для ориентира, ещё не канонично.",
-    campusFields: {
-      campusCode: "Код кампуса (в будущем)",
-      org: "Учреждение",
-      location: "Локация",
-    },
+      "Действующие аккредитованные центры закрепляются отдельно — ключом campusCode. Учреждение (canonicalOrgCode) — это идентичность бренда; кампус (campusCode) — идентичность действующего центра. Это ортогональные измерения, а не «родитель — потомок».",
+    campusesHref: "/ru/registry/campuses",
+    campusesLinkLabel: "Открыть реестр кампусов",
     publicNote:
       "Публичный реестр — только канонические коды, названия и иерархия. Без операционных данных, без внутренних идентификаторов, без персональных данных. Они находятся во внутреннем контуре с контролем доступа, не здесь.",
   },

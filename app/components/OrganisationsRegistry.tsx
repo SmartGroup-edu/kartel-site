@@ -24,7 +24,6 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
   const c = organisationsContent[lang];
   const reg = registry.organisationRegistry;
   const orgs = reg.organisations ?? [];
-  const campuses = reg.campusesFuture;
   const codeByCode = new Map(orgs.map((o) => [o.code, o.name]));
 
   return (
@@ -82,35 +81,17 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
           </div>
         </FadeInSection>
 
-        {/* Future campus layer */}
+        {/* Campus layer — now its own published canonical registry */}
         <FadeInSection>
-          <section className="mt-12 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-6">
+          <section className="mt-12 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
             <h2 className="font-serif text-xl text-[var(--foreground)]">{c.campusesTitle}</h2>
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">{c.campusesNote}</p>
-            <div className="mt-5 overflow-x-auto rounded-md border border-[var(--border)]">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
-                    <th className="px-4 py-2.5 font-medium">{c.campusFields.campusCode}</th>
-                    <th className="px-4 py-2.5 font-medium">{c.campusFields.org}</th>
-                    <th className="px-4 py-2.5 font-medium">{c.campusFields.location}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(campuses?.examples ?? []).map((ex) => (
-                    <tr key={ex.campusCode} className="border-b border-[var(--border)] last:border-0">
-                      <td className="px-4 py-2.5">
-                        <span className="font-mono text-[12px] text-[var(--muted)]">{ex.campusCode}</span>
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <span className="font-mono text-[12px] text-[var(--text-body)]">{ex.org}</span>
-                      </td>
-                      <td className="px-4 py-2.5 text-[var(--text-body)]">{ex.location}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <a
+              href={c.campusesHref}
+              className="mt-4 inline-block rounded-sm text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              {c.campusesLinkLabel} →
+            </a>
           </section>
         </FadeInSection>
 
