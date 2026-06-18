@@ -1,6 +1,6 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 2,
+  "version": 4,
   "updated": "2026-06-18",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
@@ -49,8 +49,9 @@
       "name": "Membership Edge",
       "kind": "contract",
       "owner": "KARTEL Core",
-      "steward": "RusJAz",
-      "status": "draft"
+      "steward": "platforms (data stays local)",
+      "status": "active",
+      "note": "ACTIVE operational Federation Contract (R0 EO 2026-06-18). All federation-facing membership projections, observability surfaces, and cross-platform topology traversals conform to it. Read-projection only — NOT a layer/registry/service/authority/runtime SoT; Core stores no membership data; platforms remain authoritative."
     },
     {
       "key": "event_geo",
@@ -361,7 +362,9 @@
         "name": "PermissionGrant"
       },
       {
-        "name": "MembershipEdge"
+        "name": "MembershipEdge",
+        "status": "active",
+        "note": "R0 EO 2026-06-18 — ACTIVE operational contract; read-projection (subject→canonical anchor, opaque relation, status); zero authority; Core stores no data; separate from PermissionGrant."
       },
       {
         "name": "ActivityGeoAnchor"
