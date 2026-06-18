@@ -20,6 +20,7 @@ export default function FamilyClient({ lang }: { lang: Lang }) {
   const navItems = [
     { label: t.homeLabel, href: `/${langPath}` },
     { label: t.familyLabel, href: `/${langPath}/family`, active: true },
+    { label: lang === "EN" ? "Coat of Arms" : "Герб", href: `/${langPath}/family/crest` },
   ];
 
   return (

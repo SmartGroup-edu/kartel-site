@@ -62,6 +62,42 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     },
     {
+      url: `${BASE}/en/registry`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${BASE}/en/registry`, ru: `${BASE}/ru/registry`, "x-default": `${BASE}/en/registry` },
+      },
+    },
+    {
+      url: `${BASE}/ru/registry`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+      alternates: {
+        languages: { en: `${BASE}/en/registry`, ru: `${BASE}/ru/registry`, "x-default": `${BASE}/en/registry` },
+      },
+    },
+    {
+      url: `${BASE}/en/family/crest`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: { en: `${BASE}/en/family/crest`, ru: `${BASE}/ru/family/crest`, "x-default": `${BASE}/en/family/crest` },
+      },
+    },
+    {
+      url: `${BASE}/ru/family/crest`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+      alternates: {
+        languages: { en: `${BASE}/en/family/crest`, ru: `${BASE}/ru/family/crest`, "x-default": `${BASE}/en/family/crest` },
+      },
+    },
+    {
       url: `${BASE}/llms.txt`,
       lastModified: now,
       changeFrequency: "monthly",
