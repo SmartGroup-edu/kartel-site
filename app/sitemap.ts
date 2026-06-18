@@ -106,6 +106,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     },
     {
+      url: `${BASE}/en/registry/campuses`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/campuses`,
+          ru: `${BASE}/ru/registry/campuses`,
+          "x-default": `${BASE}/en/registry/campuses`,
+        },
+      },
+    },
+    {
+      url: `${BASE}/ru/registry/campuses`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+      alternates: {
+        languages: {
+          en: `${BASE}/en/registry/campuses`,
+          ru: `${BASE}/ru/registry/campuses`,
+          "x-default": `${BASE}/en/registry/campuses`,
+        },
+      },
+    },
+    {
       url: `${BASE}/en/family/crest`,
       lastModified: now,
       changeFrequency: "monthly",

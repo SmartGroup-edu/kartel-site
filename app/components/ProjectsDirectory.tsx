@@ -60,7 +60,7 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
               </thead>
               <tbody>
                 {registry.projects.map((p) => {
-                  const layers = p.layers as Record<string, string>;
+                  const layers = p.layers as unknown as Record<string, string>;
                   return (
                     <tr key={p.key} className="border-b border-[var(--border)] align-top last:border-0">
                       <td className="px-4 py-4">
