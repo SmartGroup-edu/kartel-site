@@ -173,7 +173,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
         </FadeInSection>
       </main>
 
-      <SiteFooter motto={c.motto} copy={c.copy} />
+      <SiteFooter motto={c.motto} copy={c.copy} contactEmail={null} />
     </>
   );
 }

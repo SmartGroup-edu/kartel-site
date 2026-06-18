@@ -2,9 +2,20 @@ interface SiteFooterProps {
   motto: string;
   copy: string;
   maxWidth?: string;
+  /**
+   * Contact email shown in the footer. Defaults to the family/home contact.
+   * Pass `null` on institutional surfaces (e.g. the Core Registry) that must
+   * carry no personal contact / PII.
+   */
+  contactEmail?: string | null;
 }
 
-export default function SiteFooter({ motto, copy, maxWidth = "max-w-7xl" }: SiteFooterProps) {
+export default function SiteFooter({
+  motto,
+  copy,
+  maxWidth = "max-w-7xl",
+  contactEmail = "gor@kartel.org.uk",
+}: SiteFooterProps) {
   return (
     <footer className="border-t border-[var(--border)] bg-[var(--surface)] transition-colors duration-300">
       <div className={`mx-auto ${maxWidth} px-4 py-8 sm:px-6 lg:px-10 lg:py-10`}>
@@ -15,13 +26,17 @@ export default function SiteFooter({ motto, copy, maxWidth = "max-w-7xl" }: Site
           <div className="h-px w-12 bg-[var(--border)]" aria-hidden="true" />
           <p className="text-[13px] text-[var(--muted)] sm:text-[14px]">{copy}</p>
           <nav aria-label="Footer links" className="mt-1 flex items-center gap-4 text-[11px] tracking-[0.05em] text-[var(--muted-light)] sm:text-[12px]">
-            <a
-              href="mailto:gor@kartel.org.uk"
-              className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-            >
-              gor@kartel.org.uk
-            </a>
-            <span aria-hidden="true" className="text-[var(--border)]">·</span>
+            {contactEmail && (
+              <>
+                <a
+                  href={`mailto:${contactEmail}`}
+                  className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                >
+                  {contactEmail}
+                </a>
+                <span aria-hidden="true" className="text-[var(--border)]">·</span>
+              </>
+            )}
             <a
               href="/sitemap.xml"
               className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
