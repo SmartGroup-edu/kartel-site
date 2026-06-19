@@ -1,7 +1,7 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 4,
-  "updated": "2026-06-18",
+  "version": 5,
+  "updated": "2026-06-19",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
     {
@@ -264,6 +264,11 @@
     "status": "active",
     "campuses": [
       {
+        "code": "ZNANIYE-STRATFORD",
+        "location": "Stratford",
+        "institution": "ZNANIYE"
+      },
+      {
         "code": "ZNANIYE-CHELSEA",
         "location": "Chelsea",
         "institution": "ZNANIYE"
@@ -278,10 +283,7 @@
         "location": "Leeds",
         "institution": "BALTICA"
       }
-    ],
-    "excluded": {
-      "note": "ZNANIYE-STRATFORD is NOT registered — it exists in business reality but has no platform object (rule: no business-reality-only objects). It joins when it becomes a real system object."
-    }
+    ]
   },
   "federationGate": {
     "rule": "No new KARTEL project may enter production unless it passes all 8 items.",

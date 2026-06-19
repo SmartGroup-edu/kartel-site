@@ -17,7 +17,7 @@ export const campusesContent = {
     copy: "© 2026 KARTEL · Core authority surface",
     metaTitle: "KARTEL Core — Campus Registry (accredited operating centres)",
     metaDescription:
-      "The canonical campus registry of the KARTEL ecosystem: the accredited operating centres Znaniye Chelsea, Znaniye Ealing and Baltica Leeds, each with a readable campusCode anchored to its institution.",
+      "The canonical campus registry of the KARTEL ecosystem: the accredited operating centres Znaniye Stratford, Znaniye Chelsea, Znaniye Ealing and Baltica Leeds, each with a readable campusCode anchored to its institution.",
     eyebrow: "Canonical layer · Campus",
     title: "Campus Registry",
     intro:
@@ -48,7 +48,7 @@ export const campusesContent = {
     copy: "© 2026 KARTEL · Слой канонической авторитетности",
     metaTitle: "KARTEL Core — реестр кампусов (аккредитованные центры)",
     metaDescription:
-      "Канонический реестр кампусов экосистемы KARTEL: аккредитованные образовательные центры «Знание» Челси, «Знание» Илинг и «Балтика» Лидс — каждый со своим читаемым campusCode, привязанным к учреждению.",
+      "Канонический реестр кампусов экосистемы KARTEL: аккредитованные образовательные центры «Знание» Стратфорд, «Знание» Челси, «Знание» Илинг и «Балтика» Лидс — каждый со своим читаемым campusCode, привязанным к учреждению.",
     eyebrow: "Канонический слой · Кампус",
     title: "Реестр кампусов",
     intro:
