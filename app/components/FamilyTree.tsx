@@ -17,13 +17,13 @@ interface FamilyTreeProps {
 
 const NODES: TreeNode[] = [
   { id: "aleksandr", nameEN: "Aleksandr Andreyevich Kartel", nameRU: "Александр Андреевич Картель", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
-  { id: "lyubov", nameEN: "Lyubov Petrovna Kartel", nameRU: "Любовь Петровна Картель", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
+  { id: "lyubov", nameEN: "Lyubov Petrovna Kartel (née Kirey)", nameRU: "Любовь Петровна Картель (Кирей)", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
   { id: "nikolai", nameEN: "Nikolai Aleksandrovich Kartel", nameRU: "Николай Александрович Картель", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
-  { id: "valentina_a", nameEN: "Valentina Aleksandrovna Kartel", nameRU: "Валентина Александровна Картель", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
+  { id: "valentina_a", nameEN: "Valentina Aleksandrovna Kartel (née Mikhal)", nameRU: "Валентина Александровна Картель (Михаль)", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
   { id: "piotr", nameEN: "Piotr Nikolaevich Kartel", nameRU: "Петр Николаевич Картель", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
-  { id: "valentina", nameEN: "Valentina Cheslavovna Kartel", nameRU: "Валентина Чеславовна Картель", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
+  { id: "valentina", nameEN: "Valentina Cheslavovna Kartel (née Chizhevskaya)", nameRU: "Валентина Чеславовна Картель (Чижевская)", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
   { id: "igor", nameEN: "Igor Gor Petrovich Kartel", nameRU: "Игорь Гор Петрович Картель", roleEN: "Family representative, London", roleRU: "Представитель семьи, Лондон", generation: "current" },
-  { id: "diana", nameEN: "Diana Zenonovna Kartel", nameRU: "Диана Зеноновна Картель", roleEN: "Present generation", roleRU: "Настоящее поколение", generation: "current" },
+  { id: "diana", nameEN: "Diana Zenonovna Kartel (née Subach)", nameRU: "Диана Зеноновна Картель (Субоч)", roleEN: "Present generation", roleRU: "Настоящее поколение", generation: "current" },
   { id: "dominika", nameEN: "Dominika Igorevna Kartel", nameRU: "Доминика Игоревна Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
   { id: "arina", nameEN: "Arina Igorevna Kartel", nameRU: "Арина Игоревна Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
   { id: "kaid", nameEN: "Igor Kaid Igorevich Kartel", nameRU: "Игорь Каид Игоревич Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
