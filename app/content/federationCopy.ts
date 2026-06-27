@@ -39,6 +39,49 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
   },
 };
 
+/**
+ * Canonical-layer display names for the registry table
+ * (registry.public.json.canonicalLayers[].name), by layer key. The `(CPIF)` /
+ * `(ITL1)` tags are canonical and kept; the descriptive words are localised.
+ */
+export const layerNameLabels: Record<Lang, Record<string, string>> = {
+  EN: {
+    identity: "Identity (CPIF)",
+    geography: "Geography (ITL1)",
+    organisation: "Organisation Anchor",
+    campus: "Campus Anchor",
+    permissions: "Permission Delegation",
+    membership: "Membership Edge",
+    event_geo: "Event Geo-Anchor",
+    notification: "Notification Envelope",
+    audit: "Audit Envelope",
+  },
+  RU: {
+    identity: "Идентичность (CPIF)",
+    geography: "География (ITL1)",
+    organisation: "Якорь организаций",
+    campus: "Якорь кампусов",
+    permissions: "Делегирование прав",
+    membership: "Ребро членства",
+    event_geo: "Гео-якорь событий",
+    notification: "Конверт уведомлений",
+    audit: "Конверт аудита",
+  },
+};
+
+/**
+ * Steward column overrides (registry.public.json.canonicalLayers[].steward), by
+ * layer key. Only entries whose steward carries English prose are overridden;
+ * everything else falls back to the JSON value (product names, "Keycloak realm",
+ * "taxonomy API" — kept as-is).
+ */
+export const stewardLabels: Record<Lang, Record<string, string>> = {
+  EN: {},
+  RU: {
+    membership: "платформы (данные остаются локально)",
+  },
+};
+
 /** Federation Gate item descriptions (registry.public.json.federationGate.items[].description), by item key. */
 export const gateDescriptions: Record<Lang, Record<string, string>> = {
   EN: {

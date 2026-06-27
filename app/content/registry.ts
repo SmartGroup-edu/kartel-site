@@ -31,7 +31,7 @@ export const registryContent = {
     cols: { layer: "Layer", kind: "Kind", owner: "Owner", steward: "Steward", status: "Status" },
     layerNames: {
       identity: "Identity", geography: "Geography", organisation: "Organisation",
-      events: "Events", audit: "Audit",
+      campus: "Campus", events: "Events", audit: "Audit",
     },
     publicNote:
       "Public registry — status and architecture only. Operational detail, reconciliation, and any personal data live in the access-controlled internal surface, never here.",
@@ -64,7 +64,7 @@ export const registryContent = {
     cols: { layer: "Слой", kind: "Тип", owner: "Владелец", steward: "Стюард", status: "Статус" },
     layerNames: {
       identity: "Идентичность", geography: "География", organisation: "Организация",
-      events: "События", audit: "Аудит",
+      campus: "Кампус", events: "События", audit: "Аудит",
     },
     publicNote:
       "Публичный реестр — только статус и архитектура. Операционные детали, сверка и любые персональные данные находятся во внутреннем контуре с контролем доступа, не здесь.",

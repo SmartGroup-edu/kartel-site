@@ -56,7 +56,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
             <div className="mt-4 flex flex-wrap gap-2">
               {fed.canonicalLayers.map((l) => (
                 <span key={l.key} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
-                  <span className="font-serif text-[var(--foreground)]">{l.name}</span>
+                  <span className="font-serif text-[var(--foreground)]">{c.layerNames[l.key] ?? l.name}</span>
                   <StatusPill value={l.status} label={statusLabel(lang, l.status)} />
                 </span>
               ))}

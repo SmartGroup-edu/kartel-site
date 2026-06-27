@@ -6,7 +6,7 @@ import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { projectsContent } from "../content/projects";
 import { projectSummaries } from "../content/federationCopy";
-import { roleLabel, statusLabel } from "../content/tokens";
+import { roleLabel, statusLabel, typeLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 // `value` is the raw English token (drives colour logic); `label` is the
@@ -74,7 +74,7 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
                             {p.url.replace(/^https?:\/\//, "")} ↗
                           </a>
                         ) : (
-                          <span className="text-xs text-[var(--muted)]">{p.type}</span>
+                          <span className="text-xs text-[var(--muted)]">{typeLabel(lang, p.type)}</span>
                         )}
                         <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--muted)]">{projectSummaries[lang][p.key] ?? p.summary}</p>
                       </td>

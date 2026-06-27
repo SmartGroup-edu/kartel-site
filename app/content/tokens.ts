@@ -48,6 +48,19 @@ const RU_TIER: Record<string, string> = {
   campus: "кампус",
 };
 
+// Canonical-layer kind column (service · registry · contract).
+const RU_KIND: Record<string, string> = {
+  service: "служба",
+  registry: "реестр",
+  contract: "контракт",
+};
+
+// Project type label (shown when a project has no external URL).
+const RU_TYPE: Record<string, string> = {
+  project: "проект",
+  "future-module": "будущий модуль",
+};
+
 const RU_LAYER_KEY: Record<string, string> = {
   identity: "идентичность",
   geography: "география",
@@ -71,6 +84,8 @@ function lookup(map: Record<string, string>, lang: Lang, value?: string): string
 
 export const statusLabel = (lang: Lang, value?: string) => lookup(RU_STATUS, lang, value);
 export const roleLabel = (lang: Lang, value?: string) => lookup(RU_ROLE, lang, value);
+export const kindLabel = (lang: Lang, value?: string) => lookup(RU_KIND, lang, value);
+export const typeLabel = (lang: Lang, value?: string) => lookup(RU_TYPE, lang, value);
 export const tierLabel = (lang: Lang, value?: string) => lookup(RU_TIER, lang, value);
 export const layerKeyLabel = (lang: Lang, value: string) => lookup(RU_LAYER_KEY, lang, value) ?? value;
 export const bandLabel = (lang: Lang, value?: string) => lookup(RU_BAND, lang, value);
