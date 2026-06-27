@@ -20,11 +20,11 @@ const pageMeta: Record<Locale, { title: string; description: string; keywords: s
     ],
   },
   ru: {
-    title: "KARTEL Core — авторитетность федерации, реестр, governance",
+    title: "Ядро KARTEL — авторитетность федерации, реестр, governance",
     description:
-      "KARTEL Core — слой авторитетности федерации культурных и образовательных платформ (MoyPolk, RusJAz, Community Group). Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации, федерация — которые потребляют платформы. Официальный публичный реестр и governance.",
+      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ (MoyPolk, RusJAz, Community Group). Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации, федерация — которые потребляют платформы. Официальный публичный реестр и governance.",
     keywords: [
-      "KARTEL", "KARTEL Core", "федерация", "CPIF", "каноническая география",
+      "KARTEL", "Ядро KARTEL", "KARTEL Core", "федерация", "CPIF", "каноническая география",
       "MoyPolk", "RusJAz", "Community Group", "реестр", "governance",
     ],
   },

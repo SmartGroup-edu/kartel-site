@@ -6,7 +6,7 @@ import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { registryContent } from "../content/registry";
 import { projectSummaries, gateNames, gateDescriptions, layerNameLabels, stewardLabels } from "../content/federationCopy";
-import { statusLabel, kindLabel, typeLabel } from "../content/tokens";
+import { statusLabel, kindLabel, typeLabel, coreName } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 type Status = string;
@@ -56,7 +56,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">KARTEL Core</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
             <h1 className="mt-2 font-serif text-4xl text-[var(--foreground)] sm:text-5xl">{c.title}</h1>
             <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--text-body)]">{c.intro}</p>
             <p className="mt-4 text-xs text-[var(--muted)]">
@@ -85,8 +85,8 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                     <tr key={l.key} className="border-b border-[var(--border)] last:border-0">
                       <td className="px-4 py-3 font-serif text-[var(--foreground)]">{layerNameLabels[lang][l.key] ?? l.name}</td>
                       <td className="px-4 py-3 text-[var(--muted)]">{kindLabel(lang, l.kind)}</td>
-                      <td className="px-4 py-3 text-[var(--text-body)]">{l.owner}</td>
-                      <td className="px-4 py-3 text-[var(--text-body)]">{stewardLabels[lang][l.key] ?? l.steward}</td>
+                      <td className="px-4 py-3 text-[var(--text-body)]">{coreName(lang, l.owner)}</td>
+                      <td className="px-4 py-3 text-[var(--text-body)]">{stewardLabels[lang][l.key] ?? coreName(lang, l.steward)}</td>
                       <td className="px-4 py-3"><StatusPill value={l.status} label={statusLabel(lang, l.status)} /></td>
                     </tr>
                   ))}

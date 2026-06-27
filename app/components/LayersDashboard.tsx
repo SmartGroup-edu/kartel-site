@@ -5,6 +5,7 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { layersContent } from "../content/layers";
+import { coreName } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 function StatusPill({ value }: { value: string }) {
@@ -57,8 +58,8 @@ export default function LayersDashboard({ lang }: { lang: Lang }) {
                   <Field label={c.fields.canonicalKey}>
                     <span className="font-mono text-[13px] text-[var(--accent)]">{l.canonicalKey}</span>
                   </Field>
-                  <Field label={c.fields.authority}>{l.authority}</Field>
-                  <Field label={c.fields.steward}>{l.steward}</Field>
+                  <Field label={c.fields.authority}>{coreName(lang, l.authority)}</Field>
+                  <Field label={c.fields.steward}>{coreName(lang, l.steward)}</Field>
                   <Field label={c.fields.consumers}>{l.consumers.join(" · ")}</Field>
                   <Field label={c.fields.contract}>
                     <span className="font-mono text-[13px] text-[var(--text-body)]">{l.contract}</span>
