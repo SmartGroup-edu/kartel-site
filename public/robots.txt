@@ -1,4 +1,11 @@
-# kartel.org.uk — Kartel Family Coat of Arms & Legacy
+# kartel.org.uk — KARTEL Core authority surface & Kartel family heritage
+#
+# NOTE: Cloudflare's managed robots.txt feature may PREPEND a block that sets
+# Content-Signal: ai-train=no and Disallow for ClaudeBot/GPTBot/Google-Extended/
+# Applebot-Extended/Amazonbot/Meta-ExternalAgent/CCBot/Bytespider. That conflicts
+# with the "AI Crawlers — welcome" policy below and with llms.txt. Resolve the
+# AI-crawler policy in the Cloudflare dashboard (AI Audit / managed robots.txt);
+# this origin file alone cannot override the managed block.
 
 User-agent: *
 Allow: /

@@ -1,6 +1,40 @@
 # KARTEL — Full Site Content
 
-> This file contains the complete text content of kartel.org.uk for AI systems. The Kartel family coat of arms, family legacy, and identity. London, United Kingdom.
+> This file contains the complete text content of kartel.org.uk for AI systems. kartel.org.uk is the authority surface of KARTEL (a federation of cultural and educational platforms) and the home of the Kartel family heritage and coat of arms. London, United Kingdom. Motto: Virtus et Potestas.
+
+---
+
+# KARTEL CORE — Authority surface
+
+KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume or steward. None owns Core. This is the official public registry and governance surface, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
+
+## Four canonical layers
+
+- **Identity (CPIF)** — One federated identity across every platform: the shared Keycloak subject (`cpifSubjectId`). Status: live.
+- **Geography (ITL1)** — One canonical UK region taxonomy (ITL1). Platforms consume it; they never self-author regions. Status: live.
+- **Organisation Anchor** — One canonical organisation hierarchy: CEA → Foundation → School → Venue. Status: active.
+- **Campus Anchor** — Canonical accredited operating centres, identified by a readable `campusCode`, orthogonal to organisation identity. Status: active.
+
+## Federation Integration Gate
+
+No new project may enter production unless it passes all eight items:
+1. CPIF authentication — federated identity via the shared Keycloak realm; local mirror of the subject.
+2. Canonical geography — store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions.
+3. Organisation anchor — reference canonical organisations; do not author canonical orgs locally.
+4. Membership contract — conform membership edges to the shared shape.
+5. Permission pattern — local roles; delegation-grant pattern; no global role catalogue.
+6. Event geo-anchor — anchor events to a CanonicalRegionCode.
+7. Notification envelope — conform notifications to the shared envelope.
+8. Audit envelope — append-only audit conforming to the shared envelope.
+
+## Ecosystem projects
+
+- **MoyPolk** (moypolk.uk) — Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy. Role: Producer / Steward.
+- **RusJAz** (rusjaz.com) — Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography, organisation + campus anchors. Role: Consumer.
+- **Community Group** (community.group) — Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer. Role: Consumer.
+- **RusJAzz** — Future module. Builds against the Federation Integration Gate from day one. Role: Planned.
+
+The public registry carries status and architecture only — no operational detail, no internal identifiers, and no personal data. Those live in the access-controlled internal surface, never here.
 
 ---
 
@@ -73,7 +107,19 @@ Time will move forward, changing faces and landscapes outside the window, but th
 
 Центром композиции выступает геральдический щит лаконичной формы. Верхняя линия — прямая и устойчивая — образует границу, вокруг которой симметрично выстраиваются гербовые элементы. Основание щита, клином врезающееся в пространство, создаёт ощущение надёжной опоры, словно он вонзён в землю, закрепляя собой сдержанную красоту всей композиции.
 
-Сердце щита занимает шествующий грифон. Традиционно олицетворяя превосходство, защиту и дальновидность, этот символ призван оберегать, направлять, и тем самым служить мерилом высшей справедливости.
+Сердце щита занимает шествующий грифон. Традиционно олицетворяя превосходство, защиту и дальновидность, этот символ призван оберегать, направлять, и тем самым служить мерилом высшей справедливости. Он объединяет в себе два начала, льва и орла, сливая в одном облике земное и небесное, осязаемое и бестелесное, мужское и женское. Грифон изображён в движении, с поднятой головой и крыльями, распахнутыми за спиной, — как тот, кто никогда не спит и готов действовать, ведомый собственным сердцем и неугасимым чувством долга.
+
+## Символика герба
+
+В поднятой лапе грифона находится жезл, близкий по форме к посоху пастыря. Он отсылает к христианской вере и древнему символу духовной власти, указывающему не на господство, а на служение — принципам, убеждениям, ценностям, Богу и своему предназначению.
+
+Основание щита содержит два скрещённых ключа — одновременно символ церковной власти, исторически восходящий к апостолу Петру, и знак глубоких знаний. Их пересечение образует крест — знак духовности — и напоминает, что каждый человек владеет ключами от собственной судьбы.
+
+С обеих сторон щита раскинулись крылья, воплощая безмолвное божественное покровительство, а также отсылая к символике элитной польской кавалерии. Верхнюю часть герба венчает корона — знак качеств истинного правителя: мудрости, справедливости, силы воли и веры в предназначение, даруемых не по крови, а по достоинству. Три геральдические лилии воплощают чистоту помыслов и возвышенность духа. За щитом возвышаются два симметричных меча, обозначающих право встать между опасностью и тем, что дорого.
+
+## Цвета и наследие
+
+Герб выполнен парным сочетанием цветов: золото (жёлтый) и чернь (чёрный), серебро (белый) и червлень (красный). Золото — благородство, мудрость, стабильность, верность; чернь — воля, стойкость, дисциплина, хладнокровие. Серебро — истина, добродетель, честь, проницательность; червлень — отвага, страсть, мужество, лидерство, сила духа. Вместе они выражают эмоциональный и духовный код семьи Картель: глубокая вера в сочетании с внутренней решимостью.
 
 ## Семья Картель — Члены
 
@@ -120,4 +166,4 @@ The Kartel family is based in London, United Kingdom. Their website is kartel.or
 
 Source: https://kartel.org.uk
 Contact: gor@kartel.org.uk
-Last updated: 2026-04-20
+Last updated: 2026-06-19
