@@ -35,7 +35,7 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
     "community-group":
       "Платформа культурного финансирования и доверия (CEA). Потребляет идентичность и географию; первый потребитель слоя географии.",
     rusjazz:
-      "Будущий модуль. С первого дня строится в соответствии с Federation Integration Gate.",
+      "Будущий модуль. С первого дня строится в соответствии со Шлюзом интеграции в федерацию.",
   },
 };
 
@@ -79,6 +79,30 @@ export const stewardLabels: Record<Lang, Record<string, string>> = {
   EN: {},
   RU: {
     membership: "платформы (данные остаются локально)",
+  },
+};
+
+/** Federation Gate item names (registry.public.json.federationGate.items[].name), by item key. */
+export const gateNames: Record<Lang, Record<string, string>> = {
+  EN: {
+    cpif_authentication: "CPIF authentication",
+    canonical_geography: "Canonical geography",
+    organisation_anchor: "Organisation anchor",
+    membership_contract: "Membership contract",
+    permission_pattern: "Permission pattern",
+    event_geo_anchor: "Event geo-anchor",
+    notification_envelope: "Notification envelope",
+    audit_envelope: "Audit envelope",
+  },
+  RU: {
+    cpif_authentication: "Аутентификация CPIF",
+    canonical_geography: "Каноническая география",
+    organisation_anchor: "Якорь организаций",
+    membership_contract: "Контракт членства",
+    permission_pattern: "Шаблон прав",
+    event_geo_anchor: "Гео-якорь событий",
+    notification_envelope: "Конверт уведомлений",
+    audit_envelope: "Конверт аудита",
   },
 };
 
