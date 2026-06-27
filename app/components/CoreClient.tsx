@@ -6,6 +6,7 @@ import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { coreContent } from "../content/core";
 import { projectSummaries } from "../content/federationCopy";
+import { typeLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 function StatusPill({ value }: { value: string }) {
@@ -82,7 +83,7 @@ export default function CoreClient({ lang }: { lang: Lang }) {
                       {p.url.replace(/^https?:\/\//, "")} ↗
                     </a>
                   ) : (
-                    <p className="mt-1 text-xs text-[var(--muted)]">{p.type}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">{typeLabel(lang, p.type)}</p>
                   )}
                   <p className="mt-3 text-sm leading-relaxed text-[var(--text-body)]">{projectSummaries[lang][p.key] ?? p.summary}</p>
                 </div>

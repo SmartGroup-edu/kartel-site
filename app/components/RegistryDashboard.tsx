@@ -5,8 +5,8 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { registryContent } from "../content/registry";
-import { projectSummaries, gateDescriptions } from "../content/federationCopy";
-import { statusLabel } from "../content/tokens";
+import { projectSummaries, gateDescriptions, layerNameLabels, stewardLabels } from "../content/federationCopy";
+import { statusLabel, kindLabel, typeLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 type Status = string;
@@ -83,10 +83,10 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                 <tbody>
                   {registry.canonicalLayers.map((l) => (
                     <tr key={l.key} className="border-b border-[var(--border)] last:border-0">
-                      <td className="px-4 py-3 font-serif text-[var(--foreground)]">{l.name}</td>
-                      <td className="px-4 py-3 text-[var(--muted)]">{l.kind}</td>
+                      <td className="px-4 py-3 font-serif text-[var(--foreground)]">{layerNameLabels[lang][l.key] ?? l.name}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{kindLabel(lang, l.kind)}</td>
                       <td className="px-4 py-3 text-[var(--text-body)]">{l.owner}</td>
-                      <td className="px-4 py-3 text-[var(--text-body)]">{l.steward}</td>
+                      <td className="px-4 py-3 text-[var(--text-body)]">{stewardLabels[lang][l.key] ?? l.steward}</td>
                       <td className="px-4 py-3"><StatusPill value={l.status} label={statusLabel(lang, l.status)} /></td>
                     </tr>
                   ))}
@@ -115,7 +115,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                         {p.url.replace(/^https?:\/\//, "")} ↗
                       </a>
                     ) : (
-                      <span className="text-xs text-[var(--muted)]">{p.type}</span>
+                      <span className="text-xs text-[var(--muted)]">{typeLabel(lang, p.type)}</span>
                     )}
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--text-body)]">{projectSummaries[lang][p.key] ?? p.summary}</p>

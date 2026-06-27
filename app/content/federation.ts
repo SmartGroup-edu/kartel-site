@@ -39,6 +39,12 @@ export const federationContent = {
       region: "Region",
       members: "Members",
     },
+    layerNames: {
+      identity: "Identity (CPIF)",
+      geography: "Geography (ITL1)",
+      organisation: "Organisation (canonicalOrgCode)",
+      campus: "Campus (campusCode)",
+    } as Record<string, string>,
     integrityLabels: {
       orphanOrg: "Orphan organisations",
       orphanCampus: "Orphan campuses",
@@ -88,6 +94,12 @@ export const federationContent = {
       region: "Регион",
       members: "Участники",
     },
+    layerNames: {
+      identity: "Идентичность (CPIF)",
+      geography: "География (ITL1)",
+      organisation: "Организация (canonicalOrgCode)",
+      campus: "Кампус (campusCode)",
+    } as Record<string, string>,
     integrityLabels: {
       orphanOrg: "Потерянные организации",
       orphanCampus: "Потерянные кампусы",
