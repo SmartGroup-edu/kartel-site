@@ -1,4 +1,4 @@
-export type Generation = "ancestor" | "grandparent" | "elder" | "current" | "next";
+export type Generation = "founder" | "ancestor" | "grandparent" | "elder" | "current" | "next";
 
 export interface FamilyMember {
   name: string;
@@ -22,6 +22,7 @@ export const familyContent = {
     footerMotto: "Virtus et Potestas",
     footerCopy: "The Kartel Family. London.",
     generationLabels: {
+      founder: "Founders",
       ancestor: "Ancestors",
       grandparent: "Grandparents",
       elder: "Elders",
@@ -29,6 +30,8 @@ export const familyContent = {
       next: "Next Generation",
     } as Record<Generation, string>,
     people: [
+      { name: "Andrey Petrovich Kartel", description: "Founder of the Kartel lineage.", generation: "founder" as Generation },
+      { name: "Poloneya Grigorievna Kartel", description: "Founder of the Kartel lineage.", generation: "founder" as Generation },
       { name: "Aleksandr Andreyevich Kartel", description: "Ancestor of the Kartel family.", generation: "ancestor" as Generation },
       { name: "Lyubov Petrovna Kartel (née Kirey)", description: "Ancestor of the Kartel family.", generation: "ancestor" as Generation },
       { name: "Nikolai Aleksandrovich Kartel", description: "Grandparent of the Kartel family.", generation: "grandparent" as Generation },
@@ -52,6 +55,7 @@ export const familyContent = {
     footerMotto: "Virtus et Potestas",
     footerCopy: "Семья Картель. Лондон.",
     generationLabels: {
+      founder: "Основатели",
       ancestor: "Прародители",
       grandparent: "Дедушки и бабушки",
       elder: "Старшее поколение",
@@ -59,6 +63,8 @@ export const familyContent = {
       next: "Новое поколение",
     } as Record<Generation, string>,
     people: [
+      { name: "Андрей Петрович Картель", description: "Основатель рода Картель.", generation: "founder" as Generation },
+      { name: "Полонея Григорьевна Картель", description: "Основательница рода Картель.", generation: "founder" as Generation },
       { name: "Александр Андреевич Картель", description: "Прародитель семьи Картель.", generation: "ancestor" as Generation },
       { name: "Любовь Петровна Картель (Кирей)", description: "Прародительница семьи Картель.", generation: "ancestor" as Generation },
       { name: "Николай Александрович Картель", description: "Дед семьи Картель.", generation: "grandparent" as Generation },
@@ -76,7 +82,7 @@ export const familyContent = {
 };
 
 export function groupByGeneration(people: FamilyMember[], labels: Record<Generation, string>): GenerationGroup[] {
-  const order: Generation[] = ["ancestor", "grandparent", "elder", "current", "next"];
+  const order: Generation[] = ["founder", "ancestor", "grandparent", "elder", "current", "next"];
   return order
     .map((gen) => ({
       key: gen,
