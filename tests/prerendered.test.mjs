@@ -72,7 +72,7 @@ describe("/ru — KARTEL Core home", () => {
   });
 
   test("Russian Core title", () => {
-    assert.match(html, /<title>KARTEL Core — авторитетность федерации, реестр, governance<\/title>/);
+    assert.match(html, /<title>Ядро KARTEL — авторитетность федерации, реестр, governance<\/title>/);
   });
 
   test("canonical points at /ru", () => {

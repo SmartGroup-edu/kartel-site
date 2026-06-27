@@ -32,13 +32,13 @@ const meta: Record<Locale, {
   },
   ru: {
     title: {
-      default: "KARTEL Core — авторитетность федерации, реестр, governance",
+      default: "Ядро KARTEL — авторитетность федерации, реестр, governance",
       template: "%s | КАРТЕЛЬ",
     },
     description:
-      "KARTEL Core — слой авторитетности федерации культурных и образовательных платформ. Каноническая идентичность, география, организации и governance. Virtus et Potestas.",
-    ogTitle: "KARTEL Core — авторитетность федерации, реестр, governance",
-    twTitle: "KARTEL Core — авторитетность федерации, реестр, governance",
+      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ. Каноническая идентичность, география, организации и governance. Virtus et Potestas.",
+    ogTitle: "Ядро KARTEL — авторитетность федерации, реестр, governance",
+    twTitle: "Ядро KARTEL — авторитетность федерации, реестр, governance",
     twDescription:
       "Слой авторитетности экосистемы KARTEL — канонические слои, реестр, governance.",
     locale: "ru_RU",
@@ -56,7 +56,7 @@ const noscriptContent: Record<Locale, { intro: string; membersHeading: string; m
   },
   ru: {
     intro:
-      "KARTEL Core — слой авторитетности федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
+      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
     membersHeading: "Экосистема",
     members:
       "MoyPolk · RusJAz · Community Group · RusJAzz (план). Семейное наследие — отдельный раздел на /family.",

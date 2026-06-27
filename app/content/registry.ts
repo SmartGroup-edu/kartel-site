@@ -14,6 +14,7 @@ export const registryContent = {
     metaTitle: "KARTEL Core Registry — federation layers, projects, status",
     metaDescription:
       "The official registry of the KARTEL ecosystem: canonical layers (identity, geography), project federation status, ownership, and the Federation Integration Gate.",
+    eyebrow: "KARTEL Core",
     title: "KARTEL Core Registry",
     intro:
       "The canonical authority surface of the KARTEL ecosystem. KARTEL Core owns the canonical layers; platforms consume or steward them. This registry observes — it is not a workflow, a database, or a runtime dependency.",
@@ -38,24 +39,25 @@ export const registryContent = {
   },
   RU: {
     nav: [
-      { label: "Core", href: "/ru" },
+      { label: "Ядро", href: "/ru" },
       { label: "Реестр", href: "/ru/registry" },
       { label: "Семейное наследие", href: "/ru/family" },
     ],
     motto: "Virtus et Potestas",
     copy: "© 2026 KARTEL · Слой канонической авторитетности",
-    metaTitle: "Реестр KARTEL Core — слои федерации, проекты, статус",
+    metaTitle: "Реестр Ядра KARTEL — слои федерации, проекты, статус",
     metaDescription:
       "Официальный реестр экосистемы KARTEL: канонические слои (идентичность, география), статус федерации проектов, владение и Шлюз интеграции в федерацию.",
-    title: "Реестр KARTEL Core",
+    eyebrow: "Ядро KARTEL",
+    title: "Реестр Ядра KARTEL",
     intro:
-      "Официальный слой авторитетности экосистемы KARTEL. KARTEL Core владеет каноническими слоями; платформы их потребляют или обслуживают. Реестр наблюдает — это не workflow, не база данных и не runtime-зависимость.",
+      "Официальный слой авторитетности экосистемы KARTEL. Ядро KARTEL владеет каноническими слоями; платформы их потребляют или обслуживают. Реестр наблюдает — это не workflow, не база данных и не runtime-зависимость.",
     updatedLabel: "Обновлено",
     sections: {
       layers: "Канонические слои",
-      layersNote: "Принадлежат KARTEL Core. Одна идентичность. Одна география. Остальное задают контракты.",
+      layersNote: "Принадлежат Ядру KARTEL. Одна идентичность. Одна география. Остальное задают контракты.",
       projects: "Проекты",
-      projectsNote: "Каждый проект потребляет или обслуживает канонические слои. Никто не владеет Core.",
+      projectsNote: "Каждый проект потребляет или обслуживает канонические слои. Никто не владеет Ядром.",
       gate: "Шлюз интеграции в федерацию",
       gateNote: "Ни один новый проект не выходит в production, не пройдя все восемь пунктов.",
       contracts: "Контракты",

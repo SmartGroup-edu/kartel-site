@@ -45,17 +45,17 @@ export const projectsContent = {
     ],
     motto: "Virtus et Potestas",
     copy: "© 2026 KARTEL · Слой канонической авторитетности",
-    metaTitle: "KARTEL Core — каталог проектов экосистемы",
+    metaTitle: "Ядро KARTEL — каталог проектов экосистемы",
     metaDescription:
       "Проекты экосистемы KARTEL — MoyPolk, RusJAz, Community Group, RusJAzz — с их ролью в федерации (Authority, Producer, Steward, Consumer, Planned) и статусом по слоям.",
     eyebrow: "Каталог экосистемы",
     title: "Проекты",
     intro:
-      "Каждая платформа федерации и её роль. KARTEL Core — авторитет для канонических слоёв; платформы производят, обслуживают или потребляют их.",
+      "Каждая платформа федерации и её роль. Ядро KARTEL — авторитет для канонических слоёв; платформы производят, обслуживают или потребляют их.",
     cols: { project: "Проект", role: "Роль", identity: "Идентичность", geography: "География", organisation: "Организация" },
     roleLegendTitle: "Роли",
     roleLegend: [
-      { role: "Authority", desc: "Владеет каноническими слоями (KARTEL Core)." },
+      { role: "Authority", desc: "Владеет каноническими слоями (Ядро KARTEL)." },
       { role: "Producer", desc: "Производит канонические данные слоя." },
       { role: "Steward", desc: "Обслуживает / поддерживает слой для экосистемы." },
       { role: "Consumer", desc: "Потребляет канонические слои; не создаёт сам." },

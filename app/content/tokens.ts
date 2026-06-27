@@ -82,6 +82,14 @@ function lookup(map: Record<string, string>, lang: Lang, value?: string): string
   return map[value.toLowerCase()] ?? value;
 }
 
+/**
+ * Localise the "KARTEL Core" brand token inside a data string (e.g. the layer
+ * Owner / Steward columns) on RU. EN and other tokens pass through unchanged.
+ * "KARTEL Core" the canonical brand is rendered "Ядро KARTEL" on the RU site.
+ */
+export const coreName = (lang: Lang, value?: string) =>
+  lang === "RU" && value ? value.replace("KARTEL Core", "Ядро KARTEL") : value;
+
 export const statusLabel = (lang: Lang, value?: string) => lookup(RU_STATUS, lang, value);
 export const roleLabel = (lang: Lang, value?: string) => lookup(RU_ROLE, lang, value);
 export const kindLabel = (lang: Lang, value?: string) => lookup(RU_KIND, lang, value);
