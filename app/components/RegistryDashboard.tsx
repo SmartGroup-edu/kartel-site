@@ -5,12 +5,19 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { registryContent } from "../content/registry";
+import { projectSummaries, gateDescriptions } from "../content/federationCopy";
+import { statusLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
 type Status = string;
 
-/** Quiet, institutional status pill — tone by meaning, single accent. */
-function StatusPill({ value }: { value: Status }) {
+/**
+ * Quiet, institutional status pill — tone by meaning, single accent.
+ * `value` is the raw English token (drives the colour logic); `label`, if given,
+ * is the localised display text. They are kept separate so translating the
+ * display never changes which tone the logic picks.
+ */
+function StatusPill({ value, label }: { value: Status; label?: string }) {
   const v = value.toLowerCase();
   const active = /(live|connected|producer)/.test(v);
   const secondary = /(consumed|steward|draft)/.test(v);
@@ -23,7 +30,7 @@ function StatusPill({ value }: { value: Status }) {
     <span
       className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}
     >
-      {value}
+      {label ?? value}
     </span>
   );
 }
@@ -80,7 +87,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                       <td className="px-4 py-3 text-[var(--muted)]">{l.kind}</td>
                       <td className="px-4 py-3 text-[var(--text-body)]">{l.owner}</td>
                       <td className="px-4 py-3 text-[var(--text-body)]">{l.steward}</td>
-                      <td className="px-4 py-3"><StatusPill value={l.status} /></td>
+                      <td className="px-4 py-3"><StatusPill value={l.status} label={statusLabel(lang, l.status)} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -111,14 +118,14 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                       <span className="text-xs text-[var(--muted)]">{p.type}</span>
                     )}
                   </div>
-                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-body)]">{p.summary}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--text-body)]">{projectSummaries[lang][p.key] ?? p.summary}</p>
                   <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
                     {Object.entries(p.layers).map(([layerKey, status]) => (
                       <div key={layerKey} className="flex items-center gap-2">
                         <dt className="text-[11px] uppercase tracking-wide text-[var(--muted)]">
                           {c.layerNames[layerKey as keyof typeof c.layerNames] ?? layerKey}
                         </dt>
-                        <dd><StatusPill value={status as string} /></dd>
+                        <dd><StatusPill value={status as string} label={statusLabel(lang, status as string)} /></dd>
                       </div>
                     ))}
                   </dl>
@@ -138,7 +145,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                   <span className="font-serif text-lg text-[var(--accent)]">{String(i + 1).padStart(2, "0")}</span>
                   <div>
                     <p className="font-serif text-[var(--foreground)]">{item.name}</p>
-                    <p className="mt-0.5 text-sm text-[var(--muted)]">{item.description}</p>
+                    <p className="mt-0.5 text-sm text-[var(--muted)]">{gateDescriptions[lang][item.key] ?? item.description}</p>
                   </div>
                 </li>
               ))}

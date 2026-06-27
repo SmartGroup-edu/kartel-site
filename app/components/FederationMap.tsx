@@ -5,23 +5,26 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { federationContent } from "../content/federation";
+import { statusLabel, roleLabel, tierLabel, layerKeyLabel, bandLabel } from "../content/tokens";
 import fed from "../content/federation.public.json";
 
-function StatusPill({ value }: { value: string }) {
+// `value` is the raw English token (drives colour logic); `label` is the
+// localised display text. Kept separate so translation never shifts the tone.
+function StatusPill({ value, label }: { value: string; label?: string }) {
   const on = /(live|active|ratified|connected|consumed|producer|steward|anchored)/i.test(value);
   const tone = on ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--muted)]";
   return (
     <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}>
-      {value}
+      {label ?? value}
     </span>
   );
 }
 
 /** Member-count band: privacy-banded, never an exact value < 5 at a named entity. */
-function Band({ value }: { value: string }) {
+function Band({ value, label }: { value: string; label?: string }) {
   const zero = value === "0";
   return (
-    <span className={`font-mono text-[12px] ${zero ? "text-[var(--muted)]" : "text-[var(--text-body)]"}`}>{value}</span>
+    <span className={`font-mono text-[12px] ${zero ? "text-[var(--muted)]" : "text-[var(--text-body)]"}`}>{label ?? value}</span>
   );
 }
 
@@ -54,7 +57,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
               {fed.canonicalLayers.map((l) => (
                 <span key={l.key} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
                   <span className="font-serif text-[var(--foreground)]">{l.name}</span>
-                  <StatusPill value={l.status} />
+                  <StatusPill value={l.status} label={statusLabel(lang, l.status)} />
                 </span>
               ))}
             </div>
@@ -63,7 +66,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
               {fed.contracts.map((ct) => (
                 <span key={ct.key} className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] px-3 py-1.5 text-sm">
                   <span className="font-mono text-[13px] text-[var(--text-body)]">{ct.name}</span>
-                  <StatusPill value={ct.status} />
+                  <StatusPill value={ct.status} label={statusLabel(lang, ct.status)} />
                 </span>
               ))}
             </div>
@@ -88,10 +91,10 @@ export default function FederationMap({ lang }: { lang: Lang }) {
                   {fed.platforms.map((p) => (
                     <tr key={p.key} className="border-b border-[var(--border)] align-top last:border-0">
                       <td className="px-4 py-4 font-serif text-base text-[var(--foreground)]">{p.name}</td>
-                      <td className="px-4 py-4 text-[var(--text-body)]">{p.role}</td>
-                      <td className="px-4 py-4"><Band value={p.cpifLinked} /></td>
+                      <td className="px-4 py-4 text-[var(--text-body)]">{roleLabel(lang, p.role)}</td>
+                      <td className="px-4 py-4"><Band value={p.cpifLinked} label={bandLabel(lang, p.cpifLinked)} /></td>
                       <td className="px-4 py-4 text-xs text-[var(--muted)]">
-                        {Object.entries(p.layers as Record<string, string>).map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                        {Object.entries(p.layers as Record<string, string>).map(([k, v]) => `${layerKeyLabel(lang, k)}: ${statusLabel(lang, v)}`).join(" · ")}
                       </td>
                     </tr>
                   ))}
@@ -117,7 +120,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
                 </thead>
                 <tbody>
                   {fed.topology.map((t) => (
-                    <FedRows key={t.code} node={t} />
+                    <FedRows key={t.code} node={t} lang={lang} />
                   ))}
                 </tbody>
               </table>
@@ -162,7 +165,7 @@ type FedNode = {
   campuses?: { code: string; location: string; region: string; members: string }[];
 };
 
-function FedRows({ node }: { node: FedNode }) {
+function FedRows({ node, lang }: { node: FedNode; lang: Lang }) {
   return (
     <>
       <tr className="border-b border-[var(--border)] last:border-0">
@@ -170,9 +173,9 @@ function FedRows({ node }: { node: FedNode }) {
           <span className="font-mono text-[13px] text-[var(--accent)]">{node.code}</span>
           <span className="ml-2 text-xs text-[var(--muted)]">{node.name}</span>
         </td>
-        <td className="px-4 py-3 text-[var(--muted)]">{node.tier}</td>
+        <td className="px-4 py-3 text-[var(--muted)]">{tierLabel(lang, node.tier)}</td>
         <td className="px-4 py-3 font-mono text-[12px] text-[var(--text-body)]">{node.region ?? "—"}</td>
-        <td className="px-4 py-3"><Band value={node.members} /></td>
+        <td className="px-4 py-3"><Band value={node.members} label={bandLabel(lang, node.members)} /></td>
       </tr>
       {(node.campuses ?? []).map((cp) => (
         <tr key={cp.code} className="border-b border-[var(--border)] last:border-0">
@@ -181,9 +184,9 @@ function FedRows({ node }: { node: FedNode }) {
             <span className="font-mono text-[12px] text-[var(--text-body)]">{cp.code}</span>
             <span className="ml-2 text-xs text-[var(--muted)]">{cp.location}</span>
           </td>
-          <td className="px-4 py-3 text-xs text-[var(--muted)]">campus</td>
+          <td className="px-4 py-3 text-xs text-[var(--muted)]">{tierLabel(lang, "campus")}</td>
           <td className="px-4 py-3 font-mono text-[12px] text-[var(--text-body)]">{cp.region}</td>
-          <td className="px-4 py-3"><Band value={cp.members} /></td>
+          <td className="px-4 py-3"><Band value={cp.members} label={bandLabel(lang, cp.members)} /></td>
         </tr>
       ))}
     </>

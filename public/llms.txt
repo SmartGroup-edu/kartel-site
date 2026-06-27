@@ -1,31 +1,26 @@
-# KARTEL — Family Coat of Arms & Legacy
+# KARTEL — Core authority surface & family heritage
 
-> The official website of the Kartel family, presenting their heraldic coat of arms, family legacy, and identity. Based in London, United Kingdom.
+> kartel.org.uk is the authority surface of KARTEL — a federation of cultural and educational platforms — and the home of the Kartel family heritage. Based in London, United Kingdom. Motto: "Virtus et Potestas" (Strength and Power). Bilingual: English and Russian.
 
-## About
+The site has two distinct areas:
+1. **KARTEL Core** (home + registry) — the public registry and governance surface of the federation.
+2. **Family Heritage** (/family) — the Kartel family, its lineage, and the family coat of arms, kept deliberately separate from the institutional surface.
 
-The Kartel family coat of arms (Latin motto: "Virtus et Potestas" — Strength and Power) is a heraldic composition featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, and wings. The site presents a detailed description of every element and its symbolic meaning, in both English and Russian.
+## KARTEL Core
 
-## Key Facts
+KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume or steward. None owns Core. The registry observes; it is not a workflow, a database, or a runtime dependency.
 
-- **Family name**: Kartel (Картель)
-- **Motto**: Virtus et Potestas (Strength and Power / Сила и Власть)
-- **Location**: London, United Kingdom
-- **Languages**: English, Russian
-- **Domain**: kartel.org.uk
+- **Canonical layers**: Identity (CPIF — shared Keycloak subject, `cpifSubjectId`), Geography (ITL1 — canonical UK region taxonomy), Organisation anchor, Campus anchor.
+- **Federation Integration Gate**: eight requirements every project passes before production (CPIF authentication, canonical geography, organisation anchor, membership contract, permission pattern, event geo-anchor, notification envelope, audit envelope).
+- **Ecosystem projects**:
+  - MoyPolk (moypolk.uk) — Immortal Regiment UK memorial platform; produces + serves the canonical geography taxonomy.
+  - RusJAz (rusjaz.com) — Russian-language education marketplace + LMS; identity reference implementation; consumes geography, organisation + campus anchors.
+  - Community Group (community.group) — cultural funding & trust platform (CEA); consumes identity + geography.
+  - RusJAzz — planned future module; builds against the Federation Integration Gate from day one.
 
-## Family Members
+## Family — Coat of Arms
 
-- Igor Gor Kartel (Игорь Гор Картель) — Family representative in London
-- Diana Kartel (Диана Картель)
-- Dominika Kartel (Доминика Картель) — Next generation
-- Arina Kartel (Арина Картель) — Next generation
-- Igor Kaid Kartel (Игорь Каид Картель) — Next generation
-- Feliks Kartel (Феликс Картель) — Next generation
-- Piotr Kartel (Петр Картель) — Elder generation
-- Valentina Kartel (Валентина Картель) — Elder generation
-
-## Coat of Arms Elements
+The Kartel family coat of arms is a heraldic composition featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, and wings, under the motto "Virtus et Potestas". Every element and its symbolic meaning is described in full, in both English and Russian.
 
 - **Griffin**: Superiority, protection, foresight. Combines lion (earthly) and eagle (celestial).
 - **Staff/Crook**: Christian faith, spiritual authority, service.
@@ -36,18 +31,43 @@ The Kartel family coat of arms (Latin motto: "Virtus et Potestas" — Strength a
 - **Swords (2)**: Readiness to defend family, principles, and convictions.
 - **Motto ribbon**: "Virtus et Potestas" — Strength and Power.
 
-## Heraldic Colours
+### Heraldic colours
 
 - **Gold & Black**: Nobility, wisdom, willpower, endurance, discipline.
 - **Silver & Red**: Truth, virtue, courage, passion, leadership, strength of spirit.
 
+## Family members
+
+- Igor Gor Kartel (Игорь Гор Картель) — Family representative in London
+- Diana Kartel (Диана Картель)
+- Dominika Kartel (Доминика Картель) — Next generation
+- Arina Kartel (Арина Картель) — Next generation
+- Igor Kaid Kartel (Игорь Каид Картель) — Next generation
+- Feliks Kartel (Феликс Картель) — Next generation
+- Piotr Kartel (Петр Картель) — Elder generation
+- Valentina Kartel (Валентина Картель) — Elder generation
+
 ## Pages
 
-- [Home](https://kartel.org.uk/) — Coat of arms description and symbolism
-- [Family](https://kartel.org.uk/family) — Family members by generation
+- [Home — KARTEL Core](https://kartel.org.uk/en) — Federation authority surface overview
+- [Registry](https://kartel.org.uk/en/registry) — Canonical layers, projects, Federation Integration Gate
+- [Organisations](https://kartel.org.uk/en/registry/organisations) — Canonical institution registry
+- [Campuses](https://kartel.org.uk/en/registry/campuses) — Canonical accredited-centre registry
+- [Federation Map](https://kartel.org.uk/en/registry/federation) — Read-only federation observability snapshot
+- [Family Heritage](https://kartel.org.uk/en/family) — Family members by generation
+- [Coat of Arms](https://kartel.org.uk/en/family/crest) — Heraldry, elements, and symbolism
 - [Full content for LLMs](https://kartel.org.uk/llms-full.txt) — Complete text of all pages
+
+## Key facts
+
+- **Family name**: Kartel (Картель)
+- **Motto**: Virtus et Potestas (Strength and Power / Сила и Власть)
+- **Location**: London, United Kingdom
+- **Languages**: English, Russian
+- **Domain**: kartel.org.uk
 
 ## Contact
 
 - Website: https://kartel.org.uk
 - Email: gor@kartel.org.uk
+- Last updated: 2026-06-19

@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
+import registry from "./content/registry.public.json";
 
 const BASE = "https://kartel.org.uk";
 
-// Fixed content-revision date — bump when the page content materially changes.
-// A constant keeps the generated sitemap deterministic across builds and avoids
-// a lastModified that churns on every deploy (which misleads crawlers).
-const now = new Date("2026-06-01");
+// Content-revision date, sourced from the registry projection's `updated` field
+// so the sitemap tracks the last governance/content change instead of a manual
+// constant that silently goes stale. Still deterministic across builds (it only
+// moves when registry.public.json is regenerated), so it does not churn on every
+// deploy and mislead crawlers.
+const now = new Date(registry.updated);
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

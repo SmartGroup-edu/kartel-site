@@ -28,12 +28,21 @@ export default function SiteFooter({
           <nav aria-label="Footer links" className="mt-1 flex items-center gap-4 text-[11px] tracking-[0.05em] text-[var(--muted-light)] sm:text-[12px]">
             {contactEmail && (
               <>
-                <a
-                  href={`mailto:${contactEmail}`}
-                  className="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-                >
-                  {contactEmail}
-                </a>
+                {/*
+                  Render the mailto link inside Cloudflare's `email_off` markers so
+                  Cloudflare's Email Address Obfuscation (Scrape Shield) leaves it
+                  alone. Without this, the edge rewrites the address into a JS-only
+                  `data-cfemail` placeholder that shows "[email protected]" to
+                  no-JS clients and crawlers. The markers are HTML comments, so they
+                  must be emitted as raw HTML (React strips comment nodes). The
+                  address is public and already published in llms.txt, so no
+                  obfuscation is wanted here — only a working, no-JS link.
+                */}
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: `<!--email_off--><a href="mailto:${contactEmail}" class="rounded-sm transition-colors hover:text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">${contactEmail}</a><!--/email_off-->`,
+                  }}
+                />
                 <span aria-hidden="true" className="text-[var(--border)]">·</span>
               </>
             )}
