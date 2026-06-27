@@ -1,6 +1,6 @@
 // KARTEL Core — home (authority surface) content. Bilingual (EN/RU).
 // Block order (R0): Hero · KARTEL Core · Four Canonical Layers · Ecosystem
-// Projects · Registry Access · Family Heritage. Project data is read from
+// Projects · Registry Access. Project data is read from
 // registry.public.json; this module holds the institutional copy only.
 
 export const coreContent = {
@@ -9,7 +9,6 @@ export const coreContent = {
       { label: "Registry", href: "/en/registry" },
       { label: "Layers", href: "/en/registry/layers" },
       { label: "Projects", href: "/en/registry/projects" },
-      { label: "Family Heritage", href: "/en/family" },
     ],
     motto: "Virtus et Potestas",
     copy: "© 2026 KARTEL · Core authority surface",
@@ -45,7 +44,6 @@ export const coreContent = {
       { label: "Реестр", href: "/ru/registry" },
       { label: "Слои", href: "/ru/registry/layers" },
       { label: "Проекты", href: "/ru/registry/projects" },
-      { label: "Семейное наследие", href: "/ru/family" },
     ],
     motto: "Virtus et Potestas",
     copy: "© 2026 KARTEL · Слой канонической авторитетности",

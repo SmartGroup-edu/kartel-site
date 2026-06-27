@@ -42,14 +42,7 @@
       "purpose": "apple touch icon"
     }
   ],
-  "shortcuts": [
-    {
-      "name": "Family Members",
-      "short_name": "Family",
-      "url": "/en/family",
-      "description": "View all Kartel family members"
-    }
-  ],
+  "shortcuts": [],
   "screenshots": [],
   "prefer_related_applications": false
 }

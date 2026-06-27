@@ -39,32 +39,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     },
     {
-      url: `${BASE}/en/family`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-      alternates: {
-        languages: {
-          en: `${BASE}/en/family`,
-          ru: `${BASE}/ru/family`,
-          "x-default": `${BASE}/en/family`,
-        },
-      },
-    },
-    {
-      url: `${BASE}/ru/family`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-      alternates: {
-        languages: {
-          en: `${BASE}/en/family`,
-          ru: `${BASE}/ru/family`,
-          "x-default": `${BASE}/en/family`,
-        },
-      },
-    },
-    {
       url: `${BASE}/en/registry`,
       lastModified: now,
       changeFrequency: "weekly",
@@ -158,24 +132,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
           ru: `${BASE}/ru/registry/federation`,
           "x-default": `${BASE}/en/registry/federation`,
         },
-      },
-    },
-    {
-      url: `${BASE}/en/family/crest`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-      alternates: {
-        languages: { en: `${BASE}/en/family/crest`, ru: `${BASE}/ru/family/crest`, "x-default": `${BASE}/en/family/crest` },
-      },
-    },
-    {
-      url: `${BASE}/ru/family/crest`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.6,
-      alternates: {
-        languages: { en: `${BASE}/en/family/crest`, ru: `${BASE}/ru/family/crest`, "x-default": `${BASE}/en/family/crest` },
       },
     },
     {

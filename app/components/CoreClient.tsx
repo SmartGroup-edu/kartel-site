@@ -25,7 +25,6 @@ function StatusPill({ value }: { value: string }) {
 export default function CoreClient({ lang }: { lang: Lang }) {
   const toggleLang = useLangToggle(lang);
   const c = coreContent[lang];
-  const base = `/${lang.toLowerCase()}`;
 
   return (
     <>
@@ -107,22 +106,6 @@ export default function CoreClient({ lang }: { lang: Lang }) {
                   {b.label}
                 </a>
               ))}
-            </div>
-          </section>
-        </FadeInSection>
-
-        {/* Family Heritage */}
-        <FadeInSection>
-          <section className="border-t border-[var(--border)] bg-[var(--surface)]">
-            <div className="mx-auto max-w-4xl px-4 py-12 text-center sm:px-6 lg:px-10">
-              <h2 className="font-serif text-xl italic text-[var(--accent)] sm:text-2xl">{c.familyTitle}</h2>
-              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-[var(--text-body)]">{c.familyLede}</p>
-              <a
-                href={`${base}/family`}
-                className="mt-5 inline-block rounded-md px-5 py-2 text-sm text-[var(--accent)] underline-offset-4 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-              >
-                {c.familyButton} →
-              </a>
             </div>
           </section>
         </FadeInSection>

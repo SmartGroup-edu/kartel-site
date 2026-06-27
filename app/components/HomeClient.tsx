@@ -41,7 +41,6 @@ export default function HomeClient({ lang }: { lang: Lang }) {
     { label: t.navHome, href: "#home", active: activeSection === "home" },
     { label: t.navMeaning, href: "#meaning", active: activeSection === "meaning" },
     { label: t.navLegacy, href: "#legacy", active: activeSection === "legacy" },
-    { label: t.navFamily, href: `/${langPath}/family` },
   ], [t, activeSection, langPath]);
 
   return (

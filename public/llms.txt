@@ -1,10 +1,6 @@
-# KARTEL — Core authority surface & family heritage
+# KARTEL — Core authority surface
 
-> kartel.org.uk is the authority surface of KARTEL — a federation of cultural and educational platforms — and the home of the Kartel family heritage. Based in London, United Kingdom. Motto: "Virtus et Potestas" (Strength and Power). Bilingual: English and Russian.
-
-The site has two distinct areas:
-1. **KARTEL Core** (home + registry) — the public registry and governance surface of the federation.
-2. **Family Heritage** (/family) — the Kartel family, its lineage, and the family coat of arms, kept deliberately separate from the institutional surface.
+> kartel.org.uk is the authority surface of KARTEL — a federation of cultural and educational platforms. Based in London, United Kingdom. Motto: "Virtus et Potestas" (Strength and Power). Bilingual: English and Russian.
 
 ## KARTEL Core
 
@@ -18,35 +14,6 @@ KARTEL Core is the authority surface of a federation of cultural and educational
   - Community Group (community.group) — cultural funding & trust platform (CEA); consumes identity + geography.
   - RusJAzz — planned future module; builds against the Federation Integration Gate from day one.
 
-## Family — Coat of Arms
-
-The Kartel family coat of arms is a heraldic composition featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, and wings, under the motto "Virtus et Potestas". Every element and its symbolic meaning is described in full, in both English and Russian.
-
-- **Griffin**: Superiority, protection, foresight. Combines lion (earthly) and eagle (celestial).
-- **Staff/Crook**: Christian faith, spiritual authority, service.
-- **Crossed Keys**: Knowledge, sacred mystery, faith and reason united. Historically linked to Apostle Peter.
-- **Wings**: Divine protection, trust, belonging. Also references elite Polish cavalry (Husaria).
-- **Coronet**: Wisdom, justice, willpower. Authority earned by merit, not birthright.
-- **Fleur-de-lis (3)**: Purity of intention, nobility of spirit.
-- **Swords (2)**: Readiness to defend family, principles, and convictions.
-- **Motto ribbon**: "Virtus et Potestas" — Strength and Power.
-
-### Heraldic colours
-
-- **Gold & Black**: Nobility, wisdom, willpower, endurance, discipline.
-- **Silver & Red**: Truth, virtue, courage, passion, leadership, strength of spirit.
-
-## Family members
-
-- Igor Gor Kartel (Игорь Гор Картель) — Family representative in London
-- Diana Kartel (Диана Картель)
-- Dominika Kartel (Доминика Картель) — Next generation
-- Arina Kartel (Арина Картель) — Next generation
-- Igor Kaid Kartel (Игорь Каид Картель) — Next generation
-- Feliks Kartel (Феликс Картель) — Next generation
-- Piotr Kartel (Петр Картель) — Elder generation
-- Valentina Kartel (Валентина Картель) — Elder generation
-
 ## Pages
 
 - [Home — KARTEL Core](https://kartel.org.uk/en) — Federation authority surface overview
@@ -54,8 +21,6 @@ The Kartel family coat of arms is a heraldic composition featuring a griffin, cr
 - [Organisations](https://kartel.org.uk/en/registry/organisations) — Canonical institution registry
 - [Campuses](https://kartel.org.uk/en/registry/campuses) — Canonical accredited-centre registry
 - [Federation Map](https://kartel.org.uk/en/registry/federation) — Read-only federation observability snapshot
-- [Family Heritage](https://kartel.org.uk/en/family) — Family members by generation
-- [Coat of Arms](https://kartel.org.uk/en/family/crest) — Heraldry, elements, and symbolism
 - [Full content for LLMs](https://kartel.org.uk/llms-full.txt) — Complete text of all pages
 
 ## Key facts
@@ -70,4 +35,4 @@ The Kartel family coat of arms is a heraldic composition featuring a griffin, cr
 
 - Website: https://kartel.org.uk
 - Email: gor@kartel.org.uk
-- Last updated: 2026-06-19
+- Last updated: 2026-06-27

@@ -7,7 +7,6 @@ const SW_CONTENT = `// KARTEL Service Worker — Offline-first caching
 const CACHE_NAME = "kartel-${VERSION}";
 const STATIC_ASSETS = [
   "/",
-  "/family",
   "/crest.jpeg",
   "/crest.webp",
   "/icon.svg",

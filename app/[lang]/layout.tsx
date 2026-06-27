@@ -52,14 +52,14 @@ const noscriptContent: Record<Locale, { intro: string; membersHeading: string; m
       "KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume. Motto: Virtus et Potestas.",
     membersHeading: "Ecosystem",
     members:
-      "MoyPolk · RusJAz · Community Group · RusJAzz (planned). Family Heritage is kept as a separate area at /family.",
+      "MoyPolk · RusJAz · Community Group · RusJAzz (planned).",
   },
   ru: {
     intro:
       "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
     membersHeading: "Экосистема",
     members:
-      "MoyPolk · RusJAz · Community Group · RusJAzz (план). Семейное наследие — отдельный раздел на /family.",
+      "MoyPolk · RusJAz · Community Group · RusJAzz (план).",
   },
 };
 
