@@ -5,7 +5,7 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { registryContent } from "../content/registry";
-import { projectSummaries, gateDescriptions, layerNameLabels, stewardLabels } from "../content/federationCopy";
+import { projectSummaries, gateNames, gateDescriptions, layerNameLabels, stewardLabels } from "../content/federationCopy";
 import { statusLabel, kindLabel, typeLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
@@ -144,7 +144,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
                 <li key={item.key} className="flex gap-3 rounded-lg border border-[var(--border)] p-4">
                   <span className="font-serif text-lg text-[var(--accent)]">{String(i + 1).padStart(2, "0")}</span>
                   <div>
-                    <p className="font-serif text-[var(--foreground)]">{item.name}</p>
+                    <p className="font-serif text-[var(--foreground)]">{gateNames[lang][item.key] ?? item.name}</p>
                     <p className="mt-0.5 text-sm text-[var(--muted)]">{gateDescriptions[lang][item.key] ?? item.description}</p>
                   </div>
                 </li>
