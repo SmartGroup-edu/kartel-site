@@ -26,6 +26,13 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // Block /en/family and /ru/family — redirect to homepage
+  // (page components preserved for future re-enabling)
+  if (/^\/(en|ru)\/family(\/|$)/.test(pathname)) {
+    const lang = pathname.startsWith("/ru") ? "ru" : "en";
+    return NextResponse.redirect(new URL(`/${lang}`, request.url));
+  }
+
   // If the path already starts with a known locale, leave it alone.
   const firstSegment = pathname.split("/")[1];
   if (LOCALES.includes(firstSegment as Locale)) return NextResponse.next();
