@@ -1,8 +1,18 @@
 #!/usr/bin/env sh
-# Fast pre-push gate: run lint and typecheck before allowing push to main.
-# Build is intentionally not run here (slow); CI catches it.
+# Pre-push gate before pushing (typically to main).
+# lint + typecheck are fast. The snapshot tests (tests/*.test.mjs) read the
+# prerendered build output (.next/server/app/*), so they are only meaningful
+# after a build — hence build runs here too. This is the gate that would have
+# caught CI going red on 2026-06-27 (sitemap/sw tests vs. hidden /family):
+# typecheck alone missed it because it was a snapshot-content mismatch, not a
+# type error. Cost: each push runs a Next build. To skip on a throwaway push:
+#   git push --no-verify
 set -e
 echo "→ pre-push: lint"
 npm run lint
 echo "→ pre-push: typecheck"
 npx tsc --noEmit
+echo "→ pre-push: build"
+npm run build
+echo "→ pre-push: test"
+npm test
