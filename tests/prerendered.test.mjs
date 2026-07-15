@@ -2,9 +2,18 @@
 // These read the .next/server/app outputs after `npm run build` and assert
 // invariants we care about — i18n correctness + the Core/Family split:
 //   /              → KARTEL Core (authority surface)
-//   /family        → Family Heritage members
-//   /family/crest  → Coat of Arms (heraldry; moved from the old home)
 //   /registry      → Core Registry dashboard
+//   /family        → Family Heritage members   — HIDDEN (see below)
+//   /family/crest  → Coat of Arms (heraldry)   — HIDDEN (see below)
+//
+// Family Heritage is currently HIDDEN from visitors: proxy.ts redirects
+// /{en,ru}/family(/*) to the homepage, and the pages are excluded from the
+// sitemap, service-worker precache and nav. The page components are still
+// prerendered (kept for re-enabling), so the /family* HTML snapshot tests below
+// still run and guard that content — but sitemap/sw MUST NOT advertise them.
+// Intended future access model (NOT built here): registration + admin approval
+// via CPIF / Keycloak (Federation v2) — not bespoke auth, and no PII on this
+// public no-PII authority surface. Until then these stay hidden.
 //
 // Run with: npm test  (after npm run build)
 
@@ -124,9 +133,9 @@ describe("sitemap.xml", () => {
     assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/ru<\/loc>/);
   });
 
-  test("lists /en/family and /ru/family", () => {
-    assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/family<\/loc>/);
-    assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/family<\/loc>/);
+  test("does NOT list /family (hidden until registration + admin approval)", () => {
+    assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/family<\/loc>/);
+    assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/family<\/loc>/);
   });
 
   test("lists the Core Registry", () => {
@@ -134,8 +143,9 @@ describe("sitemap.xml", () => {
     assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/registry<\/loc>/);
   });
 
-  test("lists the relocated coat-of-arms (/family/crest)", () => {
-    assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/family\/crest<\/loc>/);
+  test("does NOT list the coat-of-arms (/family/crest) while family is hidden", () => {
+    assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/family\/crest<\/loc>/);
+    assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/family\/crest<\/loc>/);
   });
 
   test("does not list legacy ?lang= URLs", () => {
@@ -158,6 +168,10 @@ describe("service worker", () => {
 
   test("pre-caches the canonical landing pages", () => {
     assert.match(sw, /"\/"/);
-    assert.match(sw, /"\/family"/);
+  });
+
+  test("does NOT pre-cache the hidden family pages", () => {
+    assert.doesNotMatch(sw, /"\/family"/);
+    assert.doesNotMatch(sw, /"\/family\/crest"/);
   });
 });

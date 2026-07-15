@@ -26,8 +26,11 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Block /en/family and /ru/family — redirect to homepage
-  // (page components preserved for future re-enabling)
+  // Block /en/family and /ru/family — redirect to homepage.
+  // Hidden until a gated access model exists: registration + admin approval,
+  // to be implemented via CPIF / Keycloak (Federation v2) — NOT bespoke auth on
+  // this public no-PII authority surface. Page components are preserved so the
+  // pages can be re-enabled behind that gate without rebuilding them.
   if (/^\/(en|ru)\/family(\/|$)/.test(pathname)) {
     const lang = pathname.startsWith("/ru") ? "ru" : "en";
     return NextResponse.redirect(new URL(`/${lang}`, request.url));
