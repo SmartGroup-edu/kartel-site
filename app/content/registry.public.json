@@ -1,6 +1,6 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 5,
+  "version": 6,
   "updated": "2026-06-19",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
@@ -263,6 +263,11 @@
     "key": "campusCode",
     "status": "active",
     "campuses": [
+      {
+        "code": "ZNANIYE-FINCHLEY",
+        "location": "East Finchley",
+        "institution": "ZNANIYE"
+      },
       {
         "code": "ZNANIYE-STRATFORD",
         "location": "Stratford",
