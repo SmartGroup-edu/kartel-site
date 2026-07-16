@@ -26,14 +26,18 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
 export function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
-  // Block /en/family and /ru/family — redirect to homepage.
-  // Hidden until a gated access model exists: registration + admin approval,
-  // to be implemented via CPIF / Keycloak (Federation v2) — NOT bespoke auth on
-  // this public no-PII authority surface. Page components are preserved so the
-  // pages can be re-enabled behind that gate without rebuilding them.
+  // /en/family and /ru/family — members-only Family Heritage (Option A, R0-signed 2026-07-16:
+  // gated access via CPIF / Keycloak, family_access approval; NOT bespoke auth).
+  // DORMANT by default: FAMILY_GATE ≠ "on" keeps the current hard-redirect to home, so the public
+  // no-PII authority surface is unchanged. When FAMILY_GATE = "on", let the request through — the
+  // page self-guards (Keycloak session + family_access) via app/lib/family-gate.ts (P3 wires the
+  // page guard). Reversible: unset FAMILY_GATE to restore the hard-redirect + full no-PII state.
   if (/^\/(en|ru)\/family(\/|$)/.test(pathname)) {
-    const lang = pathname.startsWith("/ru") ? "ru" : "en";
-    return NextResponse.redirect(new URL(`/${lang}`, request.url));
+    if (process.env.FAMILY_GATE !== "on") {
+      const lang = pathname.startsWith("/ru") ? "ru" : "en";
+      return NextResponse.redirect(new URL(`/${lang}`, request.url));
+    }
+    return NextResponse.next();
   }
 
   // If the path already starts with a known locale, leave it alone.
