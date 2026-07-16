@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import FamilyClient from "../../components/FamilyClient";
+import { familyEnv } from "@/app/lib/family-env";
+import { familyGateDecision } from "@/app/lib/family-gate";
+
+// Gated area: must render per-request (auth), never statically prerender.
+export const dynamic = "force-dynamic";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -248,6 +253,17 @@ export default async function FamilyPage({
   const { lang } = await params;
   if (!LOCALES.includes(lang as Locale)) notFound();
   const locale = lang as Locale;
+
+  // FAMILY-GATE page guard (fail-closed). The edge proxy only checks the FAMILY_GATE flag and
+  // lets /family through when it is "on"; THIS is where access is actually enforced. When the
+  // gate is off the proxy hard-redirects to home and this never runs.
+  if (familyEnv.gateOn()) {
+    const { decision } = await familyGateDecision();
+    if (decision === "login")
+      redirect(`/api/family-auth/login?returnTo=${encodeURIComponent(`/${lang}/family`)}`);
+    if (decision === "pending") redirect(`/${lang}/family/pending`);
+  }
+
   const upperLang: "EN" | "RU" = locale === "en" ? "EN" : "RU";
 
   return (

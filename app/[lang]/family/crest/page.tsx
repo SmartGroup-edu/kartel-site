@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import HomeClient from "../../../components/HomeClient";
+import { familyEnv } from "@/app/lib/family-env";
+import { familyGateDecision } from "@/app/lib/family-gate";
+
+// Gated area: render per-request (auth), never statically prerender.
+export const dynamic = "force-dynamic";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
-
-export function generateStaticParams() {
-  return LOCALES.map((lang) => ({ lang }));
-}
 
 const pageMeta: Record<Locale, { title: string; description: string; keywords: string[] }> = {
   en: {
@@ -143,6 +144,15 @@ export default async function CrestPage({
   const { lang } = await params;
   if (!LOCALES.includes(lang as Locale)) notFound();
   const locale = lang as Locale;
+
+  // FAMILY-GATE page guard (fail-closed) — see family/page.tsx. Enforced here, not in the proxy.
+  if (familyEnv.gateOn()) {
+    const { decision } = await familyGateDecision();
+    if (decision === "login")
+      redirect(`/api/family-auth/login?returnTo=${encodeURIComponent(`/${lang}/family/crest`)}`);
+    if (decision === "pending") redirect(`/${lang}/family/pending`);
+  }
+
   const upperLang: "EN" | "RU" = locale === "en" ? "EN" : "RU";
 
   return (

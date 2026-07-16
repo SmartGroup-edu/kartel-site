@@ -3,17 +3,17 @@
 // invariants we care about — i18n correctness + the Core/Family split:
 //   /              → KARTEL Core (authority surface)
 //   /registry      → Core Registry dashboard
-//   /family        → Family Heritage members   — HIDDEN (see below)
-//   /family/crest  → Coat of Arms (heraldry)   — HIDDEN (see below)
+//   /family        → Family Heritage members   — GATED (see below)
+//   /family/crest  → Coat of Arms (heraldry)   — GATED (see below)
 //
-// Family Heritage is currently HIDDEN from visitors: proxy.ts redirects
-// /{en,ru}/family(/*) to the homepage, and the pages are excluded from the
-// sitemap, service-worker precache and nav. The page components are still
-// prerendered (kept for re-enabling), so the /family* HTML snapshot tests below
-// still run and guard that content — but sitemap/sw MUST NOT advertise them.
-// Intended future access model (NOT built here): registration + admin approval
-// via CPIF / Keycloak (Federation v2) — not bespoke auth, and no PII on this
-// public no-PII authority surface. Until then these stay hidden.
+// Family Heritage is a GATED area (Option A, R0 2026-07-16): access = registration +
+// admin approval via CPIF / Keycloak (Federation v2), NOT bespoke auth. Two layers:
+//   1. proxy.ts — when FAMILY_GATE≠"on" it hard-redirects /{en,ru}/family(/*) to home
+//      (dormant/no-PII default); when "on" it lets the request through to
+//   2. the page guard — force-dynamic + familyGateDecision() (login | pending | allow),
+//      fail-closed. So the pages are DYNAMIC, never statically prerendered — the tests
+//      below assert exactly that (the security invariant), and sitemap/sw MUST NOT
+//      advertise them.
 //
 // Run with: npm test  (after npm run build)
 
@@ -93,36 +93,23 @@ describe("/ru — KARTEL Core home", () => {
   });
 });
 
-describe("/en/family/crest + /ru/family/crest — Coat of Arms", () => {
-  test("/en/family/crest has the heraldry (griffin, crest image, FAQ)", () => {
-    const html = read("en/family/crest.html");
-    assert.match(html, /<html[^>]*\blang="en"/);
-    assert.match(html, /Kartel Coat of Arms/i);
-    assert.match(html, /griffin/i);
-    assert.match(html, /crest\.(jpeg|webp)/);
-    assert.match(html, /"@type":"FAQPage"/);
-    assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/en\/family\/crest"\/>/);
-  });
+// Family Heritage is a GATED, dynamic area: force-dynamic + a per-request auth guard
+// (family/page.tsx, family/crest/page.tsx). SECURITY INVARIANT — its content must NOT be
+// statically prerendered, so an unauthenticated request can never be served family PII from
+// a cached HTML file. (This is the regression these tests now guard, after the 2026-07-16
+// leak: proxy-gate-on but no page guard served the full family page statically.)
+describe("/family + /family/crest — gated, NOT statically prerendered", () => {
+  const notPrerendered = (f) =>
+    assert.throws(
+      () => read(f),
+      /ENOENT|no such file/i,
+      `${f} MUST NOT be a static prerender — it is a gated dynamic page`,
+    );
 
-  test("/ru/family/crest has Russian heraldry (грифон / Сила и Власть)", () => {
-    const html = read("ru/family/crest.html");
-    assert.match(html, /<html[^>]*\blang="ru"/);
-    assert.match(html, /грифон|Сила и Власть|герб/i);
-  });
-});
-
-describe("/en/family + /ru/family — Family Heritage members", () => {
-  test("/en/family has lang=en and English title", () => {
-    const html = read("en/family.html");
-    assert.match(html, /<html[^>]*\blang="en"/);
-    assert.match(html, /Kartel Family Members — London/);
-  });
-
-  test("/ru/family has lang=ru and Russian title", () => {
-    const html = read("ru/family.html");
-    assert.match(html, /<html[^>]*\blang="ru"/);
-    assert.match(html, /Члены семьи Картель/);
-  });
+  test("/en/family is not a static HTML file", () => notPrerendered("en/family.html"));
+  test("/ru/family is not a static HTML file", () => notPrerendered("ru/family.html"));
+  test("/en/family/crest is not a static HTML file", () => notPrerendered("en/family/crest.html"));
+  test("/ru/family/crest is not a static HTML file", () => notPrerendered("ru/family/crest.html"));
 });
 
 describe("sitemap.xml", () => {
