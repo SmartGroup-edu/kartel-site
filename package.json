@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
+    "registry:check": "node scripts/check-registry-sync.mjs",
     "prepare": "husky"
   },
   "dependencies": {

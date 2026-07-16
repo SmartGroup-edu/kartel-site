@@ -8,6 +8,8 @@
 # type error. Cost: each push runs a Next build. To skip on a throwaway push:
 #   git push --no-verify
 set -e
+echo "→ pre-push: registry-sync (public↔private kartel-core parity)"
+npm run registry:check
 echo "→ pre-push: lint"
 npm run lint
 echo "→ pre-push: typecheck"
