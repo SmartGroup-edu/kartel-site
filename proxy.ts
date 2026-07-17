@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { isViewerApproved } from "@/app/lib/family-access";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -26,11 +27,9 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     const secret = new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? "");
     const { payload } = await jwtVerify(token, secret);
     const sub = typeof payload.sub === "string" ? payload.sub : "";
-    const admins = (process.env.FAMILY_ADMIN_SUBS ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (sub && admins.includes(sub)) return NextResponse.next(); // approved (P1)
+    // P2: approval = admin (FAMILY_ADMIN_SUBS) OR Edge Config `familyAccess[sub] === "approved"`,
+    // fail-closed. R0 approves/revokes by editing the Edge Config item (no redeploy).
+    if (sub && (await isViewerApproved(sub))) return NextResponse.next();
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {
     return NextResponse.redirect(signin); // invalid/expired session → re-auth

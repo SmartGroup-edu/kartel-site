@@ -13,14 +13,24 @@
  * Vault: KARTEL-Vault/40-Observations/2026-07-16-refimpl-kartel-site-family-gate.md
  */
 
+import { get } from "@vercel/edge-config";
 import { familyEnv } from "@/app/lib/family-env";
 
 export type FamilyAccessStatus = "pending" | "approved" | "revoked";
 
-/** True iff this subject may view the Family Heritage area. Fail-closed until the P2 store exists. */
+/**
+ * True iff this subject may view the Family Heritage area. FAIL-CLOSED.
+ * P2 (2026-07-17): family_access is a Vercel **Edge Config** item `familyAccess`
+ *   ({ "<cpifSubjectId>": "approved" | "revoked" }) — edge-readable, so both the edge gate
+ *   (proxy.ts) and the page guard use it. R0 approves/revokes by editing the item (no redeploy).
+ *   Admins (FAMILY_ADMIN_SUBS) are always allowed. Any read error → not approved (fail-closed).
+ */
 export async function isViewerApproved(cpifSubjectId: string): Promise<boolean> {
   if (familyEnv.adminSubs().includes(cpifSubjectId)) return true;
-  // TODO(P2): look up family_access {cpifSubjectId, status} in the provisioned datastore
-  //           and return status === "approved". No datastore yet → deny.
-  return false;
+  try {
+    const fa = await get<Record<string, FamilyAccessStatus>>("familyAccess");
+    return fa?.[cpifSubjectId] === "approved";
+  } catch {
+    return false;
+  }
 }
