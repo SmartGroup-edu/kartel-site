@@ -1,8 +1,39 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
 const DEFAULT_LOCALE: Locale = "en";
+
+// --- Family gate, enforced at the EDGE (fail-closed) --------------------------
+// Enforcement lives here, not in the page: in this Next build a Server-Component
+// redirect() does not reliably abort a force-dynamic render (it streamed a 200 with
+// content — the 2026-07-17 leak). NextResponse.redirect at the edge runs before any
+// render, so it cannot leak. P1 approval = FAMILY_ADMIN_SUBS (admins only) until the
+// P2 datastore exists; everyone else → pending. Mirrors app/lib/family-* contracts.
+async function familyEdgeGate(request: NextRequest, pathname: string) {
+  const lang = pathname.startsWith("/ru") ? "ru" : "en";
+  const login = new URL(
+    `/api/family-auth/login?returnTo=${encodeURIComponent(pathname)}`,
+    request.url,
+  );
+  const cookieName = process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session";
+  const token = request.cookies.get(cookieName)?.value;
+  if (!token) return NextResponse.redirect(login);
+  try {
+    const secret = new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? "");
+    const { payload } = await jwtVerify(token, secret);
+    const sub = typeof payload.sub === "string" ? payload.sub : "";
+    const admins = (process.env.FAMILY_ADMIN_SUBS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (sub && admins.includes(sub)) return NextResponse.next(); // approved (P1)
+    return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
+  } catch {
+    return NextResponse.redirect(login); // invalid/expired session → re-auth
+  }
+}
 
 function detectLocale(request: NextRequest): Locale {
   const accept = request.headers.get("accept-language") ?? "";
@@ -23,21 +54,22 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
   return LOCALES.includes(v as Locale) ? (v as Locale) : null;
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
   // /en/family and /ru/family — members-only Family Heritage (Option A, R0-signed 2026-07-16:
   // gated access via CPIF / Keycloak, family_access approval; NOT bespoke auth).
-  // DORMANT by default: FAMILY_GATE ≠ "on" keeps the current hard-redirect to home, so the public
-  // no-PII authority surface is unchanged. When FAMILY_GATE = "on", let the request through — the
-  // page self-guards (Keycloak session + family_access) via app/lib/family-gate.ts (P3 wires the
-  // page guard). Reversible: unset FAMILY_GATE to restore the hard-redirect + full no-PII state.
+  // DORMANT by default: FAMILY_GATE ≠ "on" keeps the hard-redirect to home, so the public
+  // no-PII authority surface is unchanged. When FAMILY_GATE = "on", the gate is enforced HERE at
+  // the edge (session + approval) — fail-closed, before any render. /family/pending stays reachable
+  // (no PII) so signed-in-but-unapproved users land somewhere. Reversible: unset FAMILY_GATE.
   if (/^\/(en|ru)\/family(\/|$)/.test(pathname)) {
+    const lang = pathname.startsWith("/ru") ? "ru" : "en";
     if (process.env.FAMILY_GATE !== "on") {
-      const lang = pathname.startsWith("/ru") ? "ru" : "en";
       return NextResponse.redirect(new URL(`/${lang}`, request.url));
     }
-    return NextResponse.next();
+    if (/^\/(en|ru)\/family\/pending\/?$/.test(pathname)) return NextResponse.next();
+    return familyEdgeGate(request, pathname);
   }
 
   // If the path already starts with a known locale, leave it alone.
