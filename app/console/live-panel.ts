@@ -6,6 +6,47 @@
  * renders an honest "live data unavailable" notice — never fabricated numbers.
  */
 
+import registry from "@/app/content/registry.public.json";
+
+/** Live registry panel — reads the vendored public registry at request time (reflects the
+ *  currently-deployed registry, updated on each publish). No external fetch, cannot fail-open. */
+export function renderRegistryPanel(): string {
+  const r = registry as Record<string, unknown>;
+  const layers = Array.isArray(r.canonicalLayers) ? r.canonicalLayers.length : 0;
+  const projects = Array.isArray(r.projects) ? r.projects.length : 0;
+  const findCampuses = (o: unknown): unknown[] | null => {
+    if (!o || typeof o !== "object") return null;
+    const obj = o as Record<string, unknown>;
+    if (Array.isArray(obj.campuses)) return obj.campuses;
+    for (const k of Object.keys(obj)) {
+      const f = findCampuses(obj[k]);
+      if (f) return f;
+    }
+    return null;
+  };
+  const campuses = findCampuses(r)?.length ?? 0;
+  const gateItems = (r.federationGate as { items?: unknown[] })?.items;
+  const gate = Array.isArray(gateItems) ? gateItems.length : Array.isArray(r.federationGate) ? (r.federationGate as unknown[]).length : 0;
+  const tile = (k: string, v: string) =>
+    `<div class="panel stat" style="padding:12px 14px"><div class="k">${escLocal(k)}</div><div class="v tnum" style="font-size:20px">${escLocal(v)}</div></div>`;
+  return (
+    `<div class="eyebrow">Registry · live — v${escLocal(r.version)} <span class="mono" style="color:var(--ink-faint);font-size:11px;text-transform:none;letter-spacing:0">updated ${escLocal(r.updated)}</span></div>` +
+    `<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
+    tile("Canonical layers", String(layers)) +
+    tile("Campuses", String(campuses)) +
+    tile("Projects", String(projects)) +
+    tile("Federation gate", gate ? `${gate}-pt` : "—") +
+    `</div>`
+  );
+}
+
+const escLocal = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
 const esc = (s: unknown): string =>
   String(s ?? "")
     .replace(/&/g, "&amp;")
