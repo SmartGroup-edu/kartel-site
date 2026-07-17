@@ -59,6 +59,34 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
+  // Ecosystem Operations Console — gated (Family-admin only), at /console and on the
+  // console.kartel.org.uk subdomain. Contains internal infra/governance detail → never public.
+  // Login runs on the apex (OIDC state cookies stay same-host); the session cookie is domain-wide
+  // (FAMILY_COOKIE_DOMAIN=.kartel.org.uk) so the subdomain sees it after login.
+  const host = request.headers.get("host") ?? "";
+  const onConsoleHost = host === "console.kartel.org.uk";
+  if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
+    const token = request.cookies.get(process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session")?.value;
+    let admin = false;
+    if (token) {
+      try {
+        const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? ""));
+        const sub = typeof payload.sub === "string" ? payload.sub : "";
+        const admins = (process.env.FAMILY_ADMIN_SUBS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+        admin = !!sub && admins.includes(sub);
+      } catch {
+        admin = false;
+      }
+    }
+    if (!admin) return NextResponse.redirect(new URL("https://kartel.org.uk/en/family/signin?returnTo=%2Fconsole"));
+    if (onConsoleHost && (pathname === "/" || pathname === "")) {
+      const u = request.nextUrl.clone();
+      u.pathname = "/console";
+      return NextResponse.rewrite(u);
+    }
+    return NextResponse.next();
+  }
+
   // /en/family and /ru/family — members-only Family Heritage (Option A, R0-signed 2026-07-16:
   // gated access via CPIF / Keycloak, family_access approval; NOT bespoke auth).
   // DORMANT by default: FAMILY_GATE ≠ "on" keeps the hard-redirect to home, so the public
