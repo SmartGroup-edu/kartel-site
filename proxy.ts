@@ -13,13 +13,15 @@ const DEFAULT_LOCALE: Locale = "en";
 // P2 datastore exists; everyone else → pending. Mirrors app/lib/family-* contracts.
 async function familyEdgeGate(request: NextRequest, pathname: string) {
   const lang = pathname.startsWith("/ru") ? "ru" : "en";
-  const login = new URL(
-    `/api/family-auth/login?returnTo=${encodeURIComponent(pathname)}`,
+  // No/invalid session → a PUBLIC sign-in landing (no PII) with a "Sign in" button, rather than
+  // bouncing straight to Keycloak. The button on that page starts the OIDC flow.
+  const signin = new URL(
+    `/${lang}/family/signin?returnTo=${encodeURIComponent(pathname)}`,
     request.url,
   );
   const cookieName = process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session";
   const token = request.cookies.get(cookieName)?.value;
-  if (!token) return NextResponse.redirect(login);
+  if (!token) return NextResponse.redirect(signin);
   try {
     const secret = new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? "");
     const { payload } = await jwtVerify(token, secret);
@@ -31,7 +33,7 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     if (sub && admins.includes(sub)) return NextResponse.next(); // approved (P1)
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {
-    return NextResponse.redirect(login); // invalid/expired session → re-auth
+    return NextResponse.redirect(signin); // invalid/expired session → re-auth
   }
 }
 
@@ -68,7 +70,8 @@ export async function proxy(request: NextRequest) {
     if (process.env.FAMILY_GATE !== "on") {
       return NextResponse.redirect(new URL(`/${lang}`, request.url));
     }
-    if (/^\/(en|ru)\/family\/pending\/?$/.test(pathname)) return NextResponse.next();
+    // Public, no-PII landings reachable without a session:
+    if (/^\/(en|ru)\/family\/(pending|signin)\/?$/.test(pathname)) return NextResponse.next();
     return familyEdgeGate(request, pathname);
   }
 
