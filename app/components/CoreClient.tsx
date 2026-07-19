@@ -4,6 +4,10 @@ import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
+import { Badge } from "./ui/badge";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { cn } from "../lib/utils";
 import { coreContent } from "../content/core";
 import { projectSummaries } from "../content/federationCopy";
 import { typeLabel } from "../content/tokens";
@@ -12,13 +16,17 @@ import registry from "../content/registry.public.json";
 function StatusPill({ value }: { value: string }) {
   const v = value.toLowerCase();
   const active = /(live|active|connected|producer|активно)/.test(v);
-  const tone = active
-    ? "border-[var(--accent)] text-[var(--accent)]"
-    : "border-[var(--border)] text-[var(--muted)]";
+  // shadcn <Badge outline>; the gold-vs-muted tone (live/active vs pending) is preserved via className.
   return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${tone}`}>
+    <Badge
+      variant="outline"
+      className={cn(
+        "px-2 py-0.5 text-[10px] uppercase tracking-wide",
+        active ? "border-[var(--accent)] text-[var(--accent)]" : "text-[var(--muted)]",
+      )}
+    >
       {value}
-    </span>
+    </Badge>
   );
 }
 
@@ -57,14 +65,14 @@ export default function CoreClient({ lang }: { lang: Lang }) {
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {c.layers.map((l) => (
-                <div key={l.code} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+                <Card key={l.code} className="p-5">
                   <div className="flex items-center justify-between">
                     <h3 className="font-serif text-lg text-[var(--foreground)]">{l.code}</h3>
                     <StatusPill value={c.statusLabels[l.status as keyof typeof c.statusLabels] ?? l.status} />
                   </div>
                   <p className="mt-0.5 font-mono text-[11px] uppercase tracking-wide text-[var(--accent)]">{l.sub}</p>
                   <p className="mt-3 text-sm leading-relaxed text-[var(--text-body)]">{l.desc}</p>
-                </div>
+                </Card>
               ))}
             </div>
           </section>
@@ -79,7 +87,7 @@ export default function CoreClient({ lang }: { lang: Lang }) {
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {registry.projects.map((p) => (
-                <div key={p.key} className="rounded-lg border border-[var(--border)] p-5">
+                <Card key={p.key} className="bg-transparent p-5 shadow-none">
                   <h3 className="font-serif text-lg text-[var(--foreground)]">{p.name}</h3>
                   {p.url ? (
                     <a href={p.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]">
@@ -89,7 +97,7 @@ export default function CoreClient({ lang }: { lang: Lang }) {
                     <p className="mt-1 text-xs text-[var(--muted)]">{typeLabel(lang, p.type)}</p>
                   )}
                   <p className="mt-3 text-sm leading-relaxed text-[var(--text-body)]">{projectSummaries[lang][p.key] ?? p.summary}</p>
-                </div>
+                </Card>
               ))}
             </div>
           </section>
@@ -102,13 +110,14 @@ export default function CoreClient({ lang }: { lang: Lang }) {
             <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--muted)]">{c.registryLede}</p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               {c.registryButtons.map((b, i) => (
-                <a
+                <Button
                   key={b.label + i}
-                  href={b.href}
-                  className="rounded-md border border-[var(--accent)] px-5 py-2 text-sm text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-[var(--background)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  asChild
+                  variant="outline"
+                  className="border-[var(--accent)] px-5 text-[var(--accent)] hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--background)]"
                 >
-                  {b.label}
-                </a>
+                  <a href={b.href}>{b.label}</a>
+                </Button>
               ))}
             </div>
           </section>
