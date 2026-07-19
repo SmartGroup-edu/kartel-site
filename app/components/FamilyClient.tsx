@@ -21,6 +21,7 @@ export default function FamilyClient({ lang }: { lang: Lang }) {
     { label: t.homeLabel, href: `/${langPath}` },
     { label: t.familyLabel, href: `/${langPath}/family`, active: true },
     { label: lang === "EN" ? "Coat of Arms" : "Герб", href: `/${langPath}/family/crest` },
+    { label: lang === "EN" ? "Sign out" : "Выйти", href: `/api/family-auth/logout` },
   ];
 
   return (
