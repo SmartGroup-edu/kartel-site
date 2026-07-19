@@ -18,7 +18,7 @@ export async function familyGateDecision(): Promise<{
 }> {
   const session = await getSession();
   if (!session) return { decision: "login", session: null };
-  const approved = await isViewerApproved(session.cpifSubjectId);
+  const approved = await isViewerApproved(session.cpifSubjectId, session.email);
   return { decision: approved ? "allow" : "pending", session };
 }
 

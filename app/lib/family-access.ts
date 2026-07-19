@@ -19,18 +19,34 @@ import { familyEnv } from "@/app/lib/family-env";
 export type FamilyAccessStatus = "pending" | "approved" | "revoked";
 
 /**
- * True iff this subject may view the Family Heritage area. FAIL-CLOSED.
- * P2 (2026-07-17): family_access is a Vercel **Edge Config** item `familyAccess`
- *   ({ "<cpifSubjectId>": "approved" | "revoked" }) — edge-readable, so both the edge gate
- *   (proxy.ts) and the page guard use it. R0 approves/revokes by editing the item (no redeploy).
- *   Admins (FAMILY_ADMIN_SUBS) are always allowed. Any read error → not approved (fail-closed).
+ * True iff this viewer may see the Family Heritage area. FAIL-CLOSED.
+ *
+ * Approval sources (any one grants; an explicit Edge Config "revoked" on the sub OR email overrides
+ * every allow except admin):
+ *   1. Admin — `FAMILY_ADMIN_SUBS` (R0). Always allowed.
+ *   2. By cpifSubjectId — Edge Config item `familyAccess` ({ "<sub>": "approved"|"revoked" }). P2.
+ *   3. By email — Edge Config item `familyAccessEmails` ({ "<email>": "approved"|"revoked" })
+ *      for runtime add/revoke, OR the static founder seed `FAMILY_APPROVED_EMAILS` (env). The email
+ *      is the practical INVITE key (a sub only exists post-login); it is IdP-asserted, so trusted.
+ * Both the edge gate (proxy.ts) and the page guard call this. Edge Config read error → the sub/email
+ * Edge Config checks are skipped but the static env allowlist still applies (overall still fail-closed).
  */
-export async function isViewerApproved(cpifSubjectId: string): Promise<boolean> {
+export async function isViewerApproved(cpifSubjectId: string, email?: string): Promise<boolean> {
   if (familyEnv.adminSubs().includes(cpifSubjectId)) return true;
+  const em = (email ?? "").trim().toLowerCase();
   try {
-    const fa = await get<Record<string, FamilyAccessStatus>>("familyAccess");
-    return fa?.[cpifSubjectId] === "approved";
+    const [fa, fae] = await Promise.all([
+      get<Record<string, FamilyAccessStatus>>("familyAccess"),
+      get<Record<string, FamilyAccessStatus>>("familyAccessEmails"),
+    ]);
+    // Explicit revoke (by sub or email) beats any allow below.
+    if (fa?.[cpifSubjectId] === "revoked") return false;
+    if (em && fae?.[em] === "revoked") return false;
+    if (fa?.[cpifSubjectId] === "approved") return true;
+    if (em && fae?.[em] === "approved") return true;
   } catch {
-    return false;
+    // Edge Config unreachable → fall through to the static env allowlist.
   }
+  if (em && familyEnv.approvedEmails().includes(em)) return true;
+  return false;
 }
