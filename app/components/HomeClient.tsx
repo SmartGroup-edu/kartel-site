@@ -41,8 +41,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
     { label: t.navHome, href: "#home", active: activeSection === "home" },
     { label: t.navMeaning, href: "#meaning", active: activeSection === "meaning" },
     { label: t.navLegacy, href: "#legacy", active: activeSection === "legacy" },
-    { label: lang === "EN" ? "Sign in" : "Войти", href: `/${langPath}/family` },
-  ], [t, activeSection, langPath, lang]);
+  ], [t, activeSection, langPath]);
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
