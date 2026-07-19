@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* shadcn/ui dark variant — the app toggles a `.dark` class on the root element. */
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: #eeebe5;
@@ -20,6 +24,12 @@
   --selection-bg: rgba(135, 96, 53, 0.2);
   --header-bg: rgba(238, 235, 229, 0.95);
   --drop-cap: #876035;
+
+  /* shadcn/ui base tokens — light. Reuse the editorial palette above; only the
+     genuinely-new roles (destructive, radius) get raw values here. */
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --radius: 0.5rem;
 }
 
 .dark {
@@ -39,12 +49,44 @@
   --selection-bg: rgba(201, 150, 78, 0.25);
   --header-bg: rgba(26, 24, 22, 0.95);
   --drop-cap: #c9964e;
+
+  /* shadcn/ui — dark destructive (lighter red for the charcoal canvas). */
+  --destructive: #e5645b;
+  --destructive-foreground: #1a1816;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-serif: Georgia, "Times New Roman", Times, serif;
+
+  /* shadcn/ui semantic tokens → editorial palette. Additive: existing components use
+     raw [var(--x)] arbitrary values, so registering these --color-* names doesn't touch
+     them. Deliberate remaps: shadcn muted/accent/secondary are subtle BACKGROUNDS
+     (→ --surface); the editorial --muted is a TEXT colour (→ the -foreground role);
+     shadcn primary is the gold brand accent. All flip in dark via the base vars. */
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--background);
+  --color-secondary: var(--surface);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--surface);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 html {

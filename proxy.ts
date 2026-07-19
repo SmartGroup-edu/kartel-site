@@ -27,9 +27,10 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     const secret = new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? "");
     const { payload } = await jwtVerify(token, secret);
     const sub = typeof payload.sub === "string" ? payload.sub : "";
-    // P2: approval = admin (FAMILY_ADMIN_SUBS) OR Edge Config `familyAccess[sub] === "approved"`,
-    // fail-closed. R0 approves/revokes by editing the Edge Config item (no redeploy).
-    if (sub && (await isViewerApproved(sub))) return NextResponse.next();
+    const email = typeof payload.email === "string" ? payload.email : "";
+    // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
+    // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
+    if (sub && (await isViewerApproved(sub, email))) return NextResponse.next();
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {
     return NextResponse.redirect(signin); // invalid/expired session → re-auth

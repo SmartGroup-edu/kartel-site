@@ -28,7 +28,11 @@ export default function CoreClient({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader
+        lang={lang}
+        toggleLang={toggleLang}
+        navItems={[...c.nav, { label: lang === "EN" ? "Sign in" : "Войти", href: `/${lang.toLowerCase()}/family` }]}
+      />
 
       <main id="main">
         {/* Hero */}

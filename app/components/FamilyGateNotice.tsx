@@ -25,7 +25,20 @@ export function FamilyGateNotice({ lang, returnTo }: { lang: "en" | "ru"; return
       <h1 style={{ fontSize: "1.5rem", marginBottom: "0.75rem" }}>{c.heading}</h1>
       <p style={{ lineHeight: 1.6, opacity: 0.8 }}>{c.body}</p>
       <p style={{ marginTop: "2rem" }}>
-        <a href={`/api/family-auth/login?returnTo=${encodeURIComponent(returnTo)}`}>{c.cta}</a>
+        <a
+          href={`/api/family-auth/login?returnTo=${encodeURIComponent(returnTo)}`}
+          style={{
+            display: "inline-block",
+            padding: "0.7rem 1.6rem",
+            borderRadius: "0.5rem",
+            background: "var(--accent, #7a5c2e)",
+            color: "#fff",
+            textDecoration: "none",
+            fontWeight: 600,
+          }}
+        >
+          {c.cta}
+        </a>
       </p>
     </main>
   );

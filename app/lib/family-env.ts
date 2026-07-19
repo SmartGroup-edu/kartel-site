@@ -44,4 +44,17 @@ export const familyEnv = {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
+
+  /**
+   * Founder-seeded family email allowlist (comma-separated, lowercased). Approves a viewer by their
+   * IdP-asserted email — the practical INVITE key, since a cpifSubjectId only exists after first
+   * login. LOCAL entitlement, not a federation role. Runtime add/revoke per-email lives in the Edge
+   * Config `familyAccessEmails` item; this env is the static seed. Trust model: the email is asserted
+   * by Keycloak/Google (users cannot self-set it without realm-admin), so matching it is safe here.
+   */
+  approvedEmails: (): string[] =>
+    (process.env.FAMILY_APPROVED_EMAILS ?? "")
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
 };
