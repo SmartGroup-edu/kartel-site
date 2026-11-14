@@ -75,7 +75,7 @@ async function sendViaBrevo(to, link) {
   ].join("\n");
   // Branded, single-column, inline-styled (mail clients ignore <style>). The hidden preheader is
   // what inboxes show next to the subject. No images, so it reads the same with images blocked;
-  // neutral colours keep it legible when a client forces dark mode.
+  // the page opts out of client dark mode (see the color-scheme note below).
   const preheader = `Your sign-in link — valid for ${LINK_TTL_MIN} minutes.`;
   // color-scheme "light only": Apple Mail otherwise auto-darkens the white page around a
   // burgundy button. The footer address is an explicit muted link — left bare, Apple Mail
