@@ -52,7 +52,9 @@ export default function ParallaxImage({
         alt={alt}
         width={width}
         height={height}
-        priority={priority}
+        // Next 16: `priority` is deprecated; for the LCP hero use eager + high fetch priority.
+        loading={priority ? "eager" : undefined}
+        fetchPriority={priority ? "high" : undefined}
         sizes={sizes}
         className={className}
         style={{ transition: "transform 0.1s linear" }}

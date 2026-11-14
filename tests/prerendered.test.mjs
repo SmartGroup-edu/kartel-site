@@ -155,6 +155,12 @@ describe("sitemap.xml", () => {
     assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/family<\/loc>/);
   });
 
+  test("lists every public page: /core, /registry/layers, /registry/projects (EN + RU)", () => {
+    for (const l of ["en", "ru"]) for (const p of ["core", "registry/layers", "registry/projects"]) {
+      assert.match(xml, new RegExp(`<loc>https://kartel\\.org\\.uk/${l}/${p.replace("/", "\\/")}</loc>`));
+    }
+  });
+
   test("lists the Core Registry", () => {
     assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/registry<\/loc>/);
     assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/registry<\/loc>/);
