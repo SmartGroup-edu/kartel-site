@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { isViewerApproved } from "@/app/lib/family-access";
+import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -67,7 +68,10 @@ export async function proxy(request: NextRequest) {
   // Admins = FAMILY_ADMIN_EMAILS (the session subject is the lowercased email). Without it,
   // /console closes to everyone. Must stay in step with familyEnv.adminEmails().
   const host = request.headers.get("host") ?? "";
-  const onConsoleHost = host === "console.kartel.org.uk";
+  // Layer 1: the console is served only on its own host, behind Cloudflare Access.
+  const toConsoleHost = consoleRedirectTarget(host, pathname, request.nextUrl.search);
+  if (toConsoleHost) return NextResponse.redirect(toConsoleHost, 308);
+  const onConsoleHost = host === CONSOLE_HOST;
   if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
     const token = request.cookies.get(process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session")?.value;
     let admin = false;
