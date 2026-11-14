@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import Image from "next/image";
+import { noDashLineStart } from "../lib/typography";
 
 interface HeraldicElement {
   id: string;
@@ -9,7 +10,7 @@ interface HeraldicElement {
   labelRU: string;
   descEN: string;
   descRU: string;
-  // Position as % of crest.jpeg (900×1000), verified on a 10% grid 2026-11-15. The image renders
+  // Position as % of crest.jpeg (900×1000), verified on a 10% grid 2026-11-15 (motto on the ribbon's left tail, 28/72: the centre of the ribbon is all lettering — checked on a 1% grid). The image renders
   // at its natural aspect (no crop), so the percentages map 1:1.
   x: number;
   y: number;
@@ -110,8 +111,8 @@ const ELEMENTS: HeraldicElement[] = [
       "'Virtus et Potestas' — Strength and Power. The core around which the entire image of the Kartel family is built. Strength is the ability to go all the way, following the call of the heart. Power is the measure of maturity, confidence, and acknowledgment of the heights attained. The motto awakens the inner will — to act decisively and live in accordance with what one believes is right.",
     descRU:
       "«Virtus et Potestas» — Сила и Власть. Стержень, вокруг которого выстраивается весь образ семьи Картель. Сила — это способность идти до конца, следуя зову сердца. Власть — мерило зрелости и признания достигнутых высот. Девиз призван пробуждать внутреннюю волю — действовать решительно и жить в соответствии с тем, что считаешь правильным.",
-    x: 50,
-    y: 81,
+    x: 28,
+    y: 72,
     icon: "M4 19h16M6 15h12M8 11h8",
   },
 ];
@@ -285,7 +286,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 {lang === "EN" ? activeElement.labelEN : activeElement.labelRU}
               </h4>
               <p className="text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
-                {lang === "EN" ? activeElement.descEN : activeElement.descRU}
+                {noDashLineStart(lang === "EN" ? activeElement.descEN : activeElement.descRU)}
               </p>
             </div>
           </div>
