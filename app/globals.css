@@ -26,7 +26,7 @@
   --header-bg: rgba(255, 255, 255, 0.95);
   --drop-cap: #7b1e2d;
   /* Dark motto band (MottoBanner) — always charcoal, so its accent must be a light tint.
-     Burgundy on charcoal was 1.5:1. Rose #e0a3ad on #2b2824 = 6.3:1. */
+     Burgundy on charcoal was 1.5:1. Rose #e0a3ad on #2b2824 = 7.0:1. */
   --band-bg: #2b2824;
   --band-accent: #e0a3ad;
   --band-text: rgba(255, 255, 255, 0.72);
