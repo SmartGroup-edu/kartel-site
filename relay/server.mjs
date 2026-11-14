@@ -77,14 +77,17 @@ async function sendViaBrevo(to, link) {
   // what inboxes show next to the subject. No images, so it reads the same with images blocked;
   // neutral colours keep it legible when a client forces dark mode.
   const preheader = `Your sign-in link — valid for ${LINK_TTL_MIN} minutes.`;
-  const html = `<!doctype html><html lang="en"><body style="margin:0;padding:0;background:#eeebe5;">
+  // color-scheme "light only": Apple Mail otherwise auto-darkens the white page around a
+  // burgundy button. The footer address is an explicit muted link — left bare, Apple Mail
+  // auto-links it in default blue (seen 2026-11-14).
+  const html = `<!doctype html><html lang="en"><head><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#ffffff;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
 <div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
-  <p style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:0.12em;color:#876035;">KARTEL</p>
+  <p style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:0.12em;color:#7b1e2d;">KARTEL</p>
   <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#2b2824;">Sign in to KARTEL</h1>
   <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#37332e;">Use the button below to sign in. It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.</p>
-  <p style="margin:0 0 24px;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#876035;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Sign in</a></p>
-  <p style="margin:0;padding-top:16px;border-top:1px solid #d7d1c7;font-size:13px;line-height:1.5;color:#6f685c;">If you did not request this, ignore this message — nothing has changed.<br>KARTEL Core · kartel.org.uk</p>
+  <p style="margin:0 0 24px;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Sign in</a></p>
+  <p style="margin:0;padding-top:16px;border-top:1px solid #e6e2dd;font-size:13px;line-height:1.5;color:#6f685c;">If you did not request this, ignore this message — nothing has changed.<br>KARTEL Core · <a href="https://kartel.org.uk" style="color:#6f685c;text-decoration:none;">kartel.org.uk</a></p>
 </div></body></html>`;
   const res = await fetch(BREVO_ENDPOINT, {
     method: "POST",
