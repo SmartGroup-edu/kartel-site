@@ -23,7 +23,7 @@ const pageMeta: Record<Locale, { title: string; description: string; keywords: s
     keywords: ["Kartel coat of arms", "Kartel heraldry", "griffin", "Virtus et Potestas", "Kartel family crest"],
   },
   ru: {
-    title: "Герб семьи Картель — Virtus et Potestas",
+    title: "Фамильный герб Картель — Virtus et Potestas",
     description:
       "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья, латинский девиз Virtus et Potestas (Сила и Власть).",
     keywords: ["герб Картель", "геральдика Картель", "грифон", "Virtus et Potestas", "фамильный герб Картель"],
