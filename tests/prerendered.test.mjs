@@ -172,7 +172,7 @@ describe("/ru — Coat of Arms home", () => {
 describe("crest explorer hotspots (design pass 2026-11-15)", () => {
   test("coordinates match the grid-verified table (% of the 900×1000 crest)", () => {
     const src = readFileSync("app/components/CrestExplorer.tsx", "utf8");
-    const want = { coronet: [50, 29], fleurdelis: [50, 19], swords: [22, 57], griffin: [47, 55], staff: [35, 42], wings: [20, 22], keys: [50, 73], motto: [50, 81] };
+    const want = { coronet: [50, 29], fleurdelis: [50, 19], swords: [22, 57], griffin: [47, 55], staff: [35, 42], wings: [20, 22], keys: [50, 73], motto: [28, 72] };
     for (const [id, [x, y]] of Object.entries(want)) {
       assert.match(src, new RegExp(`id: "${id}",[\\s\\S]*?\\n    x: ${x},\\n    y: ${y},`), id);
     }

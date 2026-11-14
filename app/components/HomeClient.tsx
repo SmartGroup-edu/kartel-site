@@ -16,6 +16,7 @@ import CopyLinkButton from "./CopyLinkButton";
 import HeraldicPalette from "./HeraldicPalette";
 import MottoBanner from "./MottoBanner";
 import { homeContent } from "../content/home";
+import { noDashLineStart } from "../lib/typography";
 
 // Below-the-fold interactive widget — split into its own chunk so the
 // 8 heraldic-element descriptions (~16KB of EN+RU prose) don't ship with
@@ -93,7 +94,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
             <div className="[grid-area:text]">
               <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px]">
-                {t.lede}
+                {noDashLineStart(t.lede)}
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a
@@ -118,7 +119,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-16">
             <div className="mx-auto max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
               {t.intro.split("\n\n").map((p, idx) => (
-                <p key={idx} className="mb-5 text-left">{p}</p>
+                <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
               ))}
             </div>
           </div>
@@ -143,7 +144,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <FadeInSection>
                 <div className="max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
                   {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left">{p}</p>
+                    <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
                   ))}
                 </div>
               </FadeInSection>
@@ -177,7 +178,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <FadeInSection>
                 <div className="max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
                   {[t.finalLeft, t.finalRight].join("\n\n").split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left">{p}</p>
+                    <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
                   ))}
                 </div>
               </FadeInSection>
