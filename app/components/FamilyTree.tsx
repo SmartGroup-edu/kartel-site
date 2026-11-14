@@ -194,7 +194,8 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
             <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
               {genLabels[gen]}
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
+            {/* Equal width for every card on a level (gated UI/UX audit 2026-11-14 #6). */}
+            <div className="mx-auto grid w-full max-w-[20rem] gap-3">
               {NODES.filter((n) => n.generation === gen).map((node) => (
                 <TreeCard
                   key={node.id}

@@ -64,6 +64,11 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // Gated surfaces are never indexed (gated UI/UX audit 2026-11-14 #2). proxy.ts also sets this
+      // on its own responses (redirects included).
+      { source: "/:lang(en|ru)/family", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/:lang(en|ru)/family/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/console", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       {
         source: "/crest.jpeg",
         headers: [

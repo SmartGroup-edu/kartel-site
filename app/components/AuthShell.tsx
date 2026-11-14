@@ -19,7 +19,7 @@ export default function AuthShell({ lang, children }: { lang: "en" | "ru"; child
       </main>
       <SiteFooter
         motto="Virtus et Potestas"
-        copy={lang === "ru" ? "Ядро KARTEL · публичный реестр федерации" : "KARTEL Core · public registry of the federation"}
+        copy="KARTEL"
         contactEmail={null}
       />
     </>

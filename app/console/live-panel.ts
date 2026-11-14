@@ -30,7 +30,8 @@ export function renderRegistryPanel(): string {
   const tile = (k: string, v: string) =>
     `<div class="panel stat" style="padding:12px 14px"><div class="k">${escLocal(k)}</div><div class="v tnum" style="font-size:20px">${escLocal(v)}</div></div>`;
   return (
-    `<div class="eyebrow">Registry · live — v${escLocal(r.version)} <span class="mono" style="color:var(--ink-faint);font-size:12px;text-transform:none;letter-spacing:0">updated ${escLocal(r.updated)}</span></div>` +
+    // The registry projection is vendored at build time — a snapshot, not a live feed (audit #3).
+    `<div class="eyebrow"><span data-ru="Снимок реестра · v${escLocal(r.version)} · данные на ${escLocal(r.updated)}">Registry snapshot · v${escLocal(r.version)} · data as of ${escLocal(r.updated)}</span></div>` +
     `<div class="grid reg4" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
     tile("Canonical layers", String(layers)) +
     tile("Campuses", String(campuses)) +
@@ -83,11 +84,14 @@ const statusChip = (s: string | null | undefined) => {
   return `<span class="chip ${cls}"><span class="dot"></span>${esc(label)}</span>`;
 };
 
-function notice(msg: string): string {
+/** User-facing fallback carries no configuration detail (audit #3): the reason goes to the
+ *  server log only — never env var names or upstream status in the page. */
+function notice(reason: string): string {
+  console.warn(`[console] Eureka daily report unavailable: ${reason}`);
   return (
-    `<div class="eyebrow">Live · Eureka daily report</div>` +
-    `<div class="panel" style="padding:14px 16px;border-left:3px solid var(--gated);color:var(--ink-dim);font-size:12.5px">` +
-    `<b style="color:var(--ink)">Live data unavailable.</b> ${esc(msg)}</div>`
+    `<div class="eyebrow"><span data-ru="Ежедневный отчёт Eureka">Eureka daily report</span></div>` +
+    `<div class="panel" style="padding:14px 16px;border-left:3px solid var(--gated);color:var(--ink-dim);font-size:13px">` +
+    `<b style="color:var(--ink)" data-ru="Данные временно недоступны.">Live data is temporarily unavailable.</b></div>`
   );
 }
 
@@ -148,8 +152,8 @@ export async function renderLivePanel(): Promise<string> {
     tile("Calibration", calib) +
     `</div>` +
     `<div class="split" style="margin-bottom:14px">` +
-    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--blocked)">Blockers</div>${list(blockers, "var(--blocked)", "none — no red signals")}</div>` +
-    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gated)">Risks</div>${list(risks, "var(--gated)", "none — no amber signals")}</div>` +
+    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--sans);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--blocked)">Blockers</div>${list(blockers, "var(--blocked)", "none — no red signals")}</div>` +
+    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--sans);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gated)">Risks</div>${list(risks, "var(--gated)", "none — no amber signals")}</div>` +
     `</div>`
   );
 }
