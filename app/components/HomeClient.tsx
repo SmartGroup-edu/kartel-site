@@ -66,14 +66,19 @@ export default function HomeClient({ lang }: { lang: Lang }) {
       />
 
       <main id="main">
-        {/* Hero */}
-        <article id="home" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
-          <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">
-            <FadeInSection>
-              <h1 className="whitespace-pre-line text-center font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[38px] lg:text-left lg:text-[58px]">
+        {/* Hero — the crest is in the first screen at every width (prod QA 2026-11-14: it sat
+            below the fold at 1024–1920). Phones: title · crest · text. lg+: crest left, spanning
+            both rows; title and text right. DOM order keeps the h1 first. */}
+        <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-10">
+          <div className="grid items-start gap-8 [grid-template-areas:'title'_'crest'_'intro'] lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-x-12 lg:gap-y-6 lg:[grid-template-areas:'crest_title'_'crest_intro']">
+            <FadeInSection className="[grid-area:title]">
+              <h1 className="whitespace-pre-line text-center font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[38px] lg:text-left lg:text-[40px] xl:text-[46px]">
                 {t.title}
               </h1>
-              <div className="mt-8 flex justify-center lg:justify-start">
+            </FadeInSection>
+
+            <FadeInSection className="[grid-area:crest] lg:self-start">
+              <div className="flex justify-center">
                 <span id="crest-desc" className="sr-only">
                   {lang === "EN"
                     ? "Heraldic coat of arms featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the motto Virtus et Potestas. Click to view full size."
@@ -92,15 +97,15 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                     height={540}
                     priority
                     speed={0.06}
-                    sizes="(max-width: 640px) 280px, (max-width: 1024px) 380px, 540px"
-                    className="w-full max-w-[280px] object-contain sm:max-w-[380px] lg:max-w-[540px]"
+                    sizes="(max-width: 640px) 280px, (max-width: 1023px) 380px, (max-width: 1279px) 400px, 460px"
+                    className="w-full max-w-[280px] object-contain sm:max-w-[380px] lg:max-w-[400px] xl:max-w-[460px]"
                   />
                 </button>
               </div>
             </FadeInSection>
 
-            <FadeInSection>
-              <div className="drop-cap max-w-[700px] text-[16px] leading-[1.75] text-[var(--text-body)] sm:text-[18px] lg:text-[22px] lg:leading-[1.65]">
+            <FadeInSection className="[grid-area:intro]">
+              <div className="drop-cap max-w-[700px] text-[16px] leading-[1.75] text-[var(--text-body)] sm:text-[18px] lg:text-[19px] lg:leading-[1.65] xl:text-[20px]">
                 {t.intro.split("\n\n").map((p, idx) => (
                   <p key={idx} className="mb-5 text-left">{p}</p>
                 ))}

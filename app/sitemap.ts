@@ -134,6 +134,23 @@ export default function sitemap(): MetadataRoute.Sitemap {
         },
       },
     },
+    // Public pages added after prod QA 2026-11-14 (were missing): /core, /registry/layers,
+    // /registry/projects. /family stays out — it is members-only.
+    ...(["core", "registry/layers", "registry/projects"] as const).flatMap((path) =>
+      (["en", "ru"] as const).map((lang) => ({
+        url: `${BASE}/${lang}/${path}`,
+        lastModified: now,
+        changeFrequency: "monthly" as const,
+        priority: path === "core" ? 0.8 : 0.7,
+        alternates: {
+          languages: {
+            en: `${BASE}/en/${path}`,
+            ru: `${BASE}/ru/${path}`,
+            "x-default": `${BASE}/en/${path}`,
+          },
+        },
+      })),
+    ),
     {
       url: `${BASE}/llms.txt`,
       lastModified: now,

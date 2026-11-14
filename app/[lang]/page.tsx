@@ -186,7 +186,6 @@ export default async function HomePage({
 
   return (
     <>
-      <link rel="preload" as="image" href="/crest.webp" type="image/webp" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildStructuredData(locale)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaq(locale)) }} />
       <HomeClient lang={upperLang} />
