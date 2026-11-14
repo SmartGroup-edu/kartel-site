@@ -5,9 +5,9 @@ export const projectsContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Core — ecosystem projects directory",
+    metaTitle: "Ecosystem projects directory",
     metaDescription:
-      "The KARTEL ecosystem projects — MoyPolk, RusJAz, Community Group, RusJAzz — with their federation role (Authority, Producer, Steward, Consumer, Planned) and per-layer status.",
+      "KARTEL ecosystem projects — MoyPolk, RusJAz, Community Group and RusJAzz — with each one's federation role and per-layer status.",
     eyebrow: "Ecosystem directory",
     title: "Projects",
     intro:
@@ -27,9 +27,9 @@ export const projectsContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Ядро KARTEL — каталог проектов экосистемы",
+    metaTitle: "Каталог проектов экосистемы",
     metaDescription:
-      "Проекты экосистемы KARTEL — MoyPolk, RusJAz, Community Group, RusJAzz — с их ролью в федерации (Authority, Producer, Steward, Consumer, Planned) и статусом по слоям.",
+      "Проекты экосистемы KARTEL — MoyPolk, RusJAz, Community Group и RusJAzz — с ролью каждого в федерации и статусом по слоям.",
     eyebrow: "Каталог экосистемы",
     title: "Проекты",
     intro:

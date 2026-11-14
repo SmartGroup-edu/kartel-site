@@ -1,24 +1,24 @@
 # KARTEL — Full Site Content
 
-> This file contains the complete text content of kartel.org.uk for AI systems. kartel.org.uk is the authority surface of KARTEL (a federation of cultural and educational platforms) and the home of the Kartel family heritage and coat of arms. London, United Kingdom. Motto: Virtus et Potestas.
+> This file contains the complete text content of kartel.org.uk for AI systems. kartel.org.uk is the public registry of the KARTEL federation of cultural and educational platforms, and the home of the Kartel family heritage and coat of arms. London, United Kingdom. Motto: Virtus et Potestas.
 
 ---
 
-# KARTEL CORE — Authority surface
+# KARTEL CORE — The public registry of the KARTEL federation
 
-KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume or steward. None owns Core. This is the official public registry and governance surface, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
+Cultural and educational platforms share one identity, one map of UK regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. It is the official public registry, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
 
 ## Four canonical layers
 
-- **Identity (CPIF)** — One federated identity across every platform: the shared Keycloak subject (`cpifSubjectId`). Status: live.
+- **Identity (CPIF)** — One person, one identity across every platform. Status: live.
 - **Geography (ITL1)** — One canonical UK region taxonomy (ITL1). Platforms consume it; they never self-author regions. Status: live.
 - **Organisation Anchor** — One canonical organisation hierarchy: CEA → Foundation → School → Venue. Status: active.
 - **Campus Anchor** — Canonical accredited operating centres, identified by a readable `campusCode`, orthogonal to organisation identity. Status: active.
 
 ## Federation Integration Gate
 
-No new project may enter production unless it passes all eight items:
-1. CPIF authentication — federated identity via the shared Keycloak realm; local mirror of the subject.
+No new project joining the federation may enter production unless it passes all eight items:
+1. Authentication — the project signs its own users in by a sound method; no shared sign-in service is required.
 2. Canonical geography — store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions.
 3. Organisation anchor — reference canonical organisations; do not author canonical orgs locally.
 4. Membership contract — conform membership edges to the shared shape.
@@ -30,9 +30,9 @@ No new project may enter production unless it passes all eight items:
 ## Ecosystem projects
 
 - **MoyPolk** (moypolk.uk) — Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy. Role: Producer / Steward.
-- **RusJAz** (rusjaz.com) — Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography, organisation + campus anchors. Role: Consumer.
-- **Community Group** (community.group) — Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer. Role: Consumer.
-- **RusJAzz** — Future module. Builds against the Federation Integration Gate from day one. Role: Planned.
+- **RusJAz** (rusjaz.com) — Russian-language education marketplace + LMS. Consumes canonical geography, organisation + campus anchors. Role: Consumer.
+- **Community Group** (community.group) — Cultural funding & trust platform (CEA). First geography consumer. Role: Consumer.
+- **RusJAzz** — A separate future module. Builds against the Federation Integration Gate from day one. Role: Planned.
 
 The public registry carries status and architecture only — no operational detail, no internal identifiers, and no personal data. Those live in the access-controlled internal surface, never here.
 
@@ -46,7 +46,7 @@ The most important ideas live outside of time: they reach across generations lik
 
 At the center of the composition stands a heraldic shield of restrained shape. The top line—straight and firm—creates a boundary around which the heraldic elements are symmetrically arranged. The base of the shield, piercing the space like a wedge, evokes a sense of reliable foundation, as if it were embedded in the earth itself, anchoring the quiet beauty of the entire composition.
 
-At the heart of the shield walks a griffin. Traditionally embodying superiority, protection, and foresight, this symbol is meant to guard and guide, serving as a measure of higher justice. Combining the lion and the eagle into one form, the griffin unites two forces—earthly and celestial, tangible and intangible, masculine and feminine—becoming a symbol of wholeness born of opposites. The griffin is depicted in motion, with its head held high and its wings spread behind it, like a being that never sleeps and is always ready to act, led by its heart and unwavering sense of duty.
+At the heart of the shield walks a griffin. Traditionally embodying strength, protection, and foresight, this symbol is meant to guard and guide, serving as a measure of higher justice. Combining the lion and the eagle into one form, the griffin unites two forces—earthly and celestial, tangible and intangible, masculine and feminine—becoming a symbol of wholeness born of opposites. The griffin is depicted in motion, with its head held high and its wings spread behind it, like a being that never sleeps and is always ready to act, led by its heart and unwavering sense of duty.
 
 ## The Meaning of the Coat of Arms
 
@@ -56,7 +56,11 @@ At the base of the shield lie two crossed keys. These are both a symbol of eccle
 
 Their intersection forms a cross—a sign of spirituality—and affirms belief in one's own strength. Not every door opens at once—on the contrary, the most important ones are often locked, and only a pair of keys united in one symbol can open the right one. It is a sign of hope and the possibility of transformation, a reminder that every person holds the keys to their own destiny—and only they can decide how and when to use them.
 
-On either side of the shield extend wings, embodying silent and invisible divine protection. This image connotes trust, inner composure, and a sense of belonging to something greater than oneself. It spreads a blessing over the Kartel family, guarding against misfortune, false paths, and misguided decisions. At the same time, the wings allude to the symbolism of elite Polish cavalry, conveying a sense of power, militancy, and readiness to act with lightning speed—a message echoed by the mantling that descends beneath them, a remnant of knightly tradition, proclaiming valor and resilience in the face of trials.
+On either side of the shield extend wings, embodying silent and invisible divine protection. Their image unites faith, inner strength and an awareness of belonging to something greater than a single human life. Symbolically, they spread protection and blessing over the Kartel family, guarding it against misfortune, wrong decisions and false paths.
+
+The wings also echo the centuries-old heraldic tradition of the Eastern European lands with which the history of the Kartel family's ancestors is bound up — the territories of present-day Belarus, Ukraine and western Russia. They stand for freedom of spirit, courage, resolve and readiness to defend one's family, honour and heritage.
+
+The decorative mantling that frames the shield goes back to medieval knightly tradition and symbolises valour, steadfastness and loyalty to duty. Together, the wings and the mantling express not a wish to stand above others, but responsibility to one's own family, respect for one's ancestors and the resolve to preserve their heritage and pass it on to future generations.
 
 The top of the coat of arms is crowned by a coronet. Its shape elevates the entire composition, pointing the way upward—toward the heights that a person can reach through their actions and faith. But this is not a mark of birthright or feudal rank; it is not a medieval symbol of power granted by lineage. On the contrary: the image is older and deeper—it is a sign of the true qualities of a ruler: wisdom, justice, willpower, and faith in destiny. The coronet reveals the original nature of authority—granted not by blood, but by merit.
 
@@ -107,7 +111,7 @@ Time will move forward, changing faces and landscapes outside the window, but th
 
 Центром композиции выступает геральдический щит лаконичной формы. Верхняя линия — прямая и устойчивая — образует границу, вокруг которой симметрично выстраиваются гербовые элементы. Основание щита, клином врезающееся в пространство, создаёт ощущение надёжной опоры, словно он вонзён в землю, закрепляя собой сдержанную красоту всей композиции.
 
-Сердце щита занимает шествующий грифон. Традиционно олицетворяя превосходство, защиту и дальновидность, этот символ призван оберегать, направлять, и тем самым служить мерилом высшей справедливости. Он объединяет в себе два начала, льва и орла, сливая в одном облике земное и небесное, осязаемое и бестелесное, мужское и женское. Грифон изображён в движении, с поднятой головой и крыльями, распахнутыми за спиной, — как тот, кто никогда не спит и готов действовать, ведомый собственным сердцем и неугасимым чувством долга.
+Сердце щита занимает шествующий грифон. Традиционно олицетворяя силу, защиту и дальновидность, этот символ призван оберегать, направлять, и тем самым служить мерилом высшей справедливости. Он объединяет в себе два начала, льва и орла, сливая в одном облике земное и небесное, осязаемое и бестелесное, мужское и женское. Грифон изображён в движении, с поднятой головой и крыльями, распахнутыми за спиной, — как тот, кто никогда не спит и готов действовать, ведомый собственным сердцем и неугасимым чувством долга.
 
 ## Символика герба
 
@@ -115,7 +119,7 @@ Time will move forward, changing faces and landscapes outside the window, but th
 
 Основание щита содержит два скрещённых ключа — одновременно символ церковной власти, исторически восходящий к апостолу Петру, и знак глубоких знаний. Их пересечение образует крест — знак духовности — и напоминает, что каждый человек владеет ключами от собственной судьбы.
 
-С обеих сторон щита раскинулись крылья, воплощая безмолвное божественное покровительство, а также отсылая к символике элитной польской кавалерии. Верхнюю часть герба венчает корона — знак качеств истинного правителя: мудрости, справедливости, силы воли и веры в предназначение, даруемых не по крови, а по достоинству. Три геральдические лилии воплощают чистоту помыслов и возвышенность духа. За щитом возвышаются два симметричных меча, обозначающих право встать между опасностью и тем, что дорого.
+С обеих сторон щита раскинулись крылья, воплощая безмолвное и незримое Божественное покровительство. Они также перекликаются с многовековой геральдической традицией восточноевропейских земель, с которыми связана история предков семьи Картель, — территорий современной Беларуси, Украины и западных областей России, — и олицетворяют свободу духа, мужество и готовность встать на защиту своей семьи, чести и наследия. Декоративный намёт, обрамляющий щит, восходит к средневековой рыцарской традиции и символизирует доблесть, стойкость и верность долгу. Верхнюю часть герба венчает корона — знак качеств истинного правителя: мудрости, справедливости, силы воли и веры в предназначение, даруемых не по крови, а по достоинству. Три геральдические лилии воплощают чистоту помыслов и возвышенность духа. За щитом возвышаются два симметричных меча, обозначающих право встать между опасностью и тем, что дорого.
 
 ## Цвета и наследие
 
@@ -151,7 +155,7 @@ The Kartel coat of arms is a heraldic composition created for the Kartel family,
 The Kartel family includes Igor Gor Kartel (London representative), Diana Kartel, Dominika Kartel, Arina Kartel, Igor Kaid Kartel, Feliks Kartel, Piotr Kartel, and Valentina Kartel.
 
 ## What does the griffin symbolize in the Kartel coat of arms?
-The griffin combines the lion (earthly strength) and the eagle (celestial vision) into one form, representing superiority, protection, foresight, and the union of opposites. It is depicted in motion, symbolizing perpetual readiness to act.
+The griffin combines the lion (earthly strength) and the eagle (celestial vision) into one form, representing strength, protection, foresight, and the union of opposites. It is depicted in motion, symbolizing perpetual readiness to act.
 
 ## What do the crossed keys represent?
 The crossed keys at the base of the shield symbolize knowledge, sacred mystery, and the union between reason and faith. They are historically linked to the Apostle Peter and represent the idea that every person holds the keys to their own destiny.
@@ -166,4 +170,4 @@ The Kartel family is based in London, United Kingdom. Their website is kartel.or
 
 Source: https://kartel.org.uk
 Contact: gor@kartel.org.uk
-Last updated: 2026-06-19
+Last updated: 2026-11-14

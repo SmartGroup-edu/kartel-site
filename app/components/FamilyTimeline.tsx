@@ -143,7 +143,7 @@ export default function FamilyTimeline({ lang }: FamilyTimelineProps) {
               />
 
               {/* Date/era label */}
-              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--muted-light)] sm:text-[12px]">
+              <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--muted-light)]">
                 {year}
               </p>
 

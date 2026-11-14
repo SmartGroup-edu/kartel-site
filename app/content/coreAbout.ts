@@ -6,9 +6,9 @@ export const coreAboutContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "What is KARTEL Core? — federation, identity, geography",
+    metaTitle: "What is KARTEL Core?",
     metaDescription:
-      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity (CPIF), one geography (ITL1), and one set of rules. What it is, which projects exist, and why a federation.",
+      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity, one map of UK regions and one set of rules.",
     eyebrow: "What is KARTEL?",
     title: "One ecosystem. One identity. One geography.",
     lede:
@@ -41,9 +41,9 @@ export const coreAboutContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Что такое Ядро KARTEL? — федерация, идентичность, география",
+    metaTitle: "Что такое Ядро KARTEL?",
     metaDescription:
-      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью (CPIF), одной географией (ITL1) и едиными правилами управления. Что это, какие проекты и зачем федерация.",
+      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью, одной картой регионов UK и едиными правилами.",
     eyebrow: "Что такое KARTEL?",
     title: "Одна экосистема. Одна идентичность. Одна география.",
     lede:

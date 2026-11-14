@@ -20,10 +20,12 @@ interface SiteHeaderProps {
   navItems?: NavItem[];
   /** Optional second row for a section (e.g. the registry's sub-pages). */
   subNav?: SiteNavItem[];
+  /** Accessible name for the second row; defaults to the registry's. */
+  subNavLabel?: string;
   maxWidth?: string;
 }
 
-export default function SiteHeader({ lang, toggleLang, navItems, subNav, maxWidth = "max-w-7xl" }: SiteHeaderProps) {
+export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavLabel, maxWidth = "max-w-7xl" }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const mobileMenuRef = useFocusTrap<HTMLDivElement>(menuOpen);
   const pathname = usePathname() ?? "";
@@ -124,7 +126,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, maxWidt
         {/* Section sub-navigation (registry) — scrolls sideways on small screens instead of wrapping */}
         {subNav && (
           <nav
-            aria-label={lang === "RU" ? "Разделы реестра" : "Registry sections"}
+            aria-label={subNavLabel ?? (lang === "RU" ? "Разделы реестра" : "Registry sections")}
             className="border-t border-[var(--border)]"
           >
             <div className={`mx-auto flex ${maxWidth} gap-5 overflow-x-auto px-4 text-sm text-[var(--text-nav)] sm:px-6 lg:px-10`}>

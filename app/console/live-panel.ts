@@ -30,8 +30,8 @@ export function renderRegistryPanel(): string {
   const tile = (k: string, v: string) =>
     `<div class="panel stat" style="padding:12px 14px"><div class="k">${escLocal(k)}</div><div class="v tnum" style="font-size:20px">${escLocal(v)}</div></div>`;
   return (
-    `<div class="eyebrow">Registry · live — v${escLocal(r.version)} <span class="mono" style="color:var(--ink-faint);font-size:11px;text-transform:none;letter-spacing:0">updated ${escLocal(r.updated)}</span></div>` +
-    `<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
+    `<div class="eyebrow">Registry · live — v${escLocal(r.version)} <span class="mono" style="color:var(--ink-faint);font-size:12px;text-transform:none;letter-spacing:0">updated ${escLocal(r.updated)}</span></div>` +
+    `<div class="grid reg4" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
     tile("Canonical layers", String(layers)) +
     tile("Campuses", String(campuses)) +
     tile("Projects", String(projects)) +
@@ -141,15 +141,15 @@ export async function renderLivePanel(): Promise<string> {
   return (
     `<div class="eyebrow">Live · Eureka daily report — ${esc(data.reportDate)} ${statusChip(data.status)}` +
     `<span style="margin-left:auto;display:flex;gap:3px;align-items:center">${stripDots}</span></div>` +
-    `<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
+    `<div class="grid reg4" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">` +
     tile("AI spend today", spendPct) +
     tile("Moderation queue", String(modQ)) +
     tile("Review queue", String(revQ)) +
     tile("Calibration", calib) +
     `</div>` +
     `<div class="split" style="margin-bottom:14px">` +
-    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--blocked)">Blockers</div>${list(blockers, "var(--blocked)", "none — no red signals")}</div>` +
-    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gated)">Risks</div>${list(risks, "var(--gated)", "none — no amber signals")}</div>` +
+    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--blocked)">Blockers</div>${list(blockers, "var(--blocked)", "none — no red signals")}</div>` +
+    `<div class="panel" style="padding:14px 16px"><div class="k" style="font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gated)">Risks</div>${list(risks, "var(--gated)", "none — no amber signals")}</div>` +
     `</div>`
   );
 }

@@ -6,9 +6,9 @@ export const federationContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Core — Federation Operations Map (observability)",
+    metaTitle: "Federation Operations Map",
     metaDescription:
-      "A read-only observability map of the KARTEL federation, generated entirely from canonical keys: identity, geography, organisation and campus. Aggregate banded counts only — the map observes the federation, it is never a source of truth.",
+      "A read-only map of the KARTEL federation built from canonical keys. Aggregate banded counts only; it observes the federation and is never a source of truth.",
     eyebrow: "Federation Operations Map",
     title: "Federation observability",
     intro:
@@ -53,9 +53,9 @@ export const federationContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Ядро KARTEL — карта операций федерации (наблюдаемость)",
+    metaTitle: "Карта операций федерации",
     metaDescription:
-      "Карта федерации KARTEL только для чтения, построенная исключительно из канонических ключей: идентичность, география, организация и кампус. Только агрегированные диапазоны — карта наблюдает за федерацией, но никогда не является источником истины.",
+      "Карта федерации KARTEL только для чтения, из канонических ключей. Только агрегированные диапазоны; карта наблюдает и не является источником истины.",
     eyebrow: "Карта операций федерации",
     title: "Наблюдаемость федерации",
     intro:

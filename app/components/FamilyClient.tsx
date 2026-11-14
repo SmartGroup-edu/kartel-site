@@ -9,25 +9,20 @@ import BackToTop from "./BackToTop";
 import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
 import { familyContent, groupByGeneration } from "../content/family";
+import { familyNav } from "../content/siteNav";
 
 export default function FamilyClient({ lang }: { lang: Lang }) {
   const toggleLang = useLangToggle(lang);
-  const langPath = lang.toLowerCase();
 
   const t = familyContent[lang];
 
-  const navItems = [
-    { label: t.homeLabel, href: `/${langPath}` },
-    { label: t.familyLabel, href: `/${langPath}/family`, active: true },
-    { label: lang === "EN" ? "Coat of Arms" : "Герб", href: `/${langPath}/family/crest` },
-    { label: lang === "EN" ? "Sign out" : "Выйти", href: `/api/family-auth/logout` },
-  ];
+  const navItems = familyNav(lang);
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth="max-w-6xl" />
 
-      <main id="main" className="mx-auto max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
+      <main id="main" className="mx-auto max-w-6xl flex-1 px-4 pb-4 pt-10 sm:px-6 sm:pt-12 lg:px-10 lg:pb-6 lg:pt-20">
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
