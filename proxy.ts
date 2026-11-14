@@ -10,8 +10,8 @@ const DEFAULT_LOCALE: Locale = "en";
 // Enforcement lives here, not in the page: in this Next build a Server-Component
 // redirect() does not reliably abort a force-dynamic render (it streamed a 200 with
 // content — the 2026-07-17 leak). NextResponse.redirect at the edge runs before any
-// render, so it cannot leak. P1 approval = FAMILY_ADMIN_SUBS (admins only) until the
-// P2 datastore exists; everyone else → pending. Mirrors app/lib/family-* contracts.
+// render, so it cannot leak. Approval = FAMILY_ADMIN_EMAILS + the email allowlist
+// (Edge Config / env seed); everyone else → pending. Mirrors app/lib/family-* contracts.
 async function familyEdgeGate(request: NextRequest, pathname: string) {
   const lang = pathname.startsWith("/ru") ? "ru" : "en";
   // No/invalid session → a PUBLIC sign-in landing (no PII). The form there posts an address to
@@ -64,10 +64,8 @@ export async function proxy(request: NextRequest) {
   // Sign-in runs on the apex (the link nonce cookie stays same-host); the session cookie is
   // domain-wide (FAMILY_COOKIE_DOMAIN=.kartel.org.uk) so the subdomain sees it after sign-in.
   //
-  // ADMIN KEY CHANGED: FAMILY_ADMIN_SUBS held Keycloak subjects. Standalone auth sets the session
-  // subject to the lowercased email, so production must carry FAMILY_ADMIN_EMAILS or /console
-  // closes to everyone. familyEnv.adminEmails() reads both during the transition — but this edge
-  // check reads the env directly, so BOTH variables are consulted here too.
+  // Admins = FAMILY_ADMIN_EMAILS (the session subject is the lowercased email). Without it,
+  // /console closes to everyone. Must stay in step with familyEnv.adminEmails().
   const host = request.headers.get("host") ?? "";
   const onConsoleHost = host === "console.kartel.org.uk";
   if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
@@ -77,10 +75,8 @@ export async function proxy(request: NextRequest) {
       try {
         const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? ""));
         const sub = typeof payload.sub === "string" ? payload.sub : "";
-        const admins = [
-          ...(process.env.FAMILY_ADMIN_EMAILS ?? "").split(","),
-          ...(process.env.FAMILY_ADMIN_SUBS ?? "").split(","), // legacy Keycloak subjects
-        ]
+        const admins = (process.env.FAMILY_ADMIN_EMAILS ?? "")
+          .split(",")
           .map((s) => s.trim().toLowerCase())
           .filter(Boolean);
         admin = !!sub && admins.includes(sub.toLowerCase());

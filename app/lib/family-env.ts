@@ -44,17 +44,10 @@ export const familyEnv = {
   mailRelaySecret: (): string => need("FAMILY_MAIL_RELAY_SECRET"),
 
   /**
-   * Admins: may reach /console and are always approved for /family.
-   *
-   * TRANSITIONAL: reads FAMILY_ADMIN_EMAILS (new, email-keyed) and FAMILY_ADMIN_SUBS (legacy,
-   * Keycloak subject-keyed). Both are honoured so production can be re-keyed BEFORE the realm
-   * stops issuing sessions — see docs/standalone-auth-design.md §1. Once the realm is gone the
-   * legacy values can never match again and FAMILY_ADMIN_SUBS should be deleted.
+   * Admins: may reach /console and are always approved for /family. Email-keyed.
+   * (The Keycloak-era FAMILY_ADMIN_SUBS was retired 2026-11-14 and is no longer read.)
    */
-  adminEmails: (): string[] => [
-    ...csvLower(process.env.FAMILY_ADMIN_EMAILS),
-    ...csvLower(process.env.FAMILY_ADMIN_SUBS),
-  ],
+  adminEmails: (): string[] => csvLower(process.env.FAMILY_ADMIN_EMAILS),
 
   /**
    * Founder-seeded family allowlist (comma-separated, lowercased). This is the user list:
