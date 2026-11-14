@@ -78,7 +78,7 @@ export async function generateStaticParams() {
 // (the inline head script additionally honours the manual localStorage toggle).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#876035" },
+    { media: "(prefers-color-scheme: light)", color: "#7b1e2d" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1816" },
   ],
   width: "device-width",
@@ -188,7 +188,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#876035')}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#7b1e2d')}catch(e){}})()`,
           }}
         />
         <link rel="author" href="/humans.txt" />
@@ -205,13 +205,13 @@ export default async function RootLayout({
         />
         <noscript>
           <div style={{ maxWidth: "800px", margin: "40px auto", padding: "0 20px", fontFamily: "Georgia, serif", color: "#2b2824" }}>
-            <h1 style={{ color: "#876035", fontSize: "32px", marginBottom: "16px" }}>
+            <h1 style={{ color: "#7b1e2d", fontSize: "32px", marginBottom: "16px" }}>
               KARTEL
             </h1>
             <p style={{ fontSize: "18px", lineHeight: "1.8", marginBottom: "16px" }}>
               {ns.intro}
             </p>
-            <h2 style={{ color: "#876035", fontSize: "24px", marginBottom: "12px" }}>
+            <h2 style={{ color: "#7b1e2d", fontSize: "24px", marginBottom: "12px" }}>
               {ns.membersHeading}
             </h2>
             <p style={{ fontSize: "16px", lineHeight: "1.9" }}>{ns.members}</p>

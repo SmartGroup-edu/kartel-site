@@ -28,7 +28,7 @@ export default async function OGImage() {
           justifyContent: "center",
           width: "100%",
           height: "100%",
-          backgroundColor: "#eeebe5",
+          backgroundColor: "#ffffff",
           fontFamily: "Georgia, Times New Roman, serif",
           padding: "48px 60px",
           gap: "48px",
@@ -83,7 +83,7 @@ export default async function OGImage() {
               display: "flex",
               fontSize: 64,
               letterSpacing: "0.15em",
-              color: "#876035",
+              color: "#7b1e2d",
               marginBottom: 12,
             }}
           >
@@ -109,7 +109,7 @@ export default async function OGImage() {
               display: "flex",
               fontSize: 20,
               fontStyle: "italic",
-              color: "#876035",
+              color: "#7b1e2d",
               marginTop: 20,
             }}
           >
