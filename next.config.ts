@@ -42,6 +42,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The coat of arms is the public home since R0's decision of 2026-11-14: the old gated
+  // crest URL goes there (308), so there is one canonical page and no duplicate content.
+  // Config redirects run before proxy.ts, so this never reaches the family gate.
+  async redirects() {
+    return [{ source: "/:lang(en|ru)/family/crest", destination: "/:lang", permanent: true }];
+  },
   experimental: {
     viewTransition: true,
     // Unmatched URLs get app/global-not-found.tsx with a real 404 status. A catch-all page under

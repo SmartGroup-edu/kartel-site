@@ -2,7 +2,7 @@ import "server-only";
 
 // The Kartel family's names and personal details. SERVER-ONLY (R0 decision 2026-11-14:
 // no family names in anything served without sign-in). Importing this from a client component
-// fails the build. Only the gated pages /[lang]/family and /[lang]/family/crest read it and
+// fails the build. Only the gated page /[lang]/family reads it and
 // pass the data down as props, so it reaches the browser only inside an approved session.
 
 import type { Generation, TreeNode, TimelineEvent } from "./family";
@@ -190,15 +190,3 @@ export const FAMILY_TIMELINE_EVENTS: TimelineEvent[] = [
     descRU: "Создание фамильного герба — геральдического символа, объединяющего все поколения под одним девизом: Сила и Власть.",
   },
 ];
-
-/** Name list shown on the gated crest page. */
-export const CREST_NAMES = {
-  ru: [
-      "Игорь Гор Картель", "Диана Картель", "Доминика Картель", "Арина Картель",
-      "Игорь Каид Картель", "Феликс Картель", "Петр Картель", "Валентина Картель",
-  ],
-  en: [
-      "Igor Gor Kartel", "Diana Kartel", "Dominika Kartel", "Arina Kartel",
-      "Igor Kaid Kartel", "Feliks Kartel", "Piotr Kartel", "Valentina Kartel",
-  ],
-};

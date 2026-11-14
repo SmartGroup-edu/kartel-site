@@ -1,25 +1,21 @@
 // Snapshot tests for the prerendered HTML, sitemap, and service worker.
 // These read the .next/server/app outputs after `npm run build` and assert
-// invariants we care about — i18n correctness + the Core/Family split:
-//   /              → KARTEL Core (authority surface)
-//   /registry      → Core Registry dashboard
+// invariants we care about — i18n correctness + the public/family split:
+//   /              → Coat of Arms of the Kartel family (public home, R0 2026-11-14)
+//   /core, /registry → KARTEL Core (one click away in the main menu)
 //   /family        → Family Heritage members   — GATED (see below)
-//   /family/crest  → Coat of Arms (heraldry)   — GATED (see below)
+//   /family/crest  → 308 to /{lang} (next.config.ts redirects)
 //
-// Family Heritage is a GATED area (Option A, R0 2026-07-16): access = registration +
-// admin approval via CPIF / Keycloak (Federation v2), NOT bespoke auth. Two layers:
-//   1. proxy.ts — when FAMILY_GATE≠"on" it hard-redirects /{en,ru}/family(/*) to home
-//      (dormant/no-PII default); when "on" it lets the request through to
-//   2. the page guard — force-dynamic + familyGateDecision() (login | pending | allow),
-//      fail-closed. So the pages are DYNAMIC, never statically prerendered — the tests
-//      below assert exactly that (the security invariant), and sitemap/sw MUST NOT
-//      advertise them.
+// The public home carries NO personal data: family names live only in the gated /family area
+// (app/content/family-private.ts, server-only). The "no family names" tests below scan the home
+// HTML and every client static file.
 //
 // Run with: npm test  (after npm run build)
 
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const APP = ".next/server/app";
 
@@ -27,15 +23,32 @@ function read(file) {
   return readFileSync(`${APP}/${file}`, "utf8");
 }
 
-describe("/en — KARTEL Core home", () => {
+// Given names, second names and maiden names of the family (EN + RU). The surname is the
+// crest's name and is allowed. This list lives in a test file, which is never served.
+const FAMILY_NAMES = /Piotr|Pi[eo]tr Nikola|Andrey Petrovich|Poloneya|Aleksandr Andreyevich|Lyubov|Nikolai Aleksandrovich|Valentina|Igor Gor|Diana Zenonovna|Diana Kartel|Dominika|Arina|Igor Kaid|Feliks|Subach|Kirey|Mikhal|Chizhevsk|Пётр Картель|Петр Николаевич|Андрей Петрович|Полонея|Александр Андреевич|Любовь Петровна|Николай Александрович|Валентина|Игорь Гор|Диана|Доминика|Арина|Игорь Каид|Феликс|Субоч|Кирей|Михаль|Чижевск/;
+
+function walk(dir) {
+  return readdirSync(dir).flatMap((f) => {
+    const p = join(dir, f);
+    return statSync(p).isDirectory() ? walk(p) : [p];
+  });
+}
+const unescape = (s) => s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+
+describe("/en — Coat of Arms home", () => {
   const html = read("en.html");
 
   test("html element has lang=en", () => {
     assert.match(html, /<html[^>]*\blang="en"/);
   });
 
-  test("KARTEL Core title (no longer coat-of-arms)", () => {
-    assert.match(html, /<title>KARTEL Core — public registry of the KARTEL federation<\/title>/);
+  test("coat-of-arms title", () => {
+    assert.match(html, /<title>Kartel Coat of Arms — Virtus et Potestas<\/title>/);
+  });
+
+  test("share card is the coat of arms (og:title + og:image)", () => {
+    assert.match(html, /<meta property="og:title" content="Kartel Coat of Arms — Virtus et Potestas"\/>/);
+    assert.match(html, /<meta property="og:image" content="https:\/\/kartel\.org\.uk\/opengraph-image"\/>/);
   });
 
   test("canonical points at /en", () => {
@@ -48,22 +61,28 @@ describe("/en — KARTEL Core home", () => {
     assert.match(html, /hrefLang="x-default"/);
   });
 
-  test("JSON-LD WebSite + Organization present", () => {
+  test("JSON-LD WebSite + Organization + FAQPage present, no Person", () => {
     assert.match(html, /"@type":"WebSite"/);
     assert.match(html, /"@type":"Organization"/);
+    assert.match(html, /"@type":"FAQPage"/);
+    assert.doesNotMatch(html, /"@type":"Person"/);
   });
 
-  test("Core body content rendered (canonical layers)", () => {
-    assert.match(html, /canonical layers/i);
-    assert.match(html, /KARTEL Core/);
+  test("coat-of-arms content rendered", () => {
+    assert.match(html, /griffin/i);
+    assert.match(html, /Virtus et Potestas/);
   });
 
-  test("coat-of-arms content has moved OFF the home", () => {
-    assert.doesNotMatch(html, /griffin/i);
-    assert.doesNotMatch(html, /"@type":"FAQPage"/);
+  test("KARTEL Core is one click away (main menu)", () => {
+    assert.match(html, /href="\/en\/core"/);
+    assert.match(html, /href="\/en\/registry"/);
   });
 
-  test("no personal contact email on the authority surface", () => {
+  test("no family names in the public home HTML", () => {
+    assert.doesNotMatch(unescape(html), FAMILY_NAMES);
+  });
+
+  test("no personal contact email on the home", () => {
     assert.doesNotMatch(html, /gor@kartel\.org\.uk/);
   });
 
@@ -73,23 +92,34 @@ describe("/en — KARTEL Core home", () => {
   });
 });
 
-describe("/ru — KARTEL Core home", () => {
+describe("/ru — Coat of Arms home", () => {
   const html = read("ru.html");
 
   test("html element has lang=ru", () => {
     assert.match(html, /<html[^>]*\blang="ru"/);
   });
 
-  test("Russian Core title", () => {
-    assert.match(html, /<title>Ядро KARTEL — публичный реестр федерации KARTEL<\/title>/);
+  test("Russian coat-of-arms title", () => {
+    assert.match(html, /<title>Герб семьи Картель — Virtus et Potestas<\/title>/);
   });
 
   test("canonical points at /ru", () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/ru"\/>/);
   });
 
-  test("Russian Core body rendered (Cyrillic)", () => {
-    assert.match(html, /авторитетности|Канонических|Федерация|Реестр/);
+  test("Russian coat-of-arms body rendered (Cyrillic)", () => {
+    assert.match(unescape(html), /грифон/i);
+  });
+
+  test("no family names in the public home HTML", () => {
+    assert.doesNotMatch(unescape(html), FAMILY_NAMES);
+  });
+});
+
+describe("client static files — no family names", () => {
+  test("no file under .next/static contains a family name", () => {
+    const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));
+    assert.deepEqual(hits, []);
   });
 });
 
@@ -98,7 +128,7 @@ describe("/ru — KARTEL Core home", () => {
 // statically prerendered, so an unauthenticated request can never be served family PII from
 // a cached HTML file. (This is the regression these tests now guard, after the 2026-07-16
 // leak: proxy-gate-on but no page guard served the full family page statically.)
-describe("/family + /family/crest — gated, NOT statically prerendered", () => {
+describe("/family (gated) and the old /family/crest URL — NOT statically prerendered", () => {
   const notPrerendered = (f) =>
     assert.throws(
       () => read(f),

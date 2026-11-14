@@ -18,7 +18,6 @@ import HeraldicPalette from "./HeraldicPalette";
 import MottoBanner from "./MottoBanner";
 import SectionDots from "./SectionDots";
 import { homeContent } from "../content/home";
-import { familyNav } from "../content/siteNav";
 
 // Below-the-fold interactive widget — split into its own chunk so the
 // 8 heraldic-element descriptions (~16KB of EN+RU prose) don't ship with
@@ -28,8 +27,9 @@ const CrestExplorer = dynamic(() => import("./CrestExplorer"));
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
-/** `names` arrives from the gated crest page (server-only data) — never bundled into client JS. */
-export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: string[]; en: string[] } }) {
+/** Public home (R0 2026-11-14: the coat of arms is the main page). No personal data here —
+ *  family names live only in the gated /family area (app/content/family-private.ts). */
+export default function HomeClient({ lang }: { lang: Lang }) {
   const toggleLang = useLangToggle(lang);
   const langPath = lang.toLowerCase();
 
@@ -38,8 +38,7 @@ export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: s
   const activeSection = useActiveSection(SECTION_IDS);
   useSectionKeyboard(SECTION_IDS);
 
-  // Same header as /family (full-site QA #7); the page's own sections move to the second row.
-  const navItems = familyNav(lang);
+  // The one site menu (SiteHeader default); the page's own sections sit in the second row.
   // First section is the crest itself; "Home" here would repeat the header's Home link.
   const overviewLabel = lang === "RU" ? "Обзор" : "Overview";
   const sectionNav = [
@@ -54,7 +53,6 @@ export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: s
       <SiteHeader
         lang={lang}
         toggleLang={toggleLang}
-        navItems={navItems}
         subNav={sectionNav}
         subNavLabel={lang === "RU" ? "Разделы страницы герба" : "Coat of arms sections"}
       />
@@ -189,23 +187,6 @@ export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: s
 
         <HeraldicDivider />
 
-        {/* Names */}
-        <aside className="border-t border-[var(--border)]" aria-label={lang === "EN" ? "Family names" : "Имена семьи"}>
-          <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
-            <FadeInSection>
-              <h3 className="mb-6 text-center font-serif text-[18px] tracking-wide text-[var(--accent)] sm:text-[20px] lg:text-[22px]">
-                {t.namesTitle}
-              </h3>
-              <div className="grid gap-6 text-center text-[14px] leading-[1.9] text-[var(--text-secondary)] sm:text-[15px] md:grid-cols-2 lg:text-[16px]">
-                <div>{names.ru.map((name) => (<p key={name}>{name}</p>))}</div>
-                <div>{names.en.map((name) => (<p key={name}>{name}</p>))}</div>
-              </div>
-              <p className="mt-8 text-center text-[12px] tracking-[0.08em] text-[var(--muted)] sm:text-[13px] lg:text-[14px]">
-                {t.namesFooter}
-              </p>
-            </FadeInSection>
-          </div>
-        </aside>
 
         {/* Share */}
         <FadeInSection>
@@ -219,7 +200,8 @@ export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: s
         </FadeInSection>
       </main>
 
-      <SiteFooter motto={t.footerMotto} copy={t.footerCopy} />
+      {/* Public home: no personal contact address (same rule as the previous public home). */}
+      <SiteFooter motto={t.footerMotto} copy={t.footerCopy} contactEmail={null} />
       <BackToTop />
       <ImageLightbox
         src="/crest.jpeg"
