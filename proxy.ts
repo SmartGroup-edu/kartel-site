@@ -57,6 +57,13 @@ function legacyLocaleFromQuery(value: string | null): Locale | null {
   return LOCALES.includes(v as Locale) ? (v as Locale) : null;
 }
 
+/** Gated surfaces (family area, console) must never be indexed — gated UI/UX audit 2026-11-14 #2.
+ *  Set on every response from those branches, redirects included. */
+function noindex<T extends Response>(res: T): T {
+  res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
@@ -88,13 +95,13 @@ export async function proxy(request: NextRequest) {
         admin = false;
       }
     }
-    if (!admin) return NextResponse.redirect(new URL("https://kartel.org.uk/en/family/signin?returnTo=%2Fconsole"));
+    if (!admin) return noindex(NextResponse.redirect(new URL("https://kartel.org.uk/en/family/signin?returnTo=%2Fconsole")));
     if (onConsoleHost && (pathname === "/" || pathname === "")) {
       const u = request.nextUrl.clone();
       u.pathname = "/console";
-      return NextResponse.rewrite(u);
+      return noindex(NextResponse.rewrite(u));
     }
-    return NextResponse.next();
+    return noindex(NextResponse.next());
   }
 
   // /en/family and /ru/family — members-only Family Heritage.
@@ -110,11 +117,11 @@ export async function proxy(request: NextRequest) {
   if (/^\/(en|ru)\/family(\/|$)/.test(pathname)) {
     const lang = pathname.startsWith("/ru") ? "ru" : "en";
     if (process.env.FAMILY_GATE !== "on") {
-      return NextResponse.redirect(new URL(`/${lang}`, request.url));
+      return noindex(NextResponse.redirect(new URL(`/${lang}`, request.url)));
     }
     // Public, no-PII landings reachable without a session:
-    if (/^\/(en|ru)\/family\/(pending|signin)\/?$/.test(pathname)) return NextResponse.next();
-    return familyEdgeGate(request, pathname);
+    if (/^\/(en|ru)\/family\/(pending|signin)\/?$/.test(pathname)) return noindex(NextResponse.next());
+    return noindex(await familyEdgeGate(request, pathname));
   }
 
   // If the path already starts with a known locale, leave it alone.

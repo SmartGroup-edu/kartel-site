@@ -41,6 +41,7 @@ export async function generateMetadata({
     title: m.title,
     description: m.description,
     keywords: m.keywords,
+    robots: { index: false, follow: false },
     alternates: {
       canonical: `/${lang}/family`,
       languages: {

@@ -8,7 +8,7 @@ import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
-import { groupByGeneration, type TreeNode, type TimelineEvent } from "../content/family";
+import type { TreeNode, TimelineEvent } from "../content/family";
 import type { familyContent } from "../content/family-private";
 import { familyNav } from "../content/siteNav";
 
@@ -60,43 +60,8 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
 
         <HeraldicDivider />
 
-        {groupByGeneration(t.people, t.generationLabels).map((group) => (
-          <div key={group.key}>
-            <HeraldicDivider />
-
-            <section className="py-8 lg:py-12" aria-label={group.title}>
-              <FadeInSection>
-                <h2 className="mb-6 font-serif text-[18px] tracking-wide text-[var(--accent)] sm:text-[20px] lg:mb-8 lg:text-[22px]">
-                  {group.title}
-                </h2>
-              </FadeInSection>
-
-              <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
-                {group.members.map((p) => (
-                  <FadeInSection key={p.name}>
-                    <article
-                      className="group h-full border border-[var(--border)] bg-[var(--surface)] p-5 transition-all duration-200 hover:border-[var(--muted-light)] hover:shadow-md sm:p-6"
-                      itemScope
-                      itemType="https://schema.org/Person"
-                    >
-                      <h3
-                        className="font-serif text-[20px] leading-[1.3] text-[var(--accent)] transition-colors group-hover:text-[var(--accent-hover)] sm:text-[22px] lg:text-[24px]"
-                        itemProp="name"
-                      >
-                        {p.name}
-                      </h3>
-                      <p className="mt-3 text-[15px] leading-[1.8] text-[var(--text-secondary)] sm:text-[16px]" itemProp="description">
-                        {p.description}
-                      </p>
-                      <meta itemProp="familyName" content="Kartel" />
-                      <meta itemProp="memberOf" content="Kartel Family" />
-                    </article>
-                  </FadeInSection>
-                ))}
-              </div>
-            </section>
-          </div>
-        ))}
+        {/* Per-generation cards removed (gated UI/UX audit 2026-11-14 #4): the tree and the chronicle
+            already show every level; unique details moved into the chronicle. */}
       </main>
 
       <SiteFooter motto={t.footerMotto} copy={t.footerCopy} maxWidth="max-w-6xl" />
