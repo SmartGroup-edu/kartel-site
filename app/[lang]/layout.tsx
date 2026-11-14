@@ -205,9 +205,9 @@ export default async function RootLayout({
         />
         <noscript>
           <div style={{ maxWidth: "800px", margin: "40px auto", padding: "0 20px", fontFamily: "Georgia, serif", color: "#2b2824" }}>
-            <h1 style={{ color: "#7b1e2d", fontSize: "32px", marginBottom: "16px" }}>
+            <p style={{ color: "#7b1e2d", fontSize: "32px", marginBottom: "16px" }}>
               KARTEL
-            </h1>
+            </p>
             <p style={{ fontSize: "18px", lineHeight: "1.8", marginBottom: "16px" }}>
               {ns.intro}
             </p>
