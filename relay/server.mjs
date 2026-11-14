@@ -84,7 +84,7 @@ async function sendViaBrevo(to, link) {
   <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#2b2824;">Sign in to KARTEL</h1>
   <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#37332e;">Use the button below to sign in. It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.</p>
   <p style="margin:0 0 24px;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#876035;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Sign in</a></p>
-  <p style="margin:0 0 32px;font-size:13px;line-height:1.5;color:#6f685c;">If the button does not work, copy this address into the same browser:<br><span style="word-break:break-all;color:#37332e;">${esc(link)}</span></p>
+  <p style="margin:0 0 32px;font-size:12px;line-height:1.5;color:#6f685c;">If the button does not work, copy this address into the same browser:<br><a href="${esc(link)}" style="word-break:break-all;color:#6f685c;text-decoration:none;">${esc(link)}</a></p>
   <p style="margin:0;padding-top:16px;border-top:1px solid #d7d1c7;font-size:13px;line-height:1.5;color:#6f685c;">If you did not request this, ignore this message — nothing has changed.<br>KARTEL Core · kartel.org.uk</p>
 </div></body></html>`;
   const res = await fetch(BREVO_ENDPOINT, {
