@@ -14,8 +14,8 @@ const DEFAULT_LOCALE: Locale = "en";
 // P2 datastore exists; everyone else → pending. Mirrors app/lib/family-* contracts.
 async function familyEdgeGate(request: NextRequest, pathname: string) {
   const lang = pathname.startsWith("/ru") ? "ru" : "en";
-  // No/invalid session → a PUBLIC sign-in landing (no PII) with a "Sign in" button, rather than
-  // bouncing straight to Keycloak. The button on that page starts the OIDC flow.
+  // No/invalid session → a PUBLIC sign-in landing (no PII). The form there posts an address to
+  // /api/family-auth/request, which emails a short-lived link. No upstream IdP is involved.
   const signin = new URL(
     `/${lang}/family/signin?returnTo=${encodeURIComponent(pathname)}`,
     request.url,
@@ -61,8 +61,13 @@ export async function proxy(request: NextRequest) {
 
   // Ecosystem Operations Console — gated (Family-admin only), at /console and on the
   // console.kartel.org.uk subdomain. Contains internal infra/governance detail → never public.
-  // Login runs on the apex (OIDC state cookies stay same-host); the session cookie is domain-wide
-  // (FAMILY_COOKIE_DOMAIN=.kartel.org.uk) so the subdomain sees it after login.
+  // Sign-in runs on the apex (the link nonce cookie stays same-host); the session cookie is
+  // domain-wide (FAMILY_COOKIE_DOMAIN=.kartel.org.uk) so the subdomain sees it after sign-in.
+  //
+  // ADMIN KEY CHANGED: FAMILY_ADMIN_SUBS held Keycloak subjects. Standalone auth sets the session
+  // subject to the lowercased email, so production must carry FAMILY_ADMIN_EMAILS or /console
+  // closes to everyone. familyEnv.adminEmails() reads both during the transition — but this edge
+  // check reads the env directly, so BOTH variables are consulted here too.
   const host = request.headers.get("host") ?? "";
   const onConsoleHost = host === "console.kartel.org.uk";
   if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
@@ -72,8 +77,13 @@ export async function proxy(request: NextRequest) {
       try {
         const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? ""));
         const sub = typeof payload.sub === "string" ? payload.sub : "";
-        const admins = (process.env.FAMILY_ADMIN_SUBS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-        admin = !!sub && admins.includes(sub);
+        const admins = [
+          ...(process.env.FAMILY_ADMIN_EMAILS ?? "").split(","),
+          ...(process.env.FAMILY_ADMIN_SUBS ?? "").split(","), // legacy Keycloak subjects
+        ]
+          .map((s) => s.trim().toLowerCase())
+          .filter(Boolean);
+        admin = !!sub && admins.includes(sub.toLowerCase());
       } catch {
         admin = false;
       }
@@ -87,8 +97,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // /en/family and /ru/family — members-only Family Heritage (Option A, R0-signed 2026-07-16:
-  // gated access via CPIF / Keycloak, family_access approval; NOT bespoke auth).
+  // /en/family and /ru/family — members-only Family Heritage.
+  //
+  // Option A (R0-signed 2026-07-16) specified gated access via CPIF / Keycloak and explicitly
+  // "NOT bespoke auth". That is SUPERSEDED by the R0 decision of 2026-11-14 to retire Keycloak:
+  // kartel-site now has its own sign-in and its own user list. The approval model is unchanged —
+  // only who authenticates the address has changed. See docs/standalone-auth-design.md.
   // DORMANT by default: FAMILY_GATE ≠ "on" keeps the hard-redirect to home, so the public
   // no-PII authority surface is unchanged. When FAMILY_GATE = "on", the gate is enforced HERE at
   // the edge (session + approval) — fail-closed, before any render. /family/pending stays reachable

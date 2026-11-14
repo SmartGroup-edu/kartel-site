@@ -1,0 +1,18 @@
+# kartel-mail-relay on a Hetzner node. No port is published on the host:
+# cloudflared reaches the relay over the compose network, so the firewall stays default-deny.
+services:
+  relay:
+    build: .
+    env_file: relay.env          # lives on the server only — never commit it
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}   # from .env next to this file, server only
+    restart: unless-stopped
+    depends_on: [relay]

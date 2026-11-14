@@ -1,0 +1,45 @@
+import { NextResponse } from "next/server";
+import { verifySignInLink, clearSignInNonce, createSession } from "@/app/lib/family-auth";
+import { isViewerApproved } from "@/app/lib/family-access";
+import { familyEnv } from "@/app/lib/family-env";
+import { safeReturnTo } from "@/app/lib/family-safe-return";
+
+/**
+ * GET /api/family-auth/verify?token=… — consume a sign-in link and create the session.
+ * Inert (404) while FAMILY_GATE ≠ "on".
+ *
+ * Requires BOTH a valid token and the matching nonce cookie set in this browser when the link
+ * was requested, so an intercepted link is useless elsewhere. The allowlist is re-checked here:
+ * entitlement may have been revoked in the minutes since the link was issued.
+ *
+ * Every failure returns the same `family_auth=invalid` outcome — a caller must not be able to
+ * tell an expired link from a wrong browser from a revoked address.
+ */
+export async function GET(request: Request): Promise<Response> {
+  if (!familyEnv.gateOn()) return new NextResponse("Not found", { status: 404 });
+
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+
+  /** Keep the viewer in the language they started in; fall back to en. */
+  const fail = async (lang: "en" | "ru" = "en") => {
+    await clearSignInNonce();
+    return NextResponse.redirect(
+      new URL(`/${lang}/family/signin?family_auth=invalid`, url.origin),
+    );
+  };
+
+  if (!token) return fail();
+
+  const claims = await verifySignInLink(token);
+  if (!claims) return fail();
+  const lang = claims.returnTo.startsWith("/ru") ? "ru" : "en";
+
+  // Re-check at consumption time, not only at issue time.
+  if (!(await isViewerApproved(claims.email, claims.email))) return fail(lang);
+
+  await createSession({ email: claims.email, name: null });
+  await clearSignInNonce();
+
+  return NextResponse.redirect(new URL(safeReturnTo(claims.returnTo), url.origin));
+}

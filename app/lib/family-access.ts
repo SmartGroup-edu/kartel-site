@@ -1,16 +1,12 @@
 /**
  * Family access entitlement (kartel-site) — LOCAL authz, fail-closed.
  *
- * "Approved to view the Family Heritage area" is a LOCAL entitlement, NOT the federation
- * MembershipEdge and NOT a global role (Federation v2: authz local). P2 backs this with a
- * provisioned datastore (Vercel Postgres/KV) holding family_access {cpifSubjectId, status}.
- * Until that datastore exists, this is FAIL-CLOSED: no ordinary viewer is approved. Admins
- * (FAMILY_ADMIN_SUBS, e.g. R0) are allowed so approval tooling can be operated once wired.
+ * STANDALONE AUTH (R0 decision 2026-11-14): the email IS the identity, so `subject` and `email`
+ * are the same lowercased address. The allowlist is therefore the user list and no datastore is
+ * required — approval state lives in Edge Config, the founder seed lives in env.
  *
- * FEDERATION-V2 reference-implementation, ratification-pending
- * Pattern: local entitlement keyed by cpifSubjectId + env admin bootstrap; fail-closed stub
- *   pending the P2 datastore. Ratification gate: R0 act OR second-federated-client adoption.
- * Vault: KARTEL-Vault/40-Observations/2026-07-16-refimpl-kartel-site-family-gate.md
+ * Fail-closed: an address that is not an admin, not approved in Edge Config, and not in the
+ * founder seed is refused.
  */
 
 import { get } from "@vercel/edge-config";
@@ -21,28 +17,24 @@ export type FamilyAccessStatus = "pending" | "approved" | "revoked";
 /**
  * True iff this viewer may see the Family Heritage area. FAIL-CLOSED.
  *
- * Approval sources (any one grants; an explicit Edge Config "revoked" on the sub OR email overrides
+ * Approval sources (any one grants; an explicit Edge Config "revoked" on the email overrides
  * every allow except admin):
- *   1. Admin — `FAMILY_ADMIN_SUBS` (R0). Always allowed.
- *   2. By cpifSubjectId — Edge Config item `familyAccess` ({ "<sub>": "approved"|"revoked" }). P2.
- *   3. By email — Edge Config item `familyAccessEmails` ({ "<email>": "approved"|"revoked" })
- *      for runtime add/revoke, OR the static founder seed `FAMILY_APPROVED_EMAILS` (env). The email
- *      is the practical INVITE key (a sub only exists post-login); it is IdP-asserted, so trusted.
- * Both the edge gate (proxy.ts) and the page guard call this. Edge Config read error → the sub/email
- * Edge Config checks are skipped but the static env allowlist still applies (overall still fail-closed).
+ *   1. Admin — `FAMILY_ADMIN_EMAILS` (R0). Always allowed.
+ *   2. Edge Config item `familyAccessEmails` ({ "<email>": "approved"|"revoked" }) for runtime
+ *      add/revoke, OR the static founder seed `FAMILY_APPROVED_EMAILS` (env).
+ * The subject-keyed Edge Config item `familyAccess` is no longer read: it was never written to
+ * (key absent in production, verified 2026-11-14), so nothing is orphaned by dropping it.
+ * Both the edge gate (proxy.ts) and the page guard call this. Edge Config read error → the
+ * Edge Config check is skipped but the static env allowlist still applies (overall still fail-closed).
  */
-export async function isViewerApproved(cpifSubjectId: string, email?: string): Promise<boolean> {
-  if (familyEnv.adminSubs().includes(cpifSubjectId)) return true;
-  const em = (email ?? "").trim().toLowerCase();
+export async function isViewerApproved(subject: string, email?: string): Promise<boolean> {
+  const subj = subject.trim().toLowerCase();
+  if (familyEnv.adminEmails().includes(subj)) return true;
+  const em = (email ?? subj).trim().toLowerCase();
   try {
-    const [fa, fae] = await Promise.all([
-      get<Record<string, FamilyAccessStatus>>("familyAccess"),
-      get<Record<string, FamilyAccessStatus>>("familyAccessEmails"),
-    ]);
-    // Explicit revoke (by sub or email) beats any allow below.
-    if (fa?.[cpifSubjectId] === "revoked") return false;
+    const fae = await get<Record<string, FamilyAccessStatus>>("familyAccessEmails");
+    // Explicit revoke beats any allow below.
     if (em && fae?.[em] === "revoked") return false;
-    if (fa?.[cpifSubjectId] === "approved") return true;
     if (em && fae?.[em] === "approved") return true;
   } catch {
     // Edge Config unreachable → fall through to the static env allowlist.
