@@ -78,6 +78,22 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /href="\/en\/registry"/);
   });
 
+  test("design pass 2026-11-15: sentence-case H1, no drop cap, hero actions", () => {
+    assert.match(html, /<h1[^>]*>Kartel Coat of Arms<\/h1>/);
+    assert.doesNotMatch(html, /drop-cap/);
+    assert.match(html, /href="#explorer"[^>]*>Explore the coat of arms</);
+    assert.match(html, /href="#story"[^>]*>Read the story</);
+    assert.match(html, /id="explorer"/);
+    assert.match(html, /id="story"/);
+  });
+
+  test("design pass type scale: 17/19px reading text, 15px UI, 36/54px H1, 24px lede", () => {
+    assert.match(html, /text-\[17px\] leading-\[1\.65\][^"]*lg:text-\[19px\] lg:leading-\[1\.7\]/);
+    assert.match(html, /<h1 class="[^"]*text-\[36px\][^"]*lg:text-\[54px\]/);
+    assert.match(html, /font-serif text-\[20px\][^"]*text-\[var\(--text-body\)\] lg:text-\[24px\]/);
+    assert.match(html, /role="tab"[^>]*class="[^"]*text-\[15px\]|class="[^"]*text-\[15px\][^"]*"[^>]*role="tab"/);
+  });
+
   test("UI/UX audit 2026-11-14: no section dots, no justified text, lede present", () => {
     assert.doesNotMatch(html, /aria-label="Section navigation"/);
     assert.doesNotMatch(html, /text-justify/);
@@ -127,6 +143,10 @@ describe("/ru — Coat of Arms home", () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/ru"\/>/);
   });
 
+  test("Russian H1 in sentence case", () => {
+    assert.match(unescape(html), /<h1[^>]*>Фамильный герб Картель<\/h1>/);
+  });
+
   test("Russian coat-of-arms body rendered (Cyrillic)", () => {
     assert.match(unescape(html), /грифон/i);
   });
@@ -146,6 +166,17 @@ describe("/ru — Coat of Arms home", () => {
     assert.match(u, /"caption":"Фамильный герб Картель"/);
     assert.doesNotMatch(u, /"Герб семьи Картель"/);
     assert.match(u, /"dateModified":"2026-11-14"/);
+  });
+});
+
+describe("crest explorer hotspots (design pass 2026-11-15)", () => {
+  test("coordinates match the grid-verified table (% of the 900×1000 crest)", () => {
+    const src = readFileSync("app/components/CrestExplorer.tsx", "utf8");
+    const want = { coronet: [50, 29], fleurdelis: [50, 19], swords: [22, 57], griffin: [47, 55], staff: [35, 42], wings: [20, 22], keys: [50, 73], motto: [50, 81] };
+    for (const [id, [x, y]] of Object.entries(want)) {
+      assert.match(src, new RegExp(`id: "${id}",[\\s\\S]*?\\n    x: ${x},\\n    y: ${y},`), id);
+    }
+    assert.match(src, /width=\{900\}\s*height=\{1000\}/);
   });
 });
 
