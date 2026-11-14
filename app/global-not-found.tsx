@@ -39,6 +39,9 @@ export default function GlobalNotFound() {
             <Link href="/en" className="rounded-sm font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px] lg:text-[30px]">
               KARTEL
             </Link>
+            <Link href="/ru" lang="ru" hrefLang="ru" className="ml-auto inline-flex min-h-6 min-w-6 items-center justify-center rounded-sm px-2 py-1 text-sm font-medium text-[var(--text-nav)] hover:text-[var(--accent)]">
+              RU
+            </Link>
           </div>
         </header>
         <main id="main" className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center">

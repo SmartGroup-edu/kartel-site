@@ -103,13 +103,13 @@ function buildStructuredData(lang: Locale) {
           "url": "https://kartel.org.uk/crest.jpeg",
           "width": 800,
           "height": 800,
-          "caption": lang === "en" ? "Coat of Arms of the Kartel Family" : "Герб семьи Картель",
+          "caption": lang === "en" ? "Coat of Arms of the Kartel Family" : "Фамильный герб Картель",
         },
         "speakable": { "@type": "SpeakableSpecification", "cssSelector": ["h1", "h2", ".motto"] },
       },
       {
         "@type": "Article",
-        "headline": lang === "en" ? "The Coat of Arms of the Kartel Family" : "Фамильный герб семьи Картель",
+        "headline": lang === "en" ? "The Coat of Arms of the Kartel Family" : "Фамильный герб Картель",
         "description":
           lang === "en"
             ? "A detailed description of the Kartel family heraldic coat of arms: griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the Latin motto Virtus et Potestas (Strength and Power)."
@@ -125,7 +125,7 @@ function buildStructuredData(lang: Locale) {
           "logo": { "@type": "ImageObject", "url": "https://kartel.org.uk/crest.jpeg" },
         },
         "datePublished": "2025-01-01",
-        "dateModified": "2026-04-20",
+        "dateModified": "2026-11-14",
         "mainEntityOfPage": { "@id": `${url}#webpage` },
         "about": [
           { "@type": "Thing", "name": "Heraldry" },
@@ -136,7 +136,7 @@ function buildStructuredData(lang: Locale) {
       },
       {
         "@type": "VisualArtwork",
-        "name": lang === "en" ? "Coat of Arms of the Kartel Family" : "Герб семьи Картель",
+        "name": lang === "en" ? "Coat of Arms of the Kartel Family" : "Фамильный герб Картель",
         "description":
           lang === "en"
             ? "A heraldic coat of arms featuring a griffin, crossed keys, coronet, swords, and the motto Virtus et Potestas (Strength and Power)."

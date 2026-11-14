@@ -35,6 +35,24 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
   const isActive = (i: NavItem) => i.active ?? i.href === urlActive;
   const subActive = subNav ? activeHref(subNav, pathname) : null;
 
+  // Mobile (<768px): the section row hides while scrolling down and returns on scroll up, so the
+  // sticky chrome stays small (UI/UX audit 2026-11-14 #3). The row is absolutely positioned under
+  // the header on mobile and a spacer keeps its height in the flow, so hiding never shifts content.
+  const [subHidden, setSubHidden] = useState(false);
+  useEffect(() => {
+    if (!subNav) return;
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > last + 6 && y > 120) setSubHidden(true);
+      else if (y < last - 6 || y <= 120) setSubHidden(false);
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [subNav]);
+  const hideSub = subHidden || menuOpen;
+
   // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -127,9 +145,11 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
         {subNav && (
           <nav
             aria-label={subNavLabel ?? (lang === "RU" ? "Разделы реестра" : "Registry sections")}
-            className="border-t border-[var(--border)]"
+            className={`border-t border-[var(--border)] max-md:absolute max-md:inset-x-0 max-md:top-full max-md:h-11 max-md:border-b max-md:bg-[var(--header-bg)] max-md:backdrop-blur max-md:transition-[opacity,visibility] max-md:duration-200 motion-reduce:transition-none ${
+              hideSub ? "max-md:invisible max-md:opacity-0" : ""
+            }`}
           >
-            <div className={`mx-auto flex ${maxWidth} gap-5 overflow-x-auto px-4 text-sm text-[var(--text-nav)] sm:px-6 lg:px-10`}>
+            <div className={`mx-auto flex ${maxWidth} gap-5 overflow-x-auto px-4 text-sm text-[var(--text-nav)] max-md:h-full max-md:items-center sm:px-6 lg:px-10`}>
               {subNav.map((s) => (
                 <a
                   key={s.href}
@@ -153,6 +173,8 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
           {lang === "EN" ? "Language set to English" : "Язык переключён на русский"}
         </div>
       </header>
+      {/* Mobile spacer for the absolutely positioned section row (same 44px height). */}
+      {subNav && <div aria-hidden="true" className="h-11 md:hidden" />}
     </>
   );
 }

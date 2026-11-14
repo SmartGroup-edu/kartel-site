@@ -78,6 +78,26 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /href="\/en\/registry"/);
   });
 
+  test("UI/UX audit 2026-11-14: no section dots, no justified text, lede present", () => {
+    assert.doesNotMatch(html, /aria-label="Section navigation"/);
+    assert.doesNotMatch(html, /text-justify/);
+    assert.match(html, /Below: what each element means and the legacy it carries\./);
+  });
+
+  test("crest explorer is a WAI-ARIA tablist: exactly one selected tab, roving tabindex", () => {
+    assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
+    assert.equal((html.match(/role="tab"/g) ?? []).length, 8);
+    assert.match(html, /role="tabpanel"[^>]*aria-labelledby="crest-tab-/);
+  });
+
+  test("primary nav has no Projects item (it lives in the registry subnav)", () => {
+    assert.doesNotMatch(html, />Projects</);
+  });
+
+  test("light theme-color is white", () => {
+    assert.match(html, /<meta name="theme-color" content="#ffffff" media="\(prefers-color-scheme: light\)"\/>/);
+  });
+
   test("no family names in the public home HTML", () => {
     assert.doesNotMatch(unescape(html), FAMILY_NAMES);
   });
@@ -113,6 +133,13 @@ describe("/ru — Coat of Arms home", () => {
 
   test("no family names in the public home HTML", () => {
     assert.doesNotMatch(unescape(html), FAMILY_NAMES);
+  });
+
+  test("RU JSON-LD uses «Фамильный герб Картель», dateModified 2026-11-14", () => {
+    const u = unescape(html);
+    assert.match(u, /"caption":"Фамильный герб Картель"/);
+    assert.doesNotMatch(u, /"Герб семьи Картель"/);
+    assert.match(u, /"dateModified":"2026-11-14"/);
   });
 });
 

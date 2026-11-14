@@ -120,11 +120,14 @@ interface CrestExplorerProps {
 }
 
 export default function CrestExplorer({ lang }: CrestExplorerProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  // WAI-ARIA tabs (UI/UX audit 2026-11-14 #6): one tab is always selected (first by default),
+  // roving tabindex, ←/→/Home/End move the selection, the panel is labelled by its tab.
+  const [activeId, setActiveId] = useState<string>(ELEMENTS[0].id);
   const [revealedCount, setRevealedCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const descRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const userChose = useRef(false);
 
   // Staggered hotspot reveal
   useEffect(() => {
@@ -133,44 +136,32 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
     return () => clearTimeout(timer);
   }, [revealedCount]);
 
-  const activeElement = ELEMENTS.find((el) => el.id === activeId) ?? null;
+  const activeElement = ELEMENTS.find((el) => el.id === activeId) ?? ELEMENTS[0];
 
-  const handleSelect = useCallback(
-    (id: string) => {
-      if (activeId === id) {
-        setIsClosing(true);
-        setTimeout(() => {
-          setActiveId(null);
-          setIsClosing(false);
-        }, 200);
-      } else {
-        setIsClosing(false);
-        setActiveId(id);
-      }
-    },
-    [activeId]
-  );
-
-  const handleClose = useCallback(() => {
-    setIsClosing(true);
-    setTimeout(() => {
-      setActiveId(null);
-      setIsClosing(false);
-    }, 200);
+  const handleSelect = useCallback((id: string) => {
+    userChose.current = true;
+    setActiveId(id);
   }, []);
 
-  // Close on Escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && activeId) handleClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [activeId, handleClose]);
+  const onTabKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const last = ELEMENTS.length - 1;
+    const next =
+      e.key === "ArrowRight" ? (i === last ? 0 : i + 1)
+      : e.key === "ArrowLeft" ? (i === 0 ? last : i - 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? last
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    e.stopPropagation(); // keep the page-level section keys (useSectionKeyboard) out of the tablist
+    userChose.current = true;
+    setActiveId(ELEMENTS[next].id);
+    tabRefs.current[next]?.focus();
+  }, []);
 
   // Scroll description into view on mobile
   useEffect(() => {
-    if (activeId && descRef.current) {
+    if (userChose.current && descRef.current) {
       const rect = descRef.current.getBoundingClientRect();
       if (rect.top > window.innerHeight * 0.7) {
         descRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -206,7 +197,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
             width={540}
             height={540}
             className="w-full rounded object-contain"
-            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 50vw, 400px"
+            sizes="(max-width: 640px) 85vw, (max-width: 1024px) 50vw, 520px"
           />
 
           {/* Hotspot dots overlay */}
@@ -219,8 +210,8 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                   i < revealedCount ? "scale-100 opacity-100" : "scale-0 opacity-0"
                 } ${
                   activeId === el.id
-                    ? "scale-125 border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg"
-                    : "border-[var(--accent)]/60 bg-[var(--background)]/80 text-[var(--accent)] shadow-md backdrop-blur-sm hover:scale-110 hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-white"
+                    ? "scale-125 border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)] shadow-lg"
+                    : "border-[var(--accent)]/60 bg-[var(--background)]/80 text-[var(--accent)] shadow-md backdrop-blur-sm hover:scale-110 hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--on-accent)]"
                 }`}
                 style={{ left: `${el.x}%`, top: `${el.y}%` }}
                 aria-label={lang === "EN" ? el.labelEN : el.labelRU}
@@ -244,10 +235,14 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
               return (
                 <button
                   key={el.id}
+                  ref={(node) => { tabRefs.current[i] = node; }}
+                  id={`crest-tab-${el.id}`}
                   role="tab"
                   aria-selected={isActive}
                   aria-controls="crest-desc-panel"
+                  tabIndex={isActive ? 0 : -1}
                   onClick={() => handleSelect(el.id)}
+                  onKeyDown={(e) => onTabKeyDown(e, i)}
                   className={`flex items-center gap-2 rounded border px-3 py-2.5 text-left text-[13px] transition-all duration-200 sm:px-4 sm:py-3 sm:text-[14px] ${
                     isActive
                       ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm"
@@ -257,7 +252,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                   <span
                     className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                       isActive
-                        ? "bg-[var(--accent)] text-white"
+                        ? "bg-[var(--accent)] text-[var(--on-accent)]"
                         : "bg-[var(--muted-light)]/30 text-[var(--muted)]"
                     }`}
                   >
@@ -274,41 +269,18 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
             id="crest-desc-panel"
             ref={descRef}
             role="tabpanel"
-            aria-live="polite"
-            className={`relative min-h-[120px] overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] transition-all duration-300 ${
-              activeElement && !isClosing
-                ? "opacity-100"
-                : "opacity-0"
-            }`}
+            aria-labelledby={`crest-tab-${activeElement.id}`}
+            tabIndex={0}
+            className="relative min-h-[120px] overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
-            {activeElement ? (
-              <div className="p-5 sm:p-6">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="font-serif text-[18px] text-[var(--accent)] sm:text-[20px]">
-                    {lang === "EN" ? activeElement.labelEN : activeElement.labelRU}
-                  </h4>
-                  <button
-                    onClick={handleClose}
-                    className="flex h-6 w-6 items-center justify-center rounded text-[var(--muted)] transition-colors hover:text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-                    aria-label={lang === "EN" ? "Close" : "Закрыть"}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-                <p className="text-[14px] leading-[1.75] text-[var(--text-secondary)] sm:text-[15px]">
-                  {lang === "EN" ? activeElement.descEN : activeElement.descRU}
-                </p>
-              </div>
-            ) : (
-              <div className="flex h-full min-h-[120px] items-center justify-center p-5">
-                <p className="text-center text-[13px] italic text-[var(--muted-light)] sm:text-[14px]">
-                  {hint}
-                </p>
-              </div>
-            )}
+            <div className="p-5 sm:p-6">
+              <h4 className="mb-3 font-serif text-[18px] text-[var(--accent)] sm:text-[20px]">
+                {lang === "EN" ? activeElement.labelEN : activeElement.labelRU}
+              </h4>
+              <p className="text-[14px] leading-[1.75] text-[var(--text-secondary)] sm:text-[15px]">
+                {lang === "EN" ? activeElement.descEN : activeElement.descRU}
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -54,18 +54,19 @@ const meta: Record<Locale, {
 
 const noscriptContent: Record<Locale, { intro: string; membersHeading: string; members: string }> = {
   en: {
+    // The home is the coat of arms (R0 2026-11-14). No family names here.
     intro:
-      "KARTEL Core is the public registry of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume. Motto: Virtus et Potestas.",
-    membersHeading: "Ecosystem",
+      "The coat of arms of the Kartel family: a griffin, crossed keys, a coronet, swords, fleur-de-lis and wings beneath the Latin motto Virtus et Potestas — Strength and Power.",
+    membersHeading: "KARTEL Core",
     members:
-      "MoyPolk · RusJAz · Community Group · RusJAzz (planned).",
+      "The public registry of the KARTEL federation lives at kartel.org.uk/en/core and kartel.org.uk/en/registry.",
   },
   ru: {
     intro:
-      "Ядро KARTEL — публичный реестр федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
-    membersHeading: "Экосистема",
+      "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья под латинским девизом Virtus et Potestas — «Сила и Власть».",
+    membersHeading: "Ядро KARTEL",
     members:
-      "MoyPolk · RusJAz · Community Group · RusJAzz (план).",
+      "Публичный реестр федерации KARTEL — на kartel.org.uk/ru/core и kartel.org.uk/ru/registry.",
   },
 };
 
@@ -78,7 +79,7 @@ export async function generateStaticParams() {
 // (the inline head script additionally honours the manual localStorage toggle).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#7b1e2d" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#1a1816" },
   ],
   width: "device-width",
@@ -188,7 +189,7 @@ export default async function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#7b1e2d')}catch(e){}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#ffffff')}catch(e){}})()`,
           }}
         />
         <link rel="author" href="/humans.txt" />

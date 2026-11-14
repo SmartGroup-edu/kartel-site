@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
 import { useLangToggle, type Lang } from "./useLang";
-import { useActiveSection } from "./useActiveSection";
 import { useSectionKeyboard } from "./useSectionKeyboard";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
@@ -13,10 +12,9 @@ import FadeInSection from "./FadeInSection";
 import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import ReadingProgress from "./ReadingProgress";
-import ShareButtons from "./ShareButtons";
+import CopyLinkButton from "./CopyLinkButton";
 import HeraldicPalette from "./HeraldicPalette";
 import MottoBanner from "./MottoBanner";
-import SectionDots from "./SectionDots";
 import { homeContent } from "../content/home";
 
 // Below-the-fold interactive widget — split into its own chunk so the
@@ -35,7 +33,6 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const t = homeContent[lang];
-  const activeSection = useActiveSection(SECTION_IDS);
   useSectionKeyboard(SECTION_IDS);
 
   // The one site menu (SiteHeader default); the page's own sections sit in the second row.
@@ -56,14 +53,6 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         subNav={sectionNav}
         subNavLabel={lang === "RU" ? "Разделы страницы герба" : "Coat of arms sections"}
       />
-      <SectionDots
-        sections={[
-          { id: "home", label: overviewLabel },
-          { id: "meaning", label: t.navMeaning },
-          { id: "legacy", label: t.navLegacy },
-        ]}
-        activeSection={activeSection}
-      />
 
       <main id="main">
         {/* Hero — the crest is in the first screen at every width (prod QA 2026-11-14: it sat
@@ -75,6 +64,9 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <h1 className="whitespace-pre-line text-center font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[38px] lg:text-left lg:text-[40px] xl:text-[46px]">
                 {t.title}
               </h1>
+              <p className="mx-auto mt-4 max-w-[60ch] text-center font-serif text-[18px] leading-[1.5] text-[var(--muted)] sm:text-[20px] lg:mx-0 lg:text-left">
+                {t.lede}
+              </p>
             </FadeInSection>
 
             <FadeInSection className="[grid-area:crest] lg:self-start">
@@ -105,7 +97,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
             </FadeInSection>
 
             <FadeInSection className="[grid-area:intro]">
-              <div className="drop-cap max-w-[700px] text-[16px] leading-[1.75] text-[var(--text-body)] sm:text-[18px] lg:text-[19px] lg:leading-[1.65] xl:text-[20px]">
+              <div className="drop-cap max-w-[68ch] text-[16px] leading-[1.75] text-[var(--text-body)] sm:text-[18px] lg:text-[19px] lg:leading-[1.65] xl:text-[20px]">
                 {t.intro.split("\n\n").map((p, idx) => (
                   <p key={idx} className="mb-5 text-left">{p}</p>
                 ))}
@@ -126,22 +118,14 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 {t.meaningTitle}
               </h2>
             </FadeInSection>
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
-              <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
-                  {t.leftCol.split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
-                  ))}
-                </div>
-              </FadeInSection>
-              <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
-                  {t.rightCol.split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
-                  ))}
-                </div>
-              </FadeInSection>
-            </div>
+            {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
+            <FadeInSection>
+              <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
+                {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
+                  <p key={idx} className="mb-5 text-left">{p}</p>
+                ))}
+              </div>
+            </FadeInSection>
           </div>
         </section>
 
@@ -164,22 +148,14 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 {t.legacyTitle}
               </h2>
             </FadeInSection>
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-16">
-              <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
-                  {t.finalLeft.split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
-                  ))}
-                </div>
-              </FadeInSection>
-              <FadeInSection>
-                <div className="text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[21px] lg:leading-[1.7]">
-                  {t.finalRight.split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left lg:text-justify">{p}</p>
-                  ))}
-                </div>
-              </FadeInSection>
-            </div>
+            {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
+            <FadeInSection>
+              <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
+                {[t.finalLeft, t.finalRight].join("\n\n").split("\n\n").map((p, idx) => (
+                  <p key={idx} className="mb-5 text-left">{p}</p>
+                ))}
+              </div>
+            </FadeInSection>
 
             {/* Colour Palette */}
             <FadeInSection>
@@ -196,11 +172,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         {/* Share */}
         <FadeInSection>
           <div className="border-t border-[var(--border)] py-8 lg:py-10">
-            <ShareButtons
-              url={`https://kartel.org.uk/${langPath}`}
-              title={lang === "EN" ? "KARTEL — Family Coat of Arms & Legacy" : "КАРТЕЛЬ — Фамильный герб и наследие"}
-              lang={lang}
-            />
+            <CopyLinkButton url={`https://kartel.org.uk/${langPath}`} lang={lang} />
           </div>
         </FadeInSection>
       </main>

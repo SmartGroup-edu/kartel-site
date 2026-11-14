@@ -48,8 +48,11 @@ export function useSectionKeyboard(sectionIds: string[]) {
 
     const onKeyDown = (e: KeyboardEvent) => {
       // Don't intercept when user is typing in an input
-      const tag = (e.target as HTMLElement).tagName;
+      const target = e.target as HTMLElement;
+      const tag = target.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      // Never steal keys from a widget that owns them (tabs, buttons, links, editable content).
+      if (target.closest?.('[role="tablist"],[role="tab"],button,a,[contenteditable="true"]')) return;
 
       // Don't intercept if modifier keys are held (browser shortcuts)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
