@@ -28,7 +28,8 @@ const CrestExplorer = dynamic(() => import("./CrestExplorer"));
 
 const SECTION_IDS = ["home", "meaning", "legacy"];
 
-export default function HomeClient({ lang }: { lang: Lang }) {
+/** `names` arrives from the gated crest page (server-only data) — never bundled into client JS. */
+export default function HomeClient({ lang, names }: { lang: Lang; names: { ru: string[]; en: string[] } }) {
   const toggleLang = useLangToggle(lang);
   const langPath = lang.toLowerCase();
 
@@ -196,8 +197,8 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 {t.namesTitle}
               </h3>
               <div className="grid gap-6 text-center text-[14px] leading-[1.9] text-[var(--text-secondary)] sm:text-[15px] md:grid-cols-2 lg:text-[16px]">
-                <div>{t.namesRu.map((name) => (<p key={name}>{name}</p>))}</div>
-                <div>{t.namesEn.map((name) => (<p key={name}>{name}</p>))}</div>
+                <div>{names.ru.map((name) => (<p key={name}>{name}</p>))}</div>
+                <div>{names.en.map((name) => (<p key={name}>{name}</p>))}</div>
               </div>
               <p className="mt-8 text-center text-[12px] tracking-[0.08em] text-[var(--muted)] sm:text-[13px] lg:text-[14px]">
                 {t.namesFooter}

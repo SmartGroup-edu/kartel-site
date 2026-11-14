@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import HomeClient from "../../../components/HomeClient";
+import { CREST_NAMES } from "@/app/content/family-private";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { FamilyGateNotice } from "../../../components/FamilyGateNotice";
@@ -160,7 +161,7 @@ export default async function CrestPage({
       <link rel="preload" as="image" href="/crest.webp" type="image/webp" />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildStructuredData(locale)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaq(locale)) }} />
-      <HomeClient lang={upperLang} />
+      <HomeClient lang={upperLang} names={CREST_NAMES} />
     </>
   );
 }

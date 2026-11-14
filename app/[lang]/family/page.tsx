@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import FamilyClient from "../../components/FamilyClient";
+import { familyContent, FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { FamilyGateNotice } from "../../components/FamilyGateNotice";
@@ -12,43 +13,18 @@ const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
 
 const pageMeta: Record<Locale, { title: string; description: string; ogDescription: string; keywords: string[] }> = {
+  // No personal names here (R0 2026-11-14): metadata is emitted before the page guard runs.
   en: {
     title: "Kartel Family Members — London",
-    description:
-      "Members of the Kartel family including Igor Gor Kartel, Diana Kartel, Dominika Kartel, Arina Kartel, Igor Kaid Kartel, Feliks Kartel, Piotr Kartel, Valentina Kartel.",
-    ogDescription:
-      "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
-    keywords: [
-      "Kartel family",
-      "Kartel family London",
-      "Igor Gor Kartel",
-      "Diana Kartel",
-      "Dominika Kartel",
-      "Arina Kartel",
-      "Igor Kaid Kartel",
-      "Feliks Kartel",
-      "Piotr Kartel",
-      "Valentina Kartel",
-    ],
+    description: "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
+    ogDescription: "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
+    keywords: ["Kartel family", "Kartel family London"],
   },
   ru: {
     title: "Члены семьи Картель — Лондон",
-    description:
-      "Члены семьи Картель: Игорь Гор Картель, Диана Картель, Доминика Картель, Арина Картель, Игорь Каид Картель, Феликс Картель, Пётр Картель, Валентина Картель.",
-    ogDescription:
-      "Члены семьи Картель. Живая нить преемственности, связанная именем, памятью и наследием.",
-    keywords: [
-      "семья Картель",
-      "семья Картель Лондон",
-      "Игорь Гор Картель",
-      "Диана Картель",
-      "Доминика Картель",
-      "Арина Картель",
-      "Игорь Каид Картель",
-      "Феликс Картель",
-      "Петр Картель",
-      "Валентина Картель",
-    ],
+    description: "Члены семьи Картель. Живая нить преемственности, связанная именем, памятью и наследием.",
+    ogDescription: "Члены семьи Картель. Живая нить преемственности, связанная именем, памятью и наследием.",
+    keywords: ["семья Картель", "семья Картель Лондон"],
   },
 };
 
@@ -275,7 +251,10 @@ export default async function FamilyPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(buildStructuredData(locale)) }}
       />
-      <FamilyClient lang={upperLang} />
+      <FamilyClient
+        lang={upperLang}
+        data={{ content: familyContent[upperLang], nodes: FAMILY_TREE_NODES, events: FAMILY_TIMELINE_EVENTS }}
+      />
     </>
   );
 }

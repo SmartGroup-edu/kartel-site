@@ -8,13 +8,22 @@ import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
 import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
-import { familyContent, groupByGeneration } from "../content/family";
+import { groupByGeneration, type TreeNode, type TimelineEvent } from "../content/family";
+import type { familyContent } from "../content/family-private";
 import { familyNav } from "../content/siteNav";
 
-export default function FamilyClient({ lang }: { lang: Lang }) {
+/** Everything personal arrives as props from the gated server page (app/[lang]/family/page.tsx),
+ *  never from a client-side import — so no name is ever in the public JS bundle. */
+export interface FamilyData {
+  content: (typeof familyContent)[Lang];
+  nodes: TreeNode[];
+  events: TimelineEvent[];
+}
+
+export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyData }) {
   const toggleLang = useLangToggle(lang);
 
-  const t = familyContent[lang];
+  const t = data.content;
 
   const navItems = familyNav(lang);
 
@@ -38,14 +47,14 @@ export default function FamilyClient({ lang }: { lang: Lang }) {
         {/* Family Tree Visualization */}
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family tree" : "Родословное древо"}>
-            <FamilyTree lang={lang} />
+            <FamilyTree lang={lang} nodes={data.nodes} />
           </section>
         </FadeInSection>
 
         {/* Family Chronicle Timeline */}
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family chronicle" : "Семейная хроника"}>
-            <FamilyTimeline lang={lang} />
+            <FamilyTimeline lang={lang} events={data.events} />
           </section>
         </FadeInSection>
 
