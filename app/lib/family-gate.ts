@@ -22,7 +22,7 @@ export async function familyGateDecision(): Promise<{
   return { decision: approved ? "allow" : "pending", session };
 }
 
-/** True iff this subject is a Family admin (local bootstrap allowlist, not a federation role). */
-export function isFamilyAdmin(cpifSubjectId: string): boolean {
-  return familyEnv.adminSubs().includes(cpifSubjectId);
+/** True iff this viewer is a Family admin (local allowlist — never a federation role). */
+export function isFamilyAdmin(subject: string): boolean {
+  return familyEnv.adminEmails().includes(subject.trim().toLowerCase());
 }

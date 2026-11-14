@@ -24,11 +24,14 @@ export default async function FamilySignInPage({
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ returnTo?: string }>;
+  searchParams: Promise<{ returnTo?: string; family_auth?: string; sent?: string }>;
 }) {
   const { lang } = await params;
   if (!LOCALES.includes(lang as Locale)) notFound();
-  const { returnTo } = await searchParams;
+  const { returnTo, family_auth, sent } = await searchParams;
   const dest = safeReturnTo(returnTo, `/${lang}/family`);
-  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} />;
+  // `invalid` comes from /api/family-auth/verify on any failure — expired, wrong browser, or
+  // revoked. It is deliberately one undifferentiated outcome.
+  const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : undefined;
+  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} />;
 }

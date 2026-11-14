@@ -1,6 +1,7 @@
 /**
- * safeReturnTo — open-redirect guard for the Family OIDC flow (kartel-site).
- * Mirrors RusJAz src/lib/safeReturnTo. Accepts ONLY same-origin absolute paths
+ * safeReturnTo — open-redirect guard for the Family sign-in flow (kartel-site).
+ * Guards the `returnTo` carried through the sign-in link, so a crafted link cannot bounce a
+ * signed-in viewer off-site. Accepts ONLY same-origin absolute paths
  * (start with a single "/", not "//" and not a scheme); everything else → fallback.
  */
 export function safeReturnTo(raw: string | null | undefined, fallback = "/en/family"): string {
