@@ -9,7 +9,8 @@ interface HeraldicElement {
   labelRU: string;
   descEN: string;
   descRU: string;
-  // Position as percentage of image dimensions
+  // Position as % of crest.jpeg (900×1000), verified on a 10% grid 2026-11-15. The image renders
+  // at its natural aspect (no crop), so the percentages map 1:1.
   x: number;
   y: number;
   // Icon SVG path
@@ -26,7 +27,7 @@ const ELEMENTS: HeraldicElement[] = [
     descRU:
       "Корона венчает композицию, задавая направление — к вершинам, которых человек способен достичь своими поступками и верой. Это не признак происхождения, а знак качеств истинного правителя: мудрости, справедливости, силы воли и веры в предназначение. Власть, даруемая не по крови, а по достоинству.",
     x: 50,
-    y: 5,
+    y: 29,
     icon: "M12 2l3 7h-6l3-7zm-8 7l2-4 2 4H4zm12 0l2-4 2 4h-4z",
   },
   {
@@ -38,7 +39,7 @@ const ELEMENTS: HeraldicElement[] = [
     descRU:
       "Три геральдические лилии воплощают чистоту помыслов и возвышенность духа. Изящные и строгие по форме, они продолжают образ короны со стороны нравственных добродетелей — напоминание о том, что вершина принадлежит тем, кто предъявляет самые высокие требования прежде всего к себе.",
     x: 50,
-    y: 18,
+    y: 19,
     icon: "M12 2C12 2 8 8 8 12c0 2.2 1.8 4 4 4s4-1.8 4-4c0-4-4-10-4-10z",
   },
   {
@@ -49,8 +50,8 @@ const ELEMENTS: HeraldicElement[] = [
       "Two symmetrical swords rise behind the shield with blades pointing upward, symbolising readiness to stand between danger and what is dear. They express the right to act — when action becomes the only possible answer. This right is passed down as part of the family heritage.",
     descRU:
       "Два симметричных меча за щитом, клинки направлены вверх — готовность встать между опасностью и тем, что дорого. Мечи выражают право на действие, когда поступок становится единственным возможным ответом. Это право передается дальше как часть семейного наследия.",
-    x: 50,
-    y: 32,
+    x: 22,
+    y: 57,
     icon: "M12 2v16m-3-13l3-3 3 3m-6 10l3 3 3-3",
   },
   {
@@ -61,8 +62,8 @@ const ELEMENTS: HeraldicElement[] = [
       "At the heart of the shield walks a griffin — embodying strength, protection, and foresight. Combining the lion and the eagle into one form, it unites earthly and celestial, tangible and intangible. Depicted in motion with head held high, the griffin never sleeps and is always ready to act, led by its heart and unwavering sense of duty.",
     descRU:
       "Сердце щита занимает шествующий грифон — олицетворение силы, защиты и дальновидности. Объединяя льва и орла, он сливает земное и небесное, осязаемое и бестелесное. Изображён в движении, с поднятой головой — тот, кто никогда не спит и готов действовать, ведомый сердцем и чувством долга.",
-    x: 50,
-    y: 50,
+    x: 47,
+    y: 55,
     icon: "M12 4a4 4 0 014 4v2a2 2 0 01-2 2h-4a2 2 0 01-2-2V8a4 4 0 014-4zm-3 14l3-2 3 2v2H9v-2z",
   },
   {
@@ -74,7 +75,7 @@ const ELEMENTS: HeraldicElement[] = [
     descRU:
       "В поднятой лапе грифона — жезл, близкий по форме к посоху пастыря. Он отсылает к христианской вере и духовной власти, указывающей не на господство, а на служение — принципам, убеждениям, ценностям, Богу и своему предназначению. Атрибут тех, кто привык брать на себя ответственность.",
     x: 35,
-    y: 46,
+    y: 42,
     icon: "M7 2v20M5 4h4M5 8h4",
   },
   {
@@ -85,8 +86,8 @@ const ELEMENTS: HeraldicElement[] = [
       "Wings extend on either side of the shield, embodying silent and invisible divine protection. They echo the heraldic tradition of the Eastern European lands of the family's ancestors — present-day Belarus, Ukraine and western Russia — and stand for freedom of spirit, courage and readiness to defend family, honour and heritage.",
     descRU:
       "Крылья по обеим сторонам щита воплощают безмолвное и незримое Божественное покровительство. Они перекликаются с геральдической традицией восточноевропейских земель, где жили предки семьи, — современной Беларуси, Украины и западных областей России — и олицетворяют свободу духа, мужество и готовность защитить семью, честь и наследие.",
-    x: 18,
-    y: 42,
+    x: 20,
+    y: 22,
     icon: "M2 12c3-6 8-8 10-8M22 12c-3-6-8-8-10-8",
   },
   {
@@ -98,7 +99,7 @@ const ELEMENTS: HeraldicElement[] = [
     descRU:
       "Два скрещённых ключа у основания щита — символ церковной власти, восходящий к апостолу Петру, и знак глубоких знаний. Их пересечение образует крест, утверждая веру в собственные силы. Напоминание о том, что каждый человек владеет ключами от собственной судьбы.",
     x: 50,
-    y: 68,
+    y: 73,
     icon: "M8 11l-5 5m0 0l2 2m-2-2l-2 2m7-7l5-5m0 0l-2-2m2 2l2-2",
   },
   {
@@ -110,7 +111,7 @@ const ELEMENTS: HeraldicElement[] = [
     descRU:
       "«Virtus et Potestas» — Сила и Власть. Стержень, вокруг которого выстраивается весь образ семьи Картель. Сила — это способность идти до конца, следуя зову сердца. Власть — мерило зрелости и признания достигнутых высот. Девиз призван пробуждать внутреннюю волю — действовать решительно и жить в соответствии с тем, что считаешь правильным.",
     x: 50,
-    y: 85,
+    y: 81,
     icon: "M4 19h16M6 15h12M8 11h8",
   },
 ];
@@ -184,9 +185,11 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
         {hint}
       </p>
 
-      <div className="grid items-start gap-8 lg:grid-cols-[1fr_1fr]">
+      <div className="grid items-start gap-8 lg:grid-cols-[1fr_1fr] lg:items-stretch">
         {/* Crest with hotspots */}
-        <div className="relative mx-auto w-full max-w-[400px] lg:max-w-none">
+        {/* self-start: this box must stay exactly the image's size — the hotspot layer is
+            inset-0, so a stretched box would shift every marker (seen in the 2026-11-15 visual pass). */}
+        <div className="relative mx-auto w-full max-w-[400px] self-start lg:max-w-none">
           <Image
             src="/crest.jpeg"
             alt={
@@ -194,9 +197,9 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 ? "Kartel family coat of arms — interactive explorer"
                 : "Фамильный герб Картель — интерактивный просмотр"
             }
-            width={540}
-            height={540}
-            className="w-full rounded object-contain"
+            width={900}
+            height={1000}
+            className="h-auto w-full rounded"
             sizes="(max-width: 640px) 85vw, (max-width: 1024px) 50vw, 520px"
           />
 
@@ -206,12 +209,14 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
               <button
                 key={el.id}
                 onClick={() => handleSelect(el.id)}
-                className={`absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 transition-all duration-300 sm:h-8 sm:w-8 ${
-                  i < revealedCount ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                // 24px markers (32px selected) so they cover less of the art; an invisible 40px hit area
+                // keeps the target comfortable (design pass #9).
+                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ring-1 ring-white transition-all duration-200 motion-reduce:transition-none after:absolute after:-inset-2 after:content-[''] ${
+                  i < revealedCount ? "opacity-100" : "opacity-0"
                 } ${
                   activeId === el.id
-                    ? "scale-125 border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)] shadow-lg"
-                    : "border-[var(--accent)]/60 bg-[var(--background)]/80 text-[var(--accent)] shadow-md backdrop-blur-sm hover:scale-110 hover:border-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--on-accent)]"
+                    ? "h-8 w-8 bg-[var(--accent)] text-[var(--on-accent)] shadow-lg"
+                    : "h-6 w-6 bg-[var(--accent)]/85 text-[var(--on-accent)] shadow-md hover:scale-110"
                 }`}
                 style={{ left: `${el.x}%`, top: `${el.y}%` }}
                 aria-label={lang === "EN" ? el.labelEN : el.labelRU}
@@ -243,17 +248,19 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                   tabIndex={isActive ? 0 : -1}
                   onClick={() => handleSelect(el.id)}
                   onKeyDown={(e) => onTabKeyDown(e, i)}
-                  className={`flex items-center gap-2 rounded border px-3 py-2.5 text-left text-[13px] transition-all duration-200 sm:px-4 sm:py-3 sm:text-[14px] ${
+                  // Three distinct states (design pass #8): hover = tint only; selected = burgundy
+                  // border + tint; keyboard focus = ring.
+                  className={`flex items-center gap-2 rounded border px-3 py-2.5 text-left text-[15px] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:px-4 sm:py-3 ${
                     isActive
-                      ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm"
-                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:border-[var(--muted-light)] hover:text-[var(--foreground)]"
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--accent)]/5"
                   }`}
                 >
                   <span
                     className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                       isActive
                         ? "bg-[var(--accent)] text-[var(--on-accent)]"
-                        : "bg-[var(--muted-light)]/30 text-[var(--muted)]"
+                        : "bg-[var(--background)] text-[var(--accent)] ring-1 ring-[var(--border)]"
                     }`}
                   >
                     {i + 1}
@@ -271,13 +278,13 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
             role="tabpanel"
             aria-labelledby={`crest-tab-${activeElement.id}`}
             tabIndex={0}
-            className="relative min-h-[120px] overflow-hidden rounded border border-[var(--border)] bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            className="relative min-h-[120px] overflow-hidden rounded border lg:flex-1 border-[var(--border)] bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             <div className="p-5 sm:p-6">
               <h4 className="mb-3 font-serif text-[18px] text-[var(--accent)] sm:text-[20px]">
                 {lang === "EN" ? activeElement.labelEN : activeElement.labelRU}
               </h4>
-              <p className="text-[14px] leading-[1.75] text-[var(--text-secondary)] sm:text-[15px]">
+              <p className="text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
                 {lang === "EN" ? activeElement.descEN : activeElement.descRU}
               </p>
             </div>

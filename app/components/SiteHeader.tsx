@@ -33,7 +33,41 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
   const items: NavItem[] = navItems ?? primaryNav(lang);
   const urlActive = activeHref(items, pathname);
   const isActive = (i: NavItem) => i.active ?? i.href === urlActive;
-  const subActive = subNav ? activeHref(subNav, pathname) : null;
+  const subActiveByUrl = subNav ? activeHref(subNav, pathname) : null;
+
+  // In-page section rows (#anchors, e.g. the crest home) get their current item from scrolling:
+  // the section crossing the reading line is current (design pass #10). URL rows keep activeHref.
+  const anchorIds = subNav?.every((s) => s.href.startsWith("#")) ? subNav.map((s) => s.href.slice(1)) : null;
+  const [inView, setInView] = useState<string | null>(anchorIds?.[0] ?? null);
+  const anchorKey = anchorIds?.join(",") ?? "";
+  useEffect(() => {
+    if (!anchorKey) return;
+    const ids = anchorKey.split(",");
+    // Current = the last section whose top has passed 40% of the viewport. Computed on scroll (not
+    // only on intersection), so a jump via an anchor link still lands on the right item.
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const line = window.innerHeight * 0.4;
+      let cur = ids[0];
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= line) cur = id;
+      }
+      setInView(cur);
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [anchorKey]);
+  const subActive = anchorIds ? (inView ? `#${inView}` : null) : subActiveByUrl;
+  const subCurrent = anchorIds ? ("true" as const) : ("page" as const);
 
   // Mobile (<768px): the section row hides while scrolling down and returns on scroll up, so the
   // sticky chrome stays small (UI/UX audit 2026-11-14 #3). The row is absolutely positioned under
@@ -75,7 +109,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
           </a>
 
           {/* Desktop nav */}
-          <nav aria-label={lang === "RU" ? "Основная навигация" : "Main navigation"} className="hidden items-center gap-5 text-sm text-[var(--text-nav)] md:flex lg:gap-8">
+          <nav aria-label={lang === "RU" ? "Основная навигация" : "Main navigation"} className="hidden items-center gap-5 text-[15px] text-[var(--text-nav)] md:flex lg:gap-8">
             {items.map((item) => (
               <a
                 key={item.href}
@@ -149,7 +183,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
               hideSub ? "max-md:invisible max-md:opacity-0" : ""
             }`}
           >
-            <div className={`mx-auto flex ${maxWidth} gap-5 overflow-x-auto px-4 text-sm text-[var(--text-nav)] max-md:h-full max-md:items-center sm:px-6 lg:px-10`}>
+            <div className={`mx-auto flex ${maxWidth} gap-5 overflow-x-auto px-4 text-[15px] text-[var(--text-nav)] max-md:h-full max-md:items-center sm:px-6 lg:px-10`}>
               {subNav.map((s) => (
                 <a
                   key={s.href}
@@ -159,7 +193,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
                       ? "border-[var(--accent)] font-medium text-[var(--accent)]"
                       : "border-transparent hover:text-[var(--accent)]"
                   }`}
-                  {...(s.href === subActive ? { "aria-current": "page" as const } : {})}
+                  {...(s.href === subActive ? { "aria-current": subCurrent } : {})}
                 >
                   {s.label}
                 </a>
