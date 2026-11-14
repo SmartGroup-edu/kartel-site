@@ -5,27 +5,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #eeebe5;
+  /* LIGHT THEME — white + burgundy (R0, 2026-11-14). Was beige #eeebe5 + gold #876035.
+     The dark theme (.dark below) is unchanged on purpose. */
+  --background: #ffffff;
   --foreground: #2b2824;
-  /* WCAG AA on light bg #eeebe5 — accent darkened from #9b723a (3.65:1) to
-     #876035 (4.7:1) so it can be used for body & UI text, not just headings. */
-  --accent: #876035;
-  --accent-hover: #b8884a;
-  /* Text on an --accent fill. White on #876035 = 5.6:1. */
+  /* Burgundy. 10.2:1 on white — fine for body text, UI text and fills. */
+  --accent: #7b1e2d;
+  --accent-hover: #9e2a3b;
+  /* Text on an --accent fill. White on #7b1e2d = 10.2:1. */
   --on-accent: #ffffff;
   --muted: #6f685c;
-  /* --muted-light was #9a9488 (2.47:1) — failed WCAG everywhere it appeared
-     as text. Darkened to meet 4.5:1 for the small "hint" labels that use it. */
   --muted-light: #6e6759;
-  --border: #d7d1c7;
-  --surface: #e8e4dd;
+  --border: #e6e2dd;
+  /* Cards and footer: a whisper off white, so they still read as surfaces. */
+  --surface: #f7f6f4;
   --text-body: #37332e;
   --text-secondary: #3a3630;
-  /* --text-nav was #786e5e (4.18:1) — borderline. Darkened to 5:1+. */
   --text-nav: #5e5547;
-  --selection-bg: rgba(135, 96, 53, 0.2);
-  --header-bg: rgba(238, 235, 229, 0.95);
-  --drop-cap: #876035;
+  --selection-bg: rgba(123, 30, 45, 0.15);
+  --header-bg: rgba(255, 255, 255, 0.95);
+  --drop-cap: #7b1e2d;
 
   /* shadcn/ui base tokens — light. Reuse the editorial palette above; only the
      genuinely-new roles (destructive, radius) get raw values here. */
