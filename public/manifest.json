@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#7b1e2d",
+  "theme_color": "#ffffff",
   "lang": "en-GB",
   "dir": "ltr",
   "categories": ["education", "lifestyle"],

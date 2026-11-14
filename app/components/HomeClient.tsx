@@ -84,7 +84,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 >
                   <ParallaxImage
                     src="/crest.jpeg"
-                    alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Герб семьи Картель — Virtus et Potestas"}
+                    alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Фамильный герб Картель — Virtus et Potestas"}
                     width={540}
                     height={540}
                     priority
@@ -113,19 +113,23 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         {/* Meaning */}
         <section id="meaning" className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
-            <FadeInSection>
-              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
-                {t.meaningTitle}
-              </h2>
-            </FadeInSection>
-            {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
-            <FadeInSection>
-              <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
-                {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
-                  <p key={idx} className="mb-5 text-left">{p}</p>
-                ))}
-              </div>
-            </FadeInSection>
+            {/* Reading column centred at lg+ (re-check 2026-11-14): h2 + text share one
+                ≤68ch measure; ch is resolved at the 20px text size so both edges line up. */}
+            <div className="lg:mx-auto lg:max-w-[68ch] lg:text-[20px]">
+              <FadeInSection>
+                <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
+                  {t.meaningTitle}
+                </h2>
+              </FadeInSection>
+              {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
+              <FadeInSection>
+                <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
+                  {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
+                    <p key={idx} className="mb-5 text-left">{p}</p>
+                  ))}
+                </div>
+              </FadeInSection>
+            </div>
           </div>
         </section>
 
@@ -143,19 +147,23 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         {/* Legacy */}
         <section id="legacy" className="border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
-            <FadeInSection>
-              <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
-                {t.legacyTitle}
-              </h2>
-            </FadeInSection>
-            {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
-            <FadeInSection>
-              <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
-                {[t.finalLeft, t.finalRight].join("\n\n").split("\n\n").map((p, idx) => (
-                  <p key={idx} className="mb-5 text-left">{p}</p>
-                ))}
-              </div>
-            </FadeInSection>
+            {/* Reading column centred at lg+ (re-check 2026-11-14): h2 + text share one
+                ≤68ch measure; ch is resolved at the 20px text size so both edges line up. */}
+            <div className="lg:mx-auto lg:max-w-[68ch] lg:text-[20px]">
+              <FadeInSection>
+                <h2 className="mb-8 font-serif text-[22px] leading-[1.2] text-[var(--accent)] sm:text-[28px] lg:mb-12 lg:text-[36px]">
+                  {t.legacyTitle}
+                </h2>
+              </FadeInSection>
+              {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
+              <FadeInSection>
+                <div className="max-w-[68ch] text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[20px] lg:leading-[1.7]">
+                  {[t.finalLeft, t.finalRight].join("\n\n").split("\n\n").map((p, idx) => (
+                    <p key={idx} className="mb-5 text-left">{p}</p>
+                  ))}
+                </div>
+              </FadeInSection>
+            </div>
 
             {/* Colour Palette */}
             <FadeInSection>
@@ -183,7 +191,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
       <ImageLightbox
         src="/crest.jpeg"
         webpSrc="/crest.webp"
-        alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Герб семьи Картель — Virtus et Potestas"}
+        alt={lang === "EN" ? "Kartel family coat of arms — Virtus et Potestas" : "Фамильный герб Картель — Virtus et Potestas"}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />

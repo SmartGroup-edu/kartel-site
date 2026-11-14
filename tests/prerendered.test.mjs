@@ -135,6 +135,12 @@ describe("/ru — Coat of Arms home", () => {
     assert.doesNotMatch(unescape(html), FAMILY_NAMES);
   });
 
+  test("RU image alts say «Фамильный герб Картель», never «Герб семьи Картель»", () => {
+    const u = unescape(html);
+    assert.match(u, /alt="Фамильный герб Картель — Virtus et Potestas"/);
+    assert.doesNotMatch(u, /alt="Герб семьи Картель/);
+  });
+
   test("RU JSON-LD uses «Фамильный герб Картель», dateModified 2026-11-14", () => {
     const u = unescape(html);
     assert.match(u, /"caption":"Фамильный герб Картель"/);
