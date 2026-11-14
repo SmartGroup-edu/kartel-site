@@ -58,9 +58,9 @@ const ELEMENTS: HeraldicElement[] = [
     labelEN: "Griffin",
     labelRU: "Грифон",
     descEN:
-      "At the heart of the shield walks a griffin — embodying superiority, protection, and foresight. Combining the lion and the eagle into one form, it unites earthly and celestial, tangible and intangible. Depicted in motion with head held high, the griffin never sleeps and is always ready to act, led by its heart and unwavering sense of duty.",
+      "At the heart of the shield walks a griffin — embodying strength, protection, and foresight. Combining the lion and the eagle into one form, it unites earthly and celestial, tangible and intangible. Depicted in motion with head held high, the griffin never sleeps and is always ready to act, led by its heart and unwavering sense of duty.",
     descRU:
-      "Сердце щита занимает шествующий грифон — олицетворение превосходства, защиты и дальновидности. Объединяя льва и орла, он сливает земное и небесное, осязаемое и бестелесное. Изображён в движении, с поднятой головой — тот, кто никогда не спит и готов действовать, ведомый сердцем и чувством долга.",
+      "Сердце щита занимает шествующий грифон — олицетворение силы, защиты и дальновидности. Объединяя льва и орла, он сливает земное и небесное, осязаемое и бестелесное. Изображён в движении, с поднятой головой — тот, кто никогда не спит и готов действовать, ведомый сердцем и чувством долга.",
     x: 50,
     y: 50,
     icon: "M12 4a4 4 0 014 4v2a2 2 0 01-2 2h-4a2 2 0 01-2-2V8a4 4 0 014-4zm-3 14l3-2 3 2v2H9v-2z",
@@ -82,9 +82,9 @@ const ELEMENTS: HeraldicElement[] = [
     labelEN: "Wings",
     labelRU: "Крылья",
     descEN:
-      "Wings extend on either side of the shield, embodying silent and invisible divine protection — trust, inner composure, and a sense of belonging to something greater. They also allude to the elite Polish cavalry, conveying power, militancy, and readiness to act with lightning speed.",
+      "Wings extend on either side of the shield, embodying silent and invisible divine protection. They echo the heraldic tradition of the Eastern European lands of the family's ancestors — present-day Belarus, Ukraine and western Russia — and stand for freedom of spirit, courage and readiness to defend family, honour and heritage.",
     descRU:
-      "Крылья по обеим сторонам щита воплощают безмолвное божественное покровительство — доверие, собранность и принадлежность к чему-то большему. Они также отсылают к элитной польской кавалерии, передавая смысл силы, воинственности и готовности молниеносно действовать.",
+      "Крылья по обеим сторонам щита воплощают безмолвное и незримое Божественное покровительство. Они перекликаются с геральдической традицией восточноевропейских земель, где жили предки семьи, — современной Беларуси, Украины и западных областей России — и олицетворяют свободу духа, мужество и готовность защитить семью, честь и наследие.",
     x: 18,
     y: 42,
     icon: "M2 12c3-6 8-8 10-8M22 12c-3-6-8-8-10-8",
