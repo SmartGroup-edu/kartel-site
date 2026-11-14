@@ -39,7 +39,8 @@ empty value once (2026-11-14).
 
 ```bash
 # from the kartel-site folder on the Mac
-scp -i ~/.ssh/hetzner_ed25519 relay/server.mjs relay/Dockerfile relay/compose.yaml operator@10.0.0.3:/opt/kartel-mail-relay/
+# app-01 has SFTP disabled, so scp fails (found 2026-11-14). Stream each file over ssh instead
+# (sudo tee into /opt/kartel-mail-relay/<file>), then compare sha256 on both ends before rebuilding.
 ssh -i ~/.ssh/hetzner_ed25519 operator@10.0.0.3 'cd /opt/kartel-mail-relay && sudo docker compose up -d --build && sudo docker compose ps'
 curl -s https://mail-relay.kartel.org.uk/healthz          # → {"ok":true}
 ```
