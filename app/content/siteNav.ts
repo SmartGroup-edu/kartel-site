@@ -14,14 +14,12 @@ const PRIMARY = {
     { label: "Coat of Arms", path: "" },
     { label: "Core", path: "core" },
     { label: "Registry", path: "registry" },
-    { label: "Projects", path: "registry/projects" },
     { label: "Family Heritage", path: "family" },
   ],
   RU: [
     { label: "Герб", path: "" },
     { label: "Ядро", path: "core" },
     { label: "Реестр", path: "registry" },
-    { label: "Проекты", path: "registry/projects" },
     { label: "Семейное наследие", path: "family" },
   ],
 } as const;
