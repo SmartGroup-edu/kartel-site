@@ -3,17 +3,8 @@
 
 export const projectsContent = {
   EN: {
-    nav: [
-      { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry/layers" },
-      { label: "Organisations", href: "/en/registry/organisations" },
-      { label: "Campuses", href: "/en/registry/campuses" },
-      { label: "Federation Map", href: "/en/registry/federation" },
-      { label: "Projects", href: "/en/registry/projects", active: true },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core — ecosystem projects directory",
     metaDescription:
       "The KARTEL ecosystem projects — MoyPolk, RusJAz, Community Group, RusJAzz — with their federation role (Authority, Producer, Steward, Consumer, Planned) and per-layer status.",
@@ -34,17 +25,8 @@ export const projectsContent = {
       "Public registry — status and architecture only. No personal data; operational detail lives in the access-controlled internal surface.",
   },
   RU: {
-    nav: [
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Организации", href: "/ru/registry/organisations" },
-      { label: "Кампусы", href: "/ru/registry/campuses" },
-      { label: "Карта федерации", href: "/ru/registry/federation" },
-      { label: "Проекты", href: "/ru/registry/projects", active: true },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Ядро KARTEL — каталог проектов экосистемы",
     metaDescription:
       "Проекты экосистемы KARTEL — MoyPolk, RusJAz, Community Group, RusJAzz — с их ролью в федерации (Authority, Producer, Steward, Consumer, Planned) и статусом по слоям.",

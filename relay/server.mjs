@@ -73,12 +73,20 @@ async function sendViaBrevo(to, link) {
     `It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.`,
     "If you did not request this, ignore this message — nothing has changed.",
   ].join("\n");
-  const html = [
-    `<p>Open this link to sign in to KARTEL:</p>`,
-    `<p><a href="${esc(link)}">Sign in</a></p>`,
-    `<p>It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.</p>`,
-    `<p>If you did not request this, ignore this message — nothing has changed.</p>`,
-  ].join("\n");
+  // Branded, single-column, inline-styled (mail clients ignore <style>). The hidden preheader is
+  // what inboxes show next to the subject. No images, so it reads the same with images blocked;
+  // neutral colours keep it legible when a client forces dark mode.
+  const preheader = `Your sign-in link — valid for ${LINK_TTL_MIN} minutes.`;
+  const html = `<!doctype html><html lang="en"><body style="margin:0;padding:0;background:#eeebe5;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
+<div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
+  <p style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:0.12em;color:#876035;">KARTEL</p>
+  <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#2b2824;">Sign in to KARTEL</h1>
+  <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#37332e;">Use the button below to sign in. It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.</p>
+  <p style="margin:0 0 24px;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#876035;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Sign in</a></p>
+  <p style="margin:0 0 32px;font-size:13px;line-height:1.5;color:#6f685c;">If the button does not work, copy this address into the same browser:<br><span style="word-break:break-all;color:#37332e;">${esc(link)}</span></p>
+  <p style="margin:0;padding-top:16px;border-top:1px solid #d7d1c7;font-size:13px;line-height:1.5;color:#6f685c;">If you did not request this, ignore this message — nothing has changed.<br>KARTEL Core · kartel.org.uk</p>
+</div></body></html>`;
   const res = await fetch(BREVO_ENDPOINT, {
     method: "POST",
     headers: { "api-key": BREVO_API_KEY, "content-type": "application/json", accept: "application/json" },

@@ -45,6 +45,8 @@ test("valid signed request is sent through Brevo with the house sender", async (
   assert.equal(brevoCalls[0].body.to[0].email, "member@example.com");
   assert.equal(brevoCalls[0].body.sender.email, "no-reply@mail.kartel.org.uk");
   assert.match(brevoCalls[0].body.htmlContent, /verify\?token=abc/);
+  assert.match(brevoCalls[0].body.htmlContent, /display:none[^>]*>Your sign-in link — valid for 10 minutes\./, "preheader present");
+  assert.match(brevoCalls[0].body.htmlContent, />KARTEL</, "wordmark present");
 });
 test("wrong secret → 401, nothing sent", async () => {
   brevoCalls = [];

@@ -35,7 +35,7 @@ describe("/en — KARTEL Core home", () => {
   });
 
   test("KARTEL Core title (no longer coat-of-arms)", () => {
-    assert.match(html, /<title>KARTEL Core — federation authority, registry, governance<\/title>/);
+    assert.match(html, /<title>KARTEL Core — public registry of the KARTEL federation<\/title>/);
   });
 
   test("canonical points at /en", () => {
@@ -81,7 +81,7 @@ describe("/ru — KARTEL Core home", () => {
   });
 
   test("Russian Core title", () => {
-    assert.match(html, /<title>Ядро KARTEL — авторитетность федерации, реестр, governance<\/title>/);
+    assert.match(html, /<title>Ядро KARTEL — публичный реестр федерации KARTEL<\/title>/);
   });
 
   test("canonical points at /ru", () => {

@@ -2,6 +2,7 @@
 
 import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
+import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { federationContent } from "../content/federation";
@@ -14,7 +15,7 @@ function StatusPill({ value, label }: { value: string; label?: string }) {
   const on = /(live|active|ratified|connected|consumed|producer|steward|anchored)/i.test(value);
   const tone = on ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--muted)]";
   return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide ${tone}`}>
       {label ?? value}
     </span>
   );
@@ -35,9 +36,9 @@ export default function FederationMap({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} subNav={registryNav(lang)} />
 
-      <main id="main" className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>

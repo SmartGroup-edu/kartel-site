@@ -2,17 +2,19 @@
 
 import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
+import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { layersContent } from "../content/layers";
 import { coreName } from "../content/tokens";
+import { stewardLabels } from "../content/federationCopy";
 import registry from "../content/registry.public.json";
 
 function StatusPill({ value }: { value: string }) {
   const active = /(active|активно)/i.test(value);
   const tone = active ? "border-[var(--accent)] text-[var(--accent)]" : "border-[var(--border)] text-[var(--muted)]";
   return (
-    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}>
+    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide ${tone}`}>
       {value}
     </span>
   );
@@ -21,7 +23,7 @@ function StatusPill({ value }: { value: string }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5 border-t border-[var(--border)] py-2.5 sm:flex-row sm:gap-4">
-      <dt className="w-40 shrink-0 text-[11px] uppercase tracking-wide text-[var(--muted)]">{label}</dt>
+      <dt className="w-40 shrink-0 text-xs uppercase tracking-wide text-[var(--muted)]">{label}</dt>
       <dd className="text-sm text-[var(--text-body)]">{children}</dd>
     </div>
   );
@@ -34,9 +36,9 @@ export default function LayersDashboard({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} subNav={registryNav(lang)} />
 
-      <main id="main" className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
@@ -56,13 +58,13 @@ export default function LayersDashboard({ lang }: { lang: Lang }) {
                 <dl className="mt-4">
                   <Field label={c.fields.purpose}>{l.purpose}</Field>
                   <Field label={c.fields.canonicalKey}>
-                    <span className="font-mono text-[13px] text-[var(--accent)]">{l.canonicalKey}</span>
+                    <span className="font-mono text-sm text-[var(--accent)]">{l.canonicalKey}</span>
                   </Field>
                   <Field label={c.fields.authority}>{coreName(lang, l.authority)}</Field>
-                  <Field label={c.fields.steward}>{coreName(lang, l.steward)}</Field>
+                  <Field label={c.fields.steward}>{stewardLabels[lang][l.key] ?? coreName(lang, l.steward)}</Field>
                   <Field label={c.fields.consumers}>{l.consumers.join(" · ")}</Field>
                   <Field label={c.fields.contract}>
-                    <span className="font-mono text-[13px] text-[var(--text-body)]">{l.contract}</span>
+                    <span className="font-mono text-sm text-[var(--text-body)]">{l.contract}</span>
                   </Field>
                 </dl>
               </section>

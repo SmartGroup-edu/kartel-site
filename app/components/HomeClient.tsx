@@ -12,7 +12,6 @@ import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
-import SkipToContent from "./SkipToContent";
 import ReadingProgress from "./ReadingProgress";
 import ShareButtons from "./ShareButtons";
 import HeraldicPalette from "./HeraldicPalette";
@@ -46,7 +45,6 @@ export default function HomeClient({ lang }: { lang: Lang }) {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <ReadingProgress />
-      <SkipToContent />
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} />
       <SectionDots
         sections={[
@@ -57,7 +55,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         activeSection={activeSection}
       />
 
-      <main id="main-content">
+      <main id="main">
         {/* Hero */}
         <article id="home" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
           <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:gap-12">

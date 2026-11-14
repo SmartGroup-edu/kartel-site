@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import AuthShell from "../../../components/AuthShell";
 
 // Gated area sibling — render per-request, never statically prerender.
 export const dynamic = "force-dynamic";
@@ -34,12 +35,14 @@ export default async function FamilyPendingPage({ params }: { params: Promise<{ 
   if (!LOCALES.includes(lang as Locale)) notFound();
   const c = copy[lang as Locale];
   return (
-    <main style={{ maxWidth: "34rem", margin: "0 auto", padding: "6rem 1.5rem", textAlign: "center" }}>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.75rem" }}>{c.heading}</h1>
-      <p style={{ lineHeight: 1.6, opacity: 0.8 }}>{c.body}</p>
-      <p style={{ marginTop: "2rem" }}>
-        <a href={`/${lang}`}>{c.back}</a>
+    <AuthShell lang={lang as Locale}>
+      <h1 className="font-serif text-3xl text-[var(--foreground)]">{c.heading}</h1>
+      <p className="mt-3 text-base leading-relaxed text-[var(--text-body)]">{c.body}</p>
+      <p className="mt-8">
+        <a href={`/${lang}`} className="rounded-sm py-1 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">
+          ← {c.back}
+        </a>
       </p>
-    </main>
+    </AuthShell>
   );
 }

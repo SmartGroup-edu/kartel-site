@@ -4,17 +4,8 @@
 
 export const layersContent = {
   EN: {
-    nav: [
-      { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry/layers", active: true },
-      { label: "Organisations", href: "/en/registry/organisations" },
-      { label: "Campuses", href: "/en/registry/campuses" },
-      { label: "Federation Map", href: "/en/registry/federation" },
-      { label: "Projects", href: "/en/registry/projects" },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core — Registry of Registries (canonical layers)",
     metaDescription:
       "The constitutional description of the four canonical layers of the KARTEL ecosystem: Identity (CPIF), Geography (ITL1), Organisation, and Federation — each with its authority, steward, consumers, contract, and status.",
@@ -36,17 +27,8 @@ export const layersContent = {
       "Public registry — status and architecture only. Operational detail and any personal data live in the access-controlled internal surface, never here.",
   },
   RU: {
-    nav: [
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry/layers", active: true },
-      { label: "Организации", href: "/ru/registry/organisations" },
-      { label: "Кампусы", href: "/ru/registry/campuses" },
-      { label: "Карта федерации", href: "/ru/registry/federation" },
-      { label: "Проекты", href: "/ru/registry/projects" },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Ядро KARTEL — реестр реестров (канонические слои)",
     metaDescription:
       "Конституционное описание четырёх канонических слоёв экосистемы KARTEL: идентичность (CPIF), география (ITL1), организация и федерация — с авторитетом, стюардом, потребителями, контрактом и статусом каждого.",

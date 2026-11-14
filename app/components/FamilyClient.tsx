@@ -6,7 +6,6 @@ import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import HeraldicDivider from "./HeraldicDivider";
 import BackToTop from "./BackToTop";
-import SkipToContent from "./SkipToContent";
 import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
 import { familyContent, groupByGeneration } from "../content/family";
@@ -26,10 +25,9 @@ export default function FamilyClient({ lang }: { lang: Lang }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
-      <SkipToContent />
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth="max-w-6xl" />
 
-      <main id="main-content" className="mx-auto max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
+      <main id="main" className="mx-auto max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-20">
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">

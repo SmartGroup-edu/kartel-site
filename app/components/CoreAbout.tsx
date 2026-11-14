@@ -12,9 +12,9 @@ export default function CoreAbout({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} />
 
-      <main id="main" className="mx-auto max-w-3xl px-4 pb-20 pt-12 sm:px-6 lg:px-10 lg:pt-20">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-3xl px-4 pb-20 pt-12 sm:px-6 lg:px-10 lg:pt-20">
         <FadeInSection>
           <header>
             <p className="text-xs uppercase tracking-[0.3em] text-[var(--accent)]">{c.eyebrow}</p>

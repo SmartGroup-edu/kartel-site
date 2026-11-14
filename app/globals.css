@@ -11,6 +11,8 @@
      #876035 (4.7:1) so it can be used for body & UI text, not just headings. */
   --accent: #876035;
   --accent-hover: #b8884a;
+  /* Text on an --accent fill. White on #876035 = 5.6:1. */
+  --on-accent: #ffffff;
   --muted: #6f685c;
   /* --muted-light was #9a9488 (2.47:1) — failed WCAG everywhere it appeared
      as text. Darkened to meet 4.5:1 for the small "hint" labels that use it. */
@@ -37,6 +39,8 @@
   --foreground: #e8e4dd;
   --accent: #c9964e;
   --accent-hover: #daa85e;
+  /* White on the lighter dark-mode gold was 2.6:1 (fail). Charcoal on #c9964e = 6.7:1. */
+  --on-accent: #1a1816;
   --muted: #9a9488;
   /* In dark mode --muted-light was #6f685c (3.16:1 on #1a1816) — failed AA.
      Lightened so small hint text meets 4.5:1. */
@@ -58,7 +62,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-serif: Georgia, "Times New Roman", Times, serif;
+  /* Self-hosted via next/font in app/[lang]/layout.tsx (Latin + Cyrillic). Georgia/system remain
+     as fallbacks so text renders before the font arrives. */
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", Times, serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
   /* shadcn/ui semantic tokens → editorial palette. Additive: existing components use
      raw [var(--x)] arbitrary values, so registering these --color-* names doesn't touch
@@ -101,7 +108,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -112,9 +119,23 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 
+/* No automatic hyphenation: on narrow screens it split words mid-line ("fed-eration"). */
 p {
   text-wrap: pretty;
-  hyphens: auto;
+}
+
+/* One focus indicator everywhere (design audit #20): 2px accent outline, 2px offset.
+   Replaces the mix of browser-default blue, 1px rings and box-shadow rings. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Selection color matching the gold accent */
@@ -163,7 +184,7 @@ p {
 /* Drop cap for manuscript feel */
 .drop-cap > p:first-child::first-letter {
   float: left;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-serif);
   font-size: 3.2em;
   line-height: 0.85;
   padding-right: 0.08em;

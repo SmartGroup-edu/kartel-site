@@ -2,7 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import "../globals.css";
+
+// Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
+// Both cover Cyrillic, so EN and RU render in the same faces on every OS.
+const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter" });
+const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif" });
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -18,29 +24,29 @@ const meta: Record<Locale, {
 }> = {
   en: {
     title: {
-      default: "KARTEL Core — federation authority, registry, governance",
+      default: "KARTEL Core — public registry of the KARTEL federation",
       template: "%s | KARTEL",
     },
     description:
-      "KARTEL Core — the authority surface of a federation of cultural and educational platforms. Canonical identity, geography, organisations, and governance. Virtus et Potestas.",
-    ogTitle: "KARTEL Core — federation authority, registry, governance",
-    twTitle: "KARTEL Core — federation authority, registry, governance",
+      "The public registry of the KARTEL federation: one identity, one map of UK regions and one organisation model, shared by MoyPolk, RusJAz and Community Group.",
+    ogTitle: "KARTEL Core — public registry of the KARTEL federation",
+    twTitle: "KARTEL Core — public registry of the KARTEL federation",
     twDescription:
-      "The authority surface of the KARTEL ecosystem — canonical layers, registry, governance.",
+      "The public registry of the KARTEL federation — layers, projects and the rules every platform follows.",
     locale: "en_GB",
     altLocale: "ru_RU",
   },
   ru: {
     title: {
-      default: "Ядро KARTEL — авторитетность федерации, реестр, governance",
+      default: "Ядро KARTEL — публичный реестр федерации KARTEL",
       template: "%s | КАРТЕЛЬ",
     },
     description:
-      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ. Каноническая идентичность, география, организации и governance. Virtus et Potestas.",
-    ogTitle: "Ядро KARTEL — авторитетность федерации, реестр, governance",
-    twTitle: "Ядро KARTEL — авторитетность федерации, реестр, governance",
+      "Публичный реестр федерации KARTEL: единая идентичность, единая карта регионов UK и единая модель организаций для MoyPolk, RusJAz и Community Group.",
+    ogTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
+    twTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
     twDescription:
-      "Слой авторитетности экосистемы KARTEL — канонические слои, реестр, governance.",
+      "Публичный реестр федерации KARTEL — слои, проекты и правила, общие для всех платформ.",
     locale: "ru_RU",
     altLocale: "en_GB",
   },
@@ -49,14 +55,14 @@ const meta: Record<Locale, {
 const noscriptContent: Record<Locale, { intro: string; membersHeading: string; members: string }> = {
   en: {
     intro:
-      "KARTEL Core is the authority surface of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume. Motto: Virtus et Potestas.",
+      "KARTEL Core is the public registry of a federation of cultural and educational platforms. It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, and federation — which member platforms consume. Motto: Virtus et Potestas.",
     membersHeading: "Ecosystem",
     members:
       "MoyPolk · RusJAz · Community Group · RusJAzz (planned).",
   },
   ru: {
     intro:
-      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
+      "Ядро KARTEL — публичный реестр федерации культурных и образовательных платформ. Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации и федерация — которые потребляют платформы-участники. Девиз: Virtus et Potestas.",
     membersHeading: "Экосистема",
     members:
       "MoyPolk · RusJAz · Community Group · RusJAzz (план).",
@@ -178,7 +184,7 @@ export default async function RootLayout({
   const ns = noscriptContent[lang as Locale];
 
   return (
-    <html lang={lang} className="h-full antialiased scroll-smooth">
+    <html lang={lang} className={`${sans.variable} ${serif.variable} h-full antialiased scroll-smooth`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

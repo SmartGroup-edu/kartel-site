@@ -4,17 +4,8 @@
 
 export const campusesContent = {
   EN: {
-    nav: [
-      { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry/layers" },
-      { label: "Organisations", href: "/en/registry/organisations" },
-      { label: "Campuses", href: "/en/registry/campuses", active: true },
-      { label: "Federation Map", href: "/en/registry/federation" },
-      { label: "Projects", href: "/en/registry/projects" },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core — Campus Registry (accredited operating centres)",
     metaDescription:
       "The canonical campus registry of the KARTEL ecosystem: the accredited operating centres Znaniye Stratford, Znaniye Chelsea, Znaniye Ealing and Baltica Leeds, each with a readable campusCode anchored to its institution.",
@@ -35,17 +26,8 @@ export const campusesContent = {
       "Public registry — canonical codes, locations and institution only. No operational data, no internal identifiers, no personal data. Those live in the access-controlled internal surface, never here.",
   },
   RU: {
-    nav: [
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Организации", href: "/ru/registry/organisations" },
-      { label: "Кампусы", href: "/ru/registry/campuses", active: true },
-      { label: "Карта федерации", href: "/ru/registry/federation" },
-      { label: "Проекты", href: "/ru/registry/projects" },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Ядро KARTEL — реестр кампусов (аккредитованные центры)",
     metaDescription:
       "Канонический реестр кампусов экосистемы KARTEL: аккредитованные образовательные центры «Знание» Стратфорд, «Знание» Челси, «Знание» Илинг и «Балтика» Лидс — каждый со своим читаемым campusCode, привязанным к учреждению.",

@@ -4,16 +4,8 @@
 
 export const federationContent = {
   EN: {
-    nav: [
-      { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry/layers" },
-      { label: "Organisations", href: "/en/registry/organisations" },
-      { label: "Campuses", href: "/en/registry/campuses" },
-      { label: "Federation Map", href: "/en/registry/federation", active: true },
-      { label: "Projects", href: "/en/registry/projects" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core — Federation Operations Map (observability)",
     metaDescription:
       "A read-only observability map of the KARTEL federation, generated entirely from canonical keys: identity, geography, organisation and campus. Aggregate banded counts only — the map observes the federation, it is never a source of truth.",
@@ -59,16 +51,8 @@ export const federationContent = {
       "Read-only observability snapshot — banded aggregate counts and canonical codes only. No personal data, no identities, no permissions, no authority. Built from sanitised Core-owned artifacts with no runtime dependency on platform databases.",
   },
   RU: {
-    nav: [
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Организации", href: "/ru/registry/organisations" },
-      { label: "Кампусы", href: "/ru/registry/campuses" },
-      { label: "Карта федерации", href: "/ru/registry/federation", active: true },
-      { label: "Проекты", href: "/ru/registry/projects" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Ядро KARTEL — карта операций федерации (наблюдаемость)",
     metaDescription:
       "Карта федерации KARTEL только для чтения, построенная исключительно из канонических ключей: идентичность, география, организация и кампус. Только агрегированные диапазоны — карта наблюдает за федерацией, но никогда не является источником истины.",
@@ -111,6 +95,6 @@ export const federationContent = {
     bandNote:
       "Счётчики людей округлены до диапазонов для приватности (0 · Активно · 5–9 · 10–19 · 20+); точное значение ниже 5 для именованной сущности не публикуется. Счётчики целостности — структурные и точные.",
     publicNote:
-      "Снимок наблюдаемости только для чтения — только агрегированные диапазоны и канонические коды. Без персональных данных, идентичностей, разрешений и полномочий. Построен из санированных артефактов Ядра без runtime-зависимости от баз данных платформ.",
+      "Снимок наблюдаемости только для чтения — только агрегированные диапазоны и канонические коды. Без персональных данных, идентичностей, разрешений и полномочий. Построен из санированных артефактов Ядра и не зависит от баз данных платформ во время работы.",
   },
 } as const;

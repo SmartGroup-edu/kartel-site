@@ -19,11 +19,11 @@ import type { Lang } from "../components/useLang";
 export const projectSummaries: Record<Lang, Record<string, string>> = {
   EN: {
     moypolk:
-      "Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy.",
+      "Immortal Regiment UK memorial platform. Produces and serves the canonical geography taxonomy.",
     rusjaz:
-      "Russian-language education marketplace + LMS. Identity reference implementation; consumes canonical geography, organisation + campus anchors.",
+      "Russian-language education marketplace and LMS. Identity reference implementation; consumes canonical geography and the organisation and campus anchors.",
     "community-group":
-      "Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer.",
+      "Cultural funding and trust platform (CEA). Consumes identity and geography; first geography consumer.",
     rusjazz:
       "Future module. Builds against the Federation Integration Gate from day one.",
   },
@@ -72,12 +72,16 @@ export const layerNameLabels: Record<Lang, Record<string, string>> = {
 /**
  * Steward column overrides (registry.public.json.canonicalLayers[].steward), by
  * layer key. Only entries whose steward carries English prose are overridden;
- * everything else falls back to the JSON value (product names, "Keycloak realm",
- * "taxonomy API" — kept as-is).
+ * everything else falls back to the JSON value (product names, "taxonomy API" — kept as-is).
+ * identity: the JSON still says "RusJAz (Keycloak realm)"; Keycloak was retired 2026-11-14, so the
+ * site overrides it until the vendored registry is re-synced.
  */
 export const stewardLabels: Record<Lang, Record<string, string>> = {
-  EN: {},
+  EN: {
+    identity: "RusJAz",
+  },
   RU: {
+    identity: "RusJAz",
     membership: "платформы (данные остаются локально)",
   },
 };
@@ -110,7 +114,7 @@ export const gateNames: Record<Lang, Record<string, string>> = {
 export const gateDescriptions: Record<Lang, Record<string, string>> = {
   EN: {
     cpif_authentication:
-      "Federated identity via the shared Keycloak realm; local mirror of the subject.",
+      "One federated identity (CPIF); each platform keeps only a local reference to the person.",
     canonical_geography:
       "Store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions.",
     organisation_anchor:
@@ -124,7 +128,7 @@ export const gateDescriptions: Record<Lang, Record<string, string>> = {
   },
   RU: {
     cpif_authentication:
-      "Федеративная идентичность через общий realm Keycloak; локальная копия субъекта.",
+      "Единая федеративная идентичность (CPIF); платформа хранит лишь локальную ссылку на человека.",
     canonical_geography:
       "Хранить CanonicalRegionCode (ITL1); потреблять taxonomy API; не создавать регионы самостоятельно.",
     organisation_anchor:

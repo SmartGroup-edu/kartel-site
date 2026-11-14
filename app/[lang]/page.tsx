@@ -11,21 +11,21 @@ export function generateStaticParams() {
 
 const pageMeta: Record<Locale, { title: string; description: string; keywords: string[] }> = {
   en: {
-    title: "KARTEL Core — federation authority, registry, governance",
+    title: "KARTEL Core — public registry of the KARTEL federation",
     description:
-      "KARTEL Core is the authority surface of a federation of cultural and educational platforms (MoyPolk, RusJAz, Community Group). It owns the canonical layers — identity (CPIF), geography (ITL1), organisations, federation — which platforms consume. Official public registry and governance.",
+      "The public registry of the KARTEL federation: one identity, one map of UK regions and one organisation model, shared by MoyPolk, RusJAz and Community Group.",
     keywords: [
       "KARTEL", "KARTEL Core", "federation", "CPIF", "canonical geography",
       "MoyPolk", "RusJAz", "Community Group", "registry", "governance",
     ],
   },
   ru: {
-    title: "Ядро KARTEL — авторитетность федерации, реестр, governance",
+    title: "Ядро KARTEL — публичный реестр федерации KARTEL",
     description:
-      "Ядро KARTEL — слой авторитетности федерации культурных и образовательных платформ (MoyPolk, RusJAz, Community Group). Владеет каноническими слоями — идентичность (CPIF), география (ITL1), организации, федерация — которые потребляют платформы. Официальный публичный реестр и governance.",
+      "Публичный реестр федерации KARTEL: единая идентичность, единая карта регионов UK и единая модель организаций для MoyPolk, RusJAz и Community Group.",
     keywords: [
       "KARTEL", "Ядро KARTEL", "KARTEL Core", "федерация", "CPIF", "каноническая география",
-      "MoyPolk", "RusJAz", "Community Group", "реестр", "governance",
+      "MoyPolk", "RusJAz", "Community Group", "реестр", "управление",
     ],
   },
 };
@@ -68,8 +68,8 @@ function structuredData(lang: Locale) {
         "url": "https://kartel.org.uk",
         "description":
           lang === "en"
-            ? "Authority surface of a federation of cultural and educational platforms."
-            : "Слой авторитетности федерации культурных и образовательных платформ.",
+            ? "Public registry of a federation of cultural and educational platforms."
+            : "Публичный реестр федерации культурных и образовательных платформ.",
       },
       {
         "@type": "WebPage",
