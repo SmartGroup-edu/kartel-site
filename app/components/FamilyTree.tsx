@@ -1,37 +1,15 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import type { TreeNode } from "../content/family";
 
-interface TreeNode {
-  id: string;
-  nameEN: string;
-  nameRU: string;
-  roleEN: string;
-  roleRU: string;
-  generation: "root" | "founder" | "ancestor" | "grandparent" | "elder" | "current" | "next";
-}
 
 interface FamilyTreeProps {
   lang: "EN" | "RU";
+  /** Passed from the gated server page — never bundled into client JS (R0 2026-11-14). */
+  nodes: TreeNode[];
 }
 
-const NODES: TreeNode[] = [
-  { id: "piotr_root", nameEN: "Piotr Kartel", nameRU: "Пётр Картель", roleEN: "Root", roleRU: "Корни", generation: "root" },
-  { id: "andrey", nameEN: "Andrey Petrovich Kartel", nameRU: "Андрей Петрович Картель", roleEN: "Founder", roleRU: "Основатели", generation: "founder" },
-  { id: "poloneya", nameEN: "Poloneya Grigorievna Kartel", nameRU: "Полонея Григорьевна Картель", roleEN: "Founder", roleRU: "Основатели", generation: "founder" },
-  { id: "aleksandr", nameEN: "Aleksandr Andreyevich Kartel", nameRU: "Александр Андреевич Картель", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
-  { id: "lyubov", nameEN: "Lyubov Petrovna Kartel (née Kirey)", nameRU: "Любовь Петровна Картель (Кирей)", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
-  { id: "nikolai", nameEN: "Nikolai Aleksandrovich Kartel", nameRU: "Николай Александрович Картель", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
-  { id: "valentina_a", nameEN: "Valentina Aleksandrovna Kartel (née Mikhal)", nameRU: "Валентина Александровна Картель (Михаль)", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
-  { id: "piotr", nameEN: "Piotr Nikolaevich Kartel", nameRU: "Петр Николаевич Картель", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
-  { id: "valentina", nameEN: "Valentina Cheslavovna Kartel (née Chizhevskaya)", nameRU: "Валентина Чеславовна Картель (Чижевская)", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
-  { id: "igor", nameEN: "Igor Gor Petrovich Kartel", nameRU: "Игорь Гор Петрович Картель", roleEN: "Family representative, London", roleRU: "Представитель семьи, Лондон", generation: "current" },
-  { id: "diana", nameEN: "Diana Zenonovna Kartel (née Subach)", nameRU: "Диана Зеноновна Картель (Субоч)", roleEN: "Present generation", roleRU: "Настоящее поколение", generation: "current" },
-  { id: "dominika", nameEN: "Dominika Igorevna Kartel", nameRU: "Доминика Игоревна Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
-  { id: "arina", nameEN: "Arina Igorevna Kartel", nameRU: "Арина Игоревна Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
-  { id: "kaid", nameEN: "Igor Kaid Igorevich Kartel", nameRU: "Игорь Каид Игоревич Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
-  { id: "feliks", nameEN: "Feliks Igorevich Kartel", nameRU: "Феликс Игоревич Картель", roleEN: "Next generation", roleRU: "Новое поколение", generation: "next" },
-];
 
 const GEN_COLORS: Record<string, string> = {
   root: "var(--muted)",
@@ -43,7 +21,7 @@ const GEN_COLORS: Record<string, string> = {
   next: "var(--accent-hover, var(--accent))",
 };
 
-export default function FamilyTree({ lang }: FamilyTreeProps) {
+export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const handleHover = useCallback((id: string | null) => setHoveredId(id), []);

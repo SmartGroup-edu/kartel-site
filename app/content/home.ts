@@ -39,14 +39,6 @@ This combination precisely expresses the emotional and spiritual code of the Kar
     navLegacy: "Legacy",
     navFamily: "Family",
     namesTitle: "KARTEL FAMILY — NAMES & LEGACY",
-    namesRu: [
-      "Игорь Гор Картель", "Диана Картель", "Доминика Картель", "Арина Картель",
-      "Игорь Каид Картель", "Феликс Картель", "Петр Картель", "Валентина Картель",
-    ],
-    namesEn: [
-      "Igor Gor Kartel", "Diana Kartel", "Dominika Kartel", "Arina Kartel",
-      "Igor Kaid Kartel", "Feliks Kartel", "Piotr Kartel", "Valentina Kartel",
-    ],
     namesFooter: "KARTEL \u2022 Coat of Arms \u2022 Legacy \u2022 London",
     footerMotto: "Virtus et Potestas",
     footerCopy: "The Kartel Family. London.",
@@ -91,14 +83,6 @@ This combination precisely expresses the emotional and spiritual code of the Kar
     navLegacy: "\u041D\u0430\u0441\u043B\u0435\u0434\u0438\u0435",
     navFamily: "\u0421\u0435\u043C\u044C\u044F",
     namesTitle: "\u0421\u0415\u041C\u042C\u042F \u041A\u0410\u0420\u0422\u0415\u041B\u042C \u2014 \u0418\u041C\u0415\u041D\u0410 \u0418 \u041D\u0410\u0421\u041B\u0415\u0414\u0418\u0415",
-    namesRu: [
-      "\u0418\u0433\u043E\u0440\u044C \u0413\u043E\u0440 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u0414\u0438\u0430\u043D\u0430 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u0414\u043E\u043C\u0438\u043D\u0438\u043A\u0430 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u0410\u0440\u0438\u043D\u0430 \u041A\u0430\u0440\u0442\u0435\u043B\u044C",
-      "\u0418\u0433\u043E\u0440\u044C \u041A\u0430\u0438\u0434 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u0424\u0435\u043B\u0438\u043A\u0441 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u041F\u0435\u0442\u0440 \u041A\u0430\u0440\u0442\u0435\u043B\u044C", "\u0412\u0430\u043B\u0435\u043D\u0442\u0438\u043D\u0430 \u041A\u0430\u0440\u0442\u0435\u043B\u044C",
-    ],
-    namesEn: [
-      "Igor Gor Kartel", "Diana Kartel", "Dominika Kartel", "Arina Kartel",
-      "Igor Kaid Kartel", "Feliks Kartel", "Piotr Kartel", "Valentina Kartel",
-    ],
     namesFooter: "\u041A\u0410\u0420\u0422\u0415\u041B\u042C \u2022 \u0433\u0435\u0440\u0431 \u2022 \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u0435 \u2022 \u041B\u043E\u043D\u0434\u043E\u043D",
     footerMotto: "Virtus et Potestas",
     footerCopy: "\u0421\u0435\u043C\u044C\u044F \u041A\u0430\u0440\u0442\u0435\u043B\u044C. \u041B\u043E\u043D\u0434\u043E\u043D.",

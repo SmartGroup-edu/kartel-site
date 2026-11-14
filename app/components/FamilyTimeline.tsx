@@ -1,113 +1,16 @@
 "use client";
 
-interface TimelineEvent {
-  id: string;
-  yearEN: string;
-  yearRU: string;
-  titleEN: string;
-  titleRU: string;
-  descEN: string;
-  descRU: string;
-}
+import type { TimelineEvent } from "../content/family";
 
-const EVENTS: TimelineEvent[] = [
-  {
-    id: "origins",
-    yearEN: "Origins",
-    yearRU: "Истоки",
-    titleEN: "The Kartel Name",
-    titleRU: "Имя Картель",
-    descEN: "The family name Kartel carries within it an echo of strength and unity — a name that became the foundation of identity and memory across generations.",
-    descRU: "Фамилия Картель несёт в себе отголосок силы и единства — имя, ставшее основой идентичности и памяти на протяжении поколений.",
-  },
-  {
-    id: "root",
-    yearEN: "Roots",
-    yearRU: "Корни",
-    titleEN: "Piotr Kartel",
-    titleRU: "Пётр Картель",
-    descEN: "The earliest known ancestor of the Kartel family — the root from which the entire lineage descends.",
-    descRU: "Самый ранний известный предок рода Картель — корень, от которого происходит весь род.",
-  },
-  {
-    id: "founders",
-    yearEN: "Founders",
-    yearRU: "Основатели",
-    titleEN: "Andrey Petrovich & Poloneya Grigorievna Kartel",
-    titleRU: "Андрей Петрович и Полонея Григорьевна Картель",
-    descEN: "The generation that carried forward the family from its earliest root — building the foundation of the Kartel lineage.",
-    descRU: "Поколение, продолжившее род от его самого раннего корня — заложившее основу рода Картель.",
-  },
-  {
-    id: "ancestors",
-    yearEN: "Ancestors",
-    yearRU: "Прародители",
-    titleEN: "Aleksandr Andreyevich & Lyubov Petrovna Kartel (née Kirey)",
-    titleRU: "Александр Андреевич и Любовь Петровна Картель (Кирей)",
-    descEN: "The generation that carried forward the founders' legacy — strengthening the family line and its values.",
-    descRU: "Поколение, продолжившее дело основателей — укрепившее семейную линию и её ценности.",
-  },
-  {
-    id: "grandparents",
-    yearEN: "Grandparents",
-    yearRU: "Дедушки и бабушки",
-    titleEN: "Nikolai Aleksandrovich & Valentina Aleksandrovna Kartel (née Mikhal)",
-    titleRU: "Николай Александрович и Валентина Александровна Картель (Михаль)",
-    descEN: "The grandparent generation carried forward the family values and traditions, bridging the past and the present.",
-    descRU: "Поколение дедушек и бабушек передало семейные ценности и традиции, связав прошлое с настоящим.",
-  },
-  {
-    id: "elders",
-    yearEN: "Elder Generation",
-    yearRU: "Старшее поколение",
-    titleEN: "Piotr Nikolaevich & Valentina Cheslavovna Kartel (née Chizhevskaya)",
-    titleRU: "Пётр Николаевич и Валентина Чеславовна Картель (Чижевская)",
-    descEN: "The elder generation laid the foundation of values, discipline, and faith that would define the family for decades to come.",
-    descRU: "Старшее поколение заложило фундамент ценностей, дисциплины и веры, определивших семью на десятилетия вперёд.",
-  },
-  {
-    id: "london",
-    yearEN: "London",
-    yearRU: "Лондон",
-    titleEN: "A New Chapter in London",
-    titleRU: "Новая глава в Лондоне",
-    descEN: "The family established its presence in London — bringing heritage, ambition, and the conscious continuation of legacy to a new horizon.",
-    descRU: "Семья обосновалась в Лондоне — привнеся наследие, амбиции и осознанное продолжение традиций на новый горизонт.",
-  },
-  {
-    id: "present",
-    yearEN: "Present",
-    yearRU: "Настоящее",
-    titleEN: "Igor Gor Petrovich & Diana Zenonovna Kartel (née Subach)",
-    titleRU: "Игорь Гор Петрович и Диана Зеноновна Картель (Субоч)",
-    descEN: "The present generation carries forward the family name with purpose — building, creating, and preserving what matters most.",
-    descRU: "Настоящее поколение продолжает семейное имя с целеустремлённостью — созидая, строя и сохраняя самое важное.",
-  },
-  {
-    id: "next",
-    yearEN: "Next Generation",
-    yearRU: "Новое поколение",
-    titleEN: "Dominika, Arina, Igor Kaid & Feliks",
-    titleRU: "Доминика, Арина, Игорь Каид и Феликс",
-    descEN: "The next generation — the living continuation of the Kartel legacy. Each carrying the name forward into a future yet to be written.",
-    descRU: "Новое поколение — живое продолжение наследия Картель. Каждый несёт имя вперёд, в будущее, которое ещё предстоит написать.",
-  },
-  {
-    id: "crest",
-    yearEN: "The Coat of Arms",
-    yearRU: "Герб",
-    titleEN: "Virtus et Potestas",
-    titleRU: "Virtus et Potestas",
-    descEN: "The creation of the family coat of arms — a heraldic symbol uniting all generations under one motto: Strength and Power.",
-    descRU: "Создание фамильного герба — геральдического символа, объединяющего все поколения под одним девизом: Сила и Власть.",
-  },
-];
+
 
 interface FamilyTimelineProps {
   lang: "EN" | "RU";
+  /** Passed from the gated server page — never bundled into client JS (R0 2026-11-14). */
+  events: TimelineEvent[];
 }
 
-export default function FamilyTimeline({ lang }: FamilyTimelineProps) {
+export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineProps) {
   const title = lang === "EN" ? "Family Chronicle" : "Семейная хроника";
 
   return (
