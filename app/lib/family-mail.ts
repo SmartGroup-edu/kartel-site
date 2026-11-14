@@ -12,18 +12,7 @@
  */
 
 import { familyEnv } from "@/app/lib/family-env";
-
-async function hmacHex(secret: string, data: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
-  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
-}
+import { signRelayRequest } from "@/app/lib/relay-signature.mjs";
 
 /**
  * Send a sign-in link. Throws on a non-2xx response so the caller can log it;
@@ -32,7 +21,7 @@ async function hmacHex(secret: string, data: string): Promise<string> {
 export async function sendSignInLink(to: string, link: string): Promise<void> {
   const body = JSON.stringify({ to, link });
   const ts = String(Math.floor(Date.now() / 1000));
-  const sig = await hmacHex(familyEnv.mailRelaySecret(), `${ts}.${body}`);
+  const sig = await signRelayRequest(familyEnv.mailRelaySecret(), ts, body);
 
   const res = await fetch(new URL("/send", familyEnv.mailRelayUrl()), {
     method: "POST",

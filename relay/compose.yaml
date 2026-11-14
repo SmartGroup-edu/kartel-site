@@ -8,6 +8,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
+    networks: [relaynet]
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -16,3 +17,11 @@ services:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}   # from .env next to this file, server only
     restart: unless-stopped
     depends_on: [relay]
+    networks: [relaynet]
+
+# IPv4 ONLY, on purpose. Brevo allows this node's IPv4 (178.105.16.72); the host's IPv6 is NOT on
+# the Brevo list, so any send that leaves over IPv6 is refused (verified 2026-11-14 13:43 — Brevo
+# raised "Verify a new IP" for the host's IPv6). Never set enable_ipv6 here.
+networks:
+  relaynet:
+    enable_ipv6: false
