@@ -100,7 +100,7 @@ describe("/ru — Coat of Arms home", () => {
   });
 
   test("Russian coat-of-arms title", () => {
-    assert.match(html, /<title>Герб семьи Картель — Virtus et Potestas<\/title>/);
+    assert.match(html, /<title>Фамильный герб Картель — Virtus et Potestas<\/title>/);
   });
 
   test("canonical points at /ru", () => {
