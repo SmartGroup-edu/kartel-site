@@ -2,6 +2,7 @@
 
 import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
+import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { projectsContent } from "../content/projects";
@@ -20,7 +21,7 @@ function RolePill({ value, label }: { value: string; label?: string }) {
       ? "border-[var(--border)] text-[var(--muted)]"
       : "border-[var(--accent)] text-[var(--accent)]";
   return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide ${tone}`}>
       {label ?? value}
     </span>
   );
@@ -39,9 +40,9 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} subNav={registryNav(lang)} />
 
-      <main id="main" className="mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
@@ -70,7 +71,7 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
                       <td className="px-4 py-4">
                         <div className="font-serif text-base text-[var(--foreground)]">{p.name}</div>
                         {p.url ? (
-                          <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                          <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-block rounded-sm py-1 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]">
                             {p.url.replace(/^https?:\/\//, "")} ↗
                           </a>
                         ) : (

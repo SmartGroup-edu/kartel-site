@@ -44,6 +44,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
+    // Unmatched URLs get app/global-not-found.tsx with a real 404 status. A catch-all page under
+    // [lang] would render inside loading.tsx's Suspense and stream as a soft-404 (HTTP 200).
+    globalNotFound: true,
   },
   images: {
     formats: ["image/avif", "image/webp"],

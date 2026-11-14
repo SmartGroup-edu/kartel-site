@@ -5,17 +5,8 @@
 
 export const organisationsContent = {
   EN: {
-    nav: [
-      { label: "Registry", href: "/en/registry" },
-      { label: "Layers", href: "/en/registry/layers" },
-      { label: "Organisations", href: "/en/registry/organisations", active: true },
-      { label: "Campuses", href: "/en/registry/campuses" },
-      { label: "Federation Map", href: "/en/registry/federation" },
-      { label: "Projects", href: "/en/registry/projects" },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core — Organisation Registry (canonical institutions)",
     metaDescription:
       "The canonical organisation registry of the KARTEL ecosystem: the institutions CEA, RusJAz Foundation, Znaniye and Baltica, each with a readable canonicalOrgCode. Institutions only — operating campuses are anchored separately in the Campus Registry.",
@@ -44,17 +35,8 @@ export const organisationsContent = {
       "Public registry — canonical codes, names and hierarchy only. No operational data, no internal identifiers, no personal data. Those live in the access-controlled internal surface, never here.",
   },
   RU: {
-    nav: [
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Слои", href: "/ru/registry/layers" },
-      { label: "Организации", href: "/ru/registry/organisations", active: true },
-      { label: "Кампусы", href: "/ru/registry/campuses" },
-      { label: "Карта федерации", href: "/ru/registry/federation" },
-      { label: "Проекты", href: "/ru/registry/projects" },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Ядро KARTEL — реестр организаций (канонические учреждения)",
     metaDescription:
       "Канонический реестр организаций экосистемы KARTEL: учреждения CEA, RusJAz Foundation, «Знание» и «Балтика», каждое со своим читаемым canonicalOrgCode. Только учреждения — действующие кампусы закрепляются отдельно, в реестре кампусов.",

@@ -2,6 +2,7 @@
 
 import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
+import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { organisationsContent } from "../content/organisations";
@@ -13,7 +14,7 @@ function TierPill({ value }: { value: string }) {
     ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--background)]"
     : "border-[var(--accent)] text-[var(--accent)]";
   return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] uppercase tracking-wide ${tone}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide ${tone}`}>
       {value}
     </span>
   );
@@ -28,9 +29,9 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} subNav={registryNav(lang)} />
 
-      <main id="main" className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
@@ -88,7 +89,7 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--muted)]">{c.campusesNote}</p>
             <a
               href={c.campusesHref}
-              className="mt-4 inline-block rounded-sm text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              className="mt-4 inline-block rounded-sm py-1 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
             >
               {c.campusesLinkLabel} →
             </a>

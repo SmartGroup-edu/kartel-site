@@ -4,20 +4,15 @@
 
 export const registryContent = {
   EN: {
-    nav: [
-      { label: "Core", href: "/en" },
-      { label: "Registry", href: "/en/registry" },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "KARTEL Core Registry — federation layers, projects, status",
     metaDescription:
       "The official registry of the KARTEL ecosystem: canonical layers (identity, geography), project federation status, ownership, and the Federation Integration Gate.",
     eyebrow: "KARTEL Core",
     title: "KARTEL Core Registry",
     intro:
-      "The canonical authority surface of the KARTEL ecosystem. KARTEL Core owns the canonical layers; platforms consume or steward them. This registry observes — it is not a workflow, a database, or a runtime dependency.",
+      "The public record of the KARTEL federation. KARTEL Core owns the canonical layers; platforms consume or steward them. This registry observes — it is not a workflow, a database, or a runtime dependency.",
     updatedLabel: "Updated",
     sections: {
       layers: "Canonical layers",
@@ -38,20 +33,15 @@ export const registryContent = {
       "Public registry — status and architecture only. Operational detail, reconciliation, and any personal data live in the access-controlled internal surface, never here.",
   },
   RU: {
-    nav: [
-      { label: "Ядро", href: "/ru" },
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Реестр Ядра KARTEL — слои федерации, проекты, статус",
     metaDescription:
       "Официальный реестр экосистемы KARTEL: канонические слои (идентичность, география), статус федерации проектов, владение и Шлюз интеграции в федерацию.",
     eyebrow: "Ядро KARTEL",
     title: "Реестр Ядра KARTEL",
     intro:
-      "Официальный слой авторитетности экосистемы KARTEL. Ядро KARTEL владеет каноническими слоями; платформы их потребляют или обслуживают. Реестр наблюдает — это не workflow, не база данных и не runtime-зависимость.",
+      "Публичная запись федерации KARTEL. Ядро KARTEL владеет каноническими слоями; платформы их потребляют или обслуживают. Реестр только фиксирует состояние — это не рабочий процесс, не база данных и не зависимость, от которой работают платформы.",
     updatedLabel: "Обновлено",
     sections: {
       layers: "Канонические слои",
@@ -59,7 +49,7 @@ export const registryContent = {
       projects: "Проекты",
       projectsNote: "Каждый проект потребляет или обслуживает канонические слои. Никто не владеет Ядром.",
       gate: "Шлюз интеграции в федерацию",
-      gateNote: "Ни один новый проект не выходит в production, не пройдя все восемь пунктов.",
+      gateNote: "Ни один новый проект не запускается в работу, не пройдя все восемь пунктов.",
       contracts: "Контракты",
       contractsNote: "@kartel/contracts — только типы. Соответствие = федерация.",
     },

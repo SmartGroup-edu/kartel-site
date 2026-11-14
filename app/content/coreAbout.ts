@@ -4,17 +4,11 @@
 
 export const coreAboutContent = {
   EN: {
-    nav: [
-      { label: "Core", href: "/en/core", active: true },
-      { label: "Registry", href: "/en/registry" },
-      { label: "Projects", href: "/en/registry/projects" },
-      { label: "Family Heritage", href: "/en/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Core authority surface",
+    copy: "KARTEL Core · public registry of the federation",
     metaTitle: "What is KARTEL Core? — federation, identity, geography",
     metaDescription:
-      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity (CPIF), one geography (ITL1), and one governance. What it is, which projects exist, and why a federation.",
+      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity (CPIF), one geography (ITL1), and one set of rules. What it is, which projects exist, and why a federation.",
     eyebrow: "What is KARTEL?",
     title: "One ecosystem. One identity. One geography.",
     lede:
@@ -22,11 +16,11 @@ export const coreAboutContent = {
     sections: [
       {
         h: "The projects",
-        p: "MoyPolk (Immortal Regiment UK memorial), RusJAz (Russian-language education marketplace + LMS), and Community Group (cultural funding & trust). RusJAzz is planned. Each is a separate platform — federated, not merged.",
+        p: "MoyPolk (Immortal Regiment UK memorial), RusJAz (Russian-language education marketplace and LMS), and Community Group (cultural funding & trust). RusJAzz is planned. Each is a separate platform — federated, not merged.",
       },
       {
         h: "CPIF — one identity",
-        p: "The Common Platform Identity Framework. A person logs in once through the shared identity provider and is the same subject on every platform — no duplicate accounts, no re-registration. The platform stores only a reference to that subject.",
+        p: "The Common Platform Identity Framework. A person is the same person on every platform — no duplicate accounts, no re-registration. Each platform stores only a reference to that person.",
       },
       {
         h: "Canonical Geography — one map",
@@ -45,17 +39,11 @@ export const coreAboutContent = {
     ],
   },
   RU: {
-    nav: [
-      { label: "Ядро", href: "/ru/core", active: true },
-      { label: "Реестр", href: "/ru/registry" },
-      { label: "Проекты", href: "/ru/registry/projects" },
-      { label: "Семейное наследие", href: "/ru/family" },
-    ],
     motto: "Virtus et Potestas",
-    copy: "© 2026 KARTEL · Слой канонической авторитетности",
+    copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Что такое Ядро KARTEL? — федерация, идентичность, география",
     metaDescription:
-      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью (CPIF), одной географией (ITL1) и одним governance. Что это, какие проекты и зачем федерация.",
+      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью (CPIF), одной географией (ITL1) и едиными правилами управления. Что это, какие проекты и зачем федерация.",
     eyebrow: "Что такое KARTEL?",
     title: "Одна экосистема. Одна идентичность. Одна география.",
     lede:
@@ -63,11 +51,11 @@ export const coreAboutContent = {
     sections: [
       {
         h: "Проекты",
-        p: "MoyPolk (мемориал «Бессмертный полк UK»), RusJAz (маркетплейс русскоязычного образования + LMS) и Community Group (культурное финансирование и доверие). RusJAzz — в плане. Каждый — отдельная платформа: федерация, не слияние.",
+        p: "MoyPolk (мемориал «Бессмертный полк UK»), RusJAz (маркетплейс русскоязычного образования и LMS) и Community Group (культурное финансирование и доверие). RusJAzz — в плане. Каждый — отдельная платформа: федерация, не слияние.",
       },
       {
         h: "CPIF — одна идентичность",
-        p: "Common Platform Identity Framework. Человек входит один раз через общий провайдер идентичности и остаётся тем же субъектом на каждой платформе — без дублей аккаунтов и повторной регистрации. Платформа хранит лишь ссылку на этот субъект.",
+        p: "Common Platform Identity Framework. Человек остаётся тем же человеком на каждой платформе — без дублей аккаунтов и повторной регистрации. Каждая платформа хранит лишь ссылку на него.",
       },
       {
         h: "Каноническая география — одна карта",

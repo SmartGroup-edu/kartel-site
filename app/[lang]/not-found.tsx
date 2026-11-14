@@ -2,42 +2,43 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import SiteHeader from "../components/SiteHeader";
+import { useLangToggle, type Lang } from "../components/useLang";
 
 const text = {
-  en: { message: "This page does not exist.", cta: "RETURN HOME" },
-  ru: { message: "Эта страница не существует.", cta: "НА ГЛАВНУЮ" },
+  en: { message: "This page does not exist.", hint: "The address may be mistyped, or the page has moved.", cta: "Return home", registry: "Open the registry" },
+  ru: { message: "Такой страницы нет.", hint: "Возможно, в адресе опечатка или страница переехала.", cta: "На главную", registry: "Открыть реестр" },
 };
 
 export default function NotFound() {
   const params = useParams<{ lang: string }>();
   const lang = (params?.lang === "ru" ? "ru" : "en") as keyof typeof text;
+  const L = lang.toUpperCase() as Lang;
+  const toggleLang = useLangToggle(L);
   const t = text[lang];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 text-center">
-      <Link
-        href={`/${lang}`}
-        className="mb-8 font-serif text-[20px] tracking-[0.12em] text-[var(--accent)] transition-opacity hover:opacity-80 sm:text-[24px]"
-      >
-        KARTEL
-      </Link>
-      <h1 className="font-serif text-[72px] leading-none text-[var(--accent)] sm:text-[96px]">
-        404
-      </h1>
-      <div className="my-6 flex items-center gap-3" aria-hidden="true">
-        <span className="block h-px w-12 bg-[var(--muted-light)]" />
-        <span className="block text-[14px] text-[var(--muted-light)]">&#9830;</span>
-        <span className="block h-px w-12 bg-[var(--muted-light)]" />
-      </div>
-      <p className="text-[18px] text-[var(--text-secondary)] sm:text-[20px]">
-        {t.message}
-      </p>
-      <Link
-        href={`/${lang}`}
-        className="mt-8 border border-[var(--accent)] px-6 py-3 text-sm tracking-[0.1em] text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-      >
-        {t.cta}
-      </Link>
-    </div>
+    <>
+      <SiteHeader lang={L} toggleLang={toggleLang} />
+      <main id="main" className="flex flex-1 flex-col items-center justify-center px-4 py-24 text-center">
+        <p className="font-serif text-7xl leading-none text-[var(--accent)] sm:text-8xl">404</p>
+        <h1 className="mt-6 font-serif text-3xl text-[var(--foreground)]">{t.message}</h1>
+        <p className="mt-3 max-w-md text-base text-[var(--text-body)]">{t.hint}</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href={`/${lang}`}
+            className="rounded-lg bg-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--on-accent)] transition-opacity hover:opacity-90"
+          >
+            {t.cta}
+          </Link>
+          <Link
+            href={`/${lang}/registry`}
+            className="rounded-lg border border-[var(--accent)] px-5 py-2.5 text-sm font-medium text-[var(--accent)] transition-colors hover:bg-[var(--surface)]"
+          >
+            {t.registry}
+          </Link>
+        </div>
+      </main>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useLangToggle, type Lang } from "./useLang";
 import SiteHeader from "./SiteHeader";
+import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { campusesContent } from "../content/campuses";
@@ -15,9 +16,9 @@ export default function CampusRegistry({ lang }: { lang: Lang }) {
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={[...c.nav]} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} subNav={registryNav(lang)} />
 
-      <main id="main" className="mx-auto max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
+      <main id="main" className="mx-auto w-full min-w-0 max-w-5xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
             <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
