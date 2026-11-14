@@ -78,7 +78,7 @@ export default function CoreClient({ lang }: { lang: Lang }) {
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {c.layers.map((l) => (
                 <Card key={l.code} className="p-5 shadow-none">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <h3 className="font-serif text-lg text-[var(--foreground)]">{l.code}</h3>
                     <StatusPill value={c.statusLabels[l.status as keyof typeof c.statusLabels] ?? l.status} />
                   </div>

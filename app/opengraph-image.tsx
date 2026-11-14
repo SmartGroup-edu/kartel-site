@@ -72,7 +72,7 @@ export default async function OGImage() {
               display: "flex",
               width: 80,
               height: 2,
-              backgroundColor: "#c4b89a",
+              backgroundColor: "#d9b8bd",
               marginBottom: 28,
             }}
           />
@@ -122,7 +122,7 @@ export default async function OGImage() {
               display: "flex",
               width: 80,
               height: 2,
-              backgroundColor: "#c4b89a",
+              backgroundColor: "#d9b8bd",
               marginTop: 28,
             }}
           />
