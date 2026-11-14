@@ -192,7 +192,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
             alt={
               lang === "EN"
                 ? "Kartel family coat of arms — interactive explorer"
-                : "Герб семьи Картель — интерактивный просмотр"
+                : "Фамильный герб Картель — интерактивный просмотр"
             }
             width={540}
             height={540}
