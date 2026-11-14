@@ -35,12 +35,16 @@ if (SECRET.length < 32) throw new Error("RELAY_SECRET must be >= 32 chars");
 const PER_RECIPIENT = { max: 3, windowMs: 60 * 60 * 1000 };
 const GLOBAL = { max: 60, windowMs: 60 * 60 * 1000 };
 const hits = new Map(); // key -> timestamps[]
-function allow(key, { max, windowMs }) {
+/** Allow only if EVERY limit has room; consume from all of them only then. */
+function allowAll(limits) {
   const now = Date.now();
-  const arr = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-  if (arr.length >= max) { hits.set(key, arr); return false; }
-  arr.push(now);
-  hits.set(key, arr);
+  const windows = limits.map(([key, { max, windowMs }]) => {
+    const arr = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
+    hits.set(key, arr);
+    return { arr, max };
+  });
+  if (windows.some(({ arr, max }) => arr.length >= max)) return false;
+  for (const { arr } of windows) arr.push(now);
   return true;
 }
 setInterval(() => {
@@ -114,7 +118,7 @@ const server = createServer((req, res) => {
     const link = typeof body.link === "string" ? body.link : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     if (!link.startsWith(LINK_PREFIX) || link.length > 2048) return reply(res, 400, { error: "bad_link" });
-    if (!allow("global", GLOBAL) || !allow(`to:${to}`, PER_RECIPIENT)) {
+    if (!allowAll([["global", GLOBAL], [`to:${to}`, PER_RECIPIENT]])) {
       console.warn("[relay] rate limited");
       return reply(res, 429, { error: "rate_limited" });
     }
@@ -133,4 +137,4 @@ const server = createServer((req, res) => {
 if (process.env.RELAY_NO_LISTEN !== "1") {
   server.listen(PORT, "0.0.0.0", () => console.log(`[relay] listening on ${PORT}`));
 }
-export { server };
+export { server, hits as _hits }; // _hits: test-only view of the rate-limit windows

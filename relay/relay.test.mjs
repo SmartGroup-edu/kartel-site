@@ -8,16 +8,14 @@ const PREFIX = "https://kartel.org.uk/api/family-auth/verify?token=";
 let brevoCalls = [];
 let brevo, relay, base;
 
-// Same signing as app/lib/family-mail.ts (WebCrypto), to prove the two sides agree.
-async function siteSign(secret, data) {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
-  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
-}
+// The SITE's own signer — the exact module app/lib/family-mail.ts uses — so these tests prove the
+// site and the relay agree, and break if either side changes alone.
+import { signRelayRequest } from "../app/lib/relay-signature.mjs";
+
 async function send(payload, { secret = SECRET, tsOffset = 0 } = {}) {
   const body = JSON.stringify(payload);
   const ts = String(Math.floor(Date.now() / 1000) + tsOffset);
-  const sig = await siteSign(secret, `${ts}.${body}`);
+  const sig = await signRelayRequest(secret, ts, body);
   return fetch(base + "/send", { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": sig }, body });
 }
 
@@ -74,6 +72,18 @@ test("per-recipient limit: 4th within the hour → 429", async () => {
   const to = "limit@example.com";
   for (let i = 0; i < 3; i++) assert.equal((await send({ to, link: PREFIX + i })).status, 202);
   assert.equal((await send({ to, link: PREFIX + "4" })).status, 429);
+});
+test("site signer and relay signer agree byte for byte", async () => {
+  const { sign } = await import("./server.mjs");
+  assert.equal(await signRelayRequest(SECRET, "1794660000", '{"a":1}'), sign(SECRET, "1794660000", '{"a":1}'));
+});
+test("a refused per-recipient request does not use up the global budget", async () => {
+  const { _hits } = await import("./server.mjs");
+  const to = "blocked@example.com";
+  for (let i = 0; i < 3; i++) await send({ to, link: PREFIX + i });
+  const before = _hits.get("global").length;
+  for (let i = 0; i < 5; i++) assert.equal((await send({ to, link: PREFIX + "x" })).status, 429);
+  assert.equal(_hits.get("global").length, before);
 });
 test("unsigned request and other paths are refused", async () => {
   assert.equal((await fetch(base + "/send", { method: "POST", body: "{}" })).status, 401);
