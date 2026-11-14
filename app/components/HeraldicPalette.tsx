@@ -98,7 +98,7 @@ export default function HeraldicPalette({ lang }: HeraldicPaletteProps) {
               >
                 <div>
                   <p className="font-serif text-[16px] sm:text-[18px]">{name}</p>
-                  <p className="text-[11px] opacity-70 sm:text-[12px]">{heraldic}</p>
+                  <p className="text-[12px]">{heraldic}</p>
                 </div>
                 <svg
                   width="14"
@@ -135,17 +135,17 @@ export default function HeraldicPalette({ lang }: HeraldicPaletteProps) {
       <div className="mt-6 flex items-center justify-center gap-6">
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "#c9964e" }} />
-          <span className="text-[11px] text-[var(--muted)]">+</span>
+          <span className="text-[12px] text-[var(--muted)]">+</span>
           <span className="inline-block h-3 w-3 rounded-full border border-[var(--border)]" style={{ backgroundColor: "#1a1816" }} />
-          <span className="ml-1 text-[11px] tracking-wide text-[var(--muted-light)]">
+          <span className="ml-1 text-[12px] tracking-wide text-[var(--muted-light)]">
             {lang === "EN" ? "Light & Shadow" : "Свет и тень"}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-full border border-[var(--border)]" style={{ backgroundColor: "#e8e4dd" }} />
-          <span className="text-[11px] text-[var(--muted)]">+</span>
+          <span className="text-[12px] text-[var(--muted)]">+</span>
           <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "#8b2020" }} />
-          <span className="ml-1 text-[11px] tracking-wide text-[var(--muted-light)]">
+          <span className="ml-1 text-[12px] tracking-wide text-[var(--muted-light)]">
             {lang === "EN" ? "Mind & Heart" : "Разум и сердце"}
           </span>
         </div>

@@ -6,9 +6,9 @@ export const registryContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Core Registry — federation layers, projects, status",
+    metaTitle: "KARTEL Registry — layers, projects, status",
     metaDescription:
-      "The official registry of the KARTEL ecosystem: canonical layers (identity, geography), project federation status, ownership, and the Federation Integration Gate.",
+      "The official registry of the KARTEL federation: canonical layers, each project's federation status and the Federation Integration Gate.",
     eyebrow: "KARTEL Core",
     title: "KARTEL Core Registry",
     intro:
@@ -35,9 +35,9 @@ export const registryContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Реестр Ядра KARTEL — слои федерации, проекты, статус",
+    metaTitle: "Реестр KARTEL — слои, проекты, статус",
     metaDescription:
-      "Официальный реестр экосистемы KARTEL: канонические слои (идентичность, география), статус федерации проектов, владение и Шлюз интеграции в федерацию.",
+      "Официальный реестр федерации KARTEL: канонические слои, статус каждого проекта в федерации и Шлюз интеграции.",
     eyebrow: "Ядро KARTEL",
     title: "Реестр Ядра KARTEL",
     intro:

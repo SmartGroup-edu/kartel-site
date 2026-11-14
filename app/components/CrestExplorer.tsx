@@ -226,7 +226,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 aria-label={lang === "EN" ? el.labelEN : el.labelRU}
                 aria-pressed={activeId === el.id}
               >
-                <span className="text-[10px] font-bold sm:text-[11px]">
+                <span className="text-[12px] font-bold">
                   {i + 1}
                 </span>
               </button>
@@ -255,7 +255,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                   }`}
                 >
                   <span
-                    className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                       isActive
                         ? "bg-[var(--accent)] text-white"
                         : "bg-[var(--muted-light)]/30 text-[var(--muted)]"

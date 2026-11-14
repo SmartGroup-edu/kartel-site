@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
@@ -18,6 +18,7 @@ import HeraldicPalette from "./HeraldicPalette";
 import MottoBanner from "./MottoBanner";
 import SectionDots from "./SectionDots";
 import { homeContent } from "../content/home";
+import { familyNav } from "../content/siteNav";
 
 // Below-the-fold interactive widget — split into its own chunk so the
 // 8 heraldic-element descriptions (~16KB of EN+RU prose) don't ship with
@@ -36,19 +37,29 @@ export default function HomeClient({ lang }: { lang: Lang }) {
   const activeSection = useActiveSection(SECTION_IDS);
   useSectionKeyboard(SECTION_IDS);
 
-  const navItems = useMemo(() => [
-    { label: t.navHome, href: "#home", active: activeSection === "home" },
-    { label: t.navMeaning, href: "#meaning", active: activeSection === "meaning" },
-    { label: t.navLegacy, href: "#legacy", active: activeSection === "legacy" },
-  ], [t, activeSection, langPath]);
+  // Same header as /family (full-site QA #7); the page's own sections move to the second row.
+  const navItems = familyNav(lang);
+  // First section is the crest itself; "Home" here would repeat the header's Home link.
+  const overviewLabel = lang === "RU" ? "Обзор" : "Overview";
+  const sectionNav = [
+    { label: overviewLabel, href: "#home" },
+    { label: t.navMeaning, href: "#meaning" },
+    { label: t.navLegacy, href: "#legacy" },
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <ReadingProgress />
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} />
+      <SiteHeader
+        lang={lang}
+        toggleLang={toggleLang}
+        navItems={navItems}
+        subNav={sectionNav}
+        subNavLabel={lang === "RU" ? "Разделы страницы герба" : "Coat of arms sections"}
+      />
       <SectionDots
         sections={[
-          { id: "home", label: t.navHome },
+          { id: "home", label: overviewLabel },
           { id: "meaning", label: t.navMeaning },
           { id: "legacy", label: t.navLegacy },
         ]}

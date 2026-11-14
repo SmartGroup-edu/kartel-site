@@ -7,9 +7,9 @@ export const organisationsContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Core — Organisation Registry (canonical institutions)",
+    metaTitle: "Organisation Registry — canonical institutions",
     metaDescription:
-      "The canonical organisation registry of the KARTEL ecosystem: the institutions CEA, RusJAz Foundation, Znaniye and Baltica, each with a readable canonicalOrgCode. Institutions only — operating campuses are anchored separately in the Campus Registry.",
+      "Canonical institutions of the KARTEL ecosystem — CEA, RusJAz Foundation, Znaniye and Baltica — each with a readable organisation code.",
     eyebrow: "Canonical layer · Organisation",
     title: "Organisation Registry",
     intro:
@@ -37,9 +37,9 @@ export const organisationsContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Ядро KARTEL — реестр организаций (канонические учреждения)",
+    metaTitle: "Реестр организаций — канонические учреждения",
     metaDescription:
-      "Канонический реестр организаций экосистемы KARTEL: учреждения CEA, RusJAz Foundation, «Знание» и «Балтика», каждое со своим читаемым canonicalOrgCode. Только учреждения — действующие кампусы закрепляются отдельно, в реестре кампусов.",
+      "Канонические учреждения экосистемы KARTEL — CEA, RusJAz Foundation, «Знание» и «Балтика» — у каждого свой читаемый код организации.",
     eyebrow: "Канонический слой · Организация",
     title: "Реестр организаций",
     intro:

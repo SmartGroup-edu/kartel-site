@@ -6,9 +6,9 @@ export const layersContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Core — Registry of Registries (canonical layers)",
+    metaTitle: "Canonical layers — registry of registries",
     metaDescription:
-      "The constitutional description of the four canonical layers of the KARTEL ecosystem: Identity (CPIF), Geography (ITL1), Organisation, and Federation — each with its authority, steward, consumers, contract, and status.",
+      "The four canonical layers of the KARTEL ecosystem — identity, geography, organisation and federation — with owner, steward, consumers and status.",
     eyebrow: "Registry of Registries",
     title: "Canonical layers",
     intro:
@@ -29,9 +29,9 @@ export const layersContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Ядро KARTEL — реестр реестров (канонические слои)",
+    metaTitle: "Канонические слои — реестр реестров",
     metaDescription:
-      "Конституционное описание четырёх канонических слоёв экосистемы KARTEL: идентичность (CPIF), география (ITL1), организация и федерация — с авторитетом, стюардом, потребителями, контрактом и статусом каждого.",
+      "Четыре канонических слоя экосистемы KARTEL — идентичность, география, организация и федерация — с владельцем, стюардом, потребителями и статусом.",
     eyebrow: "Реестр реестров",
     title: "Канонические слои",
     intro:
