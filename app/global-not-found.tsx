@@ -28,6 +28,12 @@ export default function GlobalNotFound() {
         />
       </head>
       <body className="flex min-h-full flex-col">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[var(--accent)] focus:px-4 focus:py-2 focus:text-sm focus:text-[var(--on-accent)]"
+        >
+          Skip to content
+        </a>
         <header className="border-b border-[var(--border)]">
           <div className="mx-auto flex max-w-7xl items-center px-4 py-4 sm:px-6 lg:px-10 lg:py-5">
             <Link href="/en" className="rounded-sm font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] sm:text-[28px] lg:text-[30px]">
