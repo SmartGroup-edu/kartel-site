@@ -25,6 +25,11 @@
   --selection-bg: rgba(123, 30, 45, 0.15);
   --header-bg: rgba(255, 255, 255, 0.95);
   --drop-cap: #7b1e2d;
+  /* Dark motto band (MottoBanner) — always charcoal, so its accent must be a light tint.
+     Burgundy on charcoal was 1.5:1. Rose #e0a3ad on #2b2824 = 6.3:1. */
+  --band-bg: #2b2824;
+  --band-accent: #e0a3ad;
+  --band-text: rgba(255, 255, 255, 0.72);
 
   /* shadcn/ui base tokens — light. Reuse the editorial palette above; only the
      genuinely-new roles (destructive, radius) get raw values here. */
@@ -52,6 +57,11 @@
   --selection-bg: rgba(201, 150, 78, 0.25);
   --header-bg: rgba(26, 24, 22, 0.95);
   --drop-cap: #c9964e;
+  /* Motto band stays charcoal in dark mode too (it used --foreground, which turned it
+     light, with gold on cream at 2.1:1). Gold on #2b2824 = 5.6:1. */
+  --band-bg: #2b2824;
+  --band-accent: #c9964e;
+  --band-text: rgba(255, 255, 255, 0.72);
 
   /* shadcn/ui — dark destructive (lighter red for the charcoal canvas). */
   --destructive: #e5645b;
