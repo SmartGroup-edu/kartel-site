@@ -38,7 +38,7 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
             <h1 className="font-serif text-[28px] leading-[1.2] text-[var(--accent)] sm:text-[36px] lg:text-[48px]">
               {t.title}
             </h1>
-            <p className="mt-6 max-w-4xl text-[16px] leading-[1.8] text-[var(--text-secondary)] sm:text-[18px] lg:text-[19px]">
+            <p className="mt-6 max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-secondary)] lg:text-[19px] lg:leading-[1.7]">
               {t.intro}
             </p>
           </header>

@@ -164,10 +164,11 @@ export default function HomeClient({ lang }: { lang: Lang }) {
           </div>
         </section>
 
+        {/* One separator per break: the ornament, no rule under it (cycle 2 #3). */}
         <HeraldicDivider />
 
         {/* Legacy */}
-        <section id="legacy" className="border-t border-[var(--border)]">
+        <section id="legacy">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-20">
             {/* Reading column centred at lg+ (re-check 2026-11-14): h2 + text share one
                 ≤68ch measure; ch is resolved at the 20px text size so both edges line up. */}
@@ -199,7 +200,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         <HeraldicDivider />
 
         {/* Closing (home cycle 1 #5): the motto, then where to go next — and the copy-link control. */}
-        <section aria-label="Virtus et Potestas" className="border-t border-[var(--border)]">
+        <section aria-label="Virtus et Potestas">
           <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:py-20">
             <p className="font-serif text-[40px] italic leading-[1.1] text-[var(--accent)] lg:text-[56px]" lang="la">
               Virtus et Potestas
@@ -229,7 +230,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
       </main>
 
       {/* Public home: no personal contact address (same rule as the previous public home). */}
-      <SiteFooter motto={t.footerMotto} copy={t.footerCopy} contactEmail={null} />
+      <SiteFooter copy={t.footerCopy} contactEmail={null} />
       <BackToTop />
       <ImageLightbox
         src="/crest.jpeg"

@@ -15,7 +15,7 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h2 className="mb-8 text-center font-serif text-[22px] tracking-wide text-[var(--accent)] sm:text-[28px] lg:mb-10 lg:text-[32px]">
+      <h2 className="mb-8 text-center font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
         {title}
       </h2>
 
@@ -46,7 +46,7 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
               />
 
               {/* Date/era label */}
-              <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-[var(--muted-light)]">
+              <p className="text-[14px] font-medium uppercase tracking-[0.12em] text-[var(--muted-light)]">
                 {year}
               </p>
 
@@ -56,7 +56,7 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
               </h3>
 
               {/* Description */}
-              <p className="mt-2 text-[14px] leading-[1.7] text-[var(--text-secondary)] sm:text-[15px]">
+              <p className="mt-2 text-[17px] leading-[1.65] text-[var(--text-secondary)] lg:text-[19px] lg:leading-[1.7]">
                 {desc}
               </p>
             </div>
