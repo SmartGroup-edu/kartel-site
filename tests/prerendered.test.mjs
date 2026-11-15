@@ -213,7 +213,7 @@ describe("home cycle 1 (2026-11-15)", () => {
   });
   test("#5 closing block: motto, explorer + members links, copy link (EN/RU)", () => {
     for (const [h, l, a, b, t] of [[en, "en", "Explore the coat of arms", "Family Heritage — members only", "Strength and Power"], [ru, "ru", "Исследовать герб", "Семейное наследие — только для членов семьи", "Сила и Власть"]]) {
-      const i = h.indexOf('aria-label="Virtus et Potestas"');
+      const i = h.indexOf('data-closing=""');
       assert.ok(i > 0, l);
       const sec = h.slice(i, h.indexOf("</section>", i));
       assert.match(sec, /lang="la"[^>]*>Virtus et Potestas</);
@@ -241,14 +241,14 @@ describe("home cycle 2 (2026-11-15)", () => {
     for (const h of [en, ru]) {
       const foot = h.slice(h.lastIndexOf("<footer"), h.lastIndexOf("</footer>"));
       assert.doesNotMatch(foot, /Virtus et Potestas/);
-      assert.match(h, /aria-label="Virtus et Potestas"/);
+      assert.match(h, /data-closing=""/);
     }
     assert.match(src("app/components/SiteFooter.tsx"), /motto\?: string;/);
   });
   test("#3 one separator after an ornament: no rule on Legacy or the closing block", () => {
     for (const h of [en, ru]) {
       assert.match(h, /<section id="legacy">/);
-      assert.match(h, /<section aria-label="Virtus et Potestas">/);
+      assert.match(h, /<section data-closing="" aria-label="(Motto|Девиз)">/);
     }
   });
 });
@@ -482,6 +482,89 @@ describe("cycle 7 — share card, print, sign-in email (2026-11-15)", () => {
   test("#3 the app sends its link lifetime and language to the relay", () => {
     assert.match(src("app/lib/family-mail.ts"), /JSON\.stringify\(\{ to, link, ttlMinutes: familyEnv\.linkTtlMinutes\(\), lang \}\)/);
     assert.match(src("app/api/family-auth/request/route.ts"), /sendSignInLink\(addr, url, returnTo\.startsWith\("\/ru"\) \? "ru" : "en"\)/);
+  });
+});
+
+describe("cycle 8 — accessible language, hreflang, heading outline (2026-11-15)", () => {
+  const PAGES = ["", "/core", "/registry", "/registry/layers", "/registry/projects", "/registry/federation", "/registry/campuses", "/registry/organisations"];
+  const file = (lang, p) => (p ? `${lang}${p}.html` : `${lang}.html`);
+  // Server HTML without scripts (RSC payload) and without the noscript fallback.
+  const body = (h) => h.slice(h.indexOf("<body")).replace(/<script[\s\S]*?<\/script>/g, "").replace(/<noscript>[\s\S]*?<\/noscript>/g, "");
+  const decode = (v) => v.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  // Names allowed to be Latin on a Russian page: the brand, the motto, project names, codes.
+  const LATIN_OK = /^(KARTEL|Virtus et Potestas|MoyPolk|RusJAz|RusJAzz|Community Group|community\.group|[a-z0-9.:/_-]+|[A-Za-z]+[A-Z][A-Za-z0-9]*)$/;
+  test("#1 RU pages: every aria-label / title / alt is Russian (server HTML)", () => {
+    const bad = [];
+    for (const p of PAGES) {
+      for (const m of body(read(file("ru", p))).matchAll(/\s(aria-label|title|alt)="([^"]*)"/g)) {
+        const v = decode(m[2]);
+        if (!/[А-Яа-яЁё]/.test(v) && !LATIN_OK.test(v)) bad.push(`ru${p}: ${m[1]}="${v}"`);
+      }
+    }
+    assert.deepEqual(bad, []);
+  });
+  test("#1 the check fires: the EN theme-toggle label would be caught", () => {
+    assert.ok(!/[А-Яа-яЁё]/.test("Switch to dark mode") && !LATIN_OK.test("Switch to dark mode"));
+  });
+  test("#2 every visible 'Virtus et Potestas' carries lang=\"la\" (EN + RU)", () => {
+    const bad = [];
+    for (const lang of ["en", "ru"]) for (const p of PAGES) {
+      const b = body(read(file(lang, p)));
+      for (const m of b.matchAll(/>([^<]*)Virtus et Potestas/g)) {
+        const tag = b.slice(b.lastIndexOf("<", m.index), m.index + 1);
+        if (m[1].length || !/\slang="la"/.test(tag)) bad.push(`${lang}${p}: ${tag.slice(0, 60)}`);
+      }
+    }
+    assert.deepEqual(bad, []);
+  });
+  test("#3 hreflang: en, ru and x-default (→ EN) on every public page", () => {
+    for (const lang of ["en", "ru"]) for (const p of PAGES) {
+      const h = read(file(lang, p));
+      const alt = Object.fromEntries([...h.matchAll(/<link rel="alternate" hrefLang="([^"]+)" href="([^"]+)"/g)].map((m) => [m[1], m[2]]));
+      assert.equal(alt.en, `https://kartel.org.uk/en${p}`, `${lang}${p} en`);
+      assert.equal(alt.ru, `https://kartel.org.uk/ru${p}`, `${lang}${p} ru`);
+      assert.equal(alt["x-default"], `https://kartel.org.uk/en${p}`, `${lang}${p} x-default`);
+    }
+  });
+  test("#3 sitemap: every page URL carries en, ru and x-default alternates", () => {
+    const xml = readFileSync(`${APP}/sitemap.xml.body`, "utf8");
+    const urls = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1]).filter((u) => !/llms/.test(u));
+    assert.equal(urls.length, 16);
+    for (const u of urls) for (const l of ["en", "ru", "x-default"]) assert.match(u, new RegExp(`hreflang="${l}"`), u.slice(0, 80));
+  });
+  test("#4 heading outline: exactly one H1, no skipped levels (EN + RU)", () => {
+    for (const lang of ["en", "ru"]) for (const p of PAGES) {
+      const levels = [...body(read(file(lang, p))).matchAll(/<h([1-6])[\s>]/g)].map((m) => +m[1]);
+      assert.equal(levels.filter((l) => l === 1).length, 1, `${lang}${p}: H1 count`);
+      assert.equal(levels[0], 1, `${lang}${p}: first heading is H1`);
+      levels.forEach((l, i) => i && assert.ok(l <= levels[i - 1] + 1, `${lang}${p}: h${levels[i - 1]} → h${l}`));
+    }
+  });
+});
+
+describe("cycle 8 — axe serious findings fixed (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("language switch: accessible name starts with the visible RU/EN (label in name)", () => {
+    assert.match(src("app/components/SiteHeader.tsx"), /aria-label=\{lang === "EN" \? "RU — switch language to Russian" : "EN — переключить язык на английский"\}/);
+    assert.match(read("ru.html"), /aria-label="EN — переключить язык на английский"/);
+  });
+  test("crest markers inside the aria-hidden layer are out of the tab order", () => {
+    assert.match(src("app/components/CrestExplorer.tsx"), /aria-pressed=\{activeId === el\.id\}[\s\S]{0,260}tabIndex=\{-1\}/);
+    const h = read("en.html"); const layer = h.slice(h.indexOf('class="absolute inset-0" aria-hidden="true"'));
+    assert.ok(layer.length > 0 && !/<button(?![^>]*tabindex="-1")[^>]*>/.test(layer.slice(0, layer.indexOf("</div>"))));
+  });
+  test("scrolling table wrappers are focusable, named regions", () => {
+    for (const f of ["CampusRegistry", "OrganisationsRegistry", "ProjectsDirectory", "RegistryDashboard", "FederationMap"]) {
+      const c = src(`app/components/${f}.tsx`);
+      const wrappers = [...c.matchAll(/<div [^>]*overflow-x-auto[^>]*>/g)].map((m) => m[0]);
+      assert.ok(wrappers.length > 0, f);
+      for (const w of wrappers) assert.match(w, /tabIndex=\{0\} role="region" aria-label=\{/, f);
+    }
+  });
+  test("family tree cards are content, not buttons; the desktop tree is a group, not an image", () => {
+    const t = src("app/components/FamilyTree.tsx");
+    assert.doesNotMatch(t, /role="button"|role="img"|tabIndex=\{0\}/);
+    assert.match(t, /data-tree-card=""/);
   });
 });
 

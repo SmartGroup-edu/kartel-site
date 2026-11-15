@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { latinMotto } from "../lib/latin";
 
 interface SiteFooterProps {
   /** Omitted on the home, whose closing block already ends on the motto (cycle 2 #2). */
@@ -29,13 +30,13 @@ export default function SiteFooter({
           {motto && (
             <>
               <p className="font-serif text-[16px] italic tracking-wide text-[var(--accent)] sm:text-[18px]">
-                {motto}
+                {latinMotto(motto)}
               </p>
               <div className="h-px w-12 bg-[var(--border)]" aria-hidden="true" />
             </>
           )}
           <p className="text-sm text-[var(--muted)]">&copy; {new Date().getFullYear()} · {copy.replace(/^©\s*\d{4}\s*/, "")}</p>
-          <nav aria-label="Footer links" className="mt-1 flex items-center gap-4 text-[14px] text-[var(--muted-light)]">
+          <nav aria-label={ru ? "Ссылки в подвале" : "Footer links"} className="mt-1 flex items-center gap-4 text-[14px] text-[var(--muted-light)]">
             {contactEmail && (
               <>
                 {/*

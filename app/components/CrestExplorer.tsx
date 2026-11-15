@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { latinMotto } from "../lib/latin";
 import { H3 } from "../lib/typeScale";
 import Image from "next/image";
 import { noDashLineStart } from "../lib/typography";
@@ -229,6 +230,9 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 style={{ left: `${el.x}%`, top: `${el.y}%` }}
                 aria-label={lang === "EN" ? el.labelEN : el.labelRU}
                 aria-pressed={activeId === el.id}
+                // Pointer shortcut only: the layer is aria-hidden and the tabs carry keyboard and
+                // screen-reader access, so the markers stay out of the tab order (cycle 8, axe).
+                tabIndex={-1}
               >
                 <span className="text-[12px] font-bold">
                   {i + 1}
@@ -295,7 +299,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 {lang === "EN" ? activeElement.labelEN : activeElement.labelRU}
               </h4>
               <p className="text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
-                {noDashLineStart(lang === "EN" ? activeElement.descEN : activeElement.descRU)}
+                {latinMotto(noDashLineStart(lang === "EN" ? activeElement.descEN : activeElement.descRU))}
               </p>
             </div>
           </div>

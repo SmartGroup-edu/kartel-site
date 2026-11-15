@@ -135,7 +135,8 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
             <ThemeToggle />
             <button
               onClick={toggleLang}
-              aria-label={lang === "EN" ? "Switch language to Russian" : "Переключить язык на английский"}
+              // The name starts with the visible "RU"/"EN" (WCAG 2.5.3, label in name) — cycle 8.
+              aria-label={lang === "EN" ? "RU — switch language to Russian" : "EN — переключить язык на английский"}
               className="relative h-8 w-9 overflow-hidden rounded-sm text-sm font-medium text-[var(--accent)] transition-opacity hover:opacity-80"
             >
               <span

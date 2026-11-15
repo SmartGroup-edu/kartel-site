@@ -23,7 +23,7 @@ export async function generateMetadata({
     description: c.metaDescription,
     alternates: {
       canonical: `/${key}/registry`,
-      languages: { en: "/en/registry", ru: "/ru/registry" },
+      languages: { en: "/en/registry", ru: "/ru/registry", "x-default": "/en/registry" },
     },
   };
 }

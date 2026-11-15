@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useUiLang } from "./useLang";
 
 /** Shown only past two viewports AND while scrolling up, so it never sits on the hero or over
  *  lines being read on the way down (home cycle 1 #2). */
 export default function BackToTop() {
   const [show, setShow] = useState(false);
+  const ru = useUiLang() === "ru";
 
   useEffect(() => {
     let last = window.scrollY;
@@ -33,7 +35,7 @@ export default function BackToTop() {
     <button
       type="button"
       onClick={scrollToTop}
-      aria-label="Back to top"
+      aria-label={ru ? "Наверх" : "Back to top"}
       aria-hidden={!show}
       tabIndex={show ? 0 : -1}
       className={`fixed bottom-6 right-6 z-30 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--background)]/90 text-[var(--accent)] shadow-md backdrop-blur transition-all duration-300 motion-reduce:transition-none hover:bg-[var(--accent)] hover:text-[var(--on-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${

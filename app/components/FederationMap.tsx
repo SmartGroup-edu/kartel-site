@@ -74,7 +74,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
         <FadeInSection>
           <section className="mt-12">
             <h2 className={H2}>{c.sections.platforms}</h2>
-            <div className="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]">
+            <div tabIndex={0} role="region" aria-label={c.sections.platforms} className="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">
@@ -105,7 +105,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
         <FadeInSection>
           <section className="mt-12">
             <h2 className={H2}>{c.sections.topology}</h2>
-            <div className="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]">
+            <div tabIndex={0} role="region" aria-label={c.sections.topology} className="mt-4 overflow-x-auto rounded-lg border border-[var(--border)]">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">

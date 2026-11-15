@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { latinMotto } from "../lib/latin";
 import { H1, H2 } from "../lib/typeScale";
 import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
@@ -70,9 +71,9 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
             <div className="[grid-area:crest] flex justify-center md:items-center">
               <span id="crest-desc" className="sr-only">
-                {lang === "EN"
+                {latinMotto(lang === "EN"
                   ? "Heraldic coat of arms featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the motto Virtus et Potestas. Click to view full size."
-                  : "Геральдический герб с грифоном, скрещёнными ключами, короной, мечами, лилиями, крыльями и девизом Virtus et Potestas. Нажмите для увеличения."}
+                  : "Геральдический герб с грифоном, скрещёнными ключами, короной, мечами, лилиями, крыльями и девизом Virtus et Potestas. Нажмите для увеличения.")}
               </span>
               <button
                 onClick={() => setLightboxOpen(true)}
@@ -95,7 +96,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
             <div className="[grid-area:text]">
               <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px]">
-                {noDashLineStart(t.lede)}
+                {latinMotto(noDashLineStart(t.lede))}
               </p>
               <div className="mt-8 flex flex-wrap gap-3 print:hidden">
                 <a
@@ -123,7 +124,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 {lang === "EN" ? "The story" : "История"}
               </h2>
               {t.intro.split("\n\n").map((p, idx) => (
-                <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
+                <p key={idx} className="mb-5 text-left">{latinMotto(noDashLineStart(p))}</p>
               ))}
             </div>
           </div>
@@ -148,7 +149,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <FadeInSection>
                 <div className="max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
                   {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
+                    <p key={idx} className="mb-5 text-left">{latinMotto(noDashLineStart(p))}</p>
                   ))}
                 </div>
               </FadeInSection>
@@ -183,7 +184,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <FadeInSection>
                 <div className="max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
                   {[t.finalLeft, t.finalRight].join("\n\n").split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
+                    <p key={idx} className="mb-5 text-left">{latinMotto(noDashLineStart(p))}</p>
                   ))}
                 </div>
               </FadeInSection>
@@ -201,7 +202,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         <HeraldicDivider />
 
         {/* Closing (home cycle 1 #5): the motto, then where to go next — and the copy-link control. */}
-        <section aria-label="Virtus et Potestas">
+        <section data-closing="" aria-label={lang === "EN" ? "Motto" : "Девиз"}>
           <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:py-20">
             <p className="font-serif text-[40px] italic leading-[1.1] text-[var(--accent)] lg:text-[56px]" lang="la">
               Virtus et Potestas

@@ -23,7 +23,7 @@ export async function generateMetadata({
     description: c.metaDescription,
     alternates: {
       canonical: `/${key}/core`,
-      languages: { en: "/en/core", ru: "/ru/core" },
+      languages: { en: "/en/core", ru: "/ru/core", "x-default": "/en/core" },
     },
   };
 }
