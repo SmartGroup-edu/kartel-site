@@ -261,13 +261,42 @@ describe("family area type scale (cycle 2 #4)", () => {
     assert.match(tl, /mt-2 text-\[17px\][^"]*lg:text-\[19px\]/);
     assert.match(fc, /mt-6 max-w-\[68ch\] text-\[17px\][^"]*lg:text-\[19px\]/);
     for (const f of [tree, tl, fc]) assert.doesNotMatch(f, /text-\[1[0-3]px\]|\btext-xs\b/);
-    assert.equal((tree.match(/text-\[14px\] font-medium uppercase tracking-\[0\.15em\]/g) ?? []).length, 8);
+    // one level-label style shared by the desktop and mobile trees
+    assert.equal((tree.match(/text-\[14px\] font-medium uppercase tracking-\[0\.15em\]/g) ?? []).length, 2);
+  });
+});
+
+describe("cycle 3 (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("#1 family H1 on the home scale (36/44/54, leading 1.1)", () => {
+    assert.match(src("app/components/FamilyClient.tsx"), /<h1 className="font-serif text-\[36px\] leading-\[1\.1\][^"]*md:text-\[44px\] lg:text-\[54px\]"/);
+  });
+  test("#2 desktop tree: layout-derived connectors, label 24px clear of the children's bar", () => {
+    const tree = src("app/components/FamilyTree.tsx");
+    assert.doesNotMatch(tree, /<svg|viewBox|style=\{\{ (left|top|height):/);
+    assert.match(tree, /level\.length > 2 \? "mb-6" : "mb-3"/);
+    assert.match(tree, /grid-cols-\[1fr_2\.5rem_1fr\]/);
+    assert.match(tree, /isHovered=\{hoveredId === node\.id\}/);
+    assert.doesNotMatch(tree, /hoveredId === "/);
+  });
+  test("#3 sable swatch: token lifted in dark mode, 1px edge", () => {
+    const css = src("app/globals.css");
+    assert.match(css, /:root \{[\s\S]*?--sable: #1a1816;/);
+    assert.match(css, /\.dark \{[\s\S]*?--sable: #2b2722;/);
+    const pal = src("app/components/HeraldicPalette.tsx");
+    assert.match(pal, /color: "var\(--sable\)"/);
+    assert.match(pal, /border-b border-\[var\(--border\)\] px-4 py-3/);
   });
 });
 
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));
+    assert.deepEqual(hits, []);
+  });
+  test("no lowercase given-name id literal in any client chunk (cycle 3 finding)", () => {
+    const ID = /["'](piotr|andrey|poloneya|aleksandr|lyubov|nikolai|valentina|igor|diana|dominika|arina|feliks)(_[a-z]+)?["']/i;
+    const hits = walk(".next/static").filter((f) => ID.test(readFileSync(f, "utf8")));
     assert.deepEqual(hits, []);
   });
 });

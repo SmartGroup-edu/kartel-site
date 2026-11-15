@@ -19,6 +19,8 @@
   --border: #e6e2dd;
   /* Cards and footer: a whisper off white, so they still read as surfaces. */
   --surface: #f7f6f4;
+  /* Sable (heraldic black) swatch. Dark mode lifts it off the #1a1816 page (cycle 3 #3). */
+  --sable: #1a1816;
   --text-body: #37332e;
   --text-secondary: #3a3630;
   --text-nav: #5e5547;
@@ -51,6 +53,7 @@
   --muted-light: #918878;
   --border: #332e28;
   --surface: #231f1b;
+  --sable: #2b2722;
   --text-body: #c4bfb5;
   --text-secondary: #b8b2a6;
   --text-nav: #9a9488;
