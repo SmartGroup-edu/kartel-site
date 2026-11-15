@@ -30,7 +30,7 @@ const COLOURS: ColourPair[] = [
     nameRU: "Чернь",
     heraldEN: "Sable (Black)",
     heraldRU: "чёрный",
-    color: "#1a1816",
+    color: "var(--sable)",
     textColor: "#e8e4dd",
     meaningEN: "Willpower, endurance, humility, discipline, composure under any circumstances",
     meaningRU: "Воля, стойкость, скромность, дисциплина, способность сохранять хладнокровие",
@@ -81,7 +81,7 @@ export default function HeraldicPalette({ lang }: HeraldicPaletteProps) {
           const meaning = lang === "EN" ? c.meaningEN : c.meaningRU;
           return (
             <li key={c.id} className="flex h-full flex-col overflow-hidden rounded border border-[var(--border)]">
-              <div className="px-4 py-3 sm:px-5 sm:py-4" style={{ backgroundColor: c.color, color: c.textColor }}>
+              <div className="border-b border-[var(--border)] px-4 py-3 sm:px-5 sm:py-4" style={{ backgroundColor: c.color, color: c.textColor }}>
                 <p className="font-serif text-[18px] sm:text-[20px]">{name}</p>
                 <p className="text-[14px]">{heraldic}</p>
               </div>
@@ -98,7 +98,7 @@ export default function HeraldicPalette({ lang }: HeraldicPaletteProps) {
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: "#c9964e" }} aria-hidden="true" />
           <span className="text-[14px] text-[var(--muted)]" aria-hidden="true">+</span>
-          <span className="inline-block h-3 w-3 rounded-full border border-[var(--border)]" style={{ backgroundColor: "#1a1816" }} aria-hidden="true" />
+          <span className="inline-block h-3 w-3 rounded-full border border-[var(--border)]" style={{ backgroundColor: "var(--sable)" }} aria-hidden="true" />
           <span className="ml-1 text-[14px] tracking-wide text-[var(--muted-light)]">
             {lang === "EN" ? "Light & Shadow" : "Свет и тень"}
           </span>

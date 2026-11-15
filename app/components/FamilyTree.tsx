@@ -3,13 +3,13 @@
 import { useState, useCallback } from "react";
 import type { TreeNode } from "../content/family";
 
-
 interface FamilyTreeProps {
   lang: "EN" | "RU";
   /** Passed from the gated server page — never bundled into client JS (R0 2026-11-14). */
   nodes: TreeNode[];
 }
 
+const GENERATIONS = ["root", "founder", "ancestor", "grandparent", "elder", "current", "next"] as const;
 
 const GEN_COLORS: Record<string, string> = {
   root: "var(--muted)",
@@ -41,155 +41,63 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
         {lang === "EN" ? "Seven generations united by name and legacy" : "Семь поколений, объединённые именем и наследием"}
       </p>
 
-      {/* Desktop tree — SVG lines + positioned cards */}
+      {/* Desktop tree (cycle 3 #2): normal flow + CSS connectors, so every line is derived from the
+          layout and holds at any width — no fixed coordinates. Hover compares node ids from the
+          server props; no id literal is ever written into this client module. */}
       <div className="hidden md:block" role="img" aria-label={title}>
-        <div className="relative mx-auto" style={{ maxWidth: 800 }}>
-          {/* SVG connecting lines */}
-          <svg
-            className="absolute inset-0 h-full w-full"
-            viewBox="0 0 800 1160"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            {/* Root → Founder vertical */}
-            <line x1="400" y1="55" x2="400" y2="160" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Founder couple connector */}
-            <line x1="280" y1="215" x2="520" y2="215" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Founder → Ancestor vertical */}
-            <line x1="400" y1="215" x2="400" y2="320" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Ancestor couple connector */}
-            <line x1="280" y1="375" x2="520" y2="375" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Ancestor → Grandparent vertical */}
-            <line x1="400" y1="375" x2="400" y2="480" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Grandparent couple connector */}
-            <line x1="280" y1="535" x2="520" y2="535" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Grandparent → Elder vertical */}
-            <line x1="400" y1="535" x2="400" y2="640" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Elder couple connector */}
-            <line x1="280" y1="695" x2="520" y2="695" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Elder → Current vertical */}
-            <line x1="400" y1="695" x2="400" y2="800" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Current couple connector */}
-            <line x1="280" y1="855" x2="520" y2="855" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Current → Next vertical */}
-            <line x1="400" y1="855" x2="400" y2="960" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Next generation horizontal spread */}
-            <line x1="100" y1="1010" x2="700" y2="1010" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Vertical drops to each next-gen node */}
-            <line x1="100" y1="960" x2="100" y2="1010" stroke="var(--border)" strokeWidth="1.5" />
-            <line x1="300" y1="960" x2="300" y2="1010" stroke="var(--border)" strokeWidth="1.5" />
-            <line x1="500" y1="960" x2="500" y2="1010" stroke="var(--border)" strokeWidth="1.5" />
-            <line x1="700" y1="960" x2="700" y2="1010" stroke="var(--border)" strokeWidth="1.5" />
-
-            {/* Central vertical connector to next-gen spread */}
-            <line x1="400" y1="960" x2="400" y2="1010" stroke="var(--border)" strokeWidth="1.5" opacity="0" />
-          </svg>
-
-          {/* Generation cards */}
-          <div className="relative" style={{ height: 1160 }}>
-            {/* Root generation */}
-            <div className="absolute" style={{ left: 0, top: 0, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.root}
-              </p>
-              <div className="flex justify-center">
-                <TreeCard node={NODES[0]} lang={lang} isHovered={hoveredId === "piotr_root"} onHover={handleHover} />
+        <div className="mx-auto max-w-[800px]">
+          {GENERATIONS.map((gen, i) => {
+            const level = NODES.filter((n) => n.generation === gen);
+            const card = (node: TreeNode) => (
+              <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} />
+            );
+            return (
+              <div key={gen} data-tree-level={gen}>
+                {i > 0 && <div className="mx-auto mb-3 h-8 w-px bg-[var(--border)]" aria-hidden="true" />}
+                <p
+                  data-tree-label=""
+                  className={`text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)] ${level.length > 2 ? "mb-6" : "mb-3"}`}
+                >
+                  {genLabels[gen]}
+                </p>
+                {level.length === 2 ? (
+                  // Couple: the connector column is the exact centre, so the line down to the next level meets it.
+                  <div className="grid grid-cols-[1fr_2.5rem_1fr] items-stretch">
+                    <div className="flex justify-end">{card(level[0])}</div>
+                    <div className="relative" aria-hidden="true">
+                      <span data-tree-line="" className="absolute inset-x-0 top-1/2 h-px bg-[var(--border)]" />
+                      {i < GENERATIONS.length - 1 && <span data-tree-line="" className="absolute bottom-0 left-1/2 top-1/2 w-px bg-[var(--border)]" />}
+                    </div>
+                    <div className="flex justify-start">{card(level[1])}</div>
+                  </div>
+                ) : level.length > 2 ? (
+                  // Children: a bar from the first to the last card centre, a drop to each card. The bar sits
+                  // 24px under the level label (mb-6), so no stub ever runs into it.
+                  <div className="flex justify-center">
+                    {level.map((node, j) => (
+                      <div key={node.id} className="relative flex px-2 pt-6">
+                        <span
+                          data-tree-line=""
+                          aria-hidden="true"
+                          className={`absolute top-0 h-px bg-[var(--border)] ${j === 0 ? "left-1/2" : "left-0"} ${j === level.length - 1 ? "right-1/2" : "right-0"}`}
+                        />
+                        <span data-tree-line="" aria-hidden="true" className="absolute left-1/2 top-0 h-6 w-px bg-[var(--border)]" />
+                        {card(node)}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex justify-center">{level.map(card)}</div>
+                )}
               </div>
-            </div>
-
-            {/* Founder generation */}
-            <div className="absolute" style={{ left: 0, top: 160, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.founder}
-              </p>
-              <div className="flex justify-center gap-10">
-                <TreeCard node={NODES[1]} lang={lang} isHovered={hoveredId === "andrey"} onHover={handleHover} />
-                <TreeCard node={NODES[2]} lang={lang} isHovered={hoveredId === "poloneya"} onHover={handleHover} />
-              </div>
-            </div>
-
-            {/* Ancestor generation */}
-            <div className="absolute" style={{ left: 0, top: 320, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.ancestor}
-              </p>
-              <div className="flex justify-center gap-10">
-                <TreeCard node={NODES[3]} lang={lang} isHovered={hoveredId === "aleksandr"} onHover={handleHover} />
-                <TreeCard node={NODES[4]} lang={lang} isHovered={hoveredId === "lyubov"} onHover={handleHover} />
-              </div>
-            </div>
-
-            {/* Grandparent generation */}
-            <div className="absolute" style={{ left: 0, top: 480, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.grandparent}
-              </p>
-              <div className="flex justify-center gap-10">
-                <TreeCard node={NODES[5]} lang={lang} isHovered={hoveredId === "nikolai"} onHover={handleHover} />
-                <TreeCard node={NODES[6]} lang={lang} isHovered={hoveredId === "valentina_a"} onHover={handleHover} />
-              </div>
-            </div>
-
-            {/* Elder generation */}
-            <div className="absolute" style={{ left: 0, top: 640, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.elder}
-              </p>
-              <div className="flex justify-center gap-10">
-                <TreeCard node={NODES[7]} lang={lang} isHovered={hoveredId === "piotr"} onHover={handleHover} />
-                <TreeCard node={NODES[8]} lang={lang} isHovered={hoveredId === "valentina"} onHover={handleHover} />
-              </div>
-            </div>
-
-            {/* Current generation */}
-            <div className="absolute" style={{ left: 0, top: 800, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.current}
-              </p>
-              <div className="flex justify-center gap-10">
-                <TreeCard node={NODES[9]} lang={lang} isHovered={hoveredId === "igor"} onHover={handleHover} />
-                <TreeCard node={NODES[10]} lang={lang} isHovered={hoveredId === "diana"} onHover={handleHover} />
-              </div>
-            </div>
-
-            {/* Next generation */}
-            <div className="absolute" style={{ left: 0, top: 960, right: 0 }}>
-              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
-                {genLabels.next}
-              </p>
-              <div className="flex justify-center gap-4">
-                {NODES.filter((n) => n.generation === "next").map((node) => (
-                  <TreeCard
-                    key={node.id}
-                    node={node}
-                    lang={lang}
-                    isHovered={hoveredId === node.id}
-                    onHover={handleHover}
-                    compact
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       </div>
 
       {/* Mobile tree — stacked vertical */}
       <div className="block md:hidden" role="list" aria-label={title}>
-        {(["root", "founder", "ancestor", "grandparent", "elder", "current", "next"] as const).map((gen) => (
+        {GENERATIONS.map((gen) => (
           <div key={gen} className="mb-6 last:mb-0" role="listitem">
             <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
               {genLabels[gen]}
