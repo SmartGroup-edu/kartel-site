@@ -178,6 +178,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
         {/* Section sub-navigation (registry) — scrolls sideways on small screens instead of wrapping */}
         {subNav && (
           <nav
+            data-section-nav=""
             aria-label={subNavLabel ?? (lang === "RU" ? "Разделы реестра" : "Registry sections")}
             className={`border-t border-[var(--border)] max-md:absolute max-md:inset-x-0 max-md:top-full max-md:h-11 max-md:border-b max-md:bg-[var(--header-bg)] max-md:backdrop-blur max-md:transition-[opacity,visibility] max-md:duration-200 motion-reduce:transition-none ${
               hideSub ? "max-md:invisible max-md:opacity-0" : ""

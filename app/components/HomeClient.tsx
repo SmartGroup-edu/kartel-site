@@ -118,6 +118,9 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         <section id="story" aria-label={lang === "EN" ? "The story" : "История"} className="scroll-mt-28 border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-16">
             <div className="mx-auto max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
+              <h2 className="mb-8 font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
+                {lang === "EN" ? "The story" : "История"}
+              </h2>
               {t.intro.split("\n\n").map((p, idx) => (
                 <p key={idx} className="mb-5 text-left">{noDashLineStart(p)}</p>
               ))}
@@ -195,13 +198,34 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
         <HeraldicDivider />
 
-
-        {/* Share */}
-        <FadeInSection>
-          <div className="border-t border-[var(--border)] py-8 lg:py-10">
-            <CopyLinkButton url={`https://kartel.org.uk/${langPath}`} lang={lang} />
+        {/* Closing (home cycle 1 #5): the motto, then where to go next — and the copy-link control. */}
+        <section aria-label="Virtus et Potestas" className="border-t border-[var(--border)]">
+          <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:py-20">
+            <p className="font-serif text-[40px] italic leading-[1.1] text-[var(--accent)] lg:text-[56px]" lang="la">
+              Virtus et Potestas
+            </p>
+            <p className="mt-3 text-[17px] text-[var(--text-body)] lg:text-[19px]">
+              {lang === "EN" ? "Strength and Power" : "Сила и Власть"}
+            </p>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+              <a
+                href="#explorer"
+                className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                {lang === "EN" ? "Explore the coat of arms" : "Исследовать герб"}
+              </a>
+              <a
+                href={`/${langPath}/family`}
+                className="inline-flex min-h-11 items-center rounded-md border border-[var(--accent)] px-5 text-[15px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                {lang === "EN" ? "Family Heritage — members only" : "Семейное наследие — только для членов семьи"}
+              </a>
+            </div>
+            <div className="mt-6">
+              <CopyLinkButton url={`https://kartel.org.uk/${langPath}`} lang={lang} />
+            </div>
           </div>
-        </FadeInSection>
+        </section>
       </main>
 
       {/* Public home: no personal contact address (same rule as the previous public home). */}
