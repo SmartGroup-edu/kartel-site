@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { latinMotto } from "../lib/latin";
-import { H1, H2 } from "../lib/typeScale";
+import { H1, H2, H3 } from "../lib/typeScale";
 import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
@@ -30,6 +30,35 @@ const SECTION_IDS = ["home", "meaning", "legacy"];
 
 /** Public home (R0 2026-11-14: the coat of arms is the main page). No personal data here —
  *  family names live only in the gated /family area (app/content/family-private.ts). */
+/**
+ * The Meaning essay grouped under element subheadings (cycle 10 #1), split only at the existing
+ * paragraph boundaries — no copy changes. The first paragraph is about the staff the griffin holds
+ * (the griffin itself is described in the story), and the mantling has no marker on the crest, so
+ * it gets a heading but no "See on the crest" link. Names follow the explorer's labels.
+ */
+const MEANING_ORDER = [
+  { id: "staff", en: "Staff", ru: "Жезл", count: 1, onCrest: true },
+  { id: "keys", en: "Crossed keys", ru: "Скрещённые ключи", count: 2, onCrest: true },
+  { id: "wings", en: "Wings", ru: "Крылья", count: 2, onCrest: true },
+  { id: "mantling", en: "Mantling", ru: "Намёт", count: 1, onCrest: false },
+  { id: "coronet", en: "Coronet", ru: "Корона", count: 1, onCrest: true },
+  { id: "fleurdelis", en: "Fleur-de-lis", ru: "Лилии", count: 1, onCrest: true },
+  { id: "swords", en: "Swords", ru: "Мечи", count: 1, onCrest: true },
+  { id: "motto", en: "Motto", ru: "Девиз", count: 1, onCrest: true },
+] as const;
+
+function meaningGroups(paras: string[]) {
+  let at = 0;
+  const groups = MEANING_ORDER.map((g) => {
+    const slice = paras.slice(at, at + g.count);
+    at += g.count;
+    return { ...g, paras: slice };
+  });
+  // Any paragraphs beyond the map stay visible under the last heading rather than vanish.
+  if (at < paras.length) groups[groups.length - 1].paras.push(...paras.slice(at));
+  return groups.filter((g) => g.paras.length > 0);
+}
+
 export default function HomeClient({ lang }: { lang: Lang }) {
   const toggleLang = useLangToggle(lang);
   const langPath = lang.toLowerCase();
@@ -60,12 +89,13 @@ export default function HomeClient({ lang }: { lang: Lang }) {
       <main id="main">
         {/* Hero (design pass 2026-11-15): crest + H1 + lede + two actions; the essay starts below.
             Below 1024px: title · crest · lede · actions (h1 first in the DOM) — at tablet width two
-            half columns squeezed the crest and broke the title (cycle 9 #2). lg+ and phones held
+            half columns squeezed the crest and broke the title (cycle 9 #2). 640–1023 centres all
+            four on one axis (cycle 10 #2); phones stay left-aligned for the longer lede. lg+ and phones held
             sideways: crest left, the text block vertically centred against it; sideways the crest
-            is sized by the viewport height. One left edge for all hero text at every width. */}
+            is sized by the viewport height. One edge (or one axis, 640–1023) for all hero text. */}
         <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:flex lg:min-h-[calc(100svh-8.5rem)] lg:items-center lg:px-10 lg:py-8 short-land:py-4">
           <div className="grid w-full gap-6 [grid-template-areas:'title'_'crest'_'text'] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-x-16 lg:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] lg:[grid-template-rows:1fr_auto_auto_1fr] short-land:grid-cols-[auto_minmax(0,1fr)] short-land:gap-x-8 short-land:gap-y-4 short-land:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] short-land:[grid-template-rows:1fr_auto_auto_1fr]">
-            <div className="[grid-area:title]">
+            <div className="[grid-area:title] sm:text-center lg:text-left short-land:text-left">
               <h1 className={`${H1} text-balance short-land:text-[30px]`}>
                 {t.title}
               </h1>
@@ -96,11 +126,11 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               </button>
             </div>
 
-            <div className="[grid-area:text]">
-              <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px] short-land:max-w-[44ch] short-land:text-[17px]">
+            <div className="[grid-area:text] sm:text-center lg:text-left short-land:text-left">
+              <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] sm:mx-auto lg:mx-0 lg:text-[24px] short-land:mx-0 short-land:max-w-[44ch] short-land:text-[17px]">
                 {latinMotto(noDashLineStart(t.lede))}
               </p>
-              <div className="mt-8 flex flex-wrap gap-3 print:hidden short-land:mt-4">
+              <div className="mt-8 flex flex-wrap gap-3 sm:justify-center lg:justify-start print:hidden short-land:mt-4 short-land:justify-start">
                 <a
                   href="#explorer"
                   className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
@@ -150,8 +180,30 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               {/* One reading column, left-aligned, ≤68ch (UI/UX audit 2026-11-14 #1, #5). */}
               <FadeInSection>
                 <div className="max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
-                  {[t.leftCol, t.rightCol].join("\n\n").split("\n\n").map((p, idx) => (
-                    <p key={idx} className="mb-5 text-left">{latinMotto(noDashLineStart(p))}</p>
+                  {meaningGroups([t.leftCol, t.rightCol].join("\n\n").split("\n\n")).map((g) => (
+                    <div key={g.id} className="mt-10 first:mt-0">
+                      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <h3 className={H3}>{lang === "EN" ? g.en : g.ru}</h3>
+                        {g.onCrest && (
+                          <a
+                            href={`#explorer-${g.id}`}
+                            onClick={(e) => {
+                              // Same hash twice fires no hashchange — re-run the deep link ourselves.
+                              if (window.location.hash === `#explorer-${g.id}`) {
+                                e.preventDefault();
+                                window.dispatchEvent(new HashChangeEvent("hashchange"));
+                              }
+                            }}
+                            className="rounded-sm text-[15px] text-[var(--accent)] underline decoration-1 underline-offset-4 hover:text-[var(--accent-hover)] print:hidden"
+                          >
+                            {lang === "EN" ? "See on the crest" : "Показать на гербе"}
+                          </a>
+                        )}
+                      </div>
+                      {g.paras.map((p, idx) => (
+                        <p key={idx} className="mb-5 text-left">{latinMotto(noDashLineStart(p))}</p>
+                      ))}
+                    </div>
                   ))}
                 </div>
               </FadeInSection>
