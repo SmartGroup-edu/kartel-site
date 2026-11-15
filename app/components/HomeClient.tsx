@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { H1, H2 } from "../lib/typeScale";
 import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
@@ -62,7 +63,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 md:flex md:min-h-[calc(100svh-8.5rem)] md:items-center lg:px-10 lg:py-8">
           <div className="grid w-full gap-6 [grid-template-areas:'title'_'crest'_'text'] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-10 md:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] md:[grid-template-rows:1fr_auto_auto_1fr] lg:gap-x-16">
             <div className="[grid-area:title]">
-              <h1 className="font-serif text-[36px] leading-[1.1] tracking-[-0.01em] text-[var(--accent)] md:text-[44px] lg:text-[54px]">
+              <h1 className={H1}>
                 {t.title}
               </h1>
             </div>
@@ -118,7 +119,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
         <section id="story" aria-label={lang === "EN" ? "The story" : "История"} className="scroll-mt-28 border-t border-[var(--border)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-10 lg:py-16">
             <div className="mx-auto max-w-[68ch] text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
-              <h2 className="mb-8 font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
+              <h2 className={`mb-8 lg:mb-10 ${H2}`}>
                 {lang === "EN" ? "The story" : "История"}
               </h2>
               {t.intro.split("\n\n").map((p, idx) => (
@@ -139,7 +140,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 ≤68ch measure; ch is resolved at the 20px text size so both edges line up. */}
             <div className="mx-auto max-w-[68ch] lg:text-[19px]">
               <FadeInSection>
-                <h2 className="mb-8 font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
+                <h2 className={`mb-8 lg:mb-10 ${H2}`}>
                   {t.meaningTitle}
                 </h2>
               </FadeInSection>
@@ -174,7 +175,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 ≤68ch measure; ch is resolved at the 20px text size so both edges line up. */}
             <div className="mx-auto max-w-[68ch] lg:text-[19px]">
               <FadeInSection>
-                <h2 className="mb-8 font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
+                <h2 className={`mb-8 lg:mb-10 ${H2}`}>
                   {t.legacyTitle}
                 </h2>
               </FadeInSection>

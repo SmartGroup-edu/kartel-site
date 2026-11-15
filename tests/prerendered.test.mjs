@@ -257,7 +257,7 @@ describe("family area type scale (cycle 2 #4)", () => {
   const src = (f) => readFileSync(f, "utf8");
   test("H2 28/35, reading text 17/19, captions and level labels 14px, nothing under 14px", () => {
     const tree = src("app/components/FamilyTree.tsx"), tl = src("app/components/FamilyTimeline.tsx"), fc = src("app/components/FamilyClient.tsx");
-    for (const f of [tree, tl]) assert.match(f, /<h2 className="[^"]*text-\[28px\][^"]*lg:text-\[35px\]/);
+    for (const f of [tree, tl]) assert.match(f, /<h2 className=\{`[^`]*\$\{H2\}`\}>/);
     assert.match(tl, /mt-2 text-\[17px\][^"]*lg:text-\[19px\]/);
     assert.match(fc, /mt-6 max-w-\[68ch\] text-\[17px\][^"]*lg:text-\[19px\]/);
     for (const f of [tree, tl, fc]) assert.doesNotMatch(f, /text-\[1[0-3]px\]|\btext-xs\b/);
@@ -269,7 +269,8 @@ describe("family area type scale (cycle 2 #4)", () => {
 describe("cycle 3 (2026-11-15)", () => {
   const src = (f) => readFileSync(f, "utf8");
   test("#1 family H1 on the home scale (36/44/54, leading 1.1)", () => {
-    assert.match(src("app/components/FamilyClient.tsx"), /<h1 className="font-serif text-\[36px\] leading-\[1\.1\][^"]*md:text-\[44px\] lg:text-\[54px\]"/);
+    assert.match(src("app/components/FamilyClient.tsx"), /<h1 className=\{H1\}>/);
+    assert.match(src("app/lib/typeScale.ts"), /export const H1 = "font-serif text-\[36px\] leading-\[1\.1\][^"]*md:text-\[44px\] lg:text-\[54px\]"/);
   });
   test("#2 desktop tree: layout-derived connectors, label 24px clear of the children's bar", () => {
     const tree = src("app/components/FamilyTree.tsx");
@@ -286,6 +287,55 @@ describe("cycle 3 (2026-11-15)", () => {
     const pal = src("app/components/HeraldicPalette.tsx");
     assert.match(pal, /color: "var\(--sable\)"/);
     assert.match(pal, /border-b border-\[var\(--border\)\] px-4 py-3/);
+  });
+});
+
+describe("cycle 4 — one type system for Core and the registry (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  const scale = src("app/lib/typeScale.ts");
+  const PAGES = ["CoreAbout", "RegistryDashboard", "LayersDashboard", "ProjectsDirectory", "FederationMap", "CampusRegistry", "OrganisationsRegistry"].map((n) => `app/components/${n}.tsx`);
+  const SITE = [...PAGES, ...["HomeClient", "FamilyClient", "FamilyTree", "FamilyTimeline", "HeraldicPalette", "CrestExplorer"].map((n) => `app/components/${n}.tsx`)];
+  test("#1 one source: H1 36/44/54 accent, H2 28/35 accent, H3 22/24 foreground", () => {
+    assert.match(scale, /export const H1 = "font-serif text-\[36px\] leading-\[1\.1\] tracking-\[-0\.01em\] text-\[var\(--accent\)\] md:text-\[44px\] lg:text-\[54px\]"/);
+    assert.match(scale, /export const H2 = "font-serif text-\[28px\] leading-\[1\.15\] text-\[var\(--accent\)\] lg:text-\[35px\]"/);
+    assert.match(scale, /export const H3 = "font-serif text-\[22px\] leading-\[1\.2\] text-\[var\(--foreground\)\] lg:text-\[24px\]"/);
+  });
+  test("#1 every h1/h2/h3 on public pages reads its class from the scale", () => {
+    for (const f of SITE) {
+      for (const m of src(f).matchAll(/<h([123]) className=([^>]*)>/g)) {
+        assert.match(m[2], new RegExp(`(^\\{H${m[1]}\\}$|\\$\\{H${m[1]}\\})`), `${f}: <h${m[1]} className=${m[2]}>`);
+      }
+    }
+  });
+  test("#2 Core prose on the reading scale with a 68ch measure", () => {
+    assert.match(scale, /export const PROSE = "text-\[17px\] leading-\[1\.65\][^"]*lg:text-\[19px\]/);
+    assert.equal((src("app/components/CoreAbout.tsx").match(/max-w-\[68ch\] \$\{PROSE\}/g) ?? []).length, 2);
+  });
+  test("#3 14px floor: no text-xs / 12–13px / uppercase-tracked labels on Core and registry", () => {
+    for (const f of PAGES) assert.doesNotMatch(src(f), /\btext-xs\b|text-\[1[0-3]px\]|uppercase tracking-wide/, f);
+  });
+  test("#3 one pill: 14px, sentence case, at least 24px tall, used by every registry page", () => {
+    const pill = src("app/components/Pill.tsx");
+    assert.match(pill, /min-h-6 [^"`]*text-\[14px\]/);
+    assert.doesNotMatch(pill, /uppercase/);
+    assert.match(pill, /toLocaleUpperCase\(\) \+ s\.slice\(1\)/);
+    for (const f of ["RegistryDashboard", "LayersDashboard", "ProjectsDirectory", "FederationMap", "OrganisationsRegistry"]) {
+      const c = src(`app/components/${f}.tsx`);
+      assert.match(c, /<Pill tone=/, f);
+      assert.doesNotMatch(c, /rounded-full border px-2\.5/, f);
+    }
+  });
+  test("#4 snapshot label wording EN/RU (registry v6 and federation)", () => {
+    assert.ok(read("en/registry.html").includes("Snapshot v6 · data as of 19 June 2026"));
+    assert.ok(read("ru/registry.html").includes("Снимок v6 · данные на 19 июня 2026"));
+    assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 18 June 2026"));
+    assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 18 июня 2026"));
+    assert.doesNotMatch(read("en/registry.html"), /Updated: 2026/);
+  });
+  test("#5 project cards: two-column definition list, not uppercase tags", () => {
+    const d = src("app/components/RegistryDashboard.tsx");
+    assert.match(d, /<dl className="mt-4 grid grid-cols-\[auto_minmax\(0,1fr\)\] items-center gap-x-4 gap-y-2">/);
+    assert.match(d, /<dt className="text-\[14px\] text-\[var\(--muted\)\]">/);
   });
 });
 

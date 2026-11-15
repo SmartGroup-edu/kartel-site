@@ -13,7 +13,6 @@ export const registryContent = {
     title: "KARTEL Core Registry",
     intro:
       "The public record of the KARTEL federation. KARTEL Core owns the canonical layers; platforms consume or steward them. This registry observes — it is not a workflow, a database, or a runtime dependency.",
-    updatedLabel: "Updated",
     sections: {
       layers: "Canonical layers",
       layersNote: "Owned by KARTEL Core. One identity. One geography. Contracts define the rest.",
@@ -42,7 +41,6 @@ export const registryContent = {
     title: "Реестр Ядра KARTEL",
     intro:
       "Публичная запись федерации KARTEL. Ядро KARTEL владеет каноническими слоями; платформы их потребляют или обслуживают. Реестр только фиксирует состояние — это не рабочий процесс, не база данных и не зависимость, от которой работают платформы.",
-    updatedLabel: "Обновлено",
     sections: {
       layers: "Канонические слои",
       layersNote: "Принадлежат Ядру KARTEL. Одна идентичность. Одна география. Остальное задают контракты.",

@@ -1,6 +1,7 @@
 "use client";
 
 import type { TimelineEvent } from "../content/family";
+import { H2, H3 } from "../lib/typeScale";
 
 
 
@@ -15,7 +16,7 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h2 className="mb-8 text-center font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:mb-10 lg:text-[35px]">
+      <h2 className={`mb-8 text-center lg:mb-10 ${H2}`}>
         {title}
       </h2>
 
@@ -51,7 +52,7 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
               </p>
 
               {/* Event title */}
-              <h3 className="mt-1 font-serif text-[17px] text-[var(--foreground)] sm:text-[19px]">
+              <h3 className={`mt-1 ${H3}`}>
                 {eventTitle}
               </h3>
 

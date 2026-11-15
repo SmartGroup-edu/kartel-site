@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { H2 } from "../lib/typeScale";
 import type { TreeNode } from "../content/family";
 
 interface FamilyTreeProps {
@@ -34,7 +35,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h2 className="mb-3 text-center font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">
+      <h2 className={`mb-3 text-center ${H2}`}>
         {title}
       </h2>
       <p className="mb-8 text-center text-[14px] text-[var(--muted)]">
