@@ -31,6 +31,7 @@ export default function FadeInSection({
   return (
     <div
       ref={ref}
+      data-fade=""
       className={`motion-safe:transition-all motion-safe:duration-700 motion-safe:ease-out ${
         visible
           ? "translate-y-0 opacity-100"

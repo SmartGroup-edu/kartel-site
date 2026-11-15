@@ -39,7 +39,7 @@ export default function CoreAbout({ lang }: { lang: Lang }) {
         </div>
 
         <FadeInSection>
-          <section className="mt-14 border-t border-[var(--border)] pt-8">
+          <section className="mt-14 border-t border-[var(--border)] pt-8 print:hidden">
             <h2 className={H2}>{c.ctaTitle}</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {c.cta.map((b) => (

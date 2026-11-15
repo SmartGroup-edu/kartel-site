@@ -97,7 +97,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
               <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px]">
                 {noDashLineStart(t.lede)}
               </p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <div className="mt-8 flex flex-wrap gap-3 print:hidden">
                 <a
                   href="#explorer"
                   className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
@@ -209,7 +209,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
             <p className="mt-3 text-[17px] text-[var(--text-body)] lg:text-[19px]">
               {lang === "EN" ? "Strength and Power" : "Сила и Власть"}
             </p>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-3 print:hidden">
               <a
                 href="#explorer"
                 className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
@@ -223,7 +223,7 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                 {lang === "EN" ? "Family Heritage — members only" : "Семейное наследие — только для членов семьи"}
               </a>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 print:hidden">
               <CopyLinkButton url={`https://kartel.org.uk/${langPath}`} lang={lang} />
             </div>
           </div>

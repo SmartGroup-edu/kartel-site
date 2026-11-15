@@ -18,8 +18,9 @@ import { signRelayRequest } from "@/app/lib/relay-signature.mjs";
  * Send a sign-in link. Throws on a non-2xx response so the caller can log it;
  * the caller must swallow the error rather than pass it to the user.
  */
-export async function sendSignInLink(to: string, link: string): Promise<void> {
-  const body = JSON.stringify({ to, link });
+export async function sendSignInLink(to: string, link: string, lang: "en" | "ru" = "en"): Promise<void> {
+  // ttlMinutes: the lifetime the link is signed with, so the email states the real expiry.
+  const body = JSON.stringify({ to, link, ttlMinutes: familyEnv.linkTtlMinutes(), lang });
   const ts = String(Math.floor(Date.now() / 1000));
   const sig = await signRelayRequest(familyEnv.mailRelaySecret(), ts, body);
 

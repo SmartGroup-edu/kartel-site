@@ -436,6 +436,55 @@ describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
   });
 });
 
+describe("cycle 7 — share card, print, sign-in email (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  const png = (f) => readFileSync(`${APP}/${f}`);
+  test("#1 share cards: EN at /opengraph-image, RU at /ru/opengraph-image, both 1200×630 PNG", () => {
+    for (const f of ["opengraph-image.body", "en/opengraph-image.body", "ru/opengraph-image.body"]) {
+      const b = png(f);
+      assert.equal(b.subarray(1, 4).toString(), "PNG", f);
+      assert.equal(b.readUInt32BE(16), 1200, f);
+      assert.equal(b.readUInt32BE(20), 630, f);
+    }
+    assert.notDeepEqual(png("en/opengraph-image.body"), png("ru/opengraph-image.body"));
+  });
+  test("#1 RU pages point og:image and twitter:image at the RU card; EN keeps its URL", () => {
+    for (const f of ["ru.html", "ru/core.html", "ru/registry.html", "ru/registry/federation.html"]) {
+      const h = read(f);
+      assert.match(h, /<meta property="og:image" content="https:\/\/kartel\.org\.uk\/ru\/opengraph-image"\/>/, f);
+      assert.match(h, /<meta name="twitter:image" content="https:\/\/kartel\.org\.uk\/ru\/opengraph-image"\/>/, f);
+      assert.equal((h.match(/property="og:image"/g) ?? []).length, 1, `${f}: one og:image`);
+    }
+    assert.match(read("en/core.html"), /<meta property="og:image" content="https:\/\/kartel\.org\.uk\/opengraph-image"\/>/);
+  });
+  test("#1 card layout: serif fonts embedded (latin+cyrillic TTF), sizes for a 400px thumbnail, no names", () => {
+    const c = src("app/lib/ogCard.tsx");
+    for (const f of ["Regular", "SemiBold", "Italic"]) assert.match(c, new RegExp(`app/og-fonts/SourceSerif4-${f}\\.ttf`));
+    assert.match(c, /width=\{486\} height=\{540\}/);
+    assert.match(c, /fontSize: lang === "ru" \? 62 : 68/);
+    assert.match(c, /fontSize: 38, fontStyle: "italic"/);
+    assert.match(c, /fontSize: 28, color: MUTED/);
+    assert.doesNotMatch(c, FAMILY_NAMES);
+  });
+  test("#2 one print stylesheet: chrome and controls hidden, fades shown, A4, rows kept whole", () => {
+    const css = src("app/globals.css");
+    assert.equal((css.match(/@media print/g) ?? []).length, 1);
+    const p = css.slice(css.indexOf("@media print"));
+    assert.match(p, /size: A4;/);
+    assert.match(p, /\[data-site-header\],\s*button:not\(:has\(img\)\),\s*\[role="menu"\],\s*\[data-section-nav\]\s*\{\s*display: none !important;/);
+    assert.match(p, /\[data-fade\],\s*img\s*\{\s*opacity: 1 !important;/);
+    assert.match(p, /a\[href\^="http"\]:not\(\[href\^="https:\/\/kartel\.org\.uk"\]\)::after \{\s*content: " \(" attr\(href\) "\)";/);
+    assert.match(p, /tr,/);
+    assert.doesNotMatch(p, /^\s*header,\s*$/m); // the old rule hid every <header>, page heroes included
+    assert.match(src("app/components/FadeInSection.tsx"), /data-fade=""/);
+    assert.match(src("app/components/SiteHeader.tsx"), /<header data-site-header=""/);
+  });
+  test("#3 the app sends its link lifetime and language to the relay", () => {
+    assert.match(src("app/lib/family-mail.ts"), /JSON\.stringify\(\{ to, link, ttlMinutes: familyEnv\.linkTtlMinutes\(\), lang \}\)/);
+    assert.match(src("app/api/family-auth/request/route.ts"), /sendSignInLink\(addr, url, returnTo\.startsWith\("\/ru"\) \? "ru" : "en"\)/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

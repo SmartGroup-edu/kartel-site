@@ -281,110 +281,128 @@ summary:focus-visible,
   }
 }
 
-/* Print stylesheet */
+/* Print (cycle 7 #2) — the one print stylesheet (it replaces an older block that hid every
+   <header> and <nav>, the whole crest explorer, and printed every internal link's URL). Home,
+   Core and registry pages on A4: black text on white, no site chrome or controls, external link
+   targets spelled out, cards and table rows kept whole. */
 @media print {
+  @page {
+    size: A4;
+    margin: 16mm 15mm;
+  }
+  :root,
+  .dark {
+    --background: #ffffff;
+    --surface: #ffffff;
+    --header-bg: #ffffff;
+    --foreground: #000000;
+    --text-body: #000000;
+    --text-secondary: #000000;
+    --text-nav: #000000;
+    --muted: #333333;
+    --muted-light: #333333;
+    --accent: #000000;
+    --accent-hover: #000000;
+    --border: #bbbbbb;
+    --band-bg: #ffffff;
+    --band-text: #000000;
+  }
+  html,
   body {
-    background: white;
-    color: black;
-    font-size: 12pt;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-
-  header,
-  button,
-  nav,
-  [aria-label="Back to top"] {
+  /* Site chrome and controls: header (nav, section row, menu), back-to-top, every button. */
+  [data-site-header],
+  button:not(:has(img)),
+  [role="menu"],
+  [data-section-nav] {
     display: none !important;
   }
-
-  footer {
-    border-top: 1px solid #999;
-    padding-top: 12pt;
-  }
-
-  main {
-    max-width: 100% !important;
+  /* The crest opens a lightbox on screen; on paper its button is only a frame for the image. */
+  button:has(img) {
+    border: 0 !important;
     padding: 0 !important;
+    background: none !important;
   }
-
-  a {
-    color: black;
-    text-decoration: none;
+  /* Content that fades or drifts in on screen must simply be there on paper. */
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
   }
-
-  a[href]::after {
-    content: " (" attr(href) ")";
-    font-size: 9pt;
-    color: #666;
-  }
-
-  nav a[href]::after,
-  header a[href]::after {
-    content: none;
-  }
-
+  [data-fade],
   img {
-    max-width: 3in !important;
-    height: auto !important;
-  }
-
-  .font-serif {
-    color: black !important;
-  }
-
-  /* Hide interactive-only elements */
-  [aria-label="Section navigation"],
-  [aria-label="Interactive coat of arms explorer"],
-  [aria-label="Интерактивный просмотр герба"] {
-    display: none !important;
-  }
-
-  /* Motto banner — keep but simplify */
-  [lang="la"] {
-    color: black !important;
-    font-size: 18pt;
-  }
-
-  /* Family tree — linearize for print */
-  [aria-label="Family tree"] svg,
-  [aria-label="Родословное древо"] svg {
-    display: none !important;
-  }
-
-  [aria-label="Family tree"] [role="button"],
-  [aria-label="Родословное древо"] [role="button"] {
-    border: 1px solid #999 !important;
-    background: white !important;
-    padding: 6pt 8pt !important;
-    margin: 4pt !important;
-    min-width: auto !important;
-    page-break-inside: avoid;
-  }
-
-  /* Timeline — ensure clean print */
-  [role="list"][aria-label*="Chronicle"],
-  [role="list"][aria-label*="хроника"] {
-    page-break-inside: avoid;
-  }
-
-  [role="listitem"] {
-    page-break-inside: avoid;
-    border-left: 1px solid #999 !important;
-  }
-
-  /* Colour palette — show swatches with borders */
-  [aria-expanded] {
-    border: 1px solid #999 !important;
-    page-break-inside: avoid;
-  }
-
-  /* Section borders */
-  section {
-    border-color: #ccc !important;
-  }
-
-  /* Force all text visible */
-  [class*="opacity-0"] {
     opacity: 1 !important;
     transform: none !important;
+  }
+  a {
+    color: #000000 !important;
+    text-decoration: underline;
+  }
+  a[href^="http"]:not([href^="https://kartel.org.uk"])::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  /* Cards and rows stay whole; a table's scroll wrapper may break between rows. */
+  article,
+  li,
+  tr,
+  dl > div,
+  figure,
+  img,
+  section.rounded-lg,
+  .rounded-lg:not(.overflow-x-auto) {
+    break-inside: avoid;
+  }
+  /* The hero fills the screen height on screen; on paper it is just the first block. */
+  #home {
+    min-height: 0 !important;
+  }
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  footer {
+    border-top: 1px solid #999999;
+  }
+  footer nav {
+    display: none !important;
+  }
+  /* The crest (hero + explorer) stays, sized for a page rather than a screen. */
+  #home img,
+  #explorer img {
+    max-height: 110mm !important;
+    width: auto !important;
+    margin: 0 auto;
+  }
+  /* Family tree (gated page): connectors are screen-only; cards print as bordered boxes. */
+  [aria-label="Family tree"] [data-tree-line],
+  [aria-label="Родословное древо"] [data-tree-line] {
+    display: none !important;
+  }
+  [aria-label="Family tree"] [role="button"],
+  [aria-label="Родословное древо"] [role="button"] {
+    border: 1px solid #999999 !important;
+    break-inside: avoid;
+  }
+  [role="listitem"] {
+    break-inside: avoid;
+  }
+  /* Screen tables keep a min-width and scroll; on A4 they fit the page and wrap instead. */
+  table {
+    min-width: 0 !important;
+    width: 100% !important;
   }
 }
