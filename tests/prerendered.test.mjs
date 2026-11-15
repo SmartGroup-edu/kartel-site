@@ -633,6 +633,38 @@ describe("cycle 10 — scannable Meaning essay, tablet hero axis (2026-11-15)", 
   });
 });
 
+describe("cycle 11 — family tree readability (2026-11-15)", () => {
+  const t = readFileSync("app/components/FamilyTree.tsx", "utf8");
+  test("#1 a card shows its role only when it differs from the level's default role", () => {
+    assert.match(t, /function distinctRole\(node: TreeNode, lang: "EN" \| "RU"\): string \| null/);
+    assert.match(t, /return role\.trim\(\)\.toLowerCase\(\) === generic\.toLowerCase\(\) \? null : role;/);
+    assert.equal((t.match(/const role = distinctRole\(node, lang\);/g) ?? []).length, 2);
+    assert.match(t, /\{role && <p className="mt-1 text-\[14px\] text-\[var\(--muted\)\]">\{role\}<\/p>\}/);
+    // the default roles cover every level the data uses, in both languages
+    const fp = readFileSync("app/content/family-private.ts", "utf8");
+    for (const g of ["root", "founder", "ancestor", "grandparent", "elder", "current", "next"]) {
+      assert.match(t, new RegExp(`${g}: \\{ en: "[^"]+", ru: "[^"]+" \\}`), g);
+      assert.match(fp, new RegExp(`generation: "${g}"`), g);
+    }
+  });
+  test("#2 desktop: equal widths per level (two 1fr columns in a fit-content grid), long names wrap", () => {
+    assert.match(t, /mx-auto grid w-fit max-w-full grid-cols-\[1fr_2\.5rem_1fr\] items-stretch/);
+    assert.match(t, /mx-auto grid w-fit max-w-full auto-cols-fr grid-flow-col/);
+    assert.match(t, /w-full rounded border text-center/);
+    assert.match(t, /md:max-w-\[18rem\]/);
+  });
+  test("#3 mobile: a couple is one paired card, '&' read as and/и", () => {
+    assert.match(t, /level\.length === 2 \? \(\s*<CoupleCard /);
+    assert.match(t, /data-tree-couple=""/);
+    assert.match(t, /<span className="sr-only">\{lang === "EN" \? "and" : "и"\}<\/span>/);
+  });
+  test("#4 names are rendered straight from the data (no transformation)", () => {
+    assert.match(t, /\{lang === "EN" \? node\.nameEN : node\.nameRU\}/);
+    assert.match(t, /const name = lang === "EN" \? node\.nameEN : node\.nameRU;/);
+    assert.doesNotMatch(t, /name[A-Z]{2}\.(replace|normalize|toLowerCase|toUpperCase)/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));
