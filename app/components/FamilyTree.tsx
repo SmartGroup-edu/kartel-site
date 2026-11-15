@@ -12,6 +12,24 @@ interface FamilyTreeProps {
 
 const GENERATIONS = ["root", "founder", "ancestor", "grandparent", "elder", "current", "next"] as const;
 
+/** The role every card on a level carries by default (EN data is singular, the level label plural).
+ *  A card shows its role only when it says something else, e.g. a named function (cycle 11 #1). */
+const GENERIC_ROLE: Record<TreeNode["generation"], { en: string; ru: string }> = {
+  root: { en: "Root", ru: "Корни" },
+  founder: { en: "Founder", ru: "Основатели" },
+  ancestor: { en: "Ancestor", ru: "Прародители" },
+  grandparent: { en: "Grandparent", ru: "Дедушки и бабушки" },
+  elder: { en: "Elder generation", ru: "Старшее поколение" },
+  current: { en: "Present generation", ru: "Настоящее поколение" },
+  next: { en: "Next generation", ru: "Новое поколение" },
+};
+
+function distinctRole(node: TreeNode, lang: "EN" | "RU"): string | null {
+  const role = lang === "EN" ? node.roleEN : node.roleRU;
+  const generic = GENERIC_ROLE[node.generation][lang === "EN" ? "en" : "ru"];
+  return role.trim().toLowerCase() === generic.toLowerCase() ? null : role;
+}
+
 const GEN_COLORS: Record<string, string> = {
   root: "var(--muted)",
   founder: "var(--muted)",
@@ -30,7 +48,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
   const title = lang === "EN" ? "Family Tree" : "Родословное древо";
   const genLabels =
     lang === "EN"
-      ? { root: "Roots", founder: "Founders", ancestor: "Ancestors", grandparent: "Grandparents", elder: "Elders", current: "Present Generation", next: "Next Generation" }
+      ? { root: "Roots", founder: "Founders", ancestor: "Ancestors", grandparent: "Grandparents", elder: "Elders", current: "Present generation", next: "Next generation" }
       : { root: "Корни", founder: "Основатели", ancestor: "Прародители", grandparent: "Дедушки и бабушки", elder: "Старшее поколение", current: "Настоящее поколение", next: "Новое поколение" };
 
   return (
@@ -63,18 +81,20 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
                 </p>
                 {level.length === 2 ? (
                   // Couple: the connector column is the exact centre, so the line down to the next level meets it.
-                  <div className="grid grid-cols-[1fr_2.5rem_1fr] items-stretch">
-                    <div className="flex justify-end">{card(level[0])}</div>
+                  // w-fit + two 1fr columns: both columns take the wider card's width (capped by the
+                  // card's max-width), so a couple is two equal cards around a centred connector.
+                  <div className="mx-auto grid w-fit max-w-full grid-cols-[1fr_2.5rem_1fr] items-stretch">
+                    <div className="flex">{card(level[0])}</div>
                     <div className="relative" aria-hidden="true">
                       <span data-tree-line="" className="absolute inset-x-0 top-1/2 h-px bg-[var(--border)]" />
                       {i < GENERATIONS.length - 1 && <span data-tree-line="" className="absolute bottom-0 left-1/2 top-1/2 w-px bg-[var(--border)]" />}
                     </div>
-                    <div className="flex justify-start">{card(level[1])}</div>
+                    <div className="flex">{card(level[1])}</div>
                   </div>
                 ) : level.length > 2 ? (
                   // Children: a bar from the first to the last card centre, a drop to each card. The bar sits
                   // 24px under the level label (mb-6), so no stub ever runs into it.
-                  <div className="flex justify-center">
+                  <div className="mx-auto grid w-fit max-w-full auto-cols-fr grid-flow-col">
                     {level.map((node, j) => (
                       <div key={node.id} className="relative flex px-2 pt-6">
                         <span
@@ -103,18 +123,19 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
             <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
               {genLabels[gen]}
             </p>
-            {/* Equal width for every card on a level (gated UI/UX audit 2026-11-14 #6). */}
+            {/* Equal width for every card on a level (gated UI/UX audit 2026-11-14 #6). A couple is one
+                paired card (cycle 11 #3): without connectors, two stacked cards read as unrelated. */}
             <div className="mx-auto grid w-full max-w-[20rem] gap-3">
-              {NODES.filter((n) => n.generation === gen).map((node) => (
-                <TreeCard
-                  key={node.id}
-                  node={node}
-                  lang={lang}
-                  isHovered={hoveredId === node.id}
-                  onHover={handleHover}
-                  compact={gen === "next"}
-                />
-              ))}
+              {(() => {
+                const level = NODES.filter((n) => n.generation === gen);
+                return level.length === 2 ? (
+                  <CoupleCard key={level[0].id} nodes={[level[0], level[1]]} lang={lang} />
+                ) : (
+                  level.map((node) => (
+                    <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} />
+                  ))
+                );
+              })()}
             </div>
             {gen !== "next" && (
               <div className="mx-auto my-4 h-8 w-px bg-[var(--border)]" aria-hidden="true" />
@@ -140,7 +161,7 @@ function TreeCard({
   compact?: boolean;
 }) {
   const name = lang === "EN" ? node.nameEN : node.nameRU;
-  const role = lang === "EN" ? node.roleEN : node.roleRU;
+  const role = distinctRole(node, lang);
   const accentColor = GEN_COLORS[node.generation];
 
   return (
@@ -150,8 +171,8 @@ function TreeCard({
       // Plain content, not a control (cycle 8, axe): the card does nothing on activation, so it is
       // not a button and not in the tab order; screen readers read the name and role as text.
       data-tree-card=""
-      className={`rounded border text-center transition-all duration-200 ${
-        compact ? "min-w-[140px] px-3 py-3" : "min-w-[180px] px-4 py-4"
+      className={`w-full rounded border text-center transition-all duration-200 ${
+        compact ? "min-w-[140px] px-3 py-3 md:max-w-[11rem]" : "min-w-[180px] px-4 py-4 md:max-w-[18rem]"
       } ${
         isHovered
           ? "border-[var(--accent)] bg-[var(--accent)]/5 shadow-md"
@@ -166,11 +187,32 @@ function TreeCard({
       >
         {name}
       </p>
-      <p
-        className="mt-1 text-[14px] text-[var(--muted)]"
-      >
-        {role}
-      </p>
+      {role && <p className="mt-1 text-[14px] text-[var(--muted)]">{role}</p>}
+    </div>
+  );
+}
+
+/** Mobile: a couple as one card — two names joined by "&" (read as "and"/«и»), one level. */
+function CoupleCard({ nodes, lang }: { nodes: [TreeNode, TreeNode]; lang: "EN" | "RU" }) {
+  return (
+    <div data-tree-card="" data-tree-couple="" className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-center">
+      {nodes.map((node, i) => {
+        const role = distinctRole(node, lang);
+        return (
+          <div key={node.id}>
+            {i === 1 && (
+              <div className="my-2 flex items-center gap-3 text-[var(--muted)]" aria-hidden="true">
+                <span className="h-px flex-1 bg-[var(--border)]" />
+                <span className="font-serif text-[16px]">&amp;</span>
+                <span className="h-px flex-1 bg-[var(--border)]" />
+              </div>
+            )}
+            {i === 1 && <span className="sr-only">{lang === "EN" ? "and" : "и"}</span>}
+            <p className="font-serif text-[16px] leading-tight text-[var(--foreground)] sm:text-[18px]">{lang === "EN" ? node.nameEN : node.nameRU}</p>
+            {role && <p className="mt-1 text-[14px] text-[var(--muted)]">{role}</p>}
+          </div>
+        );
+      })}
     </div>
   );
 }
