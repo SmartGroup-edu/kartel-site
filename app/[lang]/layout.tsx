@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { latinMotto } from "../lib/latin";
 import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
 import { Analytics } from "@vercel/analytics/next";
@@ -199,14 +200,14 @@ export default async function RootLayout({
               KARTEL
             </p>
             <p style={{ fontSize: "18px", lineHeight: "1.8", marginBottom: "16px" }}>
-              {ns.intro}
+              {latinMotto(ns.intro)}
             </p>
             <h2 style={{ color: "#7b1e2d", fontSize: "24px", marginBottom: "12px" }}>
               {ns.membersHeading}
             </h2>
             <p style={{ fontSize: "16px", lineHeight: "1.9" }}>{ns.members}</p>
             <p style={{ fontSize: "14px", color: "#6f685c", marginTop: "24px" }}>
-              &copy; kartel.org.uk — Virtus et Potestas
+              &copy; kartel.org.uk — <span lang="la">Virtus et Potestas</span>
             </p>
           </div>
         </noscript>

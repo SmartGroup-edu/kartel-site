@@ -392,8 +392,7 @@ summary:focus-visible,
   [aria-label="Родословное древо"] [data-tree-line] {
     display: none !important;
   }
-  [aria-label="Family tree"] [role="button"],
-  [aria-label="Родословное древо"] [role="button"] {
+  [data-tree-card] {
     border: 1px solid #999999 !important;
     break-inside: avoid;
   }

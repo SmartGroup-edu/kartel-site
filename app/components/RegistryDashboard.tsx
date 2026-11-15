@@ -60,7 +60,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
         <FadeInSection>
           <section className="mt-14">
             <SectionTitle title={c.sections.layers} note={c.sections.layersNote} />
-            <div className="overflow-x-auto rounded-lg border border-[var(--border)]">
+            <div tabIndex={0} role="region" aria-label={c.sections.layers} className="overflow-x-auto rounded-lg border border-[var(--border)]">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">

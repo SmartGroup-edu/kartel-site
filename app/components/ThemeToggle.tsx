@@ -1,14 +1,16 @@
 "use client";
 
 import { useTheme } from "./useTheme";
+import { useUiLang } from "./useLang";
 
 export default function ThemeToggle() {
   const { resolved, toggleTheme } = useTheme();
+  const ru = useUiLang() === "ru";
 
   return (
     <button
       onClick={toggleTheme}
-      aria-label={resolved === "light" ? "Switch to dark mode" : "Switch to light mode"}
+      aria-label={resolved === "light" ? (ru ? "Включить тёмную тему" : "Switch to dark mode") : ru ? "Включить светлую тему" : "Switch to light mode"}
       className="rounded-sm p-1 text-[var(--accent)] transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
     >
       {resolved === "light" ? (

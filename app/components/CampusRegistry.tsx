@@ -34,7 +34,7 @@ export default function CampusRegistry({ lang }: { lang: Lang }) {
 
         {/* Canonical campuses */}
         <FadeInSection>
-          <div className="mt-10 overflow-x-auto rounded-lg border border-[var(--border)]">
+          <div tabIndex={0} role="region" aria-label={c.title} className="mt-10 overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">

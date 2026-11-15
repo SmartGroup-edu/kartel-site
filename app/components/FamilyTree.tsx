@@ -45,7 +45,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
       {/* Desktop tree (cycle 3 #2): normal flow + CSS connectors, so every line is derived from the
           layout and holds at any width — no fixed coordinates. Hover compares node ids from the
           server props; no id literal is ever written into this client module. */}
-      <div className="hidden md:block" role="img" aria-label={title}>
+      <div className="hidden md:block" role="group" aria-label={title}>
         <div className="mx-auto max-w-[800px]">
           {GENERATIONS.map((gen, i) => {
             const level = NODES.filter((n) => n.generation === gen);
@@ -147,11 +147,9 @@ function TreeCard({
     <div
       onMouseEnter={() => onHover(node.id)}
       onMouseLeave={() => onHover(null)}
-      onFocus={() => onHover(node.id)}
-      onBlur={() => onHover(null)}
-      tabIndex={0}
-      role="button"
-      aria-label={`${name} — ${role}`}
+      // Plain content, not a control (cycle 8, axe): the card does nothing on activation, so it is
+      // not a button and not in the tab order; screen readers read the name and role as text.
+      data-tree-card=""
       className={`rounded border text-center transition-all duration-200 ${
         compact ? "min-w-[140px] px-3 py-3" : "min-w-[180px] px-4 py-4"
       } ${

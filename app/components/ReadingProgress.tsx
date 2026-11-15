@@ -1,9 +1,11 @@
 "use client";
 
 import { useScrollY } from "./useScrollY";
+import { useUiLang } from "./useLang";
 
 export default function ReadingProgress() {
   const scrollY = useScrollY();
+  const ru = useUiLang() === "ru";
   const docHeight =
     typeof document !== "undefined"
       ? document.documentElement.scrollHeight - window.innerHeight
@@ -18,7 +20,7 @@ export default function ReadingProgress() {
       aria-valuenow={Math.round(progress)}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label="Reading progress"
+      aria-label={ru ? "Прогресс чтения" : "Reading progress"}
     />
   );
 }

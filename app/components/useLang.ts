@@ -33,3 +33,12 @@ export function useLangToggle(currentLang: Lang) {
     router.push(buildPathForLang(pathname || "/", nextLower));
   }, [currentLang, pathname, router]);
 }
+
+/**
+ * The page language from the URL, for components that take no `lang` prop (theme toggle,
+ * back-to-top, reading progress, footer). usePathname is available in the server render, so the
+ * first HTML already carries the right words — no swap on hydration (cycle 8 #1).
+ */
+export function useUiLang(): "en" | "ru" {
+  return (usePathname() ?? "").startsWith("/ru") ? "ru" : "en";
+}

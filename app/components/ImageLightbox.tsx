@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useUiLang } from "./useLang";
 import { useFocusTrap } from "./useFocusTrap";
 
 interface ImageLightboxProps {
@@ -13,6 +14,7 @@ interface ImageLightboxProps {
 
 export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: ImageLightboxProps) {
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
+  const ru = useUiLang() === "ru";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -45,7 +47,7 @@ export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: Im
       <button
         onClick={onClose}
         className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        aria-label="Close"
+        aria-label={ru ? "Закрыть" : "Close"}
       >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
