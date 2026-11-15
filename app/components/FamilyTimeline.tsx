@@ -60,6 +60,25 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
               <p className="mt-2 text-[17px] leading-[1.65] text-[var(--text-secondary)] lg:text-[19px] lg:leading-[1.7]">
                 {desc}
               </p>
+
+              {/* Memorial (cycle 12 #1): set apart from the entry's paragraph — a quiet left rule, the
+                  dates on one line with places muted, the burial line, the closing words in italic
+                  serif. No icons or symbols. Text comes verbatim from the data fields. */}
+              {event.memorial && (() => {
+                const m = lang === "EN" ? event.memorial.en : event.memorial.ru;
+                return (
+                  <div data-memorial="" className="mt-5 border-l-2 border-[var(--border)] pl-4 text-[17px] leading-[1.6] lg:text-[19px]">
+                    <p className="font-serif text-[var(--foreground)]">{m.name}:</p>
+                    <p className="mt-1 text-[var(--text-secondary)]">
+                      {/* Each "date, place" stays whole; a narrow screen breaks only at the dash. */}
+                      <span className="whitespace-nowrap">{m.born[0]}, <span className="text-[var(--muted)]">{m.born[1]}</span></span> —{" "}
+                      <span className="whitespace-nowrap">{m.died[0]}, <span className="text-[var(--muted)]">{m.died[1]}</span>.</span>
+                    </p>
+                    <p className="mt-1 text-[var(--text-secondary)]">{m.burial}</p>
+                    <p className="mt-3 font-serif italic text-[var(--foreground)]">{m.words}</p>
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

@@ -665,6 +665,35 @@ describe("cycle 11 — family tree readability (2026-11-15)", () => {
   });
 });
 
+describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
+  test("memorial moved into data fields verbatim: rebuilding the old sentence matches the original's hash", async () => {
+    const { createHash } = await import("node:crypto");
+    const src = readFileSync("app/content/family-private.ts", "utf8");
+    const entry = src.slice(src.indexOf('id: "elders"'), src.indexOf("memorial: {", src.indexOf('id: "elders"')) + 2000);
+    const str = (k, from = entry) => JSON.parse(from.match(new RegExp(`${k}: ("(?:[^"\\\\]|\\\\.)*")`))[1]);
+    const mem = (lang) => {
+      const blk = entry.slice(entry.indexOf(`${lang}: { name:`));
+      const pair = (k) => JSON.parse(blk.match(new RegExp(`${k}: (\\["[^\\]]*\\])`))[1]);
+      return { name: str("name", blk), born: pair("born"), died: pair("died"), burial: str("burial", blk), words: str("words", blk) };
+    };
+    const sha = (x) => createHash("sha256").update(x, "utf8").digest("hex");
+    for (const [lang, key, want] of [["en", "descEN", "42a4391b6746fe478dfa80253341cade6bff11c2776153280293459f352d98d5"], ["ru", "descRU", "8a7859972305629e97ff3de7f84335f9eea545a42827a01e25b9086454ec39e1"]]) {
+      const m = mem(lang);
+      const rebuilt = `${str(key)} ${m.name}: ${m.born[0]}, ${m.born[1]} — ${m.died[0]}, ${m.died[1]}. ${m.burial} ${m.words}`;
+      assert.equal(sha(rebuilt), want, lang);
+      assert.doesNotMatch(str(key), /\d{4}/, `${lang}: dates left the entry paragraph`);
+    }
+  });
+  test("rendered as its own quiet block: left rule, whole date groups, italic serif close, no icons", () => {
+    const tl = readFileSync("app/components/FamilyTimeline.tsx", "utf8");
+    const blk = tl.slice(tl.indexOf("{event.memorial && "), tl.indexOf("})()}") + 4);
+    assert.match(blk, /data-memorial="" className="mt-5 border-l-2 border-\[var\(--border\)\] pl-4/);
+    assert.equal((blk.match(/<span className="whitespace-nowrap">/g) ?? []).length, 2);
+    assert.match(blk, /font-serif italic/);
+    assert.doesNotMatch(blk, /<svg|<img|✝|†|☦/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));
