@@ -15,8 +15,20 @@
  * and a way out of the "sent" state.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AuthShell from "./AuthShell";
+import { H1, EYEBROW, PROSE } from "../lib/typeScale";
+
+/** Hash the "different email" link carries back to the form, which then focuses the field. */
+const EDIT_HASH = "#family-email";
+
+/** 1 минуту · 2 минуты · 5 минут · 21 минуту — accusative after «действует». */
+function ruMinutes(n: number): string {
+  const d = n % 10, h = n % 100;
+  if (d === 1 && h !== 11) return "минуту";
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return "минуты";
+  return "минут";
+}
 
 const copy = {
   en: {
@@ -27,10 +39,11 @@ const copy = {
     placeholder: "you@example.com",
     cta: "Email me a sign-in link",
     sending: "Sending…",
+    helper: (min: number) => `We'll email you a one-time sign-in link. It works once, only in this browser, and expires in ${min} ${min === 1 ? "minute" : "minutes"}.`,
     sentTitle: "Check your email",
-    sent: "If that address may access this area, a sign-in link is on its way. It expires in 10 minutes and only works in this browser.",
-    again: "Use a different address",
-    back: "Back to KARTEL",
+    sent: (min: number) => `If that address may access this area, a sign-in link is on its way. Check your inbox and spam folder. The link works once, only in this browser, and expires in ${min} ${min === 1 ? "minute" : "minutes"}.`,
+    again: "Use a different email",
+    back: "Back to the coat of arms",
     invalid: "That link is no longer valid. Request a new one below.",
   },
   ru: {
@@ -41,10 +54,11 @@ const copy = {
     placeholder: "you@example.com",
     cta: "Прислать ссылку для входа",
     sending: "Отправляем…",
+    helper: (min: number) => `Мы пришлём одноразовую ссылку для входа. Она действует ${min} ${ruMinutes(min)}, срабатывает один раз и только в этом браузере.`,
     sentTitle: "Проверьте почту",
-    sent: "Если у этого адреса есть доступ, ссылка уже отправлена. Она действует 10 минут и работает только в этом браузере.",
+    sent: (min: number) => `Если у этого адреса есть доступ, ссылка уже отправлена. Проверьте входящие и папку «Спам». Ссылка действует ${min} ${ruMinutes(min)}, срабатывает один раз и только в этом браузере.`,
     again: "Указать другой адрес",
-    back: "Вернуться на KARTEL",
+    back: "К гербу",
     invalid: "Ссылка больше недействительна. Запросите новую ниже.",
   },
 } as const;
@@ -53,9 +67,12 @@ export function FamilyGateNotice({
   lang,
   returnTo,
   state,
+  ttlMinutes,
 }: {
   lang: "en" | "ru";
   returnTo: string;
+  /** Sign-in link lifetime, from FAMILY_LINK_TTL on the server (cycle 6 #2). */
+  ttlMinutes: number;
   /** "invalid" after a failed or expired link; "sent" after a request. */
   state?: "invalid" | "sent";
 }) {
@@ -68,35 +85,40 @@ export function FamilyGateNotice({
     return () => window.removeEventListener("pageshow", reset);
   }, []);
   const signinHref = `/${lang}/family/signin?returnTo=${encodeURIComponent(returnTo)}`;
+  // Arriving from "Use a different email": put the cursor in the field.
+  const emailRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (window.location.hash === EDIT_HASH) emailRef.current?.focus();
+  }, []);
 
   return (
     <AuthShell lang={lang}>
-      <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
+      <p className={EYEBROW}>{c.eyebrow}</p>
 
       {state === "sent" ? (
         <>
-          <h1 className="mt-2 font-serif text-3xl text-[var(--foreground)]">{c.sentTitle}</h1>
-          <p role="status" className="mt-3 text-base leading-relaxed text-[var(--text-body)]">
-            {c.sent}
+          <h1 className={`mt-2 ${H1}`}>{c.sentTitle}</h1>
+          <p role="status" className={`mt-4 ${PROSE}`}>
+            {c.sent(ttlMinutes)}
           </p>
-          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-            <a href={signinHref} className="rounded-sm py-1 text-[var(--accent)] hover:text-[var(--accent-hover)]">
+          <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-[15px]">
+            <a href={`${signinHref}${EDIT_HASH}`} className="inline-flex min-h-11 items-center rounded-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">
               {c.again}
             </a>
-            <a href={`/${lang}`} className="rounded-sm py-1 text-[var(--text-nav)] hover:text-[var(--accent)]">
+            <a href={`/${lang}`} className="inline-flex min-h-11 items-center rounded-sm text-[var(--text-nav)] hover:text-[var(--accent)]">
               ← {c.back}
             </a>
           </div>
         </>
       ) : (
         <>
-          <h1 className="mt-2 font-serif text-3xl text-[var(--foreground)]">{c.heading}</h1>
-          <p className="mt-3 text-base leading-relaxed text-[var(--text-body)]">{c.body}</p>
+          <h1 className={`mt-2 ${H1}`}>{c.heading}</h1>
+          <p className={`mt-4 ${PROSE}`}>{c.body}</p>
 
           {state === "invalid" && (
             <p
               role="alert"
-              className="mt-6 rounded-lg border border-[var(--destructive)] px-4 py-3 text-sm text-[var(--foreground)]"
+              className="mt-6 rounded-lg border border-[var(--destructive)] px-4 py-3 text-[15px] text-[var(--foreground)]"
             >
               {c.invalid}
             </p>
@@ -110,11 +132,13 @@ export function FamilyGateNotice({
             aria-busy={pending}
           >
             <input type="hidden" name="returnTo" value={returnTo} />
-            <label htmlFor="family-email" className="text-sm font-medium text-[var(--foreground)]">
+            <label htmlFor="family-email" className="text-[15px] font-medium text-[var(--foreground)]">
               {c.label}
             </label>
             <input
+              ref={emailRef}
               id="family-email"
+              aria-describedby="family-email-help"
               name="email"
               type="email"
               required
@@ -123,6 +147,9 @@ export function FamilyGateNotice({
               placeholder={c.placeholder}
               className="h-12 rounded-lg border border-[var(--border)] bg-[var(--background)] px-4 text-base text-[var(--foreground)] placeholder:text-[var(--muted-light)] transition-colors hover:border-[var(--muted)]"
             />
+            <p id="family-email-help" className="-mt-1 text-[14px] leading-relaxed text-[var(--muted)]">
+              {c.helper(ttlMinutes)}
+            </p>
             <button
               type="submit"
               disabled={pending}
@@ -132,8 +159,8 @@ export function FamilyGateNotice({
             </button>
           </form>
 
-          <p className="mt-8 text-sm">
-            <a href={`/${lang}`} className="rounded-sm py-1 text-[var(--text-nav)] hover:text-[var(--accent)]">
+          <p className="mt-8 text-[15px]">
+            <a href={`/${lang}`} className="inline-flex min-h-11 items-center rounded-sm text-[var(--text-nav)] hover:text-[var(--accent)]">
               ← {c.back}
             </a>
           </p>

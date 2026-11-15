@@ -241,7 +241,7 @@ export default async function FamilyPage({
   // Server-Component redirect() does not reliably abort a force-dynamic render here.
   if (familyEnv.gateOn()) {
     const { decision } = await familyGateDecision();
-    if (decision !== "allow") return <FamilyGateNotice lang={locale} returnTo={`/${lang}/family`} />;
+    if (decision !== "allow") return <FamilyGateNotice lang={locale} returnTo={`/${lang}/family`} ttlMinutes={familyEnv.linkTtlMinutes()} />;
   }
 
   const upperLang: "EN" | "RU" = locale === "en" ? "EN" : "RU";

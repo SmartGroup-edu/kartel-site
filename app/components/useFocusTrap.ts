@@ -14,8 +14,15 @@ const FOCUSABLE = [
 /**
  * Traps keyboard focus within a container element when active.
  * Returns a ref to attach to the container.
+ *
+ * `initialFocus: "container"` focuses the container itself (it needs tabIndex={-1}) instead of
+ * its first item — for a menu opened by touch, where a focused first item reads as "selected"
+ * (cycle 6 #3). Tab still moves straight into the items.
  */
-export function useFocusTrap<T extends HTMLElement>(active: boolean): RefObject<T | null> {
+export function useFocusTrap<T extends HTMLElement>(
+  active: boolean,
+  { initialFocus = "first" }: { initialFocus?: "first" | "container" } = {},
+): RefObject<T | null> {
   const ref = useRef<T | null>(null);
 
   useEffect(() => {
@@ -24,9 +31,11 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean): RefObject<
     const container = ref.current;
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
-    // Focus first focusable element
+    // Focus the container, or the first focusable element
     const focusables = container.querySelectorAll<HTMLElement>(FOCUSABLE);
-    if (focusables.length > 0) {
+    if (initialFocus === "container") {
+      container.focus({ preventScroll: true });
+    } else if (focusables.length > 0) {
       focusables[0].focus();
     }
 
@@ -39,7 +48,10 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean): RefObject<
       const first = els[0];
       const last = els[els.length - 1];
 
-      if (e.shiftKey) {
+      if (document.activeElement === container) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      } else if (e.shiftKey) {
         if (document.activeElement === first) {
           e.preventDefault();
           last.focus();
@@ -61,7 +73,7 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean): RefObject<
         previouslyFocused.focus();
       }
     };
-  }, [active]);
+  }, [active, initialFocus]);
 
   return ref;
 }

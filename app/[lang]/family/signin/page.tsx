@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FamilyGateNotice } from "../../../components/FamilyGateNotice";
 import { safeReturnTo } from "@/app/lib/family-safe-return";
+import { familyEnv } from "@/app/lib/family-env";
 
 // Public no-PII landing — reachable without a session (excluded from the gate in proxy.ts).
 export const dynamic = "force-dynamic";
@@ -33,5 +34,6 @@ export default async function FamilySignInPage({
   // `invalid` comes from /api/family-auth/verify on any failure — expired, wrong browser, or
   // revoked. It is deliberately one undifferentiated outcome.
   const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : undefined;
-  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} />;
+  // The same lifetime the link is signed with (FAMILY_LINK_TTL, default 600 s), shown as text.
+  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} />;
 }
