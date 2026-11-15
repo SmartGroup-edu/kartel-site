@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import AuthShell from "../../../components/AuthShell";
+import { H1, PROSE } from "../../../lib/typeScale";
 
 // Gated area sibling — render per-request, never statically prerender.
 export const dynamic = "force-dynamic";
@@ -13,13 +14,13 @@ const copy: Record<Locale, { title: string; heading: string; body: string; back:
     title: "Family Heritage — pending approval",
     heading: "Registration received",
     body: "Your account is signed in but not yet approved to view the Family Heritage area. An administrator reviews access requests; you will be able to enter once approved.",
-    back: "Return to KARTEL",
+    back: "Back to the coat of arms",
   },
   ru: {
     title: "Семейное наследие — ожидает одобрения",
     heading: "Заявка получена",
     body: "Вы вошли в аккаунт, но доступ к разделу «Семейное наследие» ещё не одобрен. Администратор рассматривает запросы; вы сможете войти после одобрения.",
-    back: "Вернуться на KARTEL",
+    back: "К гербу",
   },
 };
 
@@ -36,10 +37,10 @@ export default async function FamilyPendingPage({ params }: { params: Promise<{ 
   const c = copy[lang as Locale];
   return (
     <AuthShell lang={lang as Locale}>
-      <h1 className="font-serif text-3xl text-[var(--foreground)]">{c.heading}</h1>
-      <p className="mt-3 text-base leading-relaxed text-[var(--text-body)]">{c.body}</p>
-      <p className="mt-8">
-        <a href={`/${lang}`} className="rounded-sm py-1 text-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">
+      <h1 className={H1}>{c.heading}</h1>
+      <p className={`mt-4 ${PROSE}`}>{c.body}</p>
+      <p className="mt-8 text-[15px]">
+        <a href={`/${lang}`} className="inline-flex min-h-11 items-center rounded-sm text-[var(--accent)] hover:text-[var(--accent-hover)]">
           ← {c.back}
         </a>
       </p>

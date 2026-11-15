@@ -387,6 +387,55 @@ describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11
   });
 });
 
+describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  const notice = src("app/components/FamilyGateNotice.tsx");
+  const pending = src("app/[lang]/family/pending/page.tsx");
+  test("#1 AuthShell pages use the heading system: H1 from the scale, 14px eyebrow", () => {
+    for (const [f, c] of [["FamilyGateNotice", notice], ["pending", pending]]) {
+      const h1s = [...c.matchAll(/<h1 className=([^>]*)>/g)].map((m) => m[1]);
+      assert.ok(h1s.length > 0, f);
+      for (const h of h1s) assert.match(h, /^\{H1\}$|\$\{H1\}/, `${f}: ${h}`);
+      assert.doesNotMatch(c, /\btext-xs\b|text-3xl|text-\[1[0-3]px\]/, f);
+    }
+    assert.match(notice, /<p className=\{EYEBROW\}>\{c\.eyebrow\}<\/p>/);
+  });
+  test("#2 helper text under the field, linked by aria-describedby, TTL from FAMILY_LINK_TTL", () => {
+    assert.match(notice, /aria-describedby="family-email-help"/);
+    assert.match(notice, /<p id="family-email-help" className="[^"]*text-\[14px\][^"]*text-\[var\(--muted\)\]">\s*\{c\.helper\(ttlMinutes\)\}/);
+    assert.match(notice, /We'll email you a one-time sign-in link\. It works once, only in this browser, and expires in \$\{min\}/);
+    assert.match(notice, /Мы пришлём одноразовую ссылку для входа\. Она действует \$\{min\} \$\{ruMinutes\(min\)\}/);
+    assert.match(src("app/lib/family-env.ts"), /linkTtlMinutes: \(\): number => \{\s*const m = Math\.round\(Number\(process\.env\.FAMILY_LINK_TTL \?\? 600\) \/ 60\);/);
+    assert.match(src("app/[lang]/family/signin/page.tsx"), /ttlMinutes=\{familyEnv\.linkTtlMinutes\(\)\}/);
+    assert.doesNotMatch(notice, /10 minutes|10 минут/);
+  });
+  test("#2 link-sent: inbox + spam, and 'Use a different email' returns to the focused field", () => {
+    assert.match(notice, /Check your inbox and spam folder/);
+    assert.match(notice, /Проверьте входящие и папку «Спам»/);
+    assert.match(notice, /again: "Use a different email"/);
+    assert.match(notice, /href=\{`\$\{signinHref\}\$\{EDIT_HASH\}`\}/);
+    assert.match(notice, /if \(window\.location\.hash === EDIT_HASH\) emailRef\.current\?\.focus\(\);/);
+  });
+  test("#3 mobile menu: container focus, no ring, 17px rows ≥48px, current bar, closes on route change", () => {
+    const h = src("app/components/SiteHeader.tsx");
+    assert.match(h, /useFocusTrap<HTMLDivElement>\(menuOpen, \{ initialFocus: "container" \}\)/);
+    assert.match(h, /tabIndex=\{-1\}[\s\S]{0,600}style=\{\{ outline: "none" \}\}/);
+    assert.match(h, /flex-col px-4 py-2 text-\[17px\]/);
+    assert.match(h, /flex min-h-12 items-center border-l-2 pl-3/);
+    assert.match(h, /"border-\[var\(--accent\)\] font-medium text-\[var\(--accent\)\]" : "border-transparent"/);
+    assert.match(h, /if \(menuPath !== pathname\) \{\s*setMenuPath\(pathname\);\s*setMenuOpen\(false\);/);
+    assert.match(h, /"invisible max-h-0 opacity-0 border-t-0"/);
+    assert.match(src("app/components/useFocusTrap.ts"), /initialFocus === "container"\) \{\s*container\.focus\(\{ preventScroll: true \}\);/);
+  });
+  test("#4 back link points at the crest: 'Back to the coat of arms' / «К гербу»", () => {
+    for (const c of [notice, pending]) {
+      assert.match(c, /back: "Back to the coat of arms",/);
+      assert.match(c, /back: "К гербу",/);
+      assert.doesNotMatch(c, /KARTEL",\n/);
+    }
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

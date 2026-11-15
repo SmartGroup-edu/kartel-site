@@ -35,6 +35,11 @@ export const familyEnv = {
 
   // Sign-in link (short-lived, same-device bound via the nonce cookie).
   linkTtlSeconds: (): number => Number(process.env.FAMILY_LINK_TTL ?? 600), // 10 min
+  /** The same lifetime, in whole minutes, for the sign-in page's helper text (cycle 6 #2). */
+  linkTtlMinutes: (): number => {
+    const m = Math.round(Number(process.env.FAMILY_LINK_TTL ?? 600) / 60);
+    return Number.isFinite(m) && m >= 1 ? m : 10;
+  },
   linkNonceCookie: (): string => process.env.FAMILY_LINK_NONCE_COOKIE ?? "kartel_family_link",
   siteOrigin: (): string => process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk",
 

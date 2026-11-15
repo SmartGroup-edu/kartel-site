@@ -27,8 +27,15 @@ interface SiteHeaderProps {
 
 export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavLabel, maxWidth = "max-w-7xl" }: SiteHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const mobileMenuRef = useFocusTrap<HTMLDivElement>(menuOpen);
+  const mobileMenuRef = useFocusTrap<HTMLDivElement>(menuOpen, { initialFocus: "container" });
   const pathname = usePathname() ?? "";
+  // Close the mobile menu on route change (client navigation keeps the header mounted).
+  // Adjusting state during render on a changed key, per React's guidance — no effect needed.
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setMenuOpen(false);
+  }
 
   const items: NavItem[] = navItems ?? primaryNav(lang);
   const urlActive = activeHref(items, pathname);
@@ -156,17 +163,25 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
         {/* Mobile menu */}
         <div
           ref={mobileMenuRef}
-          className={`overflow-hidden border-t border-[var(--border)] transition-all duration-300 md:hidden ${menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 border-t-0"}`}
+          tabIndex={-1}
+          // Focused programmatically on open (cycle 6 #3); no ring on the container itself. Inline,
+          // because the global [tabindex]:focus-visible rule outranks utilities. Visibility is not
+          // transitioned: a container still "hidden" at the first frame cannot take focus, and
+          // closed items must not be reachable by Tab.
+          style={{ outline: "none" }}
+          className={`overflow-hidden border-t border-[var(--border)] transition-[max-height,opacity] duration-300 md:hidden ${menuOpen ? "max-h-96 opacity-100" : "invisible max-h-0 opacity-0 border-t-0"}`}
           role="menu"
+          aria-label={lang === "RU" ? "Меню" : "Menu"}
         >
-          <nav aria-label={lang === "RU" ? "Мобильная навигация" : "Mobile navigation"} className={`mx-auto flex ${maxWidth} flex-col gap-1 px-4 py-3 text-base text-[var(--text-nav)]`}>
+          <nav aria-label={lang === "RU" ? "Мобильная навигация" : "Mobile navigation"} className={`mx-auto flex ${maxWidth} flex-col px-4 py-2 text-[17px] text-[var(--text-nav)]`}>
             {items.map((item) => (
               <a
                 key={item.href}
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 role="menuitem"
-                className={`rounded-sm py-2 transition-colors hover:text-[var(--accent)] ${isActive(item) ? "font-medium text-[var(--accent)]" : ""}`}
+                // Rows ≥48px; the current page = accent + a 2px bar on the left (cycle 6 #3).
+                className={`flex min-h-12 items-center border-l-2 pl-3 transition-colors hover:text-[var(--accent)] ${isActive(item) ? "border-[var(--accent)] font-medium text-[var(--accent)]" : "border-transparent"}`}
                 {...(isActive(item) ? { "aria-current": "page" as const } : {})}
               >
                 {item.label}
