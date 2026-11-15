@@ -98,8 +98,14 @@ export const FAMILY_TIMELINE_EVENTS: TimelineEvent[] = [
     yearRU: "Старшее поколение",
     titleEN: "Piotr Nikolaevich & Valentina Cheslavovna Kartel (née Chizhevskaya)",
     titleRU: "Пётр Николаевич и Валентина Чеславовна Картель (Чижевская)",
-    descEN: "The elder generation laid the foundation of values, discipline, and faith that would define the family for decades to come. Piotr Nikolaevich Kartel: 8 February 1955, Belarus — 3 January 2026, London. Laid to rest at the City of London Cemetery. In cherished memory.",
-    descRU: "Старшее поколение заложило фундамент ценностей, дисциплины и веры, определивших семью на десятилетия вперёд. Пётр Николаевич Картель: 8 февраля 1955, Беларусь — 3 января 2026, Лондон. Похоронен на кладбище Сити-оф-Лондон. Светлая память.",
+    descEN: "The elder generation laid the foundation of values, discipline, and faith that would define the family for decades to come.",
+    descRU: "Старшее поколение заложило фундамент ценностей, дисциплины и веры, определивших семью на десятилетия вперёд.",
+    // The memorial sentences that used to close the descriptions above, moved verbatim into fields
+    // so the page can set them apart (cycle 12 #1). Wording, dates, places and names unchanged.
+    memorial: {
+      en: { name: "Piotr Nikolaevich Kartel", born: ["8 February 1955", "Belarus"], died: ["3 January 2026", "London"], burial: "Laid to rest at the City of London Cemetery.", words: "In cherished memory." },
+      ru: { name: "Пётр Николаевич Картель", born: ["8 февраля 1955", "Беларусь"], died: ["3 января 2026", "Лондон"], burial: "Похоронен на кладбище Сити-оф-Лондон.", words: "Светлая память." },
+    },
   },
   {
     id: "london",

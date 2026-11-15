@@ -19,4 +19,15 @@ export interface TimelineEvent {
   titleRU: string;
   descEN: string;
   descRU: string;
+  /** A memorial for someone who has died, shown as its own block under the entry (cycle 12). */
+  memorial?: { en: Memorial; ru: Memorial };
+}
+
+/** Rendered as "<name>: <born date>, <place> — <died date>, <place>." then burial, then words. */
+export interface Memorial {
+  name: string;
+  born: [date: string, place: string];
+  died: [date: string, place: string];
+  burial: string;
+  words: string;
 }
