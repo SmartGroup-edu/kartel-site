@@ -66,36 +66,78 @@ function sigOk(ts, raw, sig) {
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-async function sendViaBrevo(to, link) {
-  const text = [
-    "Sign in to KARTEL", "",
-    `Open this link to sign in: ${link}`, "",
-    `It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.`,
-    "If you did not request this, ignore this message — nothing has changed.",
-  ].join("\n");
-  // Branded, single-column, inline-styled (mail clients ignore <style>). The hidden preheader is
-  // what inboxes show next to the subject. No images, so it reads the same with images blocked;
-  // the page opts out of client dark mode (see the color-scheme note below).
-  const preheader = `Your sign-in link — valid for ${LINK_TTL_MIN} minutes.`;
-  // color-scheme "light only": Apple Mail otherwise auto-darkens the white page around a
-  // burgundy button. The footer address is an explicit muted link — left bare, Apple Mail
-  // auto-links it in default blue (seen 2026-11-14).
-  const html = `<!doctype html><html lang="en"><head><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#ffffff;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(preheader)}</div>
+/** 1 минуту · 2 минуты · 5 минут · 21 минуту — accusative after «действует». */
+function ruMinutes(n) {
+  const d = n % 10, h = n % 100;
+  if (d === 1 && h !== 11) return "минуту";
+  if (d >= 2 && d <= 4 && (h < 12 || h > 14)) return "минуты";
+  return "минут";
+}
+
+const COPY = {
+  en: {
+    subject: "Your KARTEL sign-in link",
+    heading: "Sign in to KARTEL",
+    intro: "Use the button below to sign in to Family Heritage.",
+    rule: (m) => `The link works once, only in this browser, and expires in ${m} ${m === 1 ? "minute" : "minutes"}.`,
+    button: "Sign in",
+    preheader: (m) => `Your sign-in link — valid for ${m} ${m === 1 ? "minute" : "minutes"}.`,
+    ignore: "If you did not request this, ignore this message — nothing has changed.",
+    open: "Open this link to sign in:",
+  },
+  ru: {
+    subject: "Ссылка для входа на KARTEL",
+    heading: "Вход на KARTEL",
+    intro: "Нажмите кнопку ниже, чтобы войти в раздел «Семейное наследие».",
+    rule: (m) => `Ссылка действует ${m} ${ruMinutes(m)}, срабатывает один раз и только в этом браузере.`,
+    button: "Войти",
+    preheader: (m) => `Ваша ссылка для входа — действует ${m} ${ruMinutes(m)}.`,
+    ignore: "Если вы не запрашивали вход, просто проигнорируйте это письмо — ничего не изменилось.",
+    open: "Откройте ссылку, чтобы войти:",
+  },
+};
+
+/**
+ * The one sign-in email (cycle 7 #3), on the site's type system: serif heading in the burgundy
+ * accent, 16px body, a burgundy button at least 44px tall, the same rule as the sign-in form
+ * ("works once, only in this browser, expires in N minutes", N = the site's FAMILY_LINK_TTL, sent
+ * with the request) and the motto in the footer. Exported for tests and local previews.
+ */
+export function renderSignInEmail({ link, ttlMinutes = LINK_TTL_MIN, lang = "en" }) {
+  const c = COPY[lang] ?? COPY.en;
+  const m = ttlMinutes;
+  const text = [c.heading, "", c.intro, "", `${c.open} ${link}`, "", c.rule(m), c.ignore, "", "Virtus et Potestas · kartel.org.uk"].join("\n");
+  const serif = "Georgia,'Times New Roman',serif";
+  // Single column, inline styles (mail clients ignore <style>), no images — reads the same with
+  // images blocked. color-scheme "light only": Apple Mail otherwise auto-darkens the white page
+  // around a burgundy button. Footer links are explicit muted colour — left bare, Apple Mail
+  // auto-links them in default blue (seen 2026-11-14).
+  const html = `<!doctype html><html lang="${lang === "ru" ? "ru" : "en"}"><head><meta charset="utf-8"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#ffffff;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${esc(c.preheader(m))}</div>
 <div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
-  <p style="margin:0 0 24px;font-family:Georgia,'Times New Roman',serif;font-size:24px;letter-spacing:0.12em;color:#7b1e2d;">KARTEL</p>
-  <h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:normal;color:#2b2824;">Sign in to KARTEL</h1>
-  <p style="margin:0 0 24px;font-size:16px;line-height:1.5;color:#37332e;">Use the button below to sign in. It expires in ${LINK_TTL_MIN} minutes and only works in the browser that asked for it.</p>
-  <p style="margin:0 0 24px;"><a href="${esc(link)}" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">Sign in</a></p>
-  <p style="margin:0;padding-top:16px;border-top:1px solid #e6e2dd;font-size:13px;line-height:1.5;color:#6f685c;">If you did not request this, ignore this message — nothing has changed.<br>KARTEL Core · <a href="https://kartel.org.uk" style="color:#6f685c;text-decoration:none;">kartel.org.uk</a></p>
+  <p style="margin:0 0 28px;font-family:${serif};font-size:24px;letter-spacing:0.12em;color:#7b1e2d;">KARTEL</p>
+  <h1 style="margin:0 0 16px;font-family:${serif};font-size:30px;line-height:1.15;font-weight:normal;color:#7b1e2d;">${esc(c.heading)}</h1>
+  <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(c.intro)}</p>
+  <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(c.rule(m))}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;"><tr><td style="border-radius:8px;background:#7b1e2d;">
+    <a href="${esc(link)}" style="display:inline-block;padding:14px 28px;line-height:20px;min-height:20px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(c.button)}</a>
+  </td></tr></table>
+  <p style="margin:0;padding-top:16px;border-top:1px solid #e6e2dd;font-size:14px;line-height:1.6;color:#6f685c;">${esc(c.ignore)}</p>
+  <p style="margin:16px 0 0;font-family:${serif};font-size:16px;font-style:italic;color:#7b1e2d;">Virtus et Potestas</p>
+  <p style="margin:4px 0 0;font-size:14px;color:#6f685c;"><a href="https://kartel.org.uk" style="color:#6f685c;text-decoration:none;">kartel.org.uk</a></p>
 </div></body></html>`;
+  return { subject: c.subject, text, html };
+}
+
+async function sendViaBrevo(to, link, ttlMinutes, lang) {
+  const { subject, text, html } = renderSignInEmail({ link, ttlMinutes, lang });
   const res = await fetch(BREVO_ENDPOINT, {
     method: "POST",
     headers: { "api-key": BREVO_API_KEY, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({
       sender: { email: FROM_EMAIL, name: FROM_NAME },
       to: [{ email: to }],
-      subject: "Your KARTEL sign-in link",
+      subject,
       textContent: text,
       htmlContent: html,
     }),
@@ -128,12 +170,16 @@ const server = createServer((req, res) => {
     const link = typeof body.link === "string" ? body.link : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     if (!link.startsWith(LINK_PREFIX) || link.length > 2048) return reply(res, 400, { error: "bad_link" });
+    // Optional (cycle 7 #3): the site's link lifetime and language. Anything else falls back to
+    // LINK_TTL_MINUTES and English — an older site build simply omits them.
+    const ttl = Number.isInteger(body.ttlMinutes) && body.ttlMinutes >= 1 && body.ttlMinutes <= 120 ? body.ttlMinutes : LINK_TTL_MIN;
+    const lang = body.lang === "ru" ? "ru" : "en";
     if (!allowAll([["global", GLOBAL], [`to:${to}`, PER_RECIPIENT]])) {
       console.warn("[relay] rate limited");
       return reply(res, 429, { error: "rate_limited" });
     }
     try {
-      const status = await sendViaBrevo(to, link);
+      const status = await sendViaBrevo(to, link, ttl, lang);
       console.log(`[relay] brevo ${status}`);
       if (status >= 200 && status < 300) return reply(res, 202, { ok: true });
       return reply(res, 502, { error: "upstream", status });

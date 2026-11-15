@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogAlt, ogImagePath } from "@/app/lib/ogCard";
 import { notFound } from "next/navigation";
 import FamilyClient from "../../components/FamilyClient";
 import { familyContent, FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
@@ -58,26 +59,13 @@ export async function generateMetadata({
       title: m.title,
       description: m.ogDescription,
       url,
-      images: [
-        {
-          url: "/opengraph-image",
-          width: 1200,
-          height: 630,
-          alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.",
-          type: "image/png",
-        },
-      ],
+      images: [{ url: ogImagePath(lang), width: 1200, height: 630, alt: ogAlt(lang === "ru" ? "ru" : "en"), type: "image/png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: m.title,
       description: m.ogDescription,
-      images: [
-        {
-          url: "/opengraph-image",
-          alt: "KARTEL — Coat of Arms of the Kartel Family",
-        },
-      ],
+      images: [{ url: ogImagePath(lang), alt: ogAlt(lang === "ru" ? "ru" : "en") }],
     },
   };
 }

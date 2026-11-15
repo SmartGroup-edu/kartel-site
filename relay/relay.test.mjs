@@ -92,3 +92,32 @@ test("unsigned request and other paths are refused", async () => {
   assert.equal((await fetch(base + "/")).status, 404);
   assert.equal((await fetch(base + "/healthz")).status, 200);
 });
+
+// Cycle 7 #3 — the email states the site's link lifetime and speaks the requester's language.
+test("ttlMinutes and lang from the site reach the email; bad values fall back", async () => {
+  const link = PREFIX + "abc";
+  brevoCalls = [];
+  assert.equal((await send({ to: "ttl-a@example.com", link, ttlMinutes: 15, lang: "ru" })).status, 202);
+  const ru = brevoCalls.at(-1).body;
+  assert.equal(ru.subject, "Ссылка для входа на KARTEL");
+  assert.match(ru.htmlContent, /Ссылка действует 15 минут, срабатывает один раз и только в этом браузере\./);
+  assert.match(ru.htmlContent, /<html lang="ru">/);
+  assert.equal((await send({ to: "ttl-b@example.com", link, ttlMinutes: 999, lang: "xx" })).status, 202);
+  const en = brevoCalls.at(-1).body;
+  assert.equal(en.subject, "Your KARTEL sign-in link");
+  assert.match(en.htmlContent, /The link works once, only in this browser, and expires in 10 minutes\./);
+  assert.match(en.textContent, /expires in 10 minutes/);
+});
+
+test("email on the site's type system: serif accent heading, 16px body, ≥44px button, motto", async () => {
+  const { renderSignInEmail } = await import("./server.mjs");
+  const { html } = renderSignInEmail({ link: PREFIX + "x", ttlMinutes: 1, lang: "en" });
+  assert.match(html, /<h1 style="[^"]*font-family:Georgia[^"]*color:#7b1e2d;">Sign in to KARTEL<\/h1>/);
+  assert.match(html, /expires in 1 minute\./);
+  assert.match(html, /font-size:16px;line-height:1\.6/);
+  assert.match(html, /padding:14px 28px;line-height:20px/); // 14 + 20 + 14 = 48px tall
+  assert.match(html, /font-style:italic;color:#7b1e2d;">Virtus et Potestas</);
+  assert.doesNotMatch(html, /font-size:1[0-3]px/);
+  const ru = renderSignInEmail({ link: PREFIX + "x", ttlMinutes: 21, lang: "ru" }).html;
+  assert.match(ru, /действует 21 минуту,/);
+});

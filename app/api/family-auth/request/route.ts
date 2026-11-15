@@ -56,7 +56,7 @@ export async function POST(request: Request): Promise<Response> {
       // The allowlist IS the user list: admins, Edge Config, or the founder seed.
       if (!(await isViewerApproved(addr, addr))) return;
       const url = await mintSignInLink(addr, returnTo, nonce);
-      await sendSignInLink(addr, url);
+      await sendSignInLink(addr, url, returnTo.startsWith("/ru") ? "ru" : "en");
     } catch {
       // Never surfaced — a failure here must not reveal membership. No address in the log.
       console.error("[family-auth/request] send failed");

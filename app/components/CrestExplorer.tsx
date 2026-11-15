@@ -189,7 +189,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
       <h3 className={`mb-2 text-center ${H3}`}>
         {title}
       </h3>
-      <p className="mb-8 text-center text-[15px] text-[var(--muted)]">
+      <p className="mb-8 text-center text-[15px] text-[var(--muted)] print:hidden">
         {hint}
       </p>
 
@@ -241,7 +241,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
         {/* Element list + description panel */}
         <div className="flex flex-col gap-3">
           {/* Element buttons */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3" role="tablist" aria-label={title}>
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 print:hidden" role="tablist" aria-label={title}>
             {ELEMENTS.map((el, i) => {
               const label = lang === "EN" ? el.labelEN : el.labelRU;
               const isActive = activeId === el.id;

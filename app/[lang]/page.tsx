@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
 import HomeClient from "../components/HomeClient";
 
@@ -43,7 +44,7 @@ export async function generateMetadata({
     description: m.description,
     keywords: m.keywords,
     // Page-level OG/Twitter replace the layout's (site default = KARTEL Core), so the home's
-    // share card says "coat of arms". Image = the generated crest card (app/opengraph-image.tsx).
+    // share card says "coat of arms". Image = the generated crest card (app/lib/ogCard.tsx), RU on its own URL.
     openGraph: {
       type: "website",
       locale: lang === "ru" ? "ru_RU" : "en_GB",
@@ -52,13 +53,13 @@ export async function generateMetadata({
       title: m.title,
       description: m.description,
       url: `https://kartel.org.uk/${lang}`,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.", type: "image/png" }],
+      images: [{ url: ogImagePath(lang), width: 1200, height: 630, alt: ogAlt(lang === "ru" ? "ru" : "en"), type: "image/png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: m.title,
       description: m.description,
-      images: [{ url: "/opengraph-image", alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas." }],
+      images: [{ url: ogImagePath(lang), alt: ogAlt(lang === "ru" ? "ru" : "en") }],
     },
     alternates: {
       canonical: `https://kartel.org.uk/${lang}`,

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -115,26 +116,14 @@ export async function generateMetadata({
       title: m.ogTitle,
       description: m.description,
       url: `https://kartel.org.uk/${lang}`,
-      images: [
-        {
-          url: "/opengraph-image",
-          width: 1200,
-          height: 630,
-          alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.",
-          type: "image/png",
-        },
-      ],
+      // EN keeps the long-standing /opengraph-image; RU gets its own card (cycle 7 #1).
+      images: [{ url: ogImagePath(lang), width: 1200, height: 630, alt: ogAlt(lang === "ru" ? "ru" : "en"), type: "image/png" }],
     },
     twitter: {
       card: "summary_large_image",
       title: m.twTitle,
       description: m.twDescription,
-      images: [
-        {
-          url: "/opengraph-image",
-          alt: "KARTEL — Coat of Arms of the Kartel Family. Virtus et Potestas.",
-        },
-      ],
+      images: [{ url: ogImagePath(lang), alt: ogAlt(lang === "ru" ? "ru" : "en") }],
     },
     icons: {
       icon: [
