@@ -161,13 +161,19 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
     tabRefs.current[next]?.focus();
   }, []);
 
-  // Scroll description into view on mobile
+  // Keep the description in view after a choice (home cycle 1 #1): scroll only when the panel is
+  // not fully visible below the sticky header; no smooth scrolling under reduced motion.
   useEffect(() => {
-    if (userChose.current && descRef.current) {
-      const rect = descRef.current.getBoundingClientRect();
-      if (rect.top > window.innerHeight * 0.7) {
-        descRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+    if (!userChose.current || !descRef.current) return;
+    const rect = descRef.current.getBoundingClientRect();
+    // The mobile section row is absolutely positioned under the header, so measure its navs too.
+    const chromeBottom = Math.max(0, ...[...document.querySelectorAll("header, [data-section-nav]")].map((e) => e.getBoundingClientRect().bottom));
+    const visible = rect.top >= chromeBottom && rect.bottom <= window.innerHeight;
+    if (!visible) {
+      // Explicit offset rather than scroll-margin: the global [id] rule in globals.css outranks utilities.
+      const delta = rect.top < chromeBottom ? rect.top - chromeBottom - 12 : rect.bottom - window.innerHeight + 12;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollBy({ top: delta, behavior: reduce ? "auto" : "smooth" });
     }
   }, [activeId]);
 
@@ -182,7 +188,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
       <h3 className="mb-2 text-center font-serif text-[20px] tracking-wide text-[var(--accent)] sm:text-[24px] lg:text-[28px]">
         {title}
       </h3>
-      <p className="mb-8 text-center text-[13px] text-[var(--muted)] sm:text-[14px]">
+      <p className="mb-8 text-center text-[15px] text-[var(--muted)]">
         {hint}
       </p>
 
@@ -279,7 +285,9 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
             role="tabpanel"
             aria-labelledby={`crest-tab-${activeElement.id}`}
             tabIndex={0}
-            className="relative min-h-[120px] overflow-hidden rounded border lg:flex-1 border-[var(--border)] bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            // Below 1024px the panel sits right under the art (before the tabs) — CSS order only, so
+            // the DOM keeps tablist → tabpanel for assistive tech.
+            className="relative min-h-[120px] overflow-hidden rounded border max-lg:order-first lg:flex-1 border-[var(--border)] bg-[var(--surface)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             <div className="p-5 sm:p-6">
               <h4 className="mb-3 font-serif text-[18px] text-[var(--accent)] sm:text-[20px]">

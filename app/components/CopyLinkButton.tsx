@@ -27,7 +27,7 @@ export default function CopyLinkButton({ url, lang }: { url: string; lang: "EN" 
     : "";
 
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex flex-col items-center gap-1">
       <button
         type="button"
         onClick={copy}
@@ -39,7 +39,7 @@ export default function CopyLinkButton({ url, lang }: { url: string; lang: "EN" 
         </svg>
         {label}
       </button>
-      <span aria-live="polite" className="min-w-[8ch] text-[14px] text-[var(--text-secondary)]">
+      <span aria-live="polite" className="min-h-[1.5em] text-[14px] text-[var(--text-secondary)]">
         {status}
       </span>
     </div>

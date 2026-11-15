@@ -180,6 +180,53 @@ describe("crest explorer hotspots (design pass 2026-11-15)", () => {
   });
 });
 
+describe("home cycle 1 (2026-11-15)", () => {
+  const en = read("en.html"), ru = read("ru.html");
+  const src = (f) => readFileSync(f, "utf8");
+  test("#1 explorer: panel first below 1024px (CSS order only), scroll only when out of view", () => {
+    const ex = src("app/components/CrestExplorer.tsx");
+    assert.match(ex, /role="tabpanel"[\s\S]*?max-lg:order-first/);
+    assert.ok(en.indexOf('role="tablist"') < en.indexOf('role="tabpanel"'), "DOM keeps tablist before tabpanel");
+    assert.match(ex, /\[data-section-nav\]/);
+    assert.match(ex, /prefers-reduced-motion: reduce\)"\)\.matches;\s*window\.scrollBy\(\{ top: delta, behavior: reduce \? "auto" : "smooth" \}\)/);
+    assert.match(src("app/components/SiteHeader.tsx"), /data-section-nav=""/);
+  });
+  test("#2 back-to-top: past two viewports and only while scrolling up", () => {
+    const b = src("app/components/BackToTop.tsx");
+    assert.match(b, /y > window\.innerHeight \* 2/);
+    assert.match(b, /else if \(y < last - 4\) setShow\(true\);\s*else if \(y > last \+ 4\) setShow\(false\);/);
+    assert.doesNotMatch(b, /scrollY > 600/);
+  });
+  test("#3 text floors: no 12px/13px/text-xs left in the home's caption sources", () => {
+    for (const f of ["app/components/HeraldicPalette.tsx", "app/components/SiteFooter.tsx", "app/components/MottoBanner.tsx"]) {
+      assert.doesNotMatch(src(f), /text-\[1[23]px\]|\btext-xs\b/, f);
+    }
+    assert.doesNotMatch(src("app/components/CrestExplorer.tsx"), /text-\[13px\]/);
+  });
+  test("#4 palette: four open cards, no toggles, equal height, toned argent", () => {
+    const pal = src("app/components/HeraldicPalette.tsx");
+    assert.doesNotMatch(pal, /aria-expanded|useState|<button/);
+    assert.match(pal, /grid auto-rows-fr/);
+    assert.match(pal, /color: "#d9d6cf"/);
+    assert.doesNotMatch(pal, /\bcolor: "#e8e4dd"|backgroundColor: "#e8e4dd"/);
+    for (const m of ["Truth, virtue", "Courage, determination", "Willpower, endurance", "Nobility, wisdom"]) assert.ok(en.includes(m), m);
+  });
+  test("#5 closing block: motto, explorer + members links, copy link (EN/RU)", () => {
+    for (const [h, l, a, b, t] of [[en, "en", "Explore the coat of arms", "Family Heritage — members only", "Strength and Power"], [ru, "ru", "Исследовать герб", "Семейное наследие — только для членов семьи", "Сила и Власть"]]) {
+      const i = h.indexOf('aria-label="Virtus et Potestas"');
+      assert.ok(i > 0, l);
+      const sec = h.slice(i, h.indexOf("</section>", i));
+      assert.match(sec, /lang="la"[^>]*>Virtus et Potestas</);
+      for (const s of [t, `href="#explorer"`, a, `href="/${l}/family"`, b]) assert.ok(sec.includes(s), `${l}: ${s}`);
+      assert.match(sec, /<button/);
+    }
+  });
+  test("#6 story heading above the first story paragraph", () => {
+    assert.match(en, /id="story"[\s\S]*?<h2[^>]*>The story<\/h2>\s*<p/);
+    assert.match(ru, /id="story"[\s\S]*?<h2[^>]*>История<\/h2>\s*<p/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

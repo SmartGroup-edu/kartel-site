@@ -69,7 +69,7 @@ export default function MottoBanner({ lang }: MottoBannerProps) {
         </p>
 
         {/* Translation */}
-        <p className="mt-3 text-[13px] uppercase tracking-[0.2em] text-[var(--band-text)] sm:text-[14px]">
+        <p className="mt-3 text-[14px] uppercase tracking-[0.2em] text-[var(--band-text)]">
           {translation}
         </p>
 
