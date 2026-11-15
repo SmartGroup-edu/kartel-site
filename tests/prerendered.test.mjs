@@ -90,7 +90,7 @@ describe("/en — Coat of Arms home", () => {
   test("design pass type scale: 17/19px reading text, 15px UI, 36/54px H1, 24px lede", () => {
     assert.match(html, /text-\[17px\] leading-\[1\.65\][^"]*lg:text-\[19px\] lg:leading-\[1\.7\]/);
     assert.match(html, /<h1 class="[^"]*text-\[36px\][^"]*lg:text-\[54px\]/);
-    assert.match(html, /font-serif text-\[20px\][^"]*text-\[var\(--text-body\)\] lg:text-\[24px\]/);
+    assert.match(html, /font-serif text-\[20px\][^"]*text-\[var\(--text-body\)\][^"]*lg:text-\[24px\]/);
     assert.match(html, /role="tab"[^>]*class="[^"]*text-\[15px\]|class="[^"]*text-\[15px\][^"]*"[^>]*role="tab"/);
   });
 
@@ -594,6 +594,42 @@ describe("cycle 9 — markers in both themes, tablet hero, phones held sideways 
     assert.match(hd, /border-t border-\[var\(--border\)\] short-land:hidden max-md:absolute/);
     assert.match(hd, /className="h-11 md:hidden short-land:hidden"/);
     assert.match(src("app/components/CrestExplorer.tsx"), /short-land:max-w-\[calc\(\(100svh-5\.5rem\)\*0\.9\)\]/);
+  });
+});
+
+describe("cycle 10 — scannable Meaning essay, tablet hero axis (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  const meaning = (h) => h.slice(h.indexOf('<section id="meaning"'), h.indexOf('<section id="explorer"'));
+  const groups = (h) => [...meaning(h).matchAll(/<h3[^>]*>([^<]+)<\/h3>([\s\S]*?)(?=<h3|$)/g)].map((m) => ({ h: m[1], link: (m[2].match(/href="#explorer-([a-z]+)"/) ?? [])[1] ?? null, text: m[2].replace(/<[^>]+>/g, " ") }));
+  const CASES = {
+    en: [["Staff", "staff", /staff/i], ["Crossed keys", "keys", /keys/i], ["Wings", "wings", /wings/i], ["Mantling", null, /mantling/i], ["Coronet", "coronet", /coronet/i], ["Fleur-de-lis", "fleurdelis", /fleur-de-lis/i], ["Swords", "swords", /swords/i], ["Motto", "motto", /motto/i]],
+    ru: [["Жезл", "staff", /жезл/i], ["Скрещённые ключи", "keys", /ключ/i], ["Крылья", "wings", /крыл/i], ["Намёт", null, /намёт/i], ["Корона", "coronet", /корон/i], ["Лилии", "fleurdelis", /лили/i], ["Мечи", "swords", /меч/i], ["Девиз", "motto", /девиз/i]],
+  };
+  test("#1 the essay sits under 8 element H3s, each over its own paragraphs; 7 link to the crest", () => {
+    for (const lang of ["en", "ru"]) {
+      const g = groups(read(`${lang}.html`));
+      assert.deepEqual(g.map((x) => x.h), CASES[lang].map((c) => c[0]), lang);
+      CASES[lang].forEach(([, link, kw], i) => {
+        assert.equal(g[i].link, link, `${lang} ${g[i].h} link`);
+        assert.match(g[i].text, kw, `${lang} ${g[i].h}: paragraph matches its heading`);
+      });
+      // all ten paragraphs still there, unchanged in count
+      assert.equal((meaning(read(`${lang}.html`)).match(/<p class="mb-5 text-left">/g) ?? []).length, 10, lang);
+    }
+  });
+  test("#1 deep links: hashchange + load, explicit offset, reduced motion, focus to the tab", () => {
+    const ex = src("app/components/CrestExplorer.tsx");
+    assert.match(ex, /\/\^#explorer-\(\[a-z\]\+\)\$\/\.exec\(window\.location\.hash\)/);
+    assert.match(ex, /window\.addEventListener\("hashchange", apply\)/);
+    assert.match(ex, /behavior: reduce \? "auto" : "smooth"/);
+    assert.match(ex, /tabRefs\.current\[i\]\?\.focus\(\{ preventScroll: true \}\)/);
+  });
+  test("#2 hero 640–1023: title, lede and actions centred on the crest's axis; phones and lg+ left", () => {
+    const h = src("app/components/HomeClient.tsx");
+    const C = "sm:text-center lg:text-left short-land:text-left";
+    assert.ok(h.includes(`[grid-area:title] ${C}`) && h.includes(`[grid-area:text] ${C}`));
+    assert.match(h, /sm:mx-auto lg:mx-0/);
+    assert.match(h, /sm:justify-center lg:justify-start/);
   });
 });
 

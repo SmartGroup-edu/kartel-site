@@ -147,6 +147,33 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
     setActiveId(id);
   }, []);
 
+  // Deep links (cycle 10 #1): #explorer-<id> selects that element, brings the explorer into view
+  // (instant under reduced motion) and puts focus on its tab. Works on load and on hashchange; the
+  // Meaning essay's "See on the crest" links use it.
+  useEffect(() => {
+    const apply = () => {
+      const m = /^#explorer-([a-z]+)$/.exec(window.location.hash);
+      const i = m ? ELEMENTS.findIndex((el) => el.id === m[1]) : -1;
+      if (i < 0) return;
+      setActiveId(ELEMENTS[i].id);
+      const section = document.getElementById("explorer");
+      if (section) {
+        // Explicit offset under the sticky header and section row (the global [id] scroll-margin is
+        // shorter than that chrome on desktop).
+        const chrome = Math.max(0, ...[...document.querySelectorAll("header, [data-section-nav]")].map((e) => e.getBoundingClientRect().bottom));
+        const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        window.scrollTo({ top: window.scrollY + section.getBoundingClientRect().top - chrome, behavior: reduce ? "auto" : "smooth" });
+      }
+      requestAnimationFrame(() => requestAnimationFrame(() => tabRefs.current[i]?.focus({ preventScroll: true })));
+    };
+    const onLoad = window.setTimeout(apply, 0);
+    window.addEventListener("hashchange", apply);
+    return () => {
+      window.clearTimeout(onLoad);
+      window.removeEventListener("hashchange", apply);
+    };
+  }, []);
+
   const onTabKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
     const last = ELEMENTS.length - 1;
     const next =
