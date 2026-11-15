@@ -34,10 +34,10 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <h2 className="mb-3 text-center font-serif text-[22px] tracking-wide text-[var(--accent)] sm:text-[28px] lg:text-[32px]">
+      <h2 className="mb-3 text-center font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">
         {title}
       </h2>
-      <p className="mb-8 text-center text-[13px] text-[var(--muted)] sm:text-[14px]">
+      <p className="mb-8 text-center text-[14px] text-[var(--muted)]">
         {lang === "EN" ? "Seven generations united by name and legacy" : "Семь поколений, объединённые именем и наследием"}
       </p>
 
@@ -102,7 +102,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
           <div className="relative" style={{ height: 1160 }}>
             {/* Root generation */}
             <div className="absolute" style={{ left: 0, top: 0, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.root}
               </p>
               <div className="flex justify-center">
@@ -112,7 +112,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Founder generation */}
             <div className="absolute" style={{ left: 0, top: 160, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.founder}
               </p>
               <div className="flex justify-center gap-10">
@@ -123,7 +123,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Ancestor generation */}
             <div className="absolute" style={{ left: 0, top: 320, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.ancestor}
               </p>
               <div className="flex justify-center gap-10">
@@ -134,7 +134,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Grandparent generation */}
             <div className="absolute" style={{ left: 0, top: 480, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.grandparent}
               </p>
               <div className="flex justify-center gap-10">
@@ -145,7 +145,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Elder generation */}
             <div className="absolute" style={{ left: 0, top: 640, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.elder}
               </p>
               <div className="flex justify-center gap-10">
@@ -156,7 +156,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Current generation */}
             <div className="absolute" style={{ left: 0, top: 800, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.current}
               </p>
               <div className="flex justify-center gap-10">
@@ -167,7 +167,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
 
             {/* Next generation */}
             <div className="absolute" style={{ left: 0, top: 960, right: 0 }}>
-              <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+              <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
                 {genLabels.next}
               </p>
               <div className="flex justify-center gap-4">
@@ -191,7 +191,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
       <div className="block md:hidden" role="list" aria-label={title}>
         {(["root", "founder", "ancestor", "grandparent", "elder", "current", "next"] as const).map((gen) => (
           <div key={gen} className="mb-6 last:mb-0" role="listitem">
-            <p className="mb-3 text-center text-[12px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
+            <p className="mb-3 text-center text-[14px] font-medium uppercase tracking-[0.15em] text-[var(--muted-light)]">
               {genLabels[gen]}
             </p>
             {/* Equal width for every card on a level (gated UI/UX audit 2026-11-14 #6). */}
@@ -260,7 +260,7 @@ function TreeCard({
         {name}
       </p>
       <p
-        className="mt-1 text-[12px] text-[var(--muted)]"
+        className="mt-1 text-[14px] text-[var(--muted)]"
       >
         {role}
       </p>

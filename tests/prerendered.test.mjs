@@ -227,6 +227,44 @@ describe("home cycle 1 (2026-11-15)", () => {
   });
 });
 
+describe("home cycle 2 (2026-11-15)", () => {
+  const en = read("en.html"), ru = read("ru.html");
+  const src = (f) => readFileSync(f, "utf8");
+  test("#1 RU palette subtitles do not repeat the colour name", () => {
+    const pal = src("app/components/HeraldicPalette.tsx");
+    for (const [n, h] of [["Золото", "жёлтый"], ["Чернь", "чёрный"], ["Серебро", "белый"], ["Червлень", "красный"]]) {
+      assert.match(pal, new RegExp(`nameRU: "${n}",[\\s\\S]*?heraldRU: "${h}",`), n);
+    }
+    assert.match(pal, /heraldEN: "Or \(Yellow\)"/);
+  });
+  test("#2 home footer carries no motto line; the closing block does", () => {
+    for (const h of [en, ru]) {
+      const foot = h.slice(h.lastIndexOf("<footer"), h.lastIndexOf("</footer>"));
+      assert.doesNotMatch(foot, /Virtus et Potestas/);
+      assert.match(h, /aria-label="Virtus et Potestas"/);
+    }
+    assert.match(src("app/components/SiteFooter.tsx"), /motto\?: string;/);
+  });
+  test("#3 one separator after an ornament: no rule on Legacy or the closing block", () => {
+    for (const h of [en, ru]) {
+      assert.match(h, /<section id="legacy">/);
+      assert.match(h, /<section aria-label="Virtus et Potestas">/);
+    }
+  });
+});
+
+describe("family area type scale (cycle 2 #4)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("H2 28/35, reading text 17/19, captions and level labels 14px, nothing under 14px", () => {
+    const tree = src("app/components/FamilyTree.tsx"), tl = src("app/components/FamilyTimeline.tsx"), fc = src("app/components/FamilyClient.tsx");
+    for (const f of [tree, tl]) assert.match(f, /<h2 className="[^"]*text-\[28px\][^"]*lg:text-\[35px\]/);
+    assert.match(tl, /mt-2 text-\[17px\][^"]*lg:text-\[19px\]/);
+    assert.match(fc, /mt-6 max-w-\[68ch\] text-\[17px\][^"]*lg:text-\[19px\]/);
+    for (const f of [tree, tl, fc]) assert.doesNotMatch(f, /text-\[1[0-3]px\]|\btext-xs\b/);
+    assert.equal((tree.match(/text-\[14px\] font-medium uppercase tracking-\[0\.15em\]/g) ?? []).length, 8);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

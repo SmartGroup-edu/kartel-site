@@ -3,7 +3,8 @@
 import { usePathname } from "next/navigation";
 
 interface SiteFooterProps {
-  motto: string;
+  /** Omitted on the home, whose closing block already ends on the motto (cycle 2 #2). */
+  motto?: string;
   copy: string;
   maxWidth?: string;
   /**
@@ -25,10 +26,14 @@ export default function SiteFooter({
     <footer className="border-t border-[var(--border)] bg-[var(--surface)] transition-colors duration-300">
       <div className={`mx-auto ${maxWidth} px-4 py-8 sm:px-6 lg:px-10 lg:py-10`}>
         <div className="flex flex-col items-center gap-3 text-center">
-          <p className="font-serif text-[16px] italic tracking-wide text-[var(--accent)] sm:text-[18px]">
-            {motto}
-          </p>
-          <div className="h-px w-12 bg-[var(--border)]" aria-hidden="true" />
+          {motto && (
+            <>
+              <p className="font-serif text-[16px] italic tracking-wide text-[var(--accent)] sm:text-[18px]">
+                {motto}
+              </p>
+              <div className="h-px w-12 bg-[var(--border)]" aria-hidden="true" />
+            </>
+          )}
           <p className="text-sm text-[var(--muted)]">&copy; {new Date().getFullYear()} · {copy.replace(/^©\s*\d{4}\s*/, "")}</p>
           <nav aria-label="Footer links" className="mt-1 flex items-center gap-4 text-[14px] text-[var(--muted-light)]">
             {contactEmail && (
