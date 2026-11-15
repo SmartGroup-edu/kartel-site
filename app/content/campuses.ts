@@ -1,4 +1,4 @@
-// Bilingual copy for the Campus Registry (/[lang]/registry/campuses).
+// Bilingual copy for the Campuses page (/[lang]/registry/campuses).
 // Data (the canonical campuses) comes from registry.public.json.campusRegistry.
 // Campuses only — accredited operating centres. No PII, no operational data, no internal IDs.
 
@@ -6,11 +6,11 @@ export const campusesContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "Campus Registry — accredited centres",
+    metaTitle: "Campuses",
     metaDescription:
       "Accredited operating centres of the KARTEL ecosystem — Znaniye Stratford, Chelsea, Ealing and Baltica Leeds — each with a readable campus code.",
-    eyebrow: "Canonical layer · Campus",
-    title: "Campus Registry",
+    eyebrow: "Registry",
+    title: "Campuses",
     intro:
       "The canonical accredited operating centres of the federation. A campus is an accredited centre — it may own accreditation, classes and governance — identified by a readable campusCode. KARTEL Core owns this registry; platforms consume the codes, they never author them.",
     fields: {
@@ -28,11 +28,11 @@ export const campusesContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Реестр кампусов — аккредитованные центры",
+    metaTitle: "Кампусы",
     metaDescription:
       "Аккредитованные центры экосистемы KARTEL — «Знание» Стратфорд, Челси, Илинг и «Балтика» Лидс — у каждого свой читаемый код кампуса.",
-    eyebrow: "Канонический слой · Кампус",
-    title: "Реестр кампусов",
+    eyebrow: "Реестр",
+    title: "Кампусы",
     intro:
       "Канонические аккредитованные образовательные центры федерации. Кампус — это аккредитованный центр, который может иметь собственную аккредитацию, занятия и управление; он обозначается читаемым campusCode. Ядро KARTEL владеет реестром; платформы потребляют коды, но не создают их.",
     fields: {

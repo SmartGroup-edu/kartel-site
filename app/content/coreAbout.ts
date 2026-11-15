@@ -23,7 +23,7 @@ export const coreAboutContent = {
         p: "The Common Platform Identity Framework. A person is the same person on every platform — no duplicate accounts, no re-registration. Each platform stores only a reference to that person.",
       },
       {
-        h: "Canonical Geography — one map",
+        h: "Canonical geography — one map",
         p: "One canonical UK region taxonomy (ITL1 — the official statistical regions). Every platform tags its content with the same region codes and consumes them from one source of truth. No platform invents its own regions.",
       },
       {

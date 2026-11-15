@@ -9,11 +9,12 @@ import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { organisationsContent } from "../content/organisations";
+import { tierLabel } from "../content/tokens";
 import registry from "../content/registry.public.json";
 
-function TierPill({ value }: { value: string }) {
-  const authority = /(authority|авторитет)/i.test(value);
-  return <Pill tone={authority ? "solid" : "accent"}>{value}</Pill>;
+function TierPill({ value, label }: { value: string; label: string }) {
+  const authority = /authority/i.test(value);
+  return <Pill tone={authority ? "solid" : "accent"}>{label}</Pill>;
 }
 
 export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
@@ -59,7 +60,7 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
                     </td>
                     <td className="px-4 py-4 font-serif text-base text-[var(--foreground)]">{o.name}</td>
                     <td className="px-4 py-4">
-                      <TierPill value={c.tierLabels[o.tier as keyof typeof c.tierLabels] ?? o.tier} />
+                      <TierPill value={o.tier} label={tierLabel(lang, o.tier) ?? o.tier} />
                     </td>
                     <td className="px-4 py-4 text-[var(--text-body)]">
                       {o.parent ? (

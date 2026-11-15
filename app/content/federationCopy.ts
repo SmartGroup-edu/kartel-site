@@ -25,7 +25,7 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
     "community-group":
       "Cultural funding and trust platform (CEA). Consumes identity and geography; first geography consumer.",
     rusjazz:
-      "Future module. Builds against the Federation Integration Gate from day one.",
+      "Future module. Builds against the Federation integration gate from day one.",
   },
   RU: {
     moypolk:
@@ -35,7 +35,7 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
     "community-group":
       "Платформа культурного финансирования и доверия (CEA). Потребляет идентичность и географию; первый потребитель слоя географии.",
     rusjazz:
-      "Будущий модуль. С первого дня строится в соответствии со Шлюзом интеграции в федерацию.",
+      "Будущий модуль. С первого дня строится в соответствии со шлюзом интеграции в федерацию.",
   },
 };
 
@@ -48,13 +48,13 @@ export const layerNameLabels: Record<Lang, Record<string, string>> = {
   EN: {
     identity: "Identity (CPIF)",
     geography: "Geography (ITL1)",
-    organisation: "Organisation Anchor",
-    campus: "Campus Anchor",
-    permissions: "Permission Delegation",
-    membership: "Membership Edge",
-    event_geo: "Event Geo-Anchor",
-    notification: "Notification Envelope",
-    audit: "Audit Envelope",
+    organisation: "Organisation anchor",
+    campus: "Campus anchor",
+    permissions: "Permission delegation",
+    membership: "Membership edge",
+    event_geo: "Event geo-anchor",
+    notification: "Notification envelope",
+    audit: "Audit envelope",
   },
   RU: {
     identity: "Идентичность (CPIF)",

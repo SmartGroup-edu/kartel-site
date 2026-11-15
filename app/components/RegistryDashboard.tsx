@@ -129,7 +129,7 @@ export default function RegistryDashboard({ lang }: { lang: Lang }) {
           </section>
         </FadeInSection>
 
-        {/* Federation Integration Gate */}
+        {/* Federation integration gate */}
         <FadeInSection>
           <section className="mt-14">
             <SectionTitle title={c.sections.gate} note={c.sections.gateNote} />

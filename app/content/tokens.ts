@@ -11,8 +11,10 @@
 //
 //   <StatusPill value={raw} label={statusLabel(lang, raw)} />
 //
-// EN is pass-through (returns the original token), so English pages are byte-for-
-// byte unchanged and any unmapped/new token degrades gracefully to English.
+// One dictionary, one casing (cycle 5 #4–5): every map below is lowercase, and every label
+// function returns sentence case in both languages — "Producer / steward", «Школа», «Кампус».
+// EN passes the raw token through (lowercased, then sentence-cased), so the JSON's mixed
+// casing ("SCHOOL", "Producer / Steward", "Planned") never reaches the page as-is.
 
 import type { Lang } from "../components/useLang";
 
@@ -32,19 +34,19 @@ const RU_STATUS: Record<string, string> = {
 };
 
 const RU_ROLE: Record<string, string> = {
-  authority: "Авторитет",
-  consumer: "Потребитель",
-  producer: "Производитель",
-  steward: "Стюард",
-  "producer / steward": "Производитель / Стюард",
-  planned: "Планируется",
+  authority: "авторитет",
+  consumer: "потребитель",
+  producer: "производитель",
+  steward: "стюард",
+  "producer / steward": "производитель / стюард",
+  planned: "планируется",
 };
 
 const RU_TIER: Record<string, string> = {
-  authority: "Авторитет",
-  foundation: "Фонд",
-  school: "Школа",
-  venue: "Площадка",
+  authority: "авторитет",
+  foundation: "фонд",
+  school: "школа",
+  venue: "площадка",
   campus: "кампус",
 };
 
@@ -73,13 +75,20 @@ const RU_LAYER_KEY: Record<string, string> = {
 // Privacy bands: only the textual "Active" band is localised; numeric bands
 // (0 · 5–9 · 10–19 · 20+) are universal and pass through unchanged.
 const RU_BAND: Record<string, string> = {
-  active: "Активно",
+  active: "активно",
 };
+
+// EN display forms where the raw token is not readable as-is.
+const EN_DISPLAY: Record<string, string> = {
+  "future-module": "future module",
+};
+
+const sentence = (s: string) => (s ? s.charAt(0).toLocaleUpperCase() + s.slice(1) : s);
 
 function lookup(map: Record<string, string>, lang: Lang, value?: string): string | undefined {
   if (value == null) return value;
-  if (lang === "EN") return value;
-  return map[value.toLowerCase()] ?? value;
+  const key = value.toLowerCase();
+  return sentence(lang === "EN" ? (EN_DISPLAY[key] ?? key) : (map[key] ?? key));
 }
 
 /**

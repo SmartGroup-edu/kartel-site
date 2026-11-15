@@ -1,4 +1,4 @@
-// Bilingual copy for the Federation Operations Map (/[lang]/registry/federation).
+// Bilingual copy for the Federation map (/[lang]/registry/federation).
 // Data comes from federation.public.json — a sanitised, BANDED, point-in-time observability
 // snapshot. Read-only. No PII, no identities, no exact counts < 5 at named entities.
 
@@ -6,11 +6,11 @@ export const federationContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "Federation Operations Map",
+    metaTitle: "Federation map",
     metaDescription:
       "A read-only map of the KARTEL federation built from canonical keys. Aggregate banded counts only; it observes the federation and is never a source of truth.",
-    eyebrow: "Federation Operations Map",
-    title: "Federation observability",
+    eyebrow: "Registry",
+    title: "Federation map",
     intro:
       "A read-only map of the federation, generated entirely from canonical keys. It shows structure and integrity — the four canonical layers, the organisation/campus topology, per-platform participation, and orphan/drift checks. It carries no personal data, no identities, and no authority. The map observes the federation; it is never a source of truth.",
     sections: {
@@ -52,11 +52,11 @@ export const federationContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Карта операций федерации",
+    metaTitle: "Карта федерации",
     metaDescription:
       "Карта федерации KARTEL только для чтения, из канонических ключей. Только агрегированные диапазоны; карта наблюдает и не является источником истины.",
-    eyebrow: "Карта операций федерации",
-    title: "Наблюдаемость федерации",
+    eyebrow: "Реестр",
+    title: "Карта федерации",
     intro:
       "Карта федерации только для чтения, построенная исключительно из канонических ключей. Она показывает структуру и целостность — четыре канонических слоя, топологию организаций и кампусов, участие платформ и проверки на потерянные/расходящиеся записи. В ней нет персональных данных, идентичностей или полномочий. Карта наблюдает за федерацией; она никогда не является источником истины.",
     sections: {
