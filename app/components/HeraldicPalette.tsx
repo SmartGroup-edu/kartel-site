@@ -1,5 +1,7 @@
 "use client";
 
+import { H3 } from "../lib/typeScale";
+
 interface ColourPair {
   id: string;
   nameEN: string;
@@ -70,7 +72,7 @@ export default function HeraldicPalette({ lang }: HeraldicPaletteProps) {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h3 className="mb-6 text-center font-serif text-[22px] tracking-wide text-[var(--accent)] lg:text-[26px]">
+      <h3 className={`mb-6 text-center ${H3}`}>
         {title}
       </h3>
 

@@ -13,7 +13,6 @@ export const federationContent = {
     title: "Federation observability",
     intro:
       "A read-only map of the federation, generated entirely from canonical keys. It shows structure and integrity — the four canonical layers, the organisation/campus topology, per-platform participation, and orphan/drift checks. It carries no personal data, no identities, and no authority. The map observes the federation; it is never a source of truth.",
-    snapshotLabel: "Snapshot",
     sections: {
       layers: "Canonical layers",
       contracts: "Federation contracts",
@@ -60,7 +59,6 @@ export const federationContent = {
     title: "Наблюдаемость федерации",
     intro:
       "Карта федерации только для чтения, построенная исключительно из канонических ключей. Она показывает структуру и целостность — четыре канонических слоя, топологию организаций и кампусов, участие платформ и проверки на потерянные/расходящиеся записи. В ней нет персональных данных, идентичностей или полномочий. Карта наблюдает за федерацией; она никогда не является источником истины.",
-    snapshotLabel: "Снимок",
     sections: {
       layers: "Канонические слои",
       contracts: "Контракты федерации",

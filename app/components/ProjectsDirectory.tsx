@@ -1,6 +1,9 @@
 "use client";
 
 import { useLangToggle, type Lang } from "./useLang";
+import { noDashLineStart } from "../lib/typography";
+import { H1, H2, PROSE, EYEBROW, META, TH } from "../lib/typeScale";
+import Pill, { sentenceCase } from "./Pill";
 import SiteHeader from "./SiteHeader";
 import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
@@ -15,23 +18,14 @@ import registry from "../content/registry.public.json";
 function RolePill({ value, label }: { value: string; label?: string }) {
   const authority = /authority/i.test(value);
   const planned = /planned/i.test(value);
-  const tone = authority
-    ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--background)]"
-    : planned
-      ? "border-[var(--border)] text-[var(--muted)]"
-      : "border-[var(--accent)] text-[var(--accent)]";
-  return (
-    <span className={`inline-block whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs uppercase tracking-wide ${tone}`}>
-      {label ?? value}
-    </span>
-  );
+  return <Pill tone={authority ? "solid" : planned ? "muted" : "accent"}>{label ?? value}</Pill>;
 }
 
 function StatusPill({ value, label }: { value?: string; label?: string }) {
   if (!value) return <span className="text-[var(--muted)]">—</span>;
   const active = /(connected|consumed|producer|steward|geo-anchored)/i.test(value);
   const tone = active ? "text-[var(--text-body)]" : "text-[var(--muted)]";
-  return <span className={`text-xs ${tone}`}>{label ?? value}</span>;
+  return <span className={`text-[14px] ${tone}`}>{sentenceCase(label ?? value)}</span>;
 }
 
 export default function ProjectsDirectory({ lang }: { lang: Lang }) {
@@ -45,9 +39,9 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
       <main id="main" className="mx-auto w-full min-w-0 max-w-6xl px-4 pb-20 pt-10 sm:px-6 lg:px-10">
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--accent)]">{c.eyebrow}</p>
-            <h1 className="mt-2 font-serif text-4xl text-[var(--foreground)] sm:text-5xl">{c.title}</h1>
-            <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--text-body)]">{c.intro}</p>
+            <p className={EYEBROW}>{c.eyebrow}</p>
+            <h1 className={`mt-2 ${H1}`}>{c.title}</h1>
+            <p className={`mt-4 max-w-[68ch] ${PROSE}`}>{noDashLineStart(c.intro)}</p>
           </header>
         </FadeInSection>
 
@@ -55,12 +49,12 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
           <div className="mt-8 overflow-x-auto rounded-lg border border-[var(--border)]">
             <table className="w-full min-w-[760px] text-sm">
               <thead>
-                <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
-                  <th className="px-4 py-3 font-medium">{c.cols.project}</th>
-                  <th className="px-4 py-3 font-medium">{c.cols.role}</th>
-                  <th className="px-4 py-3 font-medium">{c.cols.identity}</th>
-                  <th className="px-4 py-3 font-medium">{c.cols.geography}</th>
-                  <th className="px-4 py-3 font-medium">{c.cols.organisation}</th>
+                <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-left">
+                  <th className={TH}>{c.cols.project}</th>
+                  <th className={TH}>{c.cols.role}</th>
+                  <th className={TH}>{c.cols.identity}</th>
+                  <th className={TH}>{c.cols.geography}</th>
+                  <th className={TH}>{c.cols.organisation}</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,13 +65,13 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
                       <td className="px-4 py-4">
                         <div className="font-serif text-base text-[var(--foreground)]">{p.name}</div>
                         {p.url ? (
-                          <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-block rounded-sm py-1 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                          <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-block rounded-sm py-1 text-[14px] text-[var(--accent)] hover:text-[var(--accent-hover)]">
                             {p.url.replace(/^https?:\/\//, "")} ↗
                           </a>
                         ) : (
-                          <span className="text-xs text-[var(--muted)]">{typeLabel(lang, p.type)}</span>
+                          <span className="text-[14px] text-[var(--muted)]">{typeLabel(lang, p.type)}</span>
                         )}
-                        <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--muted)]">{projectSummaries[lang][p.key] ?? p.summary}</p>
+                        <p className={`mt-1 max-w-xs ${META}`}>{noDashLineStart(projectSummaries[lang][p.key] ?? p.summary)}</p>
                       </td>
                       <td className="px-4 py-4"><RolePill value={(p as { role?: string }).role ?? "—"} label={roleLabel(lang, (p as { role?: string }).role ?? "—")} /></td>
                       <td className="px-4 py-4"><StatusPill value={layers.identity} label={statusLabel(lang, layers.identity)} /></td>
@@ -94,12 +88,12 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
         {/* Role legend */}
         <FadeInSection>
           <section className="mt-10">
-            <h2 className="font-serif text-lg text-[var(--foreground)]">{c.roleLegendTitle}</h2>
+            <h2 className={H2}>{c.roleLegendTitle}</h2>
             <dl className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {c.roleLegend.map((r) => (
                 <div key={r.role} className="flex gap-2 rounded-md border border-[var(--border)] p-3">
                   <dt><RolePill value={r.role} label={roleLabel(lang, r.role)} /></dt>
-                  <dd className="text-xs text-[var(--muted)]">{r.desc}</dd>
+                  <dd className="text-[14px] text-[var(--muted)]">{noDashLineStart(r.desc)}</dd>
                 </div>
               ))}
             </dl>
@@ -107,8 +101,8 @@ export default function ProjectsDirectory({ lang }: { lang: Lang }) {
         </FadeInSection>
 
         <FadeInSection>
-          <p className="mt-12 border-t border-[var(--border)] pt-6 text-xs leading-relaxed text-[var(--muted)]">
-            {c.publicNote}
+          <p className={`mt-12 border-t border-[var(--border)] pt-6 ${META}`}>
+            {noDashLineStart(c.publicNote)}
           </p>
         </FadeInSection>
       </main>

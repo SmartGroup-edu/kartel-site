@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { H3 } from "../lib/typeScale";
 import Image from "next/image";
 import { noDashLineStart } from "../lib/typography";
 
@@ -185,7 +186,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
 
   return (
     <div ref={containerRef} className="mx-auto max-w-5xl">
-      <h3 className="mb-2 text-center font-serif text-[20px] tracking-wide text-[var(--accent)] sm:text-[24px] lg:text-[28px]">
+      <h3 className={`mb-2 text-center ${H3}`}>
         {title}
       </h3>
       <p className="mb-8 text-center text-[15px] text-[var(--muted)]">
