@@ -107,7 +107,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
     <>
       <SkipToContent lang={lang} />
       <header data-site-header="" className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--header-bg)] backdrop-blur transition-colors duration-300">
-        <div className={`mx-auto flex ${maxWidth} items-center justify-between px-4 py-4 sm:px-6 lg:px-10 lg:py-5`}>
+        <div className={`mx-auto flex ${maxWidth} items-center justify-between px-4 py-4 sm:px-6 lg:px-10 lg:py-5 short-land:py-2`}>
           <a
             href={`/${lang.toLowerCase()}`}
             className="rounded-sm font-serif text-[24px] tracking-[0.12em] text-[var(--accent)] transition-opacity duration-200 hover:opacity-80 sm:text-[28px] lg:text-[30px]"
@@ -196,7 +196,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
           <nav
             data-section-nav=""
             aria-label={subNavLabel ?? (lang === "RU" ? "Разделы реестра" : "Registry sections")}
-            className={`border-t border-[var(--border)] max-md:absolute max-md:inset-x-0 max-md:top-full max-md:h-11 max-md:border-b max-md:bg-[var(--header-bg)] max-md:backdrop-blur max-md:transition-[opacity,visibility] max-md:duration-200 motion-reduce:transition-none ${
+            className={`border-t border-[var(--border)] short-land:hidden max-md:absolute max-md:inset-x-0 max-md:top-full max-md:h-11 max-md:border-b max-md:bg-[var(--header-bg)] max-md:backdrop-blur max-md:transition-[opacity,visibility] max-md:duration-200 motion-reduce:transition-none ${
               hideSub ? "max-md:invisible max-md:opacity-0" : ""
             }`}
           >
@@ -225,7 +225,7 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
         </div>
       </header>
       {/* Mobile spacer for the absolutely positioned section row (same 44px height). */}
-      {subNav && <div aria-hidden="true" className="h-11 md:hidden" />}
+      {subNav && <div aria-hidden="true" className="h-11 md:hidden short-land:hidden" />}
     </>
   );
 }
