@@ -568,6 +568,35 @@ describe("cycle 8 — axe serious findings fixed (2026-11-15)", () => {
   });
 });
 
+describe("cycle 9 — markers in both themes, tablet hero, phones held sideways (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("#1 crest markers: fixed burgundy, white 2px ring and numeral, never the theme accent", () => {
+    const ex = src("app/components/CrestExplorer.tsx");
+    const markers = ex.slice(ex.indexOf("{/* Hotspot dots overlay */}"), ex.indexOf("{/* Element list"));
+    assert.match(markers, /rounded-full bg-\[#7b1e2d\] text-white ring-2 ring-white/);
+    assert.doesNotMatch(markers, /bg-\[var\(--accent\)\]|text-\[var\(--on-accent\)\]/);
+    assert.match(markers, /"h-8 w-8 shadow-lg"/);
+  });
+  test("#2 hero: one column below 1024px, crest image 380px from 640px, balanced H1", () => {
+    const h = src("app/components/HomeClient.tsx");
+    const hero = h.slice(h.indexOf('<article id="home"'), h.indexOf("</article>"));
+    assert.doesNotMatch(hero, /\bmd:(grid-cols|\[grid-template|flex|min-h)/);
+    assert.match(hero, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
+    assert.match(hero, /sizes="\(max-width: 639px\) 300px, \(max-width: 1023px\) 380px/);
+    assert.match(hero, /\$\{H1\} text-balance/);
+  });
+  test("#3 phones held sideways: short-land variant, two-column hero sized by height, no section row", () => {
+    assert.match(src("app/globals.css"), /@custom-variant short-land \(@media \(orientation: landscape\) and \(max-height: 500px\)\);/);
+    const h = src("app/components/HomeClient.tsx");
+    assert.match(h, /short-land:grid-cols-\[auto_minmax\(0,1fr\)\]/);
+    assert.match(h, /short-land:h-\[calc\(100svh-5\.5rem\)\] short-land:w-auto/);
+    const hd = src("app/components/SiteHeader.tsx");
+    assert.match(hd, /border-t border-\[var\(--border\)\] short-land:hidden max-md:absolute/);
+    assert.match(hd, /className="h-11 md:hidden short-land:hidden"/);
+    assert.match(src("app/components/CrestExplorer.tsx"), /short-land:max-w-\[calc\(\(100svh-5\.5rem\)\*0\.9\)\]/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

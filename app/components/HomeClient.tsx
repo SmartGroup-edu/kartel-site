@@ -59,17 +59,19 @@ export default function HomeClient({ lang }: { lang: Lang }) {
 
       <main id="main">
         {/* Hero (design pass 2026-11-15): crest + H1 + lede + two actions; the essay starts below.
-            Phones: title · crest · lede · actions (h1 first in the DOM). lg+: crest left, the text
-            block vertically centred against it. One left edge for all hero text at every width. */}
-        <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 md:flex md:min-h-[calc(100svh-8.5rem)] md:items-center lg:px-10 lg:py-8">
-          <div className="grid w-full gap-6 [grid-template-areas:'title'_'crest'_'text'] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-x-10 md:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] md:[grid-template-rows:1fr_auto_auto_1fr] lg:gap-x-16">
+            Below 1024px: title · crest · lede · actions (h1 first in the DOM) — at tablet width two
+            half columns squeezed the crest and broke the title (cycle 9 #2). lg+ and phones held
+            sideways: crest left, the text block vertically centred against it; sideways the crest
+            is sized by the viewport height. One left edge for all hero text at every width. */}
+        <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:flex lg:min-h-[calc(100svh-8.5rem)] lg:items-center lg:px-10 lg:py-8 short-land:py-4">
+          <div className="grid w-full gap-6 [grid-template-areas:'title'_'crest'_'text'] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-x-16 lg:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] lg:[grid-template-rows:1fr_auto_auto_1fr] short-land:grid-cols-[auto_minmax(0,1fr)] short-land:gap-x-8 short-land:gap-y-4 short-land:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] short-land:[grid-template-rows:1fr_auto_auto_1fr]">
             <div className="[grid-area:title]">
-              <h1 className={H1}>
+              <h1 className={`${H1} text-balance short-land:text-[30px]`}>
                 {t.title}
               </h1>
             </div>
 
-            <div className="[grid-area:crest] flex justify-center md:items-center">
+            <div className="[grid-area:crest] flex justify-center lg:items-center short-land:items-center">
               <span id="crest-desc" className="sr-only">
                 {latinMotto(lang === "EN"
                   ? "Heraldic coat of arms featuring a griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the motto Virtus et Potestas. Click to view full size."
@@ -88,17 +90,17 @@ export default function HomeClient({ lang }: { lang: Lang }) {
                   height={1000}
                   priority
                   speed={0.06}
-                  sizes="(max-width: 767px) 300px, (max-width: 1023px) 380px, (max-width: 1279px) 440px, 500px"
-                  className="h-auto w-full max-w-[300px] object-contain sm:max-w-[380px] lg:max-w-[440px] xl:max-w-[500px]"
+                  sizes="(max-width: 639px) 300px, (max-width: 1023px) 380px, (max-width: 1279px) 440px, 500px"
+                  className="h-auto w-full max-w-[300px] object-contain sm:max-w-[380px] lg:max-w-[440px] xl:max-w-[500px] short-land:h-[calc(100svh-5.5rem)] short-land:w-auto short-land:max-w-none"
                 />
               </button>
             </div>
 
             <div className="[grid-area:text]">
-              <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px]">
+              <p className="max-w-[36ch] font-serif text-[20px] leading-[1.45] text-[var(--text-body)] lg:text-[24px] short-land:max-w-[44ch] short-land:text-[17px]">
                 {latinMotto(noDashLineStart(t.lede))}
               </p>
-              <div className="mt-8 flex flex-wrap gap-3 print:hidden">
+              <div className="mt-8 flex flex-wrap gap-3 print:hidden short-land:mt-4">
                 <a
                   href="#explorer"
                   className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"

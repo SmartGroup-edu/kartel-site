@@ -3,6 +3,8 @@
 
 /* shadcn/ui dark variant — the app toggles a `.dark` class on the root element. */
 @custom-variant dark (&:is(.dark *));
+/* Phones held sideways (844×390, 740×360): too short for stacked content (cycle 9 #3). */
+@custom-variant short-land (@media (orientation: landscape) and (max-height: 500px));
 
 :root {
   /* LIGHT THEME — white + burgundy (R0, 2026-11-14). Was beige #eeebe5 + gold #876035.

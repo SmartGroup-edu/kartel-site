@@ -198,7 +198,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
         {/* Crest with hotspots */}
         {/* self-start: this box must stay exactly the image's size — the hotspot layer is
             inset-0, so a stretched box would shift every marker (seen in the 2026-11-15 visual pass). */}
-        <div className="relative mx-auto w-full max-w-[400px] self-start lg:max-w-none">
+        <div className="relative mx-auto w-full max-w-[400px] self-start lg:max-w-none short-land:max-w-[calc((100svh-5.5rem)*0.9)]">
           <Image
             src="/crest.jpeg"
             alt={
@@ -220,12 +220,15 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
                 onClick={() => handleSelect(el.id)}
                 // 24px markers (32px selected) so they cover less of the art; an invisible 40px hit area
                 // keeps the target comfortable (design pass #9).
-                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full ring-1 ring-white transition-all duration-200 motion-reduce:transition-none after:absolute after:-inset-2 after:content-[''] ${
+                // The art is the same in both themes, so the markers are too (cycle 9 #1): opaque
+                // burgundy + 2px white ring + white numeral. The theme accent turned gold in dark
+                // mode and vanished on the gold wings and coronet.
+                className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-[#7b1e2d] text-white ring-2 ring-white transition-all duration-200 motion-reduce:transition-none after:absolute after:-inset-2 after:content-[''] ${
                   i < revealedCount ? "opacity-100" : "opacity-0"
                 } ${
                   activeId === el.id
-                    ? "h-8 w-8 bg-[var(--accent)] text-[var(--on-accent)] shadow-lg"
-                    : "h-6 w-6 bg-[var(--accent)]/85 text-[var(--on-accent)] shadow-md hover:scale-110"
+                    ? "h-8 w-8 shadow-lg"
+                    : "h-6 w-6 shadow-md hover:scale-110"
                 }`}
                 style={{ left: `${el.x}%`, top: `${el.y}%` }}
                 aria-label={lang === "EN" ? el.labelEN : el.labelRU}
