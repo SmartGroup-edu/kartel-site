@@ -6,9 +6,9 @@ export const registryContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
-    metaTitle: "KARTEL Registry — layers, projects, status",
+    metaTitle: "KARTEL Core Registry",
     metaDescription:
-      "The official registry of the KARTEL federation: canonical layers, each project's federation status and the Federation Integration Gate.",
+      "The official registry of the KARTEL federation: canonical layers, each project's federation status and the Federation integration gate.",
     eyebrow: "KARTEL Core",
     title: "KARTEL Core Registry",
     intro:
@@ -18,7 +18,7 @@ export const registryContent = {
       layersNote: "Owned by KARTEL Core. One identity. One geography. Contracts define the rest.",
       projects: "Projects",
       projectsNote: "Each project consumes or stewards the canonical layers. None owns Core.",
-      gate: "Federation Integration Gate",
+      gate: "Federation integration gate",
       gateNote: "No new project may enter production unless it passes all eight.",
       contracts: "Contracts",
       contractsNote: "@kartel/contracts — types only. Conformance is federation.",
@@ -34,7 +34,7 @@ export const registryContent = {
   RU: {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
-    metaTitle: "Реестр KARTEL — слои, проекты, статус",
+    metaTitle: "Реестр Ядра KARTEL",
     metaDescription:
       "Официальный реестр федерации KARTEL: канонические слои, статус каждого проекта в федерации и Шлюз интеграции.",
     eyebrow: "Ядро KARTEL",

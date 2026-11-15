@@ -125,8 +125,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // If the path already starts with a known locale, leave it alone.
+  // The locale also travels as a request header: app/global-not-found.tsx gets no route params
+  // and reads it to render the 404 in the requested language (cycle 5 #1).
   const firstSegment = pathname.split("/")[1];
-  if (LOCALES.includes(firstSegment as Locale)) return NextResponse.next();
+  if (LOCALES.includes(firstSegment as Locale)) {
+    const forwarded = new Headers(request.headers);
+    forwarded.set("x-kartel-locale", firstSegment);
+    return NextResponse.next({ request: { headers: forwarded } });
+  }
 
   // Backwards compat: legacy ?lang=EN / ?lang=RU URLs → permanent redirect to /{lang}{path}
   const legacyLang = legacyLocaleFromQuery(searchParams.get("lang"));

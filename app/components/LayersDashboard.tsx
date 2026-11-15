@@ -9,13 +9,13 @@ import { registryNav } from "../content/siteNav";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import { layersContent } from "../content/layers";
-import { coreName } from "../content/tokens";
+import { coreName, statusLabel } from "../content/tokens";
 import { stewardLabels } from "../content/federationCopy";
 import registry from "../content/registry.public.json";
 
-function StatusPill({ value }: { value: string }) {
-  const active = /(active|активно)/i.test(value);
-  return <Pill tone={active ? "accent" : "muted"}>{value}</Pill>;
+function StatusPill({ value, label }: { value: string; label: string }) {
+  const active = /active/i.test(value);
+  return <Pill tone={active ? "accent" : "muted"}>{label}</Pill>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -51,7 +51,7 @@ export default function LayersDashboard({ lang }: { lang: Lang }) {
               <section id={l.key} className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className={H2}>{l.name}</h2>
-                  <StatusPill value={c.statusLabels[l.status as keyof typeof c.statusLabels] ?? l.status} />
+                  <StatusPill value={l.status} label={statusLabel(lang, l.status) ?? l.status} />
                 </div>
                 <dl className="mt-4">
                   <Field label={c.fields.purpose}>{l.purpose}</Field>

@@ -39,7 +39,7 @@ const meta: Record<Locale, {
   ru: {
     title: {
       default: "Ядро KARTEL — публичный реестр федерации KARTEL",
-      template: "%s | КАРТЕЛЬ",
+      template: "%s | KARTEL",
     },
     description:
       "Публичный реестр федерации KARTEL: единая идентичность, единая карта регионов UK и единая модель организаций для MoyPolk, RusJAz и Community Group.",

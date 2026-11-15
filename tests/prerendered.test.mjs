@@ -339,6 +339,54 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
   });
 });
 
+describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("#1 proxy forwards the locale; the global 404 reads it and renders one language", () => {
+    assert.match(src("proxy.ts"), /forwarded\.set\("x-kartel-locale", firstSegment\);\s*return NextResponse\.next\(\{ request: \{ headers: forwarded \} \}\);/);
+    const g = src("app/global-not-found.tsx");
+    assert.match(g, /\.get\("x-kartel-locale"\) === "ru" \? "ru" : "en"/);
+    assert.match(g, /<html lang=\{lang\}/);
+    assert.match(g, /<NotFoundView lang=\{lang\} \/>/);
+    assert.doesNotMatch(g, /lang="ru"|На главную|Return home/);
+    const v = src("app/components/NotFoundView.tsx");
+    assert.match(v, /<SiteHeader /);
+    assert.match(src("app/content/notFound.ts"), /home: "Coat of arms",[\s\S]*registry: "Registry",[\s\S]*home: "Герб",[\s\S]*registry: "Реестр",/);
+  });
+  test("#2 tab-title brand is KARTEL in both locales", () => {
+    assert.doesNotMatch(src("app/[lang]/layout.tsx"), /КАРТЕЛЬ/);
+    for (const f of ["ru/core.html", "ru/registry.html", "ru/registry/layers.html"]) assert.match(read(f), /<title>[^<]* \| KARTEL<\/title>/, f);
+  });
+  test("#3 every registry subpage: subnav label == H1 == title (EN + RU)", () => {
+    const all = src("app/content/siteNav.ts");
+    const nav = all.slice(all.indexOf("const REGISTRY_SECTIONS"), all.indexOf("} as const;", all.indexOf("const REGISTRY_SECTIONS")));
+    let checked = 0;
+    for (const [lang, block] of [["en", nav.slice(nav.indexOf("EN: ["), nav.indexOf("RU: ["))], ["ru", nav.slice(nav.indexOf("RU: ["))]]) {
+      for (const m of block.matchAll(/\{ label: "([^"]+)", path: "registry\/([a-z]+)" \}/g)) {
+        const [, label, slug] = m;
+        const html = read(`${lang}/registry/${slug}.html`);
+        const h1 = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1];
+        const title = html.match(/<title>([^<]*)<\/title>/)?.[1];
+        assert.equal(h1, label, `${lang}/${slug} H1`);
+        assert.equal(title, `${label} | KARTEL`, `${lang}/${slug} title`);
+        checked++;
+      }
+    }
+    assert.equal(checked, 10); // 5 subpages × 2 languages
+  });
+  test("#4–5 one dictionary, sentence case: lowercase maps, no per-page label maps", () => {
+    const t = src("app/content/tokens.ts");
+    for (const m of t.matchAll(/^\s+(?:"[^"]+"|[a-z_-]+): "([^"]+)",$/gm)) assert.equal(m[1], m[1].toLowerCase(), m[1]);
+    assert.match(t, /return sentence\(lang === "EN" \? \(EN_DISPLAY\[key\] \?\? key\) : \(map\[key\] \?\? key\)\);/);
+    assert.doesNotMatch(src("app/content/organisations.ts"), /tierLabels/);
+    assert.doesNotMatch(src("app/content/layers.ts"), /statusLabels/);
+    const ru = read("ru/registry/organisations.html"), en = read("en/registry/organisations.html");
+    assert.ok(ru.includes(">Школа<") && !ru.includes(">SCHOOL<"));
+    assert.ok(en.includes(">School<") && !en.includes(">SCHOOL<"));
+    assert.ok(read("ru/registry/projects.html").includes("Производитель / стюард"));
+    assert.ok(!read("ru/registry/projects.html").includes("Производитель / Стюард"));
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));
