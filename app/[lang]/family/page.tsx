@@ -184,7 +184,7 @@ function buildStructuredData(lang: Locale) {
       {
         "@type": "Person",
         "name": "Piotr Kartel",
-        "alternateName": "Петр Картель",
+        "alternateName": "Пётр Картель",
         "birthDate": "1955-02-08",
         "deathDate": "2026-01-03",
         "birthPlace": {
