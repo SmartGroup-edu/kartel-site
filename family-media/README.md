@@ -21,7 +21,8 @@ through `/api/family-media/…` on the site, which checks the session first and 
 | Data | Postgres 16 in the same compose, on an `internal` network (no route out, no host port) |
 | Files | Docker volume `media`, owner `node`, mode 700 |
 | Reach | Cloudflare tunnel → `media:8788`. No host port published; firewall stays default-deny |
-| Site env | `FAMILY_MEDIA_URL`, `FAMILY_MEDIA_SECRET` (sensitive). **Unset = feature off**: the family page renders exactly as before |
+| Site env | `FAMILY_MEDIA_URL`, `FAMILY_MEDIA_SECRET` (sensitive). **Unset = feature off**: the family page renders exactly as before. Optional `FAMILY_MEDIA_ACCESS_CLIENT_ID` + `FAMILY_MEDIA_ACCESS_CLIENT_SECRET` (sensitive): a Cloudflare Access service token, sent as `CF-Access-Client-*` headers when both are set |
+| Access from the Mac | WireGuard to bastion-01 does not route `10.0.0.0/24`; jump through bastion-01's public address: `ssh -J operator@<bastion-01> operator@10.0.0.3` (with `IdentitiesOnly` and the hetzner key on both hops) |
 
 ## Deploy (Class 4 — needs R0's explicit "да" for this act)
 
@@ -45,9 +46,20 @@ with `sudo tee` because SFTP is off; compare sha256 on both ends).
 `restore-drill.sh <archive> <identity>` restores into a throwaway Postgres + folder and prints row
 and file counts. **Go-live needs one successful drill on record.**
 
-Open decision (R0): the DR doctrine (`30-Decisions/2026-05-31-disaster-recovery-doctrine-v1-RECORDED`)
-requires an immutable off-site copy (B2 Object Lock + an air-gapped drive); R0's instruction for this
-data is "own Hetzner servers, no third-party storage". Until R0 picks, the off-site target is unset.
+**Off-site (R0 decision 2026-11-16):** a Hetzner Storage Box in a second location (hel1; app-01 is
+in fsn1), reachable only from inside Hetzner, written over ssh port 23 with a key that exists only
+on app-01 (`/root/.ssh/kfm_backup_ed25519`). Cron sets `BACKUP_TARGET=<user>@<box>:kfm` and
+`BACKUP_RSH="ssh -p 23 -i /root/.ssh/kfm_backup_ed25519"`; the box mirrors the local 30-day set, and
+the box's own daily snapshots keep earlier copies even if app-01 deletes files. This deviates from the
+DR doctrine (`30-Decisions/2026-05-31-disaster-recovery-doctrine-v1-RECORDED`: B2 Object Lock + an
+air-gapped drive) — R0's decision for this data: own Hetzner only.
+
+**Age identity:** the private key lives with R0 (created on R0's Mac, `~/infra/keys/`, mode 600);
+app-01 has only `backup.recipient`. Keep a copy in 1Password (through the app) and one offline.
+
+**Drill from the off-site copy:** stream the newest archive from the box through app-01 to the Mac
+(`ssh app-01 'sudo ssh -p 23 -i … <box> cat kfm/<archive>'`), then run `restore-drill.sh` on the
+Mac with the identity. Compare the counts with the live tables.
 
 ## Rollback
 

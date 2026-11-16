@@ -25,13 +25,22 @@ export function mediaEnabled(): boolean {
   return Boolean(process.env.FAMILY_MEDIA_URL && process.env.FAMILY_MEDIA_SECRET);
 }
 
+/**
+ * Cloudflare Access service token for the tunnel hostname (second gate in front of the HMAC check).
+ * Sent only when both values are set; without them requests go out exactly as before.
+ */
+function accessHeaders(): Record<string, string> {
+  const id = process.env.FAMILY_MEDIA_ACCESS_CLIENT_ID, secret = process.env.FAMILY_MEDIA_ACCESS_CLIENT_SECRET;
+  return id && secret ? { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret } : {};
+}
+
 async function call(method: string, path: string, opts: { actor?: string; body?: Uint8Array | string; contentType?: string; timeoutMs?: number } = {}) {
   const url = new URL(path, process.env.FAMILY_MEDIA_URL);
   const body = opts.body ?? "";
   const headers = await signMediaRequest({ secret: process.env.FAMILY_MEDIA_SECRET!, method, path, actor: opts.actor ?? "", body });
   return fetch(url, {
     method,
-    headers: { ...headers, ...(opts.contentType ? { "content-type": opts.contentType } : {}) },
+    headers: { ...headers, ...accessHeaders(), ...(opts.contentType ? { "content-type": opts.contentType } : {}) },
     body: method === "GET" ? undefined : (body as BodyInit),
     cache: "no-store",
     signal: AbortSignal.timeout(opts.timeoutMs ?? 4000),

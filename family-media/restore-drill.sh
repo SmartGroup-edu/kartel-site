@@ -6,6 +6,9 @@ ARCHIVE=$1; IDENTITY=$2
 WORK=$(mktemp -d) && trap 'docker rm -f kfm-drill >/dev/null 2>&1 || true; rm -rf "$WORK"' EXIT
 age -d -i "$IDENTITY" "$ARCHIVE" | tar -C "$WORK" -xf -
 docker run -d --name kfm-drill -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill postgres:16.9-alpine3.22 >/dev/null
+# The image starts a temporary server during init and stops it again; wait for init to finish first,
+# or pg_isready answers too early and pg_restore hits "the database system is shutting down".
+until docker logs kfm-drill 2>&1 | grep -q 'PostgreSQL init process complete'; do sleep 1; done
 until docker exec kfm-drill pg_isready -U postgres -d drill >/dev/null 2>&1; do sleep 1; done
 docker cp "$WORK/db.dump" kfm-drill:/tmp/db.dump
 docker exec kfm-drill pg_restore -U postgres -d drill --no-owner /tmp/db.dump
