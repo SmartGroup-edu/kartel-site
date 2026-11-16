@@ -10,6 +10,7 @@ import BackToTop from "./BackToTop";
 import FamilyTree from "./FamilyTree";
 import FamilyTimeline from "./FamilyTimeline";
 import type { TreeNode, TimelineEvent } from "../content/family";
+import type { FamilyMediaContent } from "../lib/family-media";
 import type { familyContent } from "../content/family-private";
 import { familyNav } from "../content/siteNav";
 
@@ -19,6 +20,8 @@ export interface FamilyData {
   content: (typeof familyContent)[Lang];
   nodes: TreeNode[];
   events: TimelineEvent[];
+  /** Published portraits, dates, places, professions, stories and photos from the family editor. */
+  media: FamilyMediaContent;
 }
 
 export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyData }) {
@@ -48,14 +51,14 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
         {/* Family Tree Visualization */}
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family tree" : "Родословное древо"}>
-            <FamilyTree lang={lang} nodes={data.nodes} />
+            <FamilyTree lang={lang} nodes={data.nodes} persons={data.media.persons} />
           </section>
         </FadeInSection>
 
         {/* Family Chronicle Timeline */}
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family chronicle" : "Семейная хроника"}>
-            <FamilyTimeline lang={lang} events={data.events} />
+            <FamilyTimeline lang={lang} events={data.events} details={data.media.events} />
           </section>
         </FadeInSection>
 

@@ -1,0 +1,46 @@
+# kartel-family-media on Hetzner app-01. No host port is published: cloudflared reaches the
+# service over the compose network, Postgres is reachable only from the service (separate network),
+# and the firewall stays default-deny. Pinned image tags (infra baseline v3, G11).
+services:
+  db:
+    image: postgres:16.9-alpine3.22
+    env_file: db.env               # POSTGRES_PASSWORD etc. — server only, never commit
+    restart: unless-stopped
+    volumes: [dbdata:/var/lib/postgresql/data]
+    networks: [dbnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+
+  media:
+    build: .
+    env_file: media.env            # DATABASE_URL, FAMILY_MEDIA_SECRET — server only
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    volumes: [media:/data/media]
+    tmpfs: [/tmp]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [dbnet, edge]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.9.1
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}   # from .env next to this file, server only
+    restart: unless-stopped
+    depends_on: [media]
+    networks: [edge]
+
+volumes:
+  dbdata: {}
+  media: {}
+
+networks:
+  dbnet:
+    internal: true                 # no route out: the database talks only to the service
+  edge:
+    enable_ipv6: false

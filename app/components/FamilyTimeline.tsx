@@ -2,16 +2,18 @@
 
 import type { TimelineEvent } from "../content/family";
 import { H2, H3 } from "../lib/typeScale";
-
-
+import type { EventMedia } from "../lib/family-media";
+import { formatDateRange } from "../lib/partial-date";
 
 interface FamilyTimelineProps {
   lang: "EN" | "RU";
   /** Passed from the gated server page — never bundled into client JS (R0 2026-11-14). */
   events: TimelineEvent[];
+  /** Published dates, places, professions, stories and photos from the family editor, by entry id. */
+  details?: Record<string, EventMedia>;
 }
 
-export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineProps) {
+export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: FamilyTimelineProps) {
   const title = lang === "EN" ? "Family Chronicle" : "Семейная хроника";
 
   return (
@@ -56,10 +58,52 @@ export default function FamilyTimeline({ lang, events: EVENTS }: FamilyTimelineP
                 {eventTitle}
               </h3>
 
+              {/* Facts line from the editor: dates · places · profession (only what was filled in). */}
+              {(() => {
+                const d = details[event.id];
+                if (!d) return null;
+                const facts = [formatDateRange(d.dateFrom, d.dateTo, lang), lang === "EN" ? d.placesEN : d.placesRU, lang === "EN" ? d.professionEN : d.professionRU].filter(Boolean);
+                return facts.length ? <p data-facts="" className="mt-1 text-[15px] text-[var(--muted)]">{facts.join(" · ")}</p> : null;
+              })()}
+
               {/* Description */}
               <p className="mt-2 text-[17px] leading-[1.65] text-[var(--text-secondary)] lg:text-[19px] lg:leading-[1.7]">
                 {desc}
               </p>
+
+              {/* Story and photos from the editor (plain text; a blank line starts a paragraph). */}
+              {(() => {
+                const d = details[event.id];
+                if (!d) return null;
+                const story = (lang === "EN" ? d.storyEN : d.storyRU).split(/\n{2,}/).map((x) => x.trim()).filter(Boolean);
+                return (
+                  <>
+                    {story.length > 0 && (
+                      <div data-story="" className="mt-3 space-y-3 text-[17px] leading-[1.65] text-[var(--text-body)] lg:text-[19px] lg:leading-[1.7]">
+                        {story.map((para, k) => <p key={k} className="whitespace-pre-line">{para}</p>)}
+                      </div>
+                    )}
+                    {d.photos.length > 0 && (
+                      <div data-photos="" className="mt-4 grid gap-3 sm:grid-cols-2">
+                        {d.photos.map((ph) => {
+                          const caption = lang === "EN" ? ph.captionEN : ph.captionRU;
+                          const src = (w: number, f: string) => `/api/family-media/${ph.id}/${w}.${f}`;
+                          return (
+                            <figure key={ph.id} className="break-inside-avoid">
+                              <picture>
+                                <source type="image/avif" srcSet={`${src(640, "avif")} 640w, ${src(1280, "avif")} 1280w`} sizes="(min-width: 640px) 360px, 100vw" />
+                                <img src={src(640, "webp")} srcSet={`${src(640, "webp")} 640w, ${src(1280, "webp")} 1280w`} sizes="(min-width: 640px) 360px, 100vw"
+                                  alt={caption} loading="lazy" decoding="async" className="w-full rounded border border-[var(--border)]" />
+                              </picture>
+                              {caption && <figcaption className="mt-1 text-[14px] text-[var(--muted)]">{caption}</figcaption>}
+                            </figure>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
 
               {/* Memorial (cycle 12 #1): set apart from the entry's paragraph — a quiet left rule, the
                   dates on one line with places muted, the burial line, the closing words in italic

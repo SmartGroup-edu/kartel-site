@@ -697,7 +697,8 @@ describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
   });
   test("rendered as its own quiet block: left rule, whole date groups, italic serif close, no icons", () => {
     const tl = readFileSync("app/components/FamilyTimeline.tsx", "utf8");
-    const blk = tl.slice(tl.indexOf("{event.memorial && "), tl.indexOf("})()}") + 4);
+    const at = tl.indexOf("{event.memorial && ");
+    const blk = tl.slice(at, tl.indexOf("})()}", at) + 4);
     assert.match(blk, /data-memorial="" className="mt-5 border-l-2 border-\[var\(--border\)\] pl-4/);
     assert.equal((blk.match(/<span className="whitespace-nowrap">/g) ?? []).length, 2);
     assert.match(blk, /font-serif italic/);
