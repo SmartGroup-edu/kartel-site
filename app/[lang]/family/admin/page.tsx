@@ -9,8 +9,9 @@ import FamilyAdmin from "@/app/components/FamilyAdmin";
 // Gated (proxy.ts covers /family/*) and admin-only here; never prerendered, never indexed.
 export const dynamic = "force-dynamic";
 
-export function generateMetadata(): Metadata {
-  return { title: "Family editor", robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
+  const { lang } = await params;
+  return { title: lang === "ru" ? "Редактор семьи" : "Family editor", robots: { index: false, follow: false } };
 }
 
 export default async function FamilyAdminPage({ params }: { params: Promise<{ lang: string }> }) {

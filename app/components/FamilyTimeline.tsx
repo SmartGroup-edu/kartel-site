@@ -4,7 +4,8 @@ import type { TimelineEvent } from "../content/family";
 import { H2, H3 } from "../lib/typeScale";
 import type { EventMedia } from "../lib/family-media";
 import { formatDateRange } from "../lib/partial-date.mjs";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { justifyRows } from "../lib/family-editor.mjs";
 import ImageLightbox from "./ImageLightbox";
 
 interface FamilyTimelineProps {
@@ -13,9 +14,11 @@ interface FamilyTimelineProps {
   events: TimelineEvent[];
   /** Published dates, places, professions, stories and photos from the family editor, by entry id. */
   details?: Record<string, EventMedia>;
+  /** [width, height] per photo id, from the media service — lays rows out before images load. */
+  dims?: Record<string, [number, number]>;
 }
 
-export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: FamilyTimelineProps) {
+export default function FamilyTimeline({ lang, events: EVENTS, details = {}, dims = {} }: FamilyTimelineProps) {
   const [zoomed, setZoomed] = useState<{ src: string; alt: string } | null>(null);
   const title = lang === "EN" ? "Family Chronicle" : "Семейная хроника";
 
@@ -87,29 +90,7 @@ export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: F
                       </div>
                     )}
                     {d.photos.length > 0 && (
-                      <div data-photos="" className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {d.photos.map((ph) => {
-                          const caption = lang === "EN" ? ph.captionEN : ph.captionRU;
-                          const src = (w: number, f: string) => `/api/family-media/${ph.id}/${w}.${f}`;
-                          return (
-                            <figure key={ph.id} className="break-inside-avoid">
-                              {/* The photo keeps its own shape (no forced aspect); tall photos are capped
-                                  in height and shown whole. Click → the full image in the lightbox. */}
-                              <button type="button" className="block max-w-full cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2"
-                                aria-label={lang === "EN" ? `Open photo${caption ? `: ${caption}` : ""}` : `Открыть фото${caption ? `: ${caption}` : ""}`}
-                                onClick={() => setZoomed({ src: src(1280, "webp"), alt: caption || (lang === "EN" ? "Photo" : "Фото") })}>
-                                <picture>
-                                  <source type="image/avif" srcSet={`${src(640, "avif")} 640w, ${src(1280, "avif")} 1280w`} sizes="(min-width: 640px) 360px, 100vw" />
-                                  <img src={src(640, "webp")} srcSet={`${src(640, "webp")} 640w, ${src(1280, "webp")} 1280w`} sizes="(min-width: 640px) 360px, 100vw"
-                                    alt={caption} loading="lazy" decoding="async" data-photo=""
-                                    className="h-auto max-h-[420px] w-auto max-w-full rounded border border-[var(--border)] object-contain" />
-                                </picture>
-                              </button>
-                              {caption && <figcaption className="mt-1 text-[14px] text-[var(--muted)]">{caption}</figcaption>}
-                            </figure>
-                          );
-                        })}
-                      </div>
+                      <PhotoRows lang={lang} photos={d.photos} dims={dims} onOpen={setZoomed} />
                     )}
                   </>
                 );
@@ -138,6 +119,58 @@ export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: F
         })}
       </div>
       {zoomed && <ImageLightbox src={zoomed.src} alt={zoomed.alt} isOpen onClose={() => setZoomed(null)} />}
+    </div>
+  );
+}
+
+/**
+ * Chronicle photos as justified rows (bus 60 #4): every photo keeps its own aspect, each full row
+ * fills the measure at about the same height (220 px desktop, 160 px phone), a panorama gets its own
+ * row, captions sit under each photo. Click → the whole image in the lightbox.
+ */
+function PhotoRows({ lang, photos, dims, onOpen }: {
+  lang: "EN" | "RU"; photos: EventMedia["photos"]; dims: Record<string, [number, number]>;
+  onOpen: (z: { src: string; alt: string }) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(Math.floor(e.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const GAP = 12;
+  const aspects = photos.map((p) => { const d = dims[p.id]; return d && d[1] ? d[0] / d[1] : 4 / 3; });
+  const rows = width ? justifyRows(aspects, width, width < 600 ? 160 : 220, GAP) : [];
+  return (
+    <div ref={ref} data-photos="" className="mt-4 space-y-4">
+      {rows.map((row, r) => (
+        <div key={r} className="flex items-start" style={{ gap: GAP }}>
+          {row.items.map(({ index, width: w }) => {
+            const ph = photos[index];
+            const caption = lang === "EN" ? ph.captionEN : ph.captionRU;
+            const src = (v: number, f: string) => `/api/family-media/${ph.id}/${v}.${f}`;
+            const big = w > 400 ? 1280 : 640;
+            return (
+              <figure key={ph.id} className="m-0 shrink-0" style={{ width: w }}>
+                <button type="button" className="block w-full cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+                  aria-label={lang === "EN" ? `Open photo${caption ? `: ${caption}` : ""}` : `Открыть фото${caption ? `: ${caption}` : ""}`}
+                  onClick={() => onOpen({ src: src(1280, "webp"), alt: caption || (lang === "EN" ? "Photo" : "Фото") })}>
+                  <picture>
+                    <source type="image/avif" srcSet={`${src(640, "avif")} 640w, ${src(1280, "avif")} 1280w`} sizes={`${Math.round(w)}px`} />
+                    <img src={src(big, "webp")} srcSet={`${src(640, "webp")} 640w, ${src(1280, "webp")} 1280w`} sizes={`${Math.round(w)}px`}
+                      alt={caption} loading="lazy" decoding="async" data-photo=""
+                      width={Math.round(w)} height={Math.round(row.height)} style={{ height: row.height }}
+                      className="block w-full rounded border border-[var(--border)] bg-[var(--surface)] object-contain" />
+                  </picture>
+                </button>
+                {caption && <figcaption className="mt-1.5 text-[14px] leading-snug text-[var(--muted)]">{caption}</figcaption>}
+              </figure>
+            );
+          })}
+        </div>
+      ))}
     </div>
   );
 }

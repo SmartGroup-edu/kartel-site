@@ -58,7 +58,7 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
         {/* Family Chronicle Timeline */}
         <FadeInSection>
           <section className="py-10 lg:py-14" aria-label={lang === "EN" ? "Family chronicle" : "Семейная хроника"}>
-            <FamilyTimeline lang={lang} events={data.events} details={data.media.events} />
+            <FamilyTimeline lang={lang} events={data.events} details={data.media.events} dims={data.media.dims} />
           </section>
         </FadeInSection>
 

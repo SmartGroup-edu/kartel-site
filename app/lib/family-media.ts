@@ -17,7 +17,8 @@ export type EventMedia = {
   storyEN: string; storyRU: string;
   photos: { id: string; captionEN: string; captionRU: string }[];
 };
-export type FamilyMediaContent = { persons: Record<string, PersonMedia>; events: Record<string, EventMedia> };
+/** dims: [width, height] of each referenced file (largest variant), so photos can be laid out before they load. */
+export type FamilyMediaContent = { persons: Record<string, PersonMedia>; events: Record<string, EventMedia>; dims?: Record<string, [number, number]> };
 
 export const EMPTY_MEDIA: FamilyMediaContent = { persons: {}, events: {} };
 
@@ -53,7 +54,8 @@ export async function getPublishedMedia(): Promise<FamilyMediaContent> {
   try {
     const r = await call("GET", "/content?state=published", { timeoutMs: 2500 });
     if (!r.ok) return EMPTY_MEDIA;
-    return ((await r.json()) as { content: FamilyMediaContent }).content ?? EMPTY_MEDIA;
+    const j = (await r.json()) as { content?: FamilyMediaContent; dims?: Record<string, [number, number]> };
+    return j.content ? { ...j.content, dims: j.dims ?? {} } : EMPTY_MEDIA;
   } catch {
     return EMPTY_MEDIA;
   }
@@ -63,7 +65,7 @@ export async function getPublishedMedia(): Promise<FamilyMediaContent> {
 export async function getDraft(actor: string) {
   const r = await call("GET", "/content?state=draft", { actor });
   if (!r.ok) throw new Error(`media service ${r.status}`);
-  return (await r.json()) as { content: FamilyMediaContent; published: { content: FamilyMediaContent; at: string | null } };
+  return (await r.json()) as { content: FamilyMediaContent; published: { content: FamilyMediaContent; at: string | null }; dims?: Record<string, [number, number]> };
 }
 
 export async function forward(method: "GET" | "PUT" | "POST", path: string, actor: string, body?: Uint8Array | string, contentType?: string) {

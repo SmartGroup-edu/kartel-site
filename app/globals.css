@@ -138,6 +138,12 @@ p {
   text-wrap: pretty;
 }
 
+/* Story paragraphs in the family chronicle: plain wrapping. "pretty" visibly narrowed some paragraphs
+   next to their neighbours (bus 60 #13). Unlayered, so it wins over the rule above by specificity. */
+[data-story] p {
+  text-wrap: wrap;
+}
+
 /* One focus indicator everywhere (design audit #20): 2px accent outline, 2px offset.
    Replaces the mix of browser-default blue, 1px rings and box-shadow rings. */
 a:focus-visible,

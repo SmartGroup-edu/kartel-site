@@ -186,7 +186,7 @@ function TreeCard({
       }`}
     >
       <div className="mb-2">
-        <FamilyPortrait id={media?.portrait} name={name} alt={(lang === "EN" ? media?.altEN : media?.altRU) ?? ""} size={compact ? 48 : 64} />
+        <FamilyPortrait id={media?.portrait} name={name} alt={(lang === "EN" ? media?.altEN : media?.altRU) ?? ""} size={compact ? 80 : 96} mobileSize={80} />
       </div>
       <p
         className={`font-serif leading-tight transition-colors ${
@@ -217,7 +217,7 @@ function CoupleCard({ nodes, lang, persons }: { nodes: [TreeNode, TreeNode]; lan
               </div>
             )}
             {i === 1 && <span className="sr-only">{lang === "EN" ? "and" : "и"}</span>}
-            <div className="mb-2"><FamilyPortrait id={persons[node.id]?.portrait} name={lang === "EN" ? node.nameEN : node.nameRU} alt={(lang === "EN" ? persons[node.id]?.altEN : persons[node.id]?.altRU) ?? ""} size={56} /></div>
+            <div className="mb-2"><FamilyPortrait id={persons[node.id]?.portrait} name={lang === "EN" ? node.nameEN : node.nameRU} alt={(lang === "EN" ? persons[node.id]?.altEN : persons[node.id]?.altRU) ?? ""} size={80} /></div>
             <p className="font-serif text-[16px] leading-tight text-[var(--foreground)] sm:text-[18px]">{lang === "EN" ? node.nameEN : node.nameRU}</p>
             {role && <p className="mt-1 text-[14px] text-[var(--muted)]">{role}</p>}
           </div>

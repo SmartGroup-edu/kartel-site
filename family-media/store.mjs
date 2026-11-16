@@ -67,6 +67,12 @@ export function pgStore(pool) {
     async hasMedia(id) {
       return (await pool.query("SELECT 1 FROM media WHERE id = $1", [id])).rowCount === 1;
     },
+    /** { id: [width, height] } of the largest variant, for layout before the image loads. */
+    async mediaDims(ids) {
+      if (!ids.length) return {};
+      const r = await pool.query("SELECT id, width, height FROM media WHERE id = ANY($1::uuid[])", [ids]);
+      return Object.fromEntries(r.rows.map((x) => [x.id, [x.width, x.height]]));
+    },
     async audit(limit = 50) {
       // Who / when / what key — no bodies (they hold the text itself).
       return (await pool.query("SELECT id, at, actor, action, key, undone_at FROM audit ORDER BY id DESC LIMIT $1", [limit])).rows;
@@ -77,7 +83,7 @@ export function pgStore(pool) {
 export function memoryStore() {
   const draft = new Map();
   const published = [];
-  const media = new Set();
+  const media = new Map();
   const log = [];
   let seq = 0;
   const now = () => new Date().toISOString();
@@ -102,8 +108,9 @@ export function memoryStore() {
       log.push({ id: ++seq, at: now(), actor, action: "publish", key: null, undone_at: null });
       return content;
     },
-    async addMedia(m, actor) { media.add(m.id); log.push({ id: ++seq, at: now(), actor, action: "media.upload", key: `media:${m.id}`, undone_at: null }); },
+    async addMedia(m, actor) { media.set(m.id, [m.width, m.height]); log.push({ id: ++seq, at: now(), actor, action: "media.upload", key: `media:${m.id}`, undone_at: null }); },
     async hasMedia(id) { return media.has(id); },
+    async mediaDims(ids) { return Object.fromEntries(ids.filter((id) => media.has(id)).map((id) => [id, media.get(id)])); },
     async audit(limit = 50) { return [...log].reverse().slice(0, limit).map((r) => ({ id: r.id, at: r.at, actor: r.actor, action: r.action, key: r.key, undone_at: r.undone_at })); },
   };
 }
