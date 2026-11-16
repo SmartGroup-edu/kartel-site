@@ -5,6 +5,7 @@ import FamilyClient from "../../components/FamilyClient";
 import { familyContent, FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyGateDecision } from "@/app/lib/family-gate";
+import { getPublishedMedia } from "@/app/lib/family-media";
 import { FamilyGateNotice } from "../../components/FamilyGateNotice";
 
 // Gated area: must render per-request (auth), never statically prerender.
@@ -242,7 +243,7 @@ export default async function FamilyPage({
       />
       <FamilyClient
         lang={upperLang}
-        data={{ content: familyContent[upperLang], nodes: FAMILY_TREE_NODES, events: FAMILY_TIMELINE_EVENTS }}
+        data={{ content: familyContent[upperLang], nodes: FAMILY_TREE_NODES, events: FAMILY_TIMELINE_EVENTS, media: await getPublishedMedia() }}
       />
     </>
   );

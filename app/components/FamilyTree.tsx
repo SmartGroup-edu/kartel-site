@@ -3,9 +3,13 @@
 import { useState, useCallback } from "react";
 import { H2 } from "../lib/typeScale";
 import type { TreeNode } from "../content/family";
+import type { PersonMedia } from "../lib/family-media";
+import FamilyPortrait from "./FamilyPortrait";
 
 interface FamilyTreeProps {
   lang: "EN" | "RU";
+  /** Published portraits by node id (family editor); absent → monogram. */
+  persons?: Record<string, PersonMedia>;
   /** Passed from the gated server page — never bundled into client JS (R0 2026-11-14). */
   nodes: TreeNode[];
 }
@@ -40,7 +44,7 @@ const GEN_COLORS: Record<string, string> = {
   next: "var(--accent-hover, var(--accent))",
 };
 
-export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
+export default function FamilyTree({ lang, nodes: NODES, persons = {} }: FamilyTreeProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const handleHover = useCallback((id: string | null) => setHoveredId(id), []);
@@ -68,7 +72,7 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
           {GENERATIONS.map((gen, i) => {
             const level = NODES.filter((n) => n.generation === gen);
             const card = (node: TreeNode) => (
-              <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} />
+              <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} media={persons[node.id]} />
             );
             return (
               <div key={gen} data-tree-level={gen}>
@@ -129,10 +133,10 @@ export default function FamilyTree({ lang, nodes: NODES }: FamilyTreeProps) {
               {(() => {
                 const level = NODES.filter((n) => n.generation === gen);
                 return level.length === 2 ? (
-                  <CoupleCard key={level[0].id} nodes={[level[0], level[1]]} lang={lang} />
+                  <CoupleCard key={level[0].id} nodes={[level[0], level[1]]} lang={lang} persons={persons} />
                 ) : (
                   level.map((node) => (
-                    <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} />
+                    <TreeCard key={node.id} node={node} lang={lang} isHovered={hoveredId === node.id} onHover={handleHover} compact={gen === "next"} media={persons[node.id]} />
                   ))
                 );
               })()}
@@ -153,12 +157,14 @@ function TreeCard({
   isHovered,
   onHover,
   compact = false,
+  media,
 }: {
   node: TreeNode;
   lang: "EN" | "RU";
   isHovered: boolean;
   onHover: (id: string | null) => void;
   compact?: boolean;
+  media?: PersonMedia;
 }) {
   const name = lang === "EN" ? node.nameEN : node.nameRU;
   const role = distinctRole(node, lang);
@@ -179,6 +185,9 @@ function TreeCard({
           : "border-[var(--border)] bg-[var(--surface)]"
       }`}
     >
+      <div className="mb-2">
+        <FamilyPortrait id={media?.portrait} name={name} alt={(lang === "EN" ? media?.altEN : media?.altRU) ?? ""} size={compact ? 48 : 64} />
+      </div>
       <p
         className={`font-serif leading-tight transition-colors ${
           compact ? "text-[14px] sm:text-[15px]" : "text-[16px] sm:text-[18px]"
@@ -193,7 +202,7 @@ function TreeCard({
 }
 
 /** Mobile: a couple as one card — two names joined by "&" (read as "and"/«и»), one level. */
-function CoupleCard({ nodes, lang }: { nodes: [TreeNode, TreeNode]; lang: "EN" | "RU" }) {
+function CoupleCard({ nodes, lang, persons }: { nodes: [TreeNode, TreeNode]; lang: "EN" | "RU"; persons: Record<string, PersonMedia> }) {
   return (
     <div data-tree-card="" data-tree-couple="" className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-4 py-4 text-center">
       {nodes.map((node, i) => {
@@ -208,6 +217,7 @@ function CoupleCard({ nodes, lang }: { nodes: [TreeNode, TreeNode]; lang: "EN" |
               </div>
             )}
             {i === 1 && <span className="sr-only">{lang === "EN" ? "and" : "и"}</span>}
+            <div className="mb-2"><FamilyPortrait id={persons[node.id]?.portrait} name={lang === "EN" ? node.nameEN : node.nameRU} alt={(lang === "EN" ? persons[node.id]?.altEN : persons[node.id]?.altRU) ?? ""} size={56} /></div>
             <p className="font-serif text-[16px] leading-tight text-[var(--foreground)] sm:text-[18px]">{lang === "EN" ? node.nameEN : node.nameRU}</p>
             {role && <p className="mt-1 text-[14px] text-[var(--muted)]">{role}</p>}
           </div>

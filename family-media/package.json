@@ -1,0 +1,10 @@
+{
+  "name": "kartel-family-media",
+  "private": true,
+  "type": "module",
+  "description": "Private photos and chronicle stories for the kartel-site family area (Hetzner app-01).",
+  "dependencies": {
+    "pg": "8.13.1",
+    "sharp": "0.35.5"
+  }
+}

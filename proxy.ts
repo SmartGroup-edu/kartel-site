@@ -31,7 +31,15 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     const email = typeof payload.email === "string" ? payload.email : "";
     // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
     // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
-    if (sub && (await isViewerApproved(sub, email))) return NextResponse.next();
+    if (sub && (await isViewerApproved(sub, email))) {
+      // The family editor is admins-only. Refused here, at the edge, with a real 404: a page-level
+      // notFound() in a streamed dynamic render still answers 200 (seen 2026-11-16).
+      if (/^\/(en|ru)\/family\/admin(\/|$)/.test(pathname)) {
+        const admins = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (!admins.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
+      }
+      return NextResponse.next();
+    }
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {
     return NextResponse.redirect(signin); // invalid/expired session → re-auth
