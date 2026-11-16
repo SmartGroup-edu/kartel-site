@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useUiLang } from "./useLang";
 import { useFocusTrap } from "./useFocusTrap";
 
@@ -35,7 +36,9 @@ export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: Im
 
   if (!isOpen) return null;
 
-  return (
+  // Portal to <body>: an ancestor with a transform (e.g. a reveal animation) would otherwise become the
+  // containing block of `position: fixed`, and the "full-screen" overlay would sit inside that section.
+  return createPortal(
     <div
       ref={trapRef}
       className="fixed inset-0 z-50 flex animate-lightbox-in items-center justify-center bg-black/80"
@@ -69,6 +72,7 @@ export default function ImageLightbox({ src, alt, webpSrc, isOpen, onClose }: Im
           />
         </picture>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
