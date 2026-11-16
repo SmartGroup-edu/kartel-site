@@ -3,7 +3,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { formatPartialDate, formatDateRange } from "../app/lib/partial-date.ts";
+import { formatPartialDate, formatDateRange } from "../app/lib/partial-date.mjs";
 
 const src = (p) => readFileSync(p, "utf8");
 

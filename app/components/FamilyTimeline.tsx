@@ -3,7 +3,7 @@
 import type { TimelineEvent } from "../content/family";
 import { H2, H3 } from "../lib/typeScale";
 import type { EventMedia } from "../lib/family-media";
-import { formatDateRange } from "../lib/partial-date";
+import { formatDateRange } from "../lib/partial-date.mjs";
 
 interface FamilyTimelineProps {
   lang: "EN" | "RU";
