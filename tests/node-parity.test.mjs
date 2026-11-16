@@ -19,7 +19,7 @@ test("package.json engines, CI and service images use the .nvmrc major", () => {
   const ci = read(".github/workflows/ci.yml");
   assert.match(ci, /node-version-file: \.nvmrc/);
   assert.doesNotMatch(ci, /node-version: /);
-  for (const f of ["family-media/Dockerfile", "relay/Dockerfile"]) {
+  for (const f of ["family-media/Dockerfile", "family-os/Dockerfile", "relay/Dockerfile"]) {
     const from = read(f).match(/^FROM node:(\S+)/m)?.[1];
     assert.ok(from, `${f}: no node base image`);
     assert.match(from, new RegExp(`^${want}\\.\\d+\\.\\d+-alpine\\d+\\.\\d+$`), `${f}: ${from}`);
@@ -38,7 +38,7 @@ test("the .ts import pattern catches what it must (and not .mjs)", () => {
 test("no test file imports a .ts module", () => {
   const files = [
     ...readdirSync(new URL("../tests/", import.meta.url)).filter((f) => f.endsWith(".mjs")).map((f) => `tests/${f}`),
-    ...["relay", "family-media"].flatMap((d) =>
+    ...["relay", "family-media", "family-os"].flatMap((d) =>
       readdirSync(new URL(`../${d}/`, import.meta.url)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`)),
   ];
   assert.ok(files.length >= 6, `only ${files.length} test files found`);
