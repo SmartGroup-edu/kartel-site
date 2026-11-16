@@ -61,9 +61,31 @@ app-01 has only `backup.recipient`. Keep a copy in 1Password (through the app) a
 (`ssh app-01 'sudo ssh -p 23 -i … <box> cat kfm/<archive>'`), then run `restore-drill.sh` on the
 Mac with the identity. Compare the counts with the live tables.
 
+## Live state (go-live 2026-11-16)
+
+- **Running on app-01:**
+  - db, media and cloudflared;
+  - the tunnel `kartel-family-media` is healthy;
+  - Cloudflare Access app `kartel-family-media` sits in front of the hostname with a single service-auth policy (service token `kartel-site-family-media`, 1 year).
+- **Without the token:**
+  - the edge answers 403;
+  - with the token but no HMAC signature, the service answers 401.
+- **Vercel Production:**
+  - `FAMILY_MEDIA_URL`;
+  - `FAMILY_MEDIA_SECRET`;
+  - `FAMILY_MEDIA_ACCESS_CLIENT_ID` and `FAMILY_MEDIA_ACCESS_CLIENT_SECRET` (all sensitive except the URL).
+- **Moving a secret that only an API response carries (tunnel token, Access token)** without it ever being displayed:
+  1. Make a one-time RSA-4096 key on the destination host.
+  2. In the API call, encrypt the value to its public key with RSA-OAEP-SHA256.
+  3. Decrypt on the host and pipe it to where it lives.
+  4. Shred the key.
+- **Testing Access:** test from an ordinary client. A `fetch` from inside a Cloudflare API sandbox got 403 even with a valid token.
+- **New Storage Box hostnames** take a few minutes to appear in DNS: the first push failed with "Could not resolve hostname" and succeeded once it resolved.
+- **Token renewal:** the Access service token expires after one year; renew it before 2027-11-16.
+
 ## Rollback
 
-`sudo docker compose down` on app-01, and unset `FAMILY_MEDIA_URL` in Vercel. The family page falls
+`sudo docker compose down` on app-01, and unset `FAMILY_MEDIA_URL` in Vercel (then redeploy). The family page falls
 back to the static content immediately (reads fail soft). Data stays in the volumes.
 
 ## Logs
