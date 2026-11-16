@@ -15,9 +15,16 @@ until docker logs kfo-drill 2>&1 | grep -q 'PostgreSQL init process complete'; d
 until docker exec kfo-drill pg_isready -U postgres -d drill >/dev/null 2>&1; do sleep 1; done
 docker cp "$WORK/db.dump" kfo-drill:/tmp/db.dump
 docker exec kfo-drill pg_restore -U postgres -d drill --no-owner /tmp/db.dump
-for t in person guardian_grant care_note access_log audit; do
+for t in person guardian_grant care_note access_log audit drill_canary; do
   printf '%s restored=%s\n' "$t" "$(docker exec kfo-drill psql -U postgres -d drill -tAc "SELECT count(*) FROM $t")"
 done
+docker exec kfo-drill psql -U postgres -d drill -tAc "SELECT row_to_json(n) FROM (SELECT id, wrapped_key, title_ct, body_ct FROM drill_canary LIMIT 1) n" > "$WORK/canary.json"
+node --input-type=module -e "
+  import { readFileSync } from 'node:fs';
+  import { decryptNote, parseMasterKey } from '$HERE/crypto.mjs';
+  const n = decryptNote(parseMasterKey(readFileSync('$WORK/master.key')), JSON.parse(readFileSync('$WORK/canary.json', 'utf8')));
+  if (n.title !== 'kartel-family-os drill canary') { console.error('canary: WRONG plaintext'); process.exit(1); }
+  console.log('canary decrypts: yes');"
 docker exec kfo-drill psql -U postgres -d drill -tAc "SELECT row_to_json(n) FROM (SELECT id, wrapped_key, title_ct, body_ct FROM care_note ORDER BY created_at LIMIT 1) n" > "$WORK/sample.json"
 if [ -s "$WORK/sample.json" ]; then
   node --input-type=module -e "

@@ -156,3 +156,14 @@ test("log lines carry route classes only", () => {
   assert.equal(routeClass("/grants/abc"), "/grants/:id");
   assert.equal(routeClass("/secret/path?x=1"), "/:other");
 });
+
+test("drill canary: created once, decrypts to the fixed text with the master key", async () => {
+  const { ensureCanary, CANARY_TEXT } = await import("./server.mjs");
+  const rows = [];
+  const pool = { query: async (sql, args) => (sql.startsWith("SELECT") ? { rowCount: rows.length } : (rows.push(args), { rowCount: 1 })) };
+  await ensureCanary(pool, KEK); await ensureCanary(pool, KEK);
+  assert.equal(rows.length, 1, "only one canary");
+  const [id, wrapped_key, title_ct, body_ct] = rows[0];
+  assert.deepEqual(decryptNote(KEK, { id, wrapped_key, title_ct, body_ct }), CANARY_TEXT);
+  assert.throws(() => decryptNote(randomBytes(32), { id, wrapped_key, title_ct, body_ct }));
+});

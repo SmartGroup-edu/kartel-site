@@ -67,3 +67,14 @@ CREATE TABLE IF NOT EXISTS audit (
   action  text NOT NULL,
   entity  text NOT NULL
 );
+
+-- One encrypted canary row (no personal data), so every restore drill can prove that the master key
+-- still opens what the backup holds, even before any care note exists.
+CREATE TABLE IF NOT EXISTS drill_canary (
+  id           uuid PRIMARY KEY,
+  wrapped_key  text NOT NULL,
+  title_ct     text NOT NULL,
+  body_ct      text NOT NULL,
+  key_version  integer NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
