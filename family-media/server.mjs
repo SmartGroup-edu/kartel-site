@@ -162,7 +162,8 @@ async function main() {
   // person keys can be given names, so every path segment after the route name is dropped.
   const logged = (req, res) => {
     const t0 = Date.now();
-    res.on("finish", () => console.log(`[media] ${req.method} ${routeClass(req.url)} ${res.statusCode} ${Date.now() - t0}ms`));
+    // The container health check hits /healthz every 30 s; leave it out so real traffic stays readable.
+    res.on("finish", () => { const r = routeClass(req.url); if (r !== "/healthz") console.log(`[media] ${req.method} ${r} ${res.statusCode} ${Date.now() - t0}ms`); });
     return handler(req, res);
   };
   createServer(logged).listen(port, "0.0.0.0", () => console.log(`[media] listening on ${port}`));

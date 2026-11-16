@@ -13,6 +13,7 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import { useLangToggle } from "./useLang";
 import { H1, H2, H3, EYEBROW, META } from "../lib/typeScale";
+import { FRAME, OUTPUT, initial, place, rezoom, zoomRange } from "../lib/crop-geometry.mjs";
 
 type Lang = "EN" | "RU";
 type Person = { id: string; nameEN: string; nameRU: string };
@@ -37,7 +38,7 @@ const T = {
     publish: "Publish", undo: "Undo last change", publishedAt: "Last published", never: "never",
     save: "Save draft", saved: "Draft saved.", published: "Published.", undone: "Last change undone.", nothingToUndo: "Nothing to undo.",
     portrait: "Portrait", upload: "Upload portrait", replace: "Replace", remove: "Remove", useCrop: "Use this crop", cancel: "Cancel",
-    zoom: "Zoom", cropHint: "Drag the photo to position it in the square.",
+    zoom: "Zoom", cropHint: "Drag to position the photo in the frame. Zoom out to keep the whole photo.", fitWhole: "Whole photo", fillFrame: "Fill frame",
     altEN: "Description for screen readers (EN)", altRU: "Description for screen readers (RU)",
     dateFrom: "From (YYYY, YYYY-MM or YYYY-MM-DD)", dateTo: "To (optional)",
     placesEN: "Places (EN)", placesRU: "Places (RU)", professionEN: "Profession (EN)", professionRU: "Profession (RU)",
@@ -53,7 +54,7 @@ const T = {
     publish: "Опубликовать", undo: "Отменить последнее изменение", publishedAt: "Последняя публикация", never: "ещё не было",
     save: "Сохранить черновик", saved: "Черновик сохранён.", published: "Опубликовано.", undone: "Последнее изменение отменено.", nothingToUndo: "Отменять нечего.",
     portrait: "Портрет", upload: "Загрузить портрет", replace: "Заменить", remove: "Убрать", useCrop: "Обрезать так", cancel: "Отмена",
-    zoom: "Масштаб", cropHint: "Перетащите фото, чтобы выбрать кадр в квадрате.",
+    zoom: "Масштаб", cropHint: "Перетащите фото, чтобы выбрать кадр. Уменьшите масштаб, чтобы фото вошло целиком.", fitWhole: "Фото целиком", fillFrame: "Заполнить рамку",
     altEN: "Описание для скринридеров (EN)", altRU: "Описание для скринридеров (RU)",
     dateFrom: "С (ГГГГ, ГГГГ-ММ или ГГГГ-ММ-ДД)", dateTo: "По (необязательно)",
     placesEN: "Места (EN)", placesRU: "Места (RU)", professionEN: "Профессия (EN)", professionRU: "Профессия (RU)",
@@ -195,7 +196,7 @@ function PersonEditor({ t, name, value, busy, onSave }: { t: Dict; name: string;
   const useCrop = async (canvas: HTMLCanvasElement) => {
     setUploading(true);
     try {
-      const id = await uploadBlob(await toJpeg(canvas, 1280));
+      const id = await uploadBlob(await toJpeg(canvas, OUTPUT.h));
       const next = { ...v, portrait: id };
       setV(next); setCrop(null); await onSave(next);
     } finally { setUploading(false); if (fileRef.current) fileRef.current.value = ""; }
@@ -207,9 +208,9 @@ function PersonEditor({ t, name, value, busy, onSave }: { t: Dict; name: string;
       <div className="mt-3 flex items-center gap-4">
         {v.portrait ? (
           // eslint-disable-next-line @next/next/no-img-element -- private, session-checked file; not for the image optimiser
-          <img src={mediaUrl(v.portrait)} alt="" width={72} height={72} className="h-[72px] w-[72px] rounded-full object-cover" />
+          <img src={mediaUrl(v.portrait)} alt="" width={72} height={90} className="h-[90px] w-[72px] rounded-md object-contain" />
         ) : (
-          <span aria-hidden="true" className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-dashed border-[var(--border)] text-[var(--muted)]">—</span>
+          <span aria-hidden="true" className="flex h-[90px] w-[72px] items-center justify-center rounded-md border border-dashed border-[var(--border)] text-[var(--muted)]">—</span>
         )}
         <div className="flex flex-wrap gap-2">
           <label className={btnSecondary}>
@@ -227,43 +228,54 @@ function PersonEditor({ t, name, value, busy, onSave }: { t: Dict; name: string;
   );
 }
 
-/** Square crop: drag to position, slider to zoom. Output 1280×1280 (downsized again before upload). */
+/**
+ * Portrait crop in a 4:5 frame. Starts at the largest 4:5 region of the photo, at the top; zoom out
+ * as far as the whole photo (the rest of the frame becomes a plain background), drag to position.
+ * The uploaded file is the frame scaled to 1024×1280 with exactly the same geometry as the preview.
+ */
+const CROP_BG = "#ecebe7";
 function Cropper({ t, bitmap, busy, onCancel, onUse }: { t: Dict; bitmap: ImageBitmap; busy: boolean; onCancel: () => void; onUse: (c: HTMLCanvasElement) => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const [zoom, setZoom] = useState(1);
-  const [off, setOff] = useState({ x: 0, y: 0 });
-  const drag = useRef<{ x: number; y: number } | null>(null);
-  const SIZE = 280;
-
-  const geometry = useCallback(() => {
-    const base = Math.max(SIZE / bitmap.width, SIZE / bitmap.height) * zoom;
-    const w = bitmap.width * base, h = bitmap.height * base;
-    const x = Math.min(0, Math.max(SIZE - w, (SIZE - w) / 2 + off.x));
-    const y = Math.min(0, Math.max(SIZE - h, (SIZE - h) / 2 + off.y));
-    return { x, y, w, h };
-  }, [bitmap, zoom, off]);
+  const iw = bitmap.width, ih = bitmap.height;
+  const [st, setSt] = useState(() => initial(iw, ih));
+  const drag = useRef<{ px: number; py: number; x: number; y: number; k: number } | null>(null);
+  const range = zoomRange(iw, ih);
+  const geo = place({ iw, ih, ...st });
 
   useEffect(() => {
     const g = ref.current?.getContext("2d"); if (!g) return;
-    const { x, y, w, h } = geometry();
-    g.clearRect(0, 0, SIZE, SIZE); g.drawImage(bitmap, x, y, w, h);
-  }, [bitmap, geometry]);
+    g.fillStyle = CROP_BG; g.fillRect(0, 0, FRAME.w, FRAME.h);
+    g.drawImage(bitmap, geo.x, geo.y, geo.w, geo.h);
+  }, [bitmap, geo.x, geo.y, geo.w, geo.h]);
 
   const render = () => {
-    const out = document.createElement("canvas"); out.width = out.height = 1280;
-    const { x, y, w, h } = geometry(); const k = 1280 / SIZE;
-    out.getContext("2d")!.drawImage(bitmap, x * k, y * k, w * k, h * k);
+    const out = document.createElement("canvas"); out.width = OUTPUT.w; out.height = OUTPUT.h;
+    const g = out.getContext("2d")!; const k = OUTPUT.w / FRAME.w;
+    g.fillStyle = CROP_BG; g.fillRect(0, 0, OUTPUT.w, OUTPUT.h);
+    g.imageSmoothingQuality = "high";
+    g.drawImage(bitmap, geo.x * k, geo.y * k, geo.w * k, geo.h * k);
     onUse(out);
   };
 
   return (
-    <div className="mt-4 rounded-md border border-[var(--border)] p-3">
+    <div className="mt-4 rounded-md border border-[var(--border)] p-3" data-cropper="">
       <p className={META}>{t.cropHint}</p>
-      <canvas ref={ref} width={SIZE} height={SIZE} className="mt-2 max-w-full touch-none rounded-md"
-        onPointerDown={(e) => { drag.current = { x: e.clientX - off.x, y: e.clientY - off.y }; e.currentTarget.setPointerCapture(e.pointerId); }}
-        onPointerMove={(e) => { if (drag.current) setOff({ x: e.clientX - drag.current.x, y: e.clientY - drag.current.y }); }}
+      <canvas ref={ref} width={FRAME.w} height={FRAME.h} className="mt-2 h-auto w-[240px] max-w-full touch-none rounded-md border border-[var(--border)]"
+        onPointerDown={(e) => {
+          // Pointer moves are in CSS pixels; the canvas may be drawn smaller than its 240px.
+          const k = FRAME.w / e.currentTarget.getBoundingClientRect().width;
+          drag.current = { px: e.clientX, py: e.clientY, x: geo.x, y: geo.y, k }; e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current; if (!d) return;
+          setSt((s) => { const p = place({ iw, ih, ...s, x: d.x + (e.clientX - d.px) * d.k, y: d.y + (e.clientY - d.py) * d.k }); return { ...s, x: p.x, y: p.y }; });
+        }}
         onPointerUp={() => { drag.current = null; }} />
-      <label className={`${label} mt-2`}>{t.zoom}<input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="mt-1 w-full" /></label>
+      <label className={`${label} mt-2`}>{t.zoom}<input type="range" min={range.min} max={range.max} step={0.01} value={st.zoom} onChange={(e) => setSt((s) => rezoom({ iw, ih, ...s }, Number(e.target.value)))} className="mt-1 w-full" /></label>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" className={btnSecondary} onClick={() => setSt((s) => rezoom({ iw, ih, ...s }, range.min))}>{t.fitWhole}</button>
+        <button type="button" className={btnSecondary} onClick={() => setSt(initial(iw, ih))}>{t.fillFrame}</button>
+      </div>
       <div className="mt-3 flex gap-2">
         <button type="button" className={btnPrimary} disabled={busy} onClick={render}>{busy ? t.uploading : t.useCrop}</button>
         <button type="button" className={btnSecondary} disabled={busy} onClick={onCancel}>{t.cancel}</button>

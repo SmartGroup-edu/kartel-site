@@ -4,6 +4,8 @@ import type { TimelineEvent } from "../content/family";
 import { H2, H3 } from "../lib/typeScale";
 import type { EventMedia } from "../lib/family-media";
 import { formatDateRange } from "../lib/partial-date.mjs";
+import { useState } from "react";
+import ImageLightbox from "./ImageLightbox";
 
 interface FamilyTimelineProps {
   lang: "EN" | "RU";
@@ -14,6 +16,7 @@ interface FamilyTimelineProps {
 }
 
 export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: FamilyTimelineProps) {
+  const [zoomed, setZoomed] = useState<{ src: string; alt: string } | null>(null);
   const title = lang === "EN" ? "Family Chronicle" : "Семейная хроника";
 
   return (
@@ -90,11 +93,18 @@ export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: F
                           const src = (w: number, f: string) => `/api/family-media/${ph.id}/${w}.${f}`;
                           return (
                             <figure key={ph.id} className="break-inside-avoid">
-                              <picture>
-                                <source type="image/avif" srcSet={`${src(640, "avif")} 640w, ${src(1280, "avif")} 1280w`} sizes="(min-width: 640px) 360px, 100vw" />
-                                <img src={src(640, "webp")} srcSet={`${src(640, "webp")} 640w, ${src(1280, "webp")} 1280w`} sizes="(min-width: 640px) 360px, 100vw"
-                                  alt={caption} loading="lazy" decoding="async" className="w-full rounded border border-[var(--border)]" />
-                              </picture>
+                              {/* The photo keeps its own shape (no forced aspect); tall photos are capped
+                                  in height and shown whole. Click → the full image in the lightbox. */}
+                              <button type="button" className="block max-w-full cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2"
+                                aria-label={lang === "EN" ? `Open photo${caption ? `: ${caption}` : ""}` : `Открыть фото${caption ? `: ${caption}` : ""}`}
+                                onClick={() => setZoomed({ src: src(1280, "webp"), alt: caption || (lang === "EN" ? "Photo" : "Фото") })}>
+                                <picture>
+                                  <source type="image/avif" srcSet={`${src(640, "avif")} 640w, ${src(1280, "avif")} 1280w`} sizes="(min-width: 640px) 360px, 100vw" />
+                                  <img src={src(640, "webp")} srcSet={`${src(640, "webp")} 640w, ${src(1280, "webp")} 1280w`} sizes="(min-width: 640px) 360px, 100vw"
+                                    alt={caption} loading="lazy" decoding="async" data-photo=""
+                                    className="h-auto max-h-[420px] w-auto max-w-full rounded border border-[var(--border)] object-contain" />
+                                </picture>
+                              </button>
                               {caption && <figcaption className="mt-1 text-[14px] text-[var(--muted)]">{caption}</figcaption>}
                             </figure>
                           );
@@ -127,6 +137,7 @@ export default function FamilyTimeline({ lang, events: EVENTS, details = {} }: F
           );
         })}
       </div>
+      {zoomed && <ImageLightbox src={zoomed.src} alt={zoomed.alt} isOpen onClose={() => setZoomed(null)} />}
     </div>
   );
 }
