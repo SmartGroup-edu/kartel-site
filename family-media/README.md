@@ -34,7 +34,7 @@ with `sudo tee` because SFTP is off; compare sha256 on both ends).
 2. `sudo docker compose up -d --build`, then `curl https://<media host>/healthz` → `{"ok":true}`.
 3. Vercel (Production): `FAMILY_MEDIA_URL`, `FAMILY_MEDIA_SECRET` (piped from app-01, sensitive), redeploy.
 4. Infra baseline v3: `ss -tlnp` shows no new listening port on the host (G3, G6); external port
-   scan (G12); pinned images (G11 — postgres 16.9-alpine3.22, cloudflared 2025.9.1, node 22.18.0).
+   scan (G12); pinned images (G11 — postgres 16.9-alpine3.22, cloudflared 2025.9.1, node 24.15.0 — same major as Vercel, CI and `.nvmrc`).
 
 ## Backups — required before go-live
 

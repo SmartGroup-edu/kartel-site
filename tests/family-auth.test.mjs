@@ -94,15 +94,7 @@ describe("sign-in link", () => {
 });
 
 describe("safeReturnTo guard still holds for link returnTo", async () => {
-  const { safeReturnTo } = await import("../app/lib/family-safe-return.ts").catch(() => ({
-    // The .ts cannot be imported by node:test without a loader; re-state the contract instead.
-    safeReturnTo: (raw, fallback = "/en/family") => {
-      if (!raw) return fallback;
-      if (!raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return fallback;
-      if (/^\/[a-z][a-z0-9+.-]*:/i.test(raw)) return fallback;
-      return raw;
-    },
-  }));
+  const { safeReturnTo } = await import("../app/lib/family-safe-return.mjs");
 
   test("off-site and scheme-like destinations fall back", () => {
     assert.equal(safeReturnTo("https://evil.example"), "/en/family");

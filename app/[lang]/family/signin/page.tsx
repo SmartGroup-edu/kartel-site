@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FamilyGateNotice } from "../../../components/FamilyGateNotice";
-import { safeReturnTo } from "@/app/lib/family-safe-return";
+import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 import { familyEnv } from "@/app/lib/family-env";
 
 // Public no-PII landing — reachable without a session (excluded from the gate in proxy.ts).

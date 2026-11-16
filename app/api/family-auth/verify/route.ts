@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { verifySignInLink, clearSignInNonce, createSession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
-import { safeReturnTo } from "@/app/lib/family-safe-return";
+import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 
 /**
  * GET /api/family-auth/verify?token=… — consume a sign-in link and create the session.
