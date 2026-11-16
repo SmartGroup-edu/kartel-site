@@ -6,7 +6,7 @@ export default function FamilySubNav({ lang, admin, os, active }: { lang: "EN" |
   const items = familySubNav({ lang, admin, os });
   if (items.length === 0) return null;
   return (
-    <nav aria-label={familySubNavLabel(lang)} data-family-subnav="" className="border-b border-[var(--border)]">
+    <nav aria-label={familySubNavLabel(lang)} data-family-subnav="" className="-mt-4 mb-8 border-b border-[var(--border)] sm:-mt-6 lg:-mt-12">
       <ul className="-mb-px flex flex-wrap gap-x-6 text-[16px]">
         {items.map((x) => (
           <li key={x.id}>

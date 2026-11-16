@@ -13,6 +13,7 @@ import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FamilyPortrait from "./FamilyPortrait";
 import FamilySubNav from "./FamilySubNav";
+import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
 import { useLangToggle } from "./useLang";
 import { H1, H2, EYEBROW, META } from "../lib/typeScale";
@@ -182,9 +183,10 @@ export default function FamilyAdmin({ lang, enabled, os = false, people, entries
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} />
-      <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6 lg:py-16">
-        <div className="mb-8"><FamilySubNav lang={lang} admin os={os} active="admin" /></div>
+      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
+      <main id="main" className={FAMILY_MAIN}>
+        <FamilySubNav lang={lang} admin os={os} active="admin" />
+        <div className="max-w-4xl pb-8">
         <p className={EYEBROW}>{t.eyebrow}</p>
         <h1 className={`mt-2 ${H1}`}>{t.title}</h1>
         <p className="mt-4 max-w-[68ch] text-[17px] leading-[1.6] text-[var(--text-body)]">{t.intro}</p>
@@ -248,6 +250,7 @@ export default function FamilyAdmin({ lang, enabled, os = false, people, entries
             </section>
           </>
         )}
+        </div>
       </main>
       <SiteFooter copy="KARTEL" contactEmail={null} />
     </>

@@ -4,6 +4,7 @@ import { useLangToggle, type Lang } from "./useLang";
 import { H1 } from "../lib/typeScale";
 import SiteHeader from "./SiteHeader";
 import FamilySubNav from "./FamilySubNav";
+import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import Link from "next/link";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
@@ -35,10 +36,10 @@ export default function FamilyClient({ lang, data, nav = { admin: false, os: fal
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)] text-[var(--foreground)] transition-colors duration-300">
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth="max-w-6xl" />
+      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth={FAMILY_HEADER_MAX} />
 
-      <main id="main" className="mx-auto max-w-6xl flex-1 px-4 pb-4 pt-10 sm:px-6 sm:pt-12 lg:px-10 lg:pb-6 lg:pt-20">
-        <div className="-mt-4 mb-8 sm:-mt-6 lg:-mt-12"><FamilySubNav lang={lang} admin={nav.admin} os={nav.os} active="heritage" /></div>
+      <main id="main" className={FAMILY_MAIN}>
+        <FamilySubNav lang={lang} admin={nav.admin} os={nav.os} active="heritage" />
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">

@@ -29,3 +29,8 @@ export function greeting(lang, name) {
   if (lang === "EN") return safe ? `Good to see you, ${safe}` : "Good to see you";
   return safe ? `Рады вас видеть, ${safe}` : "Рады вас видеть";
 }
+
+/** One page container for every family page, so the sub-nav and the heading column sit at the same
+ *  place everywhere (bus 64: the row jumped 16 px between pages with different containers). */
+export const FAMILY_MAIN = "mx-auto w-full max-w-6xl flex-1 px-4 pb-4 pt-10 sm:px-6 sm:pt-12 lg:px-10 lg:pb-6 lg:pt-20";
+export const FAMILY_HEADER_MAX = "max-w-6xl";

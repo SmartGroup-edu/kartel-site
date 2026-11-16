@@ -8,11 +8,12 @@
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FamilySubNav from "./FamilySubNav";
+import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
 import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
-import { H1, H2, EYEBROW, META } from "../lib/typeScale";
+import { H1, H2, META } from "../lib/typeScale";
 import type { OsState, OsPerson, OsGrant } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -53,9 +54,10 @@ export default function FamilyOs({ lang, view, state }: { lang: Lang; view: View
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} />
-      <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6 lg:py-16">
-        <div className="mb-8"><FamilySubNav lang={lang} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} /></div>
+      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
+      <main id="main" className={FAMILY_MAIN}>
+        <FamilySubNav lang={lang} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} />
+        <div className="max-w-4xl pb-8">
 
         {state.status !== "ok" ? (
           <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{state.status === "off" ? t.off : t.error}</p>
@@ -63,8 +65,7 @@ export default function FamilyOs({ lang, view, state }: { lang: Lang; view: View
           <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
         ) : view === "today" ? (
           <section aria-labelledby="today-h" className="mt-10">
-            <p className={EYEBROW}>{t.eyebrow}</p>
-            <h1 id="today-h" className={`mt-2 ${H1}`}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
+            <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
             <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-10 text-center">
               <p className="font-serif text-[20px] text-[var(--foreground)]">{t.todayEmpty}</p>
@@ -74,6 +75,7 @@ export default function FamilyOs({ lang, view, state }: { lang: Lang; view: View
         ) : (
           <People t={t} lang={lang} me={state.me} people={state.people} grants={state.grants} nameOf={nameOf} />
         )}
+        </div>
       </main>
       <SiteFooter copy="KARTEL" contactEmail={null} />
     </>
