@@ -2,7 +2,7 @@ import { NextResponse, after } from "next/server";
 import { issueSignInNonce, mintSignInLink } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
-import { safeReturnTo } from "@/app/lib/family-safe-return";
+import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 import { sendSignInLink } from "@/app/lib/family-mail";
 
 /**

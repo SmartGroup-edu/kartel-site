@@ -8,13 +8,24 @@
 # type error. Cost: each push runs a Next build. To skip on a throwaway push:
 #   git push --no-verify
 set -e
+# Node parity (2026-11-16): local green must mean CI green. CI and Vercel use
+# the major in .nvmrc; a newer local Node can run code the CI Node cannot
+# (PR #58 went red: Node 24 strips .ts types, the old CI Node 20 did not).
+want="$(tr -d ' \nv' < .nvmrc)"
+have="$(node -p 'process.versions.node.split(".")[0]')"
+if [ "$have" = "$want" ]; then
+  run_node() { "$@"; }
+else
+  echo "→ pre-push: local Node $have ≠ .nvmrc $want — running the gate on Node $want via npx"
+  run_node() { npx -y -p "node@$want" -- "$@"; }
+fi
 echo "→ pre-push: registry-sync (public↔private kartel-core parity)"
-npm run registry:check
+run_node npm run registry:check
 echo "→ pre-push: lint"
-npm run lint
+run_node npm run lint
 echo "→ pre-push: typecheck"
-npx tsc --noEmit
+run_node npx tsc --noEmit
 echo "→ pre-push: build"
-npm run build
+run_node npm run build
 echo "→ pre-push: test"
-npm test
+run_node npm test
