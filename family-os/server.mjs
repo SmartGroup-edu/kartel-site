@@ -173,12 +173,22 @@ export function routeClass(url = "") {
   return "/:other";
 }
 
+export const CANARY_TEXT = { title: "kartel-family-os drill canary", body: "no personal data" };
+
+/** Create the encrypted drill canary once (restore drills decrypt it to prove the key still works). */
+export async function ensureCanary(pool, kek) {
+  if ((await pool.query("SELECT 1 FROM drill_canary LIMIT 1")).rowCount) return;
+  const id = randomUUID(), c = encryptNote(kek, id, CANARY_TEXT);
+  await pool.query("INSERT INTO drill_canary (id, wrapped_key, title_ct, body_ct, key_version) VALUES ($1, $2, $3, $4, $5)", [id, c.wrapped_key, c.title_ct, c.body_ct, c.key_version]);
+}
+
 async function main() {
   const { default: pg } = await import("pg");
   const { pgStore } = await import("./store.mjs");
   const masterKey = await readFile(process.env.FAMILY_OS_MASTER_KEY_FILE ?? "/run/secrets/master_key");
   const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
   await pool.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
+  await ensureCanary(pool, parseMasterKey(masterKey));
   const handler = createApp({ store: pgStore(pool), secret: process.env.FAMILY_OS_SECRET, masterKey });
   const port = Number(process.env.PORT ?? 8789);
   const logged = (req, res) => {
