@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
     return [{ source: "/:lang(en|ru)/family/crest", destination: "/:lang", permanent: true }];
   },
   experimental: {
-    viewTransition: true,
+    // viewTransition removed: the flag was dropped in Next 16.3 (view transitions need no config).
     // Unmatched URLs get app/global-not-found.tsx with a real 404 status. A catch-all page under
     // [lang] would render inside loading.tsx's Suspense and stream as a soft-404 (HTTP 200).
     globalNotFound: true,
