@@ -25,7 +25,7 @@ function read(file) {
 
 // Given names, second names and maiden names of the family (EN + RU). The surname is the
 // crest's name and is allowed. This list lives in a test file, which is never served.
-const FAMILY_NAMES = /Piotr|Pi[eo]tr Nikola|Andrey Petrovich|Poloneya|Aleksandr Andreyevich|Lyubov|Nikolai Aleksandrovich|Valentina|Igor Gor|Diana Zenonovna|Diana Kartel|Dominika|Arina|Igor Kaid|Feliks|Subach|Kirey|Mikhal|Chizhevsk|Пётр Картель|Петр Николаевич|Андрей Петрович|Полонея|Александр Андреевич|Любовь Петровна|Николай Александрович|Валентина|Игорь Гор|Диана|Доминика|Арина|Игорь Каид|Феликс|Субоч|Кирей|Михаль|Чижевск/;
+const FAMILY_NAMES = /Piotr|Pi[eo]tr Nikola|Andrey Petrovich|Poloneya|Aleksandr Andreyevich|Lyubov|Nikolai Aleksandrovich|Valentina|Igor Gor|Diana Zenonovna|Diana Kartel|Dominika|Arina|Igor Kaid|Feliks|Subach|Kirey|Mikhal|Chizhevsk|Пётр Картель|Петр Николаевич|Пётр Николаевич|Андрей Петрович|Полонея|Александр Андреевич|Любовь Петровна|Николай Александрович|Валентина|Игорь Гор|Диана|Доминика|Арина|Игорь Каид|Феликс|Субоч|Кирей|Михаль|Чижевск/;
 
 function walk(dir) {
   return readdirSync(dir).flatMap((f) => {
@@ -666,6 +666,9 @@ describe("cycle 11 — family tree readability (2026-11-15)", () => {
 });
 
 describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
+  // Approved strings. RU: the original from main (cycle 12). EN: R0 decision 2026-11-15 — the closing
+  // words are "In loving memory." (was "In cherished memory."); nothing else in the sentence changed.
+  // Any other change to wording, dates or names fails here and needs its own recorded decision.
   test("memorial moved into data fields verbatim: rebuilding the old sentence matches the original's hash", async () => {
     const { createHash } = await import("node:crypto");
     const src = readFileSync("app/content/family-private.ts", "utf8");
@@ -677,12 +680,20 @@ describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
       return { name: str("name", blk), born: pair("born"), died: pair("died"), burial: str("burial", blk), words: str("words", blk) };
     };
     const sha = (x) => createHash("sha256").update(x, "utf8").digest("hex");
-    for (const [lang, key, want] of [["en", "descEN", "42a4391b6746fe478dfa80253341cade6bff11c2776153280293459f352d98d5"], ["ru", "descRU", "8a7859972305629e97ff3de7f84335f9eea545a42827a01e25b9086454ec39e1"]]) {
+    for (const [lang, key, want] of [["en", "descEN", "d26f712fe20fa696dc74da964687183ed66f2797dc8f0a6329750e15e8fdb324"], ["ru", "descRU", "8a7859972305629e97ff3de7f84335f9eea545a42827a01e25b9086454ec39e1"]]) {
       const m = mem(lang);
       const rebuilt = `${str(key)} ${m.name}: ${m.born[0]}, ${m.born[1]} — ${m.died[0]}, ${m.died[1]}. ${m.burial} ${m.words}`;
       assert.equal(sha(rebuilt), want, lang);
       assert.doesNotMatch(str(key), /\d{4}/, `${lang}: dates left the entry paragraph`);
     }
+  });
+  test("one spelling per person: every memorial name is, verbatim, a tree-card name (R0 2026-11-15)", () => {
+    const src = readFileSync("app/content/family-private.ts", "utf8");
+    const tree = src.slice(src.indexOf("FAMILY_TREE_NODES"), src.indexOf("];", src.indexOf("FAMILY_TREE_NODES")));
+    const names = { en: [...tree.matchAll(/nameEN: ("(?:[^"\\]|\\.)*")/g)].map((m) => JSON.parse(m[1])), ru: [...tree.matchAll(/nameRU: ("(?:[^"\\]|\\.)*")/g)].map((m) => JSON.parse(m[1])) };
+    const mems = [...src.matchAll(/(en|ru): \{ name: ("(?:[^"\\]|\\.)*")/g)];
+    assert.ok(mems.length >= 2);
+    for (const [, lang, raw] of mems) assert.ok(names[lang].includes(JSON.parse(raw)), `${lang} memorial name is not spelled as on the tree`);
   });
   test("rendered as its own quiet block: left rule, whole date groups, italic serif close, no icons", () => {
     const tl = readFileSync("app/components/FamilyTimeline.tsx", "utf8");

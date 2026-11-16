@@ -36,7 +36,7 @@ export const FAMILY_TREE_NODES: TreeNode[] = [
   { id: "lyubov", nameEN: "Lyubov Petrovna Kartel (née Kirey)", nameRU: "Любовь Петровна Картель (Кирей)", roleEN: "Ancestor", roleRU: "Прародители", generation: "ancestor" },
   { id: "nikolai", nameEN: "Nikolai Aleksandrovich Kartel", nameRU: "Николай Александрович Картель", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
   { id: "valentina_a", nameEN: "Valentina Aleksandrovna Kartel (née Mikhal)", nameRU: "Валентина Александровна Картель (Михаль)", roleEN: "Grandparent", roleRU: "Дедушки и бабушки", generation: "grandparent" },
-  { id: "piotr", nameEN: "Piotr Nikolaevich Kartel", nameRU: "Петр Николаевич Картель", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
+  { id: "piotr", nameEN: "Piotr Nikolaevich Kartel", nameRU: "Пётр Николаевич Картель", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
   { id: "valentina", nameEN: "Valentina Cheslavovna Kartel (née Chizhevskaya)", nameRU: "Валентина Чеславовна Картель (Чижевская)", roleEN: "Elder generation", roleRU: "Старшее поколение", generation: "elder" },
   { id: "igor", nameEN: "Igor Gor Petrovich Kartel", nameRU: "Игорь Гор Петрович Картель", roleEN: "Family representative, London", roleRU: "Представитель семьи, Лондон", generation: "current" },
   { id: "diana", nameEN: "Diana Zenonovna Kartel (née Subach)", nameRU: "Диана Зеноновна Картель (Субоч)", roleEN: "Present generation", roleRU: "Настоящее поколение", generation: "current" },
@@ -103,7 +103,7 @@ export const FAMILY_TIMELINE_EVENTS: TimelineEvent[] = [
     // The memorial sentences that used to close the descriptions above, moved verbatim into fields
     // so the page can set them apart (cycle 12 #1). Wording, dates, places and names unchanged.
     memorial: {
-      en: { name: "Piotr Nikolaevich Kartel", born: ["8 February 1955", "Belarus"], died: ["3 January 2026", "London"], burial: "Laid to rest at the City of London Cemetery.", words: "In cherished memory." },
+      en: { name: "Piotr Nikolaevich Kartel", born: ["8 February 1955", "Belarus"], died: ["3 January 2026", "London"], burial: "Laid to rest at the City of London Cemetery.", words: "In loving memory." },
       ru: { name: "Пётр Николаевич Картель", born: ["8 февраля 1955", "Беларусь"], died: ["3 января 2026", "Лондон"], burial: "Похоронен на кладбище Сити-оф-Лондон.", words: "Светлая память." },
     },
   },
