@@ -158,7 +158,25 @@ async function main() {
   await pool.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
   const handler = createApp({ store: pgStore(pool), mediaDir: process.env.MEDIA_DIR ?? "/data/media", secret: process.env.FAMILY_MEDIA_SECRET });
   const port = Number(process.env.PORT ?? 8788);
-  createServer(handler).listen(port, "0.0.0.0", () => console.log(`[media] listening on ${port}`));
+  // One line per request: method, route class, status, duration. Never ids, keys, actors or bodies —
+  // person keys can be given names, so every path segment after the route name is dropped.
+  const logged = (req, res) => {
+    const t0 = Date.now();
+    res.on("finish", () => console.log(`[media] ${req.method} ${routeClass(req.url)} ${res.statusCode} ${Date.now() - t0}ms`));
+    return handler(req, res);
+  };
+  createServer(logged).listen(port, "0.0.0.0", () => console.log(`[media] listening on ${port}`));
+}
+
+/** "/draft/person/<key>?x" → "/draft/:kind/:key"; "/media/<id>/640.webp" → "/media/:id/:variant". */
+export function routeClass(url = "") {
+  const [first, ...rest] = url.split("?")[0].split("/").filter(Boolean);
+  if (!first) return "/";
+  const known = ["healthz", "content", "draft", "undo", "publish", "audit", "media"];
+  if (!known.includes(first)) return "/:other";
+  if (first === "draft") return rest.length ? "/draft/:kind/:key" : "/draft";
+  if (first === "media") return rest.length ? "/media/:id/:variant" : "/media";
+  return `/${first}`;
 }
 
 // Start only when run directly (`node server.mjs`); importing it (tests) has no side effects.

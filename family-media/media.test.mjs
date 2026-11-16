@@ -6,7 +6,7 @@ import { mkdtemp, rm, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import sharp from "sharp";
-import { createApp } from "./server.mjs";
+import { createApp, routeClass } from "./server.mjs";
 import { memoryStore } from "./store.mjs";
 import { validateEvent } from "./validate.mjs";
 // The SITE's signer — the exact module app/lib/family-media.ts uses.
@@ -103,4 +103,14 @@ test("validation: partial dates, plain text, limits", () => {
   assert.throws(() => validateEvent({ storyEN: "x".repeat(6001) }), /longer/);
   assert.throws(() => validateEvent({ photos: Array(9).fill({ id: "00000000-0000-4000-8000-000000000000" }) }), /at most/);
   assert.equal(validateEvent({ storyEN: "a\r\nb\u0007" }).storyEN, "a\nb", "CRLF normalised, control chars dropped");
+});
+
+test("request log route class never carries keys, ids or query values", () => {
+  assert.equal(routeClass("/draft/person/somekey"), "/draft/:kind/:key");
+  assert.equal(routeClass("/media/11111111-1111-4111-8111-111111111111/640.webp?scope=admin"), "/media/:id/:variant");
+  assert.equal(routeClass("/content?state=draft"), "/content");
+  assert.equal(routeClass("/publish"), "/publish");
+  assert.equal(routeClass("/anything/else/here"), "/:other");
+  assert.equal(routeClass("/"), "/");
+  for (const p of ["/draft/event/x1y2", "/media/abc/def", "/zzz/secret-looking"]) assert.doesNotMatch(routeClass(p), /x1y2|abc|def|secret/);
 });
