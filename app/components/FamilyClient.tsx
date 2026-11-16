@@ -3,6 +3,8 @@
 import { useLangToggle, type Lang } from "./useLang";
 import { H1 } from "../lib/typeScale";
 import SiteHeader from "./SiteHeader";
+import FamilySubNav from "./FamilySubNav";
+import Link from "next/link";
 import SiteFooter from "./SiteFooter";
 import FadeInSection from "./FadeInSection";
 import HeraldicDivider from "./HeraldicDivider";
@@ -24,7 +26,7 @@ export interface FamilyData {
   media: FamilyMediaContent;
 }
 
-export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyData }) {
+export default function FamilyClient({ lang, data, nav = { admin: false, os: false, member: false } }: { lang: Lang; data: FamilyData; nav?: { admin: boolean; os: boolean; member: boolean } }) {
   const toggleLang = useLangToggle(lang);
 
   const t = data.content;
@@ -36,6 +38,7 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth="max-w-6xl" />
 
       <main id="main" className="mx-auto max-w-6xl flex-1 px-4 pb-4 pt-10 sm:px-6 sm:pt-12 lg:px-10 lg:pb-6 lg:pt-20">
+        <div className="-mt-4 mb-8 sm:-mt-6 lg:-mt-12"><FamilySubNav lang={lang} admin={nav.admin} os={nav.os} active="heritage" /></div>
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
@@ -47,6 +50,17 @@ export default function FamilyClient({ lang, data }: { lang: Lang; data: FamilyD
             </p>
           </header>
         </FadeInSection>
+
+        {nav.member && (
+          <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os`} data-os-entry=""
+            className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition-colors hover:border-[var(--accent)]">
+            <span>
+              <span className="block font-serif text-[19px] text-[var(--foreground)]">{lang === "EN" ? "Today in the family" : "Сегодня в семье"}</span>
+              <span className="mt-0.5 block text-[15px] text-[var(--text-secondary)]">{lang === "EN" ? "Your day, the people and the family council." : "Ваш день, люди и семейный совет."}</span>
+            </span>
+            <span aria-hidden="true" className="text-[22px] text-[var(--accent)]">→</span>
+          </Link>
+        )}
 
         {/* Family Tree Visualization */}
         <FadeInSection>

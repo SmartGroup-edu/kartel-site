@@ -12,6 +12,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import FamilyPortrait from "./FamilyPortrait";
+import FamilySubNav from "./FamilySubNav";
+import { familyNav } from "../content/siteNav";
 import { useLangToggle } from "./useLang";
 import { H1, H2, EYEBROW, META } from "../lib/typeScale";
 import { FRAME, OUTPUT, initial, place, rezoom, zoomRange } from "../lib/crop-geometry.mjs";
@@ -109,7 +111,7 @@ const btnPrimary = `${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[
 const btnSecondary = `${btn} border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 const link = "underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]";
 
-export default function FamilyAdmin({ lang, enabled, people, entries }: { lang: Lang; enabled: boolean; people: Person[]; entries: Entry[] }) {
+export default function FamilyAdmin({ lang, enabled, os = false, people, entries }: { lang: Lang; enabled: boolean; os?: boolean; people: Person[]; entries: Entry[] }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const [draft, setDraft] = useState<Content>(EMPTY);
@@ -180,8 +182,9 @@ export default function FamilyAdmin({ lang, enabled, people, entries }: { lang: 
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} />
+      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} />
       <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-4 py-12 sm:px-6 lg:py-16">
+        <div className="mb-8"><FamilySubNav lang={lang} admin os={os} active="admin" /></div>
         <p className={EYEBROW}>{t.eyebrow}</p>
         <h1 className={`mt-2 ${H1}`}>{t.title}</h1>
         <p className="mt-4 max-w-[68ch] text-[17px] leading-[1.6] text-[var(--text-body)]">{t.intro}</p>

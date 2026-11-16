@@ -60,3 +60,14 @@ export async function getOsState(session: { email?: string | null; cpifSubjectId
     return { status: "error" };
   }
 }
+
+/** For pages outside Family OS (heritage, editor): is the viewer in Family OS? Fail-soft: false. */
+export async function getOsNav(session: { email?: string | null; cpifSubjectId: string }): Promise<{ os: boolean; member: boolean }> {
+  if (!osEnabled()) return { os: false, member: false };
+  try {
+    const r = await osCall("GET", "/me", osActor(session));
+    if (!r.ok) return { os: false, member: false };
+    const { me, admin } = (await r.json()) as { me: unknown; admin: boolean };
+    return { os: Boolean(me) || admin, member: Boolean(me) };
+  } catch { return { os: false, member: false }; }
+}
