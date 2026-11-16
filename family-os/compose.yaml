@@ -1,0 +1,50 @@
+# kartel-family-os on Hetzner app-01 — same shape as kartel-family-media, separate everything:
+# own Postgres (internal network, no host port), own HMAC secret, own tunnel, own master key.
+# Pinned image tags (infra baseline v3, G11).
+services:
+  db:
+    image: postgres:16.9-alpine3.22
+    env_file: db.env               # POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB — server only
+    restart: unless-stopped
+    volumes: [dbdata:/var/lib/postgresql/data]
+    networks: [dbnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+
+  os:
+    build: .
+    env_file: os.env               # DATABASE_URL, FAMILY_OS_SECRET — server only
+    environment:
+      FAMILY_OS_MASTER_KEY_FILE: /run/secrets/master_key
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: [/tmp]
+    # The master key (32 bytes) never enters the image, the database or a backup. Root-only file on
+    # the host, read-only in the container. Replace by stopping the service first (single-file bind
+    # mounts pin the inode).
+    volumes: ["./secrets/master.key:/run/secrets/master_key:ro"]
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [dbnet, edge]
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.9.1
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on: [os]
+    networks: [edge]
+
+volumes:
+  dbdata: {}
+
+networks:
+  dbnet:
+    internal: true
+  edge:
+    enable_ipv6: false

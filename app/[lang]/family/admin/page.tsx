@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { familyGateDecision, isFamilyAdmin } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { mediaEnabled } from "@/app/lib/family-media";
+import { getOsNav } from "@/app/lib/family-os";
 import { FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
 import FamilyAdmin from "@/app/components/FamilyAdmin";
 
@@ -25,6 +26,7 @@ export default async function FamilyAdminPage({ params }: { params: Promise<{ la
     <FamilyAdmin
       lang={lang === "ru" ? "RU" : "EN"}
       enabled={mediaEnabled()}
+      os={(await getOsNav(session)).os}
       people={FAMILY_TREE_NODES.map((n) => ({ id: n.id, nameEN: n.nameEN, nameRU: n.nameRU }))}
       entries={FAMILY_TIMELINE_EVENTS.map((e) => ({ id: e.id, titleEN: e.titleEN, titleRU: e.titleRU, yearEN: e.yearEN, yearRU: e.yearRU }))}
     />

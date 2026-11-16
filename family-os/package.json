@@ -1,0 +1,9 @@
+{
+  "name": "kartel-family-os",
+  "private": true,
+  "type": "module",
+  "description": "Family OS (Stage 1): people, roles, guardian grants, encrypted care notes, append-only read log (Hetzner app-01).",
+  "dependencies": {
+    "pg": "8.13.1"
+  }
+}

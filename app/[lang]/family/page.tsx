@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import FamilyClient from "../../components/FamilyClient";
 import { familyContent, FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
 import { familyEnv } from "@/app/lib/family-env";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, isFamilyAdmin } from "@/app/lib/family-gate";
+import { getOsNav } from "@/app/lib/family-os";
 import { getPublishedMedia } from "@/app/lib/family-media";
 import { FamilyGateNotice } from "../../components/FamilyGateNotice";
 
@@ -228,9 +229,12 @@ export default async function FamilyPage({
   // unapproved requests; this guarantees the page NEVER renders PII without an approved
   // session even if the edge is bypassed. Return-based (not redirect()) because a
   // Server-Component redirect() does not reliably abort a force-dynamic render here.
+  let nav = { admin: false, os: false, member: false };
   if (familyEnv.gateOn()) {
-    const { decision } = await familyGateDecision();
+    const { decision, session } = await familyGateDecision();
     if (decision !== "allow") return <FamilyGateNotice lang={locale} returnTo={`/${lang}/family`} ttlMinutes={familyEnv.linkTtlMinutes()} />;
+    // The family sub-nav and the "Today in the family" entry need to know who this is (bus 63).
+    if (session) nav = { admin: isFamilyAdmin(session.cpifSubjectId), ...(await getOsNav(session)) };
   }
 
   const upperLang: "EN" | "RU" = locale === "en" ? "EN" : "RU";
@@ -243,6 +247,7 @@ export default async function FamilyPage({
       />
       <FamilyClient
         lang={upperLang}
+        nav={nav}
         data={{ content: familyContent[upperLang], nodes: FAMILY_TREE_NODES, events: FAMILY_TIMELINE_EVENTS, media: await getPublishedMedia() }}
       />
     </>
