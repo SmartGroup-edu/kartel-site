@@ -90,4 +90,4 @@ back to the static content immediately (reads fail soft). Data stays in the volu
 
 ## Logs
 
-Status codes and ids only — never names, text, emails or file contents.
+One line per request: method, route class (`/draft/:kind/:key`, `/media/:id/:variant`, …), status and duration. Never ids, keys, actors, names, text, emails or file contents. Signature failures add `rejected: bad signature`.
