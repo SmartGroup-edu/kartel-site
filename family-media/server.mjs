@@ -89,8 +89,13 @@ export function createApp({ store, mediaDir, secret }) {
     // GET /content?state=published|draft
     if (req.method === "GET" && url.pathname === "/content") {
       const state = url.searchParams.get("state");
-      if (state === "draft") return reply(res, 200, { content: await store.getDraft(), published: await store.getPublished() });
-      if (state === "published") return reply(res, 200, await store.getPublished());
+      // dims: [width, height] per referenced file, so pages can lay photos out before they load.
+      const dims = (...docs) => store.mediaDims([...new Set(docs.flatMap((d) => [...referencedMedia(d)]))]);
+      if (state === "draft") {
+        const content = await store.getDraft(), published = await store.getPublished();
+        return reply(res, 200, { content, published, dims: await dims(content, published.content) });
+      }
+      if (state === "published") { const pub = await store.getPublished(); return reply(res, 200, { ...pub, dims: await dims(pub.content) }); }
       return reply(res, 400, { error: "bad_state" });
     }
 

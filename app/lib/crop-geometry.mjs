@@ -7,7 +7,7 @@
  * smallest zoom is "fit" (the whole photo is visible, the rest of the frame is a plain background).
  */
 
-export const FRAME = { w: 240, h: 300 }; // 4:5 preview
+export const FRAME = { w: 360, h: 450 }; // 4:5 preview (drawn smaller on short screens)
 export const OUTPUT = { w: 1024, h: 1280 }; // 4:5 file sent to the service (same ratio as FRAME)
 export const MAX_ZOOM = 3;
 

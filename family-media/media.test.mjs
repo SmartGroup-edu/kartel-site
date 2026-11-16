@@ -158,3 +158,16 @@ test("EXIF orientation is applied before anything else, then stripped", async ()
   assert.equal(m.width, 300); assert.equal(m.height, 400);
   assert.equal(m.exif, undefined); assert.equal(m.orientation, undefined);
 });
+
+test("content responses carry [width, height] for referenced files (layout before load)", async () => {
+  const up = await call("POST", "/media", { body: await sharp({ create: { width: 1600, height: 400, channels: 3, background: "#777" } }).jpeg().toBuffer() });
+  const { id } = await up.json();
+  const ev = { dateFrom: "", dateTo: "", placesEN: "", placesRU: "", professionEN: "", professionRU: "", storyEN: "", storyRU: "", photos: [{ id, captionEN: "", captionRU: "" }] };
+  assert.equal((await call("PUT", "/draft/event/dims-test", { body: JSON.stringify(ev) })).status, 200);
+  const d = await (await call("GET", "/content?state=draft")).json();
+  assert.deepEqual(d.dims[id], [1280, 320]);
+  assert.equal((await call("POST", "/publish")).status, 200);
+  const p = await (await call("GET", "/content?state=published")).json();
+  assert.deepEqual(p.dims[id], [1280, 320]);
+  assert.ok(Object.keys(p.dims).every((k) => /^[0-9a-f-]{36}$/.test(k)), "only media ids");
+});
