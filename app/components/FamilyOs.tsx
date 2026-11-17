@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Family OS shell (plan v3, Stage 1): navigation, the "Today" view (empty until routines arrive in
- * Stage 2) and the people list with roles and guardian relations. Data arrives from the server page
+ * Family OS shell: navigation, the "Today" view (Stage 2: the member's own routines and chores for
+ * the day + the Documents block) and the people list with roles and guardian relations. Data arrives from the server page
  * (family-os service); nothing here talks to the service directly.
  */
 import SiteHeader from "./SiteHeader";
@@ -16,7 +16,8 @@ import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsState, OsPerson, OsGrant, OsReminder } from "../lib/family-os";
+import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines } from "../lib/family-os";
+import { TodayChecklist } from "./FamilyRoutines";
 
 type Lang = "EN" | "RU";
 type View = "today" | "people";
@@ -27,14 +28,15 @@ const T = {
     tier: { expired: "Expired", lt3: "< 3 months", lt6: "< 6 months", lt12: "< 12 months" },
     docType: DOC_LABELS.EN,
     eyebrow: "Family", nav: "Family sections", today: "Today", people: "People", heritage: "Heritage",
-    todayEmpty: "Nothing planned for today yet.",
-    todayNext: "Routines, chores and the weekly family council arrive in the next stage. This page will show what is yours today.",
+    myDay: "My day", todayEmpty: "Nothing planned for you today.",
+    noneScheduled: "Nothing of yours is scheduled for today.",
+    addOwn: "Add a routine on your page", childHint: "Your parents set up your routines and chores.",
     off: "Family OS is not connected yet.",
     error: "Family OS is not answering right now. Please try again in a minute.",
     notMember: "You are signed in, but you are not in Family OS yet. Ask the family admin to add you.",
     adults: "Adults", children: "Children", adult: "Adult", child: "Child", you: "you",
     parents: "Parents", relatives: "With access", none: "No guardians yet",
-    scope: { routines: "routines", health: "health", education: "school" },
+    scope: { routines: "routines", health: "health", education: "school", documents: "documents" },
     emptyPeople: "No one has been added yet.",
   },
   RU: {
@@ -42,20 +44,21 @@ const T = {
     tier: { expired: "Истёк", lt3: "< 3 мес", lt6: "< 6 мес", lt12: "< 12 мес" },
     docType: DOC_LABELS.RU,
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
-    todayEmpty: "На сегодня пока ничего не запланировано.",
-    todayNext: "Распорядок, дела и еженедельный семейный совет появятся на следующем этапе. Здесь будет то, что ваше на сегодня.",
+    myDay: "Мой день", todayEmpty: "На сегодня у вас ничего не запланировано.",
+    noneScheduled: "Сегодня по расписанию у вас ничего нет.",
+    addOwn: "Добавить распорядок на своей странице", childHint: "Распорядок и дела составляют родители.",
     off: "Раздел «Семья» ещё не подключён.",
     error: "Раздел «Семья» сейчас не отвечает. Попробуйте через минуту.",
     notMember: "Вы вошли, но вас ещё нет в разделе «Семья». Попросите администратора семьи добавить вас.",
     adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "вы",
     parents: "Родители", relatives: "С доступом", none: "Опекунов пока нет",
-    scope: { routines: "распорядок", health: "здоровье", education: "учёба" },
+    scope: { routines: "распорядок", health: "здоровье", education: "учёба", documents: "документы" },
     emptyPeople: "Пока никого не добавили.",
   },
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[] }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -75,12 +78,19 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
+            {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
             {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
-            <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-10 text-center">
-              <p className="font-serif text-[20px] text-[var(--foreground)]">{t.todayEmpty}</p>
-              <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">{t.todayNext}</p>
-            </div>
+            {!(mine?.routines.some((r) => r.due_today)) && (
+              <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-8 text-center">
+                <p className="font-serif text-[20px] text-[var(--foreground)]">{mine && mine.routines.length > 0 ? t.noneScheduled : t.todayEmpty}</p>
+                {state.me && <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">
+                  {state.me.kind === "child" ? t.childHint : (
+                    <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${state.me.id}#routines-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.addOwn}</Link>
+                  )}
+                </p>}
+              </div>
+            )}
           </section>
         ) : (
           <People t={t} lang={lang} me={state.me} people={state.people} grants={state.grants} nameOf={nameOf} />
@@ -151,7 +161,7 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
           const who = people.find((x) => x.id === r.person_id);
           const urgent = r.tier === "expired" || r.tier === "lt3";
           return (
-            <li key={r.id} data-tier={r.tier ?? ""} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5 text-[16px]">
+            <li key={r.id} data-tier={r.tier ?? ""} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 text-[16px]">
               <span className={`inline-flex min-w-[13rem] items-center gap-1.5 text-[14px] ${urgent ? "font-semibold text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" className="shrink-0">
                   {r.tier === "expired"
@@ -162,7 +172,7 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
                 <span aria-hidden="true">·</span>
                 <span suppressHydrationWarning>{fmtDocDate(r.expiry_date, lang)}</span>
               </span>
-              <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
+              <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
                 {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
               </Link>
             </li>

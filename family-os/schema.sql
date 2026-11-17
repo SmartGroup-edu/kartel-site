@@ -141,3 +141,31 @@ CREATE TABLE IF NOT EXISTS reminder_sent (
   sent_at       timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (document_id, milestone, recipient_id)
 );
+
+-- ---- Stage 2: routines and chores (bus 72; plan v3.8 §3.4) ---------------------------------------
+-- A recurring item of one person. The rule is an RRULE subset (recur.mjs); occurrences are computed.
+CREATE TABLE IF NOT EXISTS routine (
+  id           uuid PRIMARY KEY,
+  person_id    uuid NOT NULL REFERENCES person(id),
+  kind         text NOT NULL CHECK (kind IN ('routine', 'chore')),
+  title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  rrule        text NOT NULL CHECK (length(rrule) BETWEEN 9 AND 120),
+  dtstart      date NOT NULL,
+  at_time      text CHECK (at_time IS NULL OR at_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz
+);
+CREATE INDEX IF NOT EXISTS routine_person ON routine (person_id) WHERE archived_at IS NULL;
+
+-- Tick-offs. A tick or an untick is a new row; the latest row for (routine, day) is the state, and
+-- the history is never lost (plan §3.4: «отметка — отдельная строка, история не теряется»).
+CREATE TABLE IF NOT EXISTS routine_check (
+  id          bigserial PRIMARY KEY,
+  routine_id  uuid NOT NULL REFERENCES routine(id),
+  on_date     date NOT NULL,
+  done        boolean NOT NULL,
+  by_actor    text NOT NULL,
+  at          timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS routine_check_day ON routine_check (routine_id, on_date, id DESC);

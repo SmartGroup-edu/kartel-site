@@ -2,7 +2,7 @@ import Link from "next/link";
 import { familySubNav, familySubNavLabel } from "../lib/family-nav.mjs";
 
 /** The family sub-navigation, same place on every family page (directly under the site header). */
-export default function FamilySubNav({ lang, admin, os, active }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "people" | "admin" }) {
+export default function FamilySubNav({ lang, admin, os, active }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "people" | "access" | "admin" }) {
   const items = familySubNav({ lang, admin, os });
   if (items.length === 0) return null;
   return (
