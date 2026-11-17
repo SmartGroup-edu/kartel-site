@@ -64,6 +64,12 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // Family OS document files (Stage 2a): a served PDF/image must never run script or load
+      // anything on this origin. Listed after the site-wide rule so this CSP wins.
+      {
+        source: "/api/family-os/:path*",
+        headers: [{ key: "Content-Security-Policy", value: "sandbox; default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'" }],
+      },
       // Gated surfaces are never indexed (gated UI/UX audit 2026-11-14 #2). proxy.ts also sets this
       // on its own responses (redirects included).
       { source: "/:lang(en|ru)/family", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },

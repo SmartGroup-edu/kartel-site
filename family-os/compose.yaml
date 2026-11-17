@@ -26,7 +26,7 @@ services:
     # The master key (32 bytes) never enters the image, the database or a backup. Root-only file on
     # the host, read-only in the container. Replace by stopping the service first (single-file bind
     # mounts pin the inode).
-    volumes: ["./secrets/master.key:/run/secrets/master_key:ro"]
+    volumes: ["./secrets/master.key:/run/secrets/master_key:ro", "docs:/data/docs"]
     depends_on:
       db: { condition: service_healthy }
     networks: [dbnet, edge]
@@ -42,6 +42,7 @@ services:
 
 volumes:
   dbdata: {}
+  docs: {}            # document files, AES-256-GCM ciphertext only
 
 networks:
   dbnet:

@@ -65,3 +65,34 @@ export function rewrap(oldKek, newKek, row) {
   const dek = open(oldKek, row.wrapped_key, `dek:${row.id}`);
   try { return seal(newKek, dek, `dek:${row.id}`); } finally { dek.fill(0); }
 }
+
+// ---- Stage 2a: documents -------------------------------------------------------------------------
+// A document has its own data key (wrapped by the master key) for its structured fields; each file
+// has its own data key too. Files are stored on disk as iv(12) | tag(16) | ciphertext — never plain.
+
+/** @returns {Buffer} iv | tag | ciphertext */
+export function sealBytes(key, plaintext, aad) {
+  const iv = randomBytes(12);
+  const c = createCipheriv("aes-256-gcm", key, iv);
+  c.setAAD(Buffer.from(aad, "utf8"));
+  const ct = Buffer.concat([c.update(plaintext), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), ct]);
+}
+
+export function openBytes(key, blob, aad) {
+  if (!Buffer.isBuffer(blob) || blob.length < 28) throw new Error("bad_blob");
+  const d = createDecipheriv("aes-256-gcm", key, blob.subarray(0, 12));
+  d.setAAD(Buffer.from(aad, "utf8"));
+  d.setAuthTag(blob.subarray(12, 28));
+  return Buffer.concat([d.update(blob.subarray(28)), d.final()]);
+}
+
+/** New data key for `scope:id`, returned with its wrapped form for storage. */
+export function newDataKey(kek, scope, id) {
+  const dek = randomBytes(32);
+  return { dek, wrapped: seal(kek, dek, `${scope}:${id}`) };
+}
+
+export function unwrapDataKey(kek, wrapped, scope, id) {
+  return open(kek, wrapped, `${scope}:${id}`);
+}

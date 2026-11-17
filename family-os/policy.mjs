@@ -9,7 +9,7 @@
 // - A child does not read or edit health/education notes (plan v3 §3).
 
 export const NOTE_KINDS = ["health", "education"];
-export const SCOPES = ["routines", "health", "education"];
+export const SCOPES = ["routines", "health", "education", "documents"];
 
 /** "admin:a@b" → { role: "admin", email: "a@b" }; anything else → null */
 export function parseActor(actor) {
@@ -39,3 +39,32 @@ export function checkGrant({ guardian, child, relation, scopes }) {
   if (new Set(scopes).size !== scopes.length) return "bad_scopes";
   return null;
 }
+
+// ---- Stage 2a: documents (R0 2026-11-17) ---------------------------------------------------------
+// - A person's documents: the holder (a minor too — unlike health notes) and guardians whose active
+//   grant includes "documents". An adult's documents: that adult only.
+// - Admin may ADD documents for anyone (R0 uploads the family's papers) but reads them only when one
+//   of the rules above applies — admin is still not an implicit reader.
+// - Heritage archive records (not a person): admin only.
+// - Birth date / age on a profile: the person, their guardians (any scope), the admin.
+
+const guardianOf = (me, subject, grants, scope) =>
+  grants.some((g) => !g.revoked_at && g.guardian_id === me.id && g.child_id === subject.id && (!scope || g.scopes.includes(scope)));
+
+export function canReadDocuments(me, subject, grants) {
+  if (!me || !subject) return false;
+  if (me.id === subject.id) return true;
+  return subject.kind === "child" && guardianOf(me, subject, grants, "documents");
+}
+
+export function canAddDocuments(me, subject, grants, admin) {
+  return Boolean(admin) || canReadDocuments(me, subject, grants);
+}
+
+export function canSeeBirth(me, subject, grants, admin) {
+  if (admin) return true;
+  if (!me || !subject) return false;
+  return me.id === subject.id || guardianOf(me, subject, grants, null);
+}
+
+export const DOC_TYPES = ["passport", "national_id", "ni_number", "residence", "other"];

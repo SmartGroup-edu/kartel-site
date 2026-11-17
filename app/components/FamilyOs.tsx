@@ -7,6 +7,8 @@
  */
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
+import Link from "next/link";
+import { expiryState } from "../lib/family-docs.mjs";
 import FamilySubNav from "./FamilySubNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
@@ -14,13 +16,15 @@ import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsState, OsPerson, OsGrant } from "../lib/family-os";
+import type { OsState, OsPerson, OsGrant, OsReminder } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
 type View = "today" | "people";
 
 const T = {
   EN: {
+    remindTitle: "Documents to renew", expired: "expired", until: "valid until",
+    docType: { passport: "passport", national_id: "ID / personal code", ni_number: "National Insurance", residence: "residence / settlement", other: "document" },
     eyebrow: "Family", nav: "Family sections", today: "Today", people: "People", heritage: "Heritage",
     todayEmpty: "Nothing planned for today yet.",
     todayNext: "Routines, chores and the weekly family council arrive in the next stage. This page will show what is yours today.",
@@ -33,6 +37,8 @@ const T = {
     emptyPeople: "No one has been added yet.",
   },
   RU: {
+    remindTitle: "Документы, которые пора обновить", expired: "истёк", until: "действует до",
+    docType: { passport: "паспорт", national_id: "удостоверение / личный код", ni_number: "National Insurance", residence: "вид на жительство / settlement", other: "документ" },
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
     todayEmpty: "На сегодня пока ничего не запланировано.",
     todayNext: "Распорядок, дела и еженедельный семейный совет появятся на следующем этапе. Здесь будет то, что ваше на сегодня.",
@@ -47,7 +53,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state }: { lang: Lang; view: View; state: OsState }) {
+export default function FamilyOs({ lang, view, state, reminders = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[] }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -67,6 +73,25 @@ export default function FamilyOs({ lang, view, state }: { lang: Lang; view: View
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
+            {reminders.length > 0 && (
+              <section aria-labelledby="remind-h" data-reminders="" className="mt-8 rounded-lg border border-[var(--accent)] px-5 py-4">
+                <h2 id="remind-h" className="font-serif text-[19px] text-[var(--foreground)]">{t.remindTitle}</h2>
+                <ul className="mt-3 space-y-2 text-[16px]">
+                  {reminders.map((r) => {
+                    const who = state.people.find((x) => x.id === r.person_id);
+                    const ex = expiryState(r.expiry_date, new Date());
+                    return (
+                      <li key={r.id}>
+                        <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
+                          {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
+                        </Link>
+                        <span className="ml-2 text-[var(--text-secondary)]" suppressHydrationWarning>{ex === "expired" ? t.expired : t.until} {new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
             <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-10 text-center">
               <p className="font-serif text-[20px] text-[var(--foreground)]">{t.todayEmpty}</p>
               <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">{t.todayNext}</p>
@@ -105,7 +130,7 @@ function People({ t, lang, me, people, grants, nameOf }: {
                   <FamilyPortrait id={null} name={nameOf(p)} alt="" size={48} />
                   <div className="min-w-0 flex-1">
                     <p className="font-serif text-[18px] leading-snug text-[var(--foreground)]">
-                      {nameOf(p)}{me?.id === p.id && <span className="ml-2 font-sans text-[14px] text-[var(--muted)]">({t.you})</span>}
+                      <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${p.id}`} className="underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{nameOf(p)}</Link>{me?.id === p.id && <span className="ml-2 font-sans text-[14px] text-[var(--muted)]">({t.you})</span>}
                     </p>
                     {p.kind === "child" && (
                       <dl className="mt-3 space-y-1 text-[14px] text-[var(--text-secondary)]">

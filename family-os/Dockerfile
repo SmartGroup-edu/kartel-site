@@ -3,6 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 COPY server.mjs store.mjs policy.mjs crypto.mjs schema.sql ./
+# Encrypted document files live on this volume (created from this path, so node owns it).
+RUN mkdir -p /data/docs && chown node:node /data/docs && chmod 700 /data/docs
 USER node
 ENV NODE_ENV=production
 EXPOSE 8789
