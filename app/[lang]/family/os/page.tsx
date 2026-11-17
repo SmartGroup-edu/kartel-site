@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
-import { getOsState, getReminders } from "@/app/lib/family-os";
+import { getOsState, getReminders, getMyRoutines } from "@/app/lib/family-os";
 import FamilyOs from "@/app/components/FamilyOs";
 
 // Gated (proxy.ts covers /family/*); never prerendered, never indexed. Data comes from family-os.
@@ -20,6 +20,10 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const [state, reminders] = await Promise.all([getOsState(session), getReminders(session)]);
-  const family = state.status === "ok" && state.admin ? await getReminders(session, "family") : [];
-  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} />;
+  const ok = state.status === "ok";
+  const [family, mine] = await Promise.all([
+    ok && state.admin ? getReminders(session, "family") : Promise.resolve([]),
+    ok && state.me ? getMyRoutines(session, state.me.id) : Promise.resolve(null),
+  ]);
+  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} />;
 }

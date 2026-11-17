@@ -11,7 +11,8 @@ import { signMediaRequest } from "@/app/lib/media-signature.mjs";
 import { isFamilyAdmin } from "@/app/lib/family-gate";
 
 export type OsPerson = { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; email?: string };
-export type OsGrant = { id: string; guardian_id: string; child_id: string; relation: "parent" | "relative"; scopes: ("routines" | "health" | "education")[] };
+export type OsScope = "routines" | "health" | "education" | "documents";
+export type OsGrant = { id: string; guardian_id: string; child_id: string; relation: "parent" | "relative"; scopes: OsScope[] };
 export type OsState =
   | { status: "off" }
   | { status: "error" }
@@ -31,7 +32,7 @@ function accessHeaders(): Record<string, string> {
   return id && secret ? { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret } : {};
 }
 
-export async function osCall(method: "GET" | "POST" | "DELETE", path: string, actor: string, body?: unknown) {
+export async function osCall(method: "GET" | "POST" | "PATCH" | "DELETE", path: string, actor: string, body?: unknown) {
   const raw = body === undefined ? "" : JSON.stringify(body);
   const headers = await signMediaRequest({ secret: process.env.FAMILY_OS_SECRET!, method, path, actor, body: raw });
   return fetch(new URL(path, process.env.FAMILY_OS_URL), {
@@ -82,8 +83,8 @@ export type OsDocument = {
 };
 export type OsProfile = {
   person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null };
-  guardians: { guardian_id: string; relation: "parent" | "relative" }[];
-  can: { documents: boolean; add_documents: boolean };
+  guardians: { guardian_id: string; relation: "parent" | "relative"; scopes: OsScope[] }[];
+  can: { documents: boolean; add_documents: boolean; retype_documents: boolean; routines: OsRoutineAccess };
 };
 export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string; days_left: number; tier: "expired" | "lt3" | "lt6" | "lt12" | null };
 
@@ -99,8 +100,11 @@ export async function getPersonPage(session: { email?: string | null; cpifSubjec
   try {
     const profile = await getJson<OsProfile>(`/people/${id}`, actor);
     if (!profile) return null;
-    const docs = profile.can.documents ? await getJson<{ documents: OsDocument[] }>(`/people/${id}/documents`, actor) : null;
-    return { profile, documents: docs?.documents ?? null };
+    const [docs, routines] = await Promise.all([
+      profile.can.documents ? getJson<{ documents: OsDocument[] }>(`/people/${id}/documents`, actor) : null,
+      profile.can.routines?.read ? getJson<OsRoutines>(`/people/${id}/routines?days=7`, actor) : null,
+    ]);
+    return { profile, documents: docs?.documents ?? null, routines };
   } catch { return null; }
 }
 
@@ -108,4 +112,18 @@ export async function getPersonPage(session: { email?: string | null; cpifSubjec
 export async function getReminders(session: { email?: string | null; cpifSubjectId: string }, scope: "mine" | "family" = "mine"): Promise<OsReminder[]> {
   if (!osEnabled()) return [];
   try { return (await getJson<{ reminders: OsReminder[] }>(scope === "family" ? "/reminders?scope=family" : "/reminders", osActor(session)))?.reminders ?? []; } catch { return []; }
+}
+
+// ---- Stage 2: routines and chores ---------------------------------------------------------------
+export type OsRoutineAccess = { read: boolean; manage: boolean; check: boolean; reason: string | null };
+export type OsRoutine = {
+  id: string; kind: "routine" | "chore"; title: string; rrule: string; dtstart: string; at_time: string | null;
+  due_today: boolean; done_today: boolean; done_recent: string[]; streak: number; next: string[];
+};
+export type OsRoutines = { today: string; can: OsRoutineAccess; routines: OsRoutine[] };
+
+/** The member's own routines (Today). null = not a member, no access, or the service is down. */
+export async function getMyRoutines(session: { email?: string | null; cpifSubjectId: string }, personId: string | null): Promise<OsRoutines | null> {
+  if (!osEnabled() || !personId) return null;
+  try { return await getJson<OsRoutines>(`/people/${personId}/routines?days=1`, osActor(session)); } catch { return null; }
 }

@@ -68,3 +68,28 @@ export function canSeeBirth(me, subject, grants, admin) {
 }
 
 export const DOC_TYPES = ["passport", "national_id", "ni_number", "residence", "other"];
+
+// ---- Stage 2: routines and chores (plan v3.8 §3.2, §4.1; bus 72) ---------------------------------
+// - Read a person's routines: that person; for a child, guardians whose grant includes "routines".
+//   An adult's routines are that adult's own. Admin is not an implicit reader (same as notes).
+// - Create / change / archive: an adult for themselves; a guardian with "routines" for a child
+//   ("parents assign to minors"). A child does not create or delete their own items.
+// - Tick off: the person themselves (a child too) and guardians with "routines".
+// Every refusal carries a short reason (plan §3.2) for the screen.
+
+export function routineAccess(me, subject, grants) {
+  if (!me || !subject) return { read: false, manage: false, check: false, reason: "not_a_member" };
+  if (me.id === subject.id) return { read: true, manage: subject.kind === "adult", check: true, reason: null };
+  if (subject.kind === "adult") return { read: false, manage: false, check: false, reason: "adult_private" };
+  if (guardianOf(me, subject, grants, "routines")) return { read: true, manage: true, check: true, reason: null };
+  return { read: false, manage: false, check: false, reason: guardianOf(me, subject, grants, null) ? "no_scope" : "no_relation" };
+}
+
+/** Who may see a child's guardians and their scopes: the child, their guardians, the admin. */
+export function canSeeGuardians(me, subject, grants, admin) {
+  if (admin) return true;
+  if (!me || !subject) return false;
+  return me.id === subject.id || guardianOf(me, subject, grants, null);
+}
+
+export const ROUTINE_KINDS = ["routine", "chore"];

@@ -66,11 +66,55 @@ export function pgStore(pool) {
     },
     async listFiles(documentId) { return (await q("SELECT * FROM document_file WHERE document_id = $1 ORDER BY created_at", [documentId])).rows; },
     async getFile(id) { return (await q("SELECT * FROM document_file WHERE id = $1", [id])).rows[0] ?? null; },
+    async retypeDocument(id, type, actor) {
+      const r = await q("UPDATE document SET type = $2 WHERE id = $1", [id, type]);
+      if (r.rowCount) await audit(actor, "document.retype", `document:${id}`);
+      return r.rowCount === 1;
+    },
+    // ---- Stage 2: people/grants admin, routines
+    async updatePerson(id, patch, actor) {
+      const r = await q("UPDATE person SET name_en = COALESCE($2, name_en), name_ru = COALESCE($3, name_ru), kind = COALESCE($4, kind) WHERE id = $1", [id, patch.name_en ?? null, patch.name_ru ?? null, patch.kind ?? null]);
+      if (r.rowCount) await audit(actor, "person.update", `person:${id}`);
+      return r.rowCount === 1;
+    },
+    async setGrantScopes(id, scopes, actor) {
+      const r = await q("UPDATE guardian_grant SET scopes = $2 WHERE id = $1 AND revoked_at IS NULL", [id, scopes]);
+      if (r.rowCount) await audit(actor, "grant.scopes", `grant:${id}`);
+      return r.rowCount === 1;
+    },
+    async listRoutines(personId) {
+      return (await q(`SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, created_at FROM routine
+                       WHERE person_id = $1 AND archived_at IS NULL ORDER BY at_time NULLS LAST, created_at`, [personId])).rows;
+    },
+    async getRoutine(id) {
+      return (await q("SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, archived_at FROM routine WHERE id = $1", [id])).rows[0] ?? null;
+    },
+    async createRoutine(r, actor) {
+      await q("INSERT INTO routine (id, person_id, kind, title, rrule, dtstart, at_time, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        [r.id, r.person_id, r.kind, r.title, r.rrule, r.dtstart, r.at_time, actor]);
+      await audit(actor, "routine.create", `routine:${r.id}`);
+    },
+    async updateRoutine(id, patch, actor) {
+      const r = await q(`UPDATE routine SET title = COALESCE($2, title), rrule = COALESCE($3, rrule), at_time = CASE WHEN $4::boolean THEN $5 ELSE at_time END,
+                         archived_at = CASE WHEN $6::boolean THEN now() ELSE archived_at END WHERE id = $1 AND archived_at IS NULL`,
+        [id, patch.title ?? null, patch.rrule ?? null, "at_time" in patch, patch.at_time ?? null, Boolean(patch.archived)]);
+      if (r.rowCount) await audit(actor, patch.archived ? "routine.archive" : "routine.update", `routine:${id}`);
+      return r.rowCount === 1;
+    },
+    /** Latest state per (routine, day) since `from`: [{ routine_id, on_date, done }] */
+    async listChecks(routineIds, from) {
+      if (!routineIds.length) return [];
+      return (await q(`SELECT DISTINCT ON (routine_id, on_date) routine_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, done FROM routine_check
+                       WHERE routine_id = ANY($1::uuid[]) AND on_date >= $2 ORDER BY routine_id, on_date, id DESC`, [routineIds, from])).rows;
+    },
+    async addCheck(routineId, date, done, actor) {
+      await q("INSERT INTO routine_check (routine_id, on_date, done, by_actor) VALUES ($1, $2, $3, $4)", [routineId, date, done, actor]);
+    },
   };
 }
 
 export function memoryStore() {
-  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), log = [], auditLog = [];
+  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [];
   const now = () => new Date().toISOString();
   return {
     failLog: false, // tests flip this to prove reads fail closed
@@ -101,7 +145,25 @@ export function memoryStore() {
     async createFile(f, actor) { files.set(f.id, { ...f, created_by: actor, created_at: now() }); },
     async listFiles(documentId) { return [...files.values()].filter((f) => f.document_id === documentId); },
     async getFile(id) { return files.get(id) ?? null; },
+    async retypeDocument(id, type) { const d = docs.get(id); if (!d) return false; d.type = type; return true; },
+    // ---- Stage 2
+    async updatePerson(id, patch) { const p = people.get(id); if (!p) return false; for (const k of ["name_en", "name_ru", "kind"]) if (patch[k]) p[k] = patch[k]; return true; },
+    async setGrantScopes(id, scopes) { const g = grants.get(id); if (!g || g.revoked_at) return false; g.scopes = scopes; return true; },
+    async listRoutines(personId) { return [...routines.values()].filter((r) => r.person_id === personId && !r.archived_at); },
+    async getRoutine(id) { return routines.get(id) ?? null; },
+    async createRoutine(r, actor) { routines.set(r.id, { ...r, created_by: actor, created_at: now(), archived_at: null }); },
+    async updateRoutine(id, patch) {
+      const r = routines.get(id); if (!r || r.archived_at) return false;
+      if (patch.title) r.title = patch.title; if (patch.rrule) r.rrule = patch.rrule; if ("at_time" in patch) r.at_time = patch.at_time ?? null;
+      if (patch.archived) r.archived_at = now(); return true;
+    },
+    async listChecks(routineIds, from) {
+      const latest = new Map();
+      for (const c of checks) if (routineIds.includes(c.routine_id) && c.on_date >= from) latest.set(`${c.routine_id}|${c.on_date}`, c);
+      return [...latest.values()].map(({ routine_id, on_date, done }) => ({ routine_id, on_date, done }));
+    },
+    async addCheck(routineId, date, done, actor) { checks.push({ routine_id: routineId, on_date: date, done, by_actor: actor }); },
 
-    _raw: { notes, log, docs: () => docs, files: () => files },
+    _raw: { notes, log, docs: () => docs, files: () => files, checks },
   };
 }

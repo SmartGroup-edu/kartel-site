@@ -8,7 +8,9 @@ import { createServer } from "node:http";
 import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES } from "./policy.mjs";
+import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS } from "./policy.mjs";
+import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
+import { stripHeifMetadata } from "./heif.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { daysLeft, tier } from "./reminders.mjs";
@@ -40,7 +42,7 @@ function limiter() {
 const text = (v, max) => (typeof v === "string" && v.trim().length > 0 && v.length <= max ? v.trim() : null);
 
 /** @param {{ store: any, secret: string, masterKey: Buffer, filesDir?: string }} deps */
-export function createApp({ store, secret, masterKey, filesDir = "/data/docs" }) {
+export function createApp({ store, secret, masterKey, filesDir = "/data/docs", clock = () => new Date() }) {
   if (!secret || secret.length < 32) throw new Error("FAMILY_OS_SECRET must be >= 32 chars");
   const kek = parseMasterKey(masterKey);
   const allow = limiter();
@@ -132,7 +134,15 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
     }
 
     // DELETE /grants/:id (admin) — takes effect on the next request (grants are read per request)
+    // PATCH /grants/:id (admin) — { scopes }
     const gm = path.match(/^\/grants\/([^/]+)$/);
+    if (req.method === "PATCH" && gm) {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const scopes = json(body)?.scopes;
+      if (!UUID_RE.test(gm[1])) return reply(res, 400, { error: "bad_id" });
+      if (!Array.isArray(scopes) || scopes.length === 0 || scopes.some((x) => !SCOPES.includes(x)) || new Set(scopes).size !== scopes.length) return reply(res, 400, { error: "bad_scopes" });
+      return (await store.setGrantScopes(gm[1], scopes, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+    }
     if (req.method === "DELETE" && gm) {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       if (!UUID_RE.test(gm[1])) return reply(res, 400, { error: "bad_id" });
@@ -177,16 +187,24 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
       const birth = canSeeBirth(me, subject, grants, admin) ? (subject.birth_date ? String(subject.birth_date instanceof Date ? subject.birth_date.toISOString().slice(0, 10) : subject.birth_date) : null) : undefined;
       return reply(res, 200, {
         person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}) },
-        guardians: grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation })),
-        can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin) },
+        guardians: canSeeGuardians(me, subject, grants, admin) ? grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation, scopes: g.scopes })) : [],
+        can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin), retype_documents: canAddDocuments(me, subject, grants, admin),
+          routines: routineAccess(me, subject, grants) },
       });
     }
-    // PATCH /people/:id (admin) — { birth_date }
+    // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind }
     if (pm && req.method === "PATCH") {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       const b = json(body);
-      if (!UUID_RE.test(pm[1]) || !(b?.birth_date === null || DATE_RE.test(b?.birth_date ?? ""))) return reply(res, 400, { error: "bad_request" });
-      return (await store.setBirthDate(pm[1], b.birth_date, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+      if (!UUID_RE.test(pm[1]) || !b || typeof b !== "object") return reply(res, 400, { error: "bad_request" });
+      const hasBirth = "birth_date" in b, names = { name_en: text(b.name_en, 200), name_ru: text(b.name_ru, 200), kind: b.kind };
+      if (hasBirth && !(b.birth_date === null || DATE_RE.test(b.birth_date ?? ""))) return reply(res, 400, { error: "bad_request" });
+      if (("name_en" in b && !names.name_en) || ("name_ru" in b && !names.name_ru) || ("kind" in b && !["adult", "child"].includes(b.kind))) return reply(res, 400, { error: "bad_person" });
+      if (!hasBirth && !("name_en" in b) && !("name_ru" in b) && !("kind" in b)) return reply(res, 400, { error: "bad_request" });
+      if (!(await store.getPerson(pm[1]))) return reply(res, 404, { error: "not_found" });
+      if (hasBirth) await store.setBirthDate(pm[1], b.birth_date, who.email);
+      if ("name_en" in b || "name_ru" in b || "kind" in b) await store.updatePerson(pm[1], { name_en: names.name_en, name_ru: names.name_ru, kind: "kind" in b ? b.kind : null }, who.email);
+      return reply(res, 200, { ok: true });
     }
 
     const docView = (d) => {
@@ -279,6 +297,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
       const mime = sniffDoc(bytes);
       if (!mime) return reply(res, 415, { error: "unsupported_type" });
       if (mime === "image/jpeg" || mime === "image/png") bytes = await stripImage(bytes, mime); // no EXIF/GPS survives
+      if (mime === "image/heic") { // cannot be re-encoded here: zero the Exif/XMP items instead (heif.mjs)
+        try { bytes = stripHeifMetadata(bytes).bytes; } catch { return reply(res, 415, { error: "unsupported_type" }); }
+      }
       const name = Buffer.from(String(req.headers["x-file-name"] ?? ""), "base64url").toString("utf8").slice(0, 200) || "document";
       if (a.subject && !(await logged(res, { actor: who.email, subject: a.subject.id, entity: "document:file", action: "write" }))) return;
       const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "file", id);
@@ -306,6 +327,19 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
         res.writeHead(200, { "content-type": f.mime, "content-length": plain.length, "cache-control": "no-store", "x-content-type-options": "nosniff" });
         return res.end(plain);
       } finally { k.fill(0); }
+    }
+
+    // PATCH /documents/:id { type } — fix a document's type (e.g. after import). Same rule as adding.
+    const tm = path.match(/^\/documents\/([^/]+)$/);
+    if (tm && req.method === "PATCH") {
+      const a = await docAccess(tm[1]);
+      if (!a) return reply(res, 404, { error: "not_found" });
+      if (!a.add) return reply(res, 403, { error: "forbidden" });
+      const type = json(body)?.type;
+      if (!DOC_TYPES.includes(type)) return reply(res, 400, { error: "bad_type" });
+      if (a.subject && !(await logged(res, { actor: who.email, subject: a.subject.id, entity: `document:retype:${type}`, action: "write" }))) return;
+      await store.retypeDocument(a.doc.id, type, who.email);
+      return reply(res, 200, { ok: true });
     }
 
     // POST /documents/:id/reveal {field} · POST /documents/:id/copied {field} — both logged
@@ -345,6 +379,86 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
         return { id: r.id, person_id: r.person_id, type: r.type, country: r.country, expiry_date: expiry, days_left: d, tier: tier(d) };
       }) });
     }
+
+    // ================= Stage 2: routines and chores =================
+    const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+    /** A routine as the screen needs it: due today? done today? gentle streak, next dates. */
+    const routineView = (r, checks, today, days) => {
+      const rule = parseRule(r.rrule);
+      const done = new Set(checks.filter((c) => c.routine_id === r.id && c.done).map((c) => c.on_date));
+      return { id: r.id, kind: r.kind, title: r.title, rrule: r.rrule, dtstart: r.dtstart, at_time: r.at_time,
+        due_today: occursOn(rule, r.dtstart, today), done_today: done.has(today),
+        done_recent: [...done].filter((d) => d >= addDays(today, -2)).sort(),
+        streak: streak(rule, r.dtstart, done, today), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10) };
+    };
+
+    // GET|POST /people/:id/routines — GET ?days=1..14 (upcoming window, default 7)
+    const rtm = path.match(/^\/people\/([^/]+)\/routines$/);
+    if (rtm && (req.method === "GET" || req.method === "POST")) {
+      if (!UUID_RE.test(rtm[1])) return reply(res, 400, { error: "bad_id" });
+      const subject = await store.getPerson(rtm[1]);
+      if (!subject) return reply(res, 404, { error: "not_found" });
+      const can = routineAccess(me, subject, await grantsNow());
+      const other = me && me.id !== subject.id; // reads/writes of someone else's routines are logged
+      const today = localDate(clock());
+      if (req.method === "GET") {
+        if (!can.read) return reply(res, 403, { error: "forbidden", reason: can.reason });
+        const days = Math.min(14, Math.max(1, Number(url.searchParams.get("days") ?? 7) || 7));
+        if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: "routines:list", action: "read" }))) return;
+        const rows = await store.listRoutines(subject.id);
+        const checks = await store.listChecks(rows.map((r) => r.id), addDays(today, -400));
+        return reply(res, 200, { today, can, routines: rows.map((r) => routineView(r, checks, today, days)) });
+      }
+      if (!can.manage) return reply(res, 403, { error: "forbidden", reason: can.reason ?? "child_cannot_manage" });
+      const b = json(body);
+      const r = { id: randomUUID(), person_id: subject.id, kind: b?.kind, title: text(b?.title, 120), rrule: typeof b?.rrule === "string" ? b.rrule : "",
+        dtstart: b?.dtstart ?? today, at_time: b?.at_time ? String(b.at_time) : null };
+      if (!ROUTINE_KINDS.includes(r.kind) || !r.title || !parseRule(r.rrule) || !DATE_RE.test(r.dtstart) || (r.at_time && !TIME_RE.test(r.at_time))) return reply(res, 400, { error: "bad_routine" });
+      if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: `routine:${r.kind}`, action: "write" }))) return;
+      await store.createRoutine(r, who.email);
+      return reply(res, 201, { id: r.id });
+    }
+
+    /** Resolve a routine and the caller's rights on its person. */
+    const routineFor = async (id) => {
+      if (!UUID_RE.test(id)) return null;
+      const r = await store.getRoutine(id);
+      if (!r || r.archived_at) return null;
+      const subject = await store.getPerson(r.person_id);
+      return { r, subject, can: routineAccess(me, subject, await grantsNow()), other: Boolean(me && me.id !== subject.id) };
+    };
+
+    // PATCH /routines/:id — { title?, rrule?, at_time?, archived? }
+    const rpm = path.match(/^\/routines\/([^/]+)$/);
+    if (rpm && req.method === "PATCH") {
+      const x = await routineFor(rpm[1]);
+      if (!x) return reply(res, 404, { error: "not_found" });
+      if (!x.can.manage) return reply(res, 403, { error: "forbidden", reason: x.can.reason ?? "child_cannot_manage" });
+      const b = json(body) ?? {};
+      const patch = {};
+      if ("title" in b) { patch.title = text(b.title, 120); if (!patch.title) return reply(res, 400, { error: "bad_routine" }); }
+      if ("rrule" in b) { if (!parseRule(b.rrule)) return reply(res, 400, { error: "bad_routine" }); patch.rrule = b.rrule; }
+      if ("at_time" in b) { if (b.at_time !== null && !TIME_RE.test(String(b.at_time))) return reply(res, 400, { error: "bad_routine" }); patch.at_time = b.at_time; }
+      if (b.archived === true) patch.archived = true;
+      if (!Object.keys(patch).length) return reply(res, 400, { error: "bad_routine" });
+      if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: patch.archived ? "routine:archive" : "routine:update", action: "write" }))) return;
+      return (await store.updateRoutine(x.r.id, patch, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+    }
+
+    // POST /routines/:id/check — { date, done } for today or the two days before (late ticks happen)
+    const rcm = path.match(/^\/routines\/([^/]+)\/check$/);
+    if (rcm && req.method === "POST") {
+      const x = await routineFor(rcm[1]);
+      if (!x) return reply(res, 404, { error: "not_found" });
+      if (!x.can.check) return reply(res, 403, { error: "forbidden", reason: x.can.reason });
+      const b = json(body), today = localDate(clock());
+      const date = b?.date ?? today;
+      if (!DATE_RE.test(date) || date > today || date < addDays(today, -2) || typeof b?.done !== "boolean") return reply(res, 400, { error: "bad_check" });
+      if (!occursOn(parseRule(x.r.rrule), x.r.dtstart, date)) return reply(res, 400, { error: "not_scheduled" });
+      if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: "routine:check", action: "write" }))) return;
+      await store.addCheck(x.r.id, date, b.done, who.email);
+      return reply(res, 200, { ok: true });
+    }
     return reply(res, 404, { error: "not_found" });
   }
 
@@ -377,6 +491,10 @@ export function routeClass(url = "") {
   const p = url.split("?")[0];
   if (p === "/healthz" || p === "/me" || p === "/people" || p === "/grants") return p;
   if (/^\/grants\/[^/]+$/.test(p)) return "/grants/:id";
+  if (/^\/people\/[^/]+\/routines$/.test(p)) return "/people/:id/routines";
+  if (/^\/routines\/[^/]+\/check$/.test(p)) return "/routines/:id/check";
+  if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
+  if (/^\/documents\/[^/]+$/.test(p)) return "/documents/:id";
   if (/^\/people\/[^/]+\/notes$/.test(p)) return "/people/:id/notes";
   if (/^\/people\/[^/]+\/documents$/.test(p)) return "/people/:id/documents";
   if (/^\/people\/[^/]+$/.test(p)) return "/people/:id";
@@ -395,13 +513,35 @@ export async function ensureCanary(pool, kek) {
   await pool.query("INSERT INTO drill_canary (id, wrapped_key, title_ct, body_ct, key_version) VALUES ($1, $2, $3, $4, $5)", [id, c.wrapped_key, c.title_ct, c.body_ct, c.key_version]);
 }
 
+/**
+ * Create/refresh the least-privilege role kfo_app (roles.sql) with the owner connection, then prove it:
+ * an UPDATE on access_log as kfo_app must be refused by privilege (42501). Returns the app pool.
+ */
+export async function appRolePool(pg, owner, ownerUrl, password) {
+  if (typeof password !== "string" || password.length < 24) throw new Error("FAMILY_OS_APP_DB_PASSWORD must be >= 24 chars");
+  const c = await owner.connect();
+  try {
+    await c.query("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kfo_app') THEN CREATE ROLE kfo_app; END IF; END $$");
+    await c.query(`ALTER ROLE kfo_app WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD ${c.escapeLiteral(password)}`);
+    await c.query(await readFile(new URL("./roles.sql", import.meta.url), "utf8"));
+  } finally { c.release(); }
+  const u = new URL(ownerUrl); u.username = "kfo_app"; u.password = encodeURIComponent(password);
+  const app = new pg.Pool({ connectionString: u.toString(), max: 5 });
+  const probe = await app.query("UPDATE access_log SET actor = actor WHERE false").then(() => "allowed", (e) => (e?.code === "42501" ? "denied" : `error ${e?.code}`));
+  if (probe !== "denied") { await app.end(); throw new Error(`kfo_app privilege self-test failed (${probe})`); }
+  return app;
+}
+
 async function main() {
   const { default: pg } = await import("pg");
   const { pgStore } = await import("./store.mjs");
   const masterKey = await readFile(process.env.FAMILY_OS_MASTER_KEY_FILE ?? "/run/secrets/master_key");
-  const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
-  await pool.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
-  await ensureCanary(pool, parseMasterKey(masterKey));
+  const owner = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
+  await owner.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
+  await ensureCanary(owner, parseMasterKey(masterKey));
+  const pool = await appRolePool(pg, owner, process.env.DATABASE_URL, process.env.FAMILY_OS_APP_DB_PASSWORD);
+  await owner.end();
+  console.log("[os] requests run as kfo_app (access_log: select+insert only)");
   const handler = createApp({ store: pgStore(pool), secret: process.env.FAMILY_OS_SECRET, masterKey, filesDir: process.env.FAMILY_OS_FILES_DIR ?? "/data/docs" });
   const port = Number(process.env.PORT ?? 8789);
   const logged = (req, res) => {

@@ -48,7 +48,7 @@ Each person has a «Документы» section: passports, national IDs and pe
 residence and settlement documents, and other documents.
 
 **Stored data:**
-- **Files:** PDF / JPEG / PNG / HEIC up to 10 MB at the service, and 4 MB through the site (the Vercel
+- **Files:** PDF / JPEG / PNG / HEIC (Stage 2: Exif/XMP items zero-filled by `heif.mjs`; an unparseable HEIC is refused) up to 10 MB at the service, and 4 MB through the site (the Vercel
   body limit).
   - The type is checked by magic bytes; anything else gets 415.
   - JPEG and PNG are re-encoded, so no EXIF/GPS survives.
@@ -85,6 +85,35 @@ only).
 **Backups and drill:**
 - The backup archive holds the DB dump and the `docs` volume (ciphertext).
 - The drill decrypts the canary, one care note and one document file using R0's offline master key.
+
+## Routines and chores (Stage 2)
+- **What:** per-person recurring items (`routine`) with ticks (`routine_check`). A tick or an untick is a
+  new row; the latest row per day is the state, and the history is kept.
+- **Schedule:** an RRULE subset (`recur.mjs`): daily / every n days, chosen weekdays every n weeks,
+  day d of every n months. Dates are in Europe/London. Occurrences are computed; the Stage 3 planner will
+  materialise them.
+- **Access (`routineAccess`, tested for 7 roles):**
+  - the person themselves reads and ticks; an adult also manages their own items;
+  - parents (and anyone whose grant includes `routines`) read, tick and manage a child's items;
+  - a child does not create or remove items;
+  - an adult's items are that adult's own; the admin is not an implicit reader;
+  - refusals carry a reason (`no_scope`, `no_relation`, `adult_private`, `child_cannot_manage`).
+- **Ticks:** only for today and the two days before, and only on scheduled days.
+- **Logging:** reading or writing someone else's routines is written to `access_log` first (fail-closed).
+  Your own reads are not logged.
+- **No shaming:** the screen shows runs of 2+ only («3 раза подряд»), never a miss.
+
+## Least-privilege DB role (Stage 2)
+- `schema.sql` runs on the **owner** connection. `roles.sql` then grants the request role `kfo_app`:
+  - `access_log`, `audit` and `routine_check`: SELECT and INSERT only;
+  - no DELETE and no TRUNCATE on any table;
+  - `drill_canary`: read-only;
+  - a new table gets nothing until it is listed in `roles.sql`.
+- Startup proves it: an `UPDATE access_log` as `kfo_app` must fail with 42501, or the service refuses
+  to start.
+- **Env:** `FAMILY_OS_APP_DB_PASSWORD` (≥ 24 chars) in `os.env`. Without it the service does not start.
+  Generate it on the host: `openssl rand -hex 24`.
+- The reminders job still connects as the owner (it runs `schema.sql`).
 
 ## Read log (fail-closed)
 - Every read and write of care notes is written to `access_log` **before** any data is returned. If that
