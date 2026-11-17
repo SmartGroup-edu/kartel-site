@@ -27,6 +27,12 @@ export function maskNumber(hint) {
  * RU labels are Russian; a Latin official name may appear only in parentheses. EN labels have no
  * Cyrillic. Tested in tests/family-docs.test.mjs.
  */
+/** One date style for Family OS (bus 69 L2): "31 января 2027" / "31 January 2027" — no «г.». */
+export function fmtDocDate(d, lang) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d ?? "")) return "";
+  return new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).replace(/\s*г\.$/, "");
+}
+
 export const DOC_LABELS = {
   EN: {
     passport: "Passport", national_id: "National ID / personal code", ni_number: "National Insurance number",

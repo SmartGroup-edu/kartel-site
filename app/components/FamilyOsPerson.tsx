@@ -14,7 +14,7 @@ import FamilySubNav from "./FamilySubNav";
 import FamilyPortrait from "./FamilyPortrait";
 import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS } from "../lib/family-docs.mjs";
+import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS, fmtDocDate } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
 import type { OsState, OsProfile, OsDocument } from "../lib/family-os";
@@ -43,7 +43,7 @@ const T = {
 type Dict = (typeof T)[Lang];
 
 const api = (path: string, body?: unknown) => fetch(`/api/family-os/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}), credentials: "same-origin", cache: "no-store" });
-const fmtDate = (d: string | null | undefined, lang: Lang) => (d ? new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" }) : "");
+const fmtDate = (d: string | null | undefined, lang: Lang) => fmtDocDate(d, lang);
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
 const field = "mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
@@ -143,7 +143,7 @@ function Secret({ t, docId, field, hint }: { t: Dict; docId: string; field: "num
   };
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <span data-secret={value ? "shown" : "masked"} className="font-mono text-[16px] tracking-wide text-[var(--foreground)]">
+      <span data-secret={value ? "shown" : "masked"} className="inline-block min-w-[11ch] font-mono text-[16px] tracking-wide text-[var(--foreground)]">
         {value ? <><span className="print:hidden">{value}</span><span className="hidden print:inline">{field === "number" ? maskNumber(hint) : "•••• ••••"}</span></> : (field === "number" ? maskNumber(hint) : "•••• ••••")}
       </span>
       <button type="button" className={btn} onClick={() => (value ? timer.hide() : reveal())}>{value ? t.hide : t.show}</button>

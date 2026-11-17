@@ -1,7 +1,7 @@
 // Family OS Stage 2a — profile/document helpers (synthetic values).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ageOn, expiryState, maskNumber } from "../app/lib/family-docs.mjs";
+import { ageOn, expiryState, maskNumber, fmtDocDate } from "../app/lib/family-docs.mjs";
 
 const on = new Date("2026-11-17T10:00:00Z");
 test("age: whole years, birthday not yet reached this year counts one less", () => {
@@ -45,4 +45,10 @@ test("reveal timer: hides after 30 s, at once when the tab is hidden, restarts o
   r.reveal(); tick(10_000); r.reveal(); tick(25_000); assert.equal(r.shown, true, "a second reveal restarts the 30 s");
   r.visibility(true); assert.equal(r.shown, false); assert.equal(hides, 2);
   r.visibility(false); r.hide(); assert.equal(hides, 2, "hiding twice fires once");
+});
+
+test("fmtDocDate: one style, no «г.»", () => {
+  assert.equal(fmtDocDate("2027-01-31", "RU"), "31 января 2027");
+  assert.equal(fmtDocDate("2027-01-31", "EN"), "31 January 2027");
+  assert.equal(fmtDocDate(null, "RU"), "");
 });

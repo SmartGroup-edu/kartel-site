@@ -8,7 +8,7 @@
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import Link from "next/link";
-import { DOC_LABELS } from "../lib/family-docs.mjs";
+import { DOC_LABELS, fmtDocDate } from "../lib/family-docs.mjs";
 import FamilySubNav from "./FamilySubNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
@@ -160,7 +160,7 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
                 </svg>
                 {r.tier ? t.tier[r.tier] : ""}
                 <span aria-hidden="true">·</span>
-                <span suppressHydrationWarning>{new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(/ г\.$/, "")}</span>
+                <span suppressHydrationWarning>{fmtDocDate(r.expiry_date, lang)}</span>
               </span>
               <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
                 {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
