@@ -181,13 +181,17 @@ function Secret({ t, docId, field, hint }: { t: Dict; docId: string; field: "num
     }, REVEAL_MS);
   };
   return (
-    <span className="flex flex-wrap items-center gap-2">
+    // < 640 px (bus 75; at 480 the one-row layout does not fit and the label wraps alone): label + value on line one, the two buttons as equal halves on line two.
+    // ≥ 640 px: one row, value width fixed so the buttons line up between rows (bus 69 L1).
+    <span className="contents sm:flex sm:flex-wrap sm:items-center sm:gap-2">
       <span data-secret={value ? "shown" : "masked"} className="inline-block min-w-[11ch] font-mono text-[16px] tracking-wide text-[var(--foreground)]">
         {value ? <><span className="print:hidden">{value}</span><span className="hidden print:inline">{field === "number" ? maskNumber(hint) : "•••• ••••"}</span></> : (field === "number" ? maskNumber(hint) : "•••• ••••")}
       </span>
-      <button type="button" className={btn} onClick={() => (value ? timer.hide() : reveal())}>{value ? t.hide : t.show}</button>
-      <button type="button" className={btn} onClick={copy}>{t.copy}</button>
-      <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
+      <span data-secret-buttons="" className="col-span-2 grid grid-cols-2 gap-2 sm:contents">
+        <button type="button" className={`${btn} justify-center`} onClick={() => (value ? timer.hide() : reveal())}>{value ? t.hide : t.show}</button>
+        <button type="button" className={`${btn} justify-center`} onClick={copy}>{t.copy}</button>
+      </span>
+      <span role="status" aria-live="polite" className="col-span-2 text-[14px] text-[var(--muted)] empty:hidden">{msg}</span>
     </span>
   );
 }
@@ -229,8 +233,8 @@ function DocRow({ t, lang, d, canRetype }: { t: Dict; lang: Lang; d: OsDocument;
           </p>
         )}
         <dl className="mt-3 space-y-2 text-[15px]">
-          {d.has_number && <div className="flex flex-wrap items-center gap-x-3"><dt className="w-36 text-[var(--text-secondary)]">{t.number}</dt><dd><Secret t={t} docId={d.id} field="number" hint={d.number_hint} /></dd></div>}
-          {d.has_pcode && <div className="flex flex-wrap items-center gap-x-3"><dt className="w-36 text-[var(--text-secondary)]">{t.pcode}</dt><dd><Secret t={t} docId={d.id} field="personal_code" hint={null} /></dd></div>}
+          {d.has_number && <div data-secret-row="" className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:gap-y-0"><dt className="text-[var(--text-secondary)] sm:w-36">{t.number}</dt><dd className="contents sm:block"><Secret t={t} docId={d.id} field="number" hint={d.number_hint} /></dd></div>}
+          {d.has_pcode && <div data-secret-row="" className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:gap-y-0"><dt className="text-[var(--text-secondary)] sm:w-36">{t.pcode}</dt><dd className="contents sm:block"><Secret t={t} docId={d.id} field="personal_code" hint={null} /></dd></div>}
         </dl>
         {d.type !== "residence" && (f.holder || f.authority || d.issue_date) && (
           <Disclosure variant="inline" summary={t.details} className="mt-3 text-[15px]" summaryClassName="w-fit">
