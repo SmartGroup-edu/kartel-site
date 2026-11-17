@@ -8,9 +8,10 @@
  * No shaming (plan §3.3, §4.1): a miss is never shown — no red, no "missed", no counts of failures.
  * A run of two or more is mentioned quietly; after a gap the row simply starts again.
  */
+import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { describeRule, streakText, buildRule, WEEKDAYS } from "../lib/family-routines.mjs";
+import { describeRule, streakText, buildRule, scheduleSummary, WEEKDAYS } from "../lib/family-routines.mjs";
 import type { OsRoutine } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -18,20 +19,22 @@ const T = {
   EN: {
     routine: "Routine", chore: "Chore", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
     progress: (d: number, n: number) => `${d} of ${n} done`, nextOn: "Next", agenda: "Next 7 days", nothingAhead: "Nothing scheduled in the next 7 days.",
-    add: "Add a routine or chore", kind: "Type", title: "What", titleHint: "e.g. Brush teeth", repeat: "Repeats", every: "Every",
-    daily: "Every day", weekdays: "Weekdays", weekly: "On chosen days", monthly: "Monthly", days: "Days", monthDay: "Day of the month",
-    time: "Time (optional)", start: "Starts", save: "Add", saving: "Saving…", needDays: "Choose at least one day.",
+    add: "Add a routine or chore", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
+    repeatOpt: { daily: "Every day", every_n: "Every N days", weekdays: "Weekdays", weekly: "On chosen days", monthly: "Once a month" },
+    everyNDays: "Every how many days", everyNWeeks: "Every how many weeks", days: "Days", monthDay: "Day of the month",
+    time: "Time (optional)", start: "Starts", save: "Add", saving: "Saving…", added: "Added.", needDays: "Choose at least one day.", needN: "Enter a number from 2 to 52.",
     remove: "Remove", confirm: "Remove for good?", cancel: "Keep", removed: "Removed.", all: "All items", none: "No routines or chores yet.",
-    weekdayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], unit: { daily: "days", weekly: "weeks", monthly: "months" },
+    weekdayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   },
   RU: {
-    routine: "Распорядок", chore: "Дело", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуйте ещё раз.",
+    routine: "Распорядок", chore: "Дело", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
     progress: (d: number, n: number) => `Сделано ${d} из ${n}`, nextOn: "Дальше", agenda: "Ближайшие 7 дней", nothingAhead: "На ближайшие 7 дней ничего не запланировано.",
-    add: "Добавить распорядок или дело", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять", every: "Каждые",
-    daily: "Каждый день", weekdays: "По будням", weekly: "По дням недели", monthly: "Каждый месяц", days: "Дни", monthDay: "Число месяца",
-    time: "Время (необязательно)", start: "Начать с", save: "Добавить", saving: "Сохраняется…", needDays: "Выберите хотя бы один день.",
+    add: "Добавить распорядок или дело", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
+    repeatOpt: { daily: "Каждый день", every_n: "Раз в N дней", weekdays: "По будням", weekly: "По дням недели", monthly: "Раз в месяц" },
+    everyNDays: "Раз в сколько дней", everyNWeeks: "Раз в сколько недель", days: "Дни", monthDay: "Число месяца",
+    time: "Время (необязательно)", start: "Начать с", save: "Добавить", saving: "Сохраняется…", added: "Добавлено.", needDays: "Выбери хотя бы один день.", needN: "Введи число от 2 до 52.",
     remove: "Убрать", confirm: "Убрать совсем?", cancel: "Оставить", removed: "Убрано.", all: "Все пункты", none: "Пока нет ни распорядка, ни дел.",
-    weekdayNames: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], unit: { daily: "дней", weekly: "недель", monthly: "месяцев" },
+    weekdayNames: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
   },
 } as const;
 
@@ -39,7 +42,7 @@ const send = (method: "POST" | "PATCH", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" });
 const fmtDay = (d: string, lang: Lang) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
-const field = "mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
+const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
 
@@ -79,6 +82,7 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
           return (
             <li key={r.id} data-routine={r.kind} data-done={done[r.id] ? "1" : "0"}>
               <button type="button" role="checkbox" aria-checked={done[r.id]} disabled={!canCheck} onClick={() => toggle(r)}
+                aria-label={[r.title, r.at_time, r.kind === "chore" ? t.chore : t.routine, s].filter(Boolean).join(", ")}
                 className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
                 <Check checked={done[r.id]} />
                 <span className="min-w-0 flex-1">
@@ -161,59 +165,67 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
 export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string }) {
   const t = T[lang];
   const router = useRouter();
-  const [repeat, setRepeat] = useState<"daily" | "weekdays" | "weekly" | "monthly">("daily");
+  const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
+  const [n, setN] = useState("2");
+  const [weeks, setWeeks] = useState("1");
   const [days, setDays] = useState<string[]>([]);
+  const [monthDay, setMonthDay] = useState(String(Number(today.slice(8, 10))));
+  const [dtstart, setDtstart] = useState(today);
   const [status, setStatus] = useState("");
+  const rrule = buildRule({ repeat, days, interval: repeat === "every_n" ? n : weeks, monthDay });
+  const reset = () => { setRepeat("daily"); setN("2"); setWeeks("1"); setDays([]); setDtstart(today); };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const rrule = buildRule({ repeat, days, interval: f.get("interval"), monthDay: f.get("monthDay") });
-    if (!rrule) return setStatus(t.needDays);
+    if (!rrule) return setStatus(repeat === "weekly" ? t.needDays : t.needN);
+    const form = e.currentTarget, f = new FormData(form);
     setStatus(t.saving);
-    const body = { kind: f.get("kind"), title: String(f.get("title") ?? "").trim(), rrule, dtstart: f.get("dtstart") || today, at_time: f.get("at_time") || null };
+    const body = { kind: f.get("kind"), title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
     const r = await send("POST", `people/${personId}/routines`, body).catch(() => null);
     if (!r?.ok) return setStatus(t.saveError);
-    setStatus(""); (e.target as HTMLFormElement).reset(); setDays([]); setRepeat("daily"); router.refresh();
+    setStatus(t.added); form.reset(); reset(); router.refresh();
   };
   return (
-    <details className="mt-8 rounded-lg border border-[var(--border)] p-4">
-      <summary className="flex min-h-11 cursor-pointer items-center font-medium text-[var(--foreground)]">{t.add}</summary>
+    <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
+        <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
         <label className={label}>{t.kind}
           <select name="kind" className={field} defaultValue="routine"><option value="routine">{t.routine}</option><option value="chore">{t.chore}</option></select>
         </label>
-        <label className={label}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
         <label className={label}>{t.repeat}
-          <select className={field} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
-            {(["daily", "weekdays", "weekly", "monthly"] as const).map((k) => <option key={k} value={k}>{t[k]}</option>)}
+          <select name="repeat" className={field} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
+            {(["daily", "every_n", "weekdays", "weekly", "monthly"] as const).map((k) => <option key={k} value={k}>{t.repeatOpt[k]}</option>)}
           </select>
         </label>
-        {repeat !== "weekdays" && (
-          <label className={label}>{t.every} ({t.unit[repeat === "weekly" ? "weekly" : repeat === "monthly" ? "monthly" : "daily"]})
-            <input name="interval" type="number" min={1} max={52} defaultValue={1} inputMode="numeric" className={field} />
-          </label>
+        {repeat === "every_n" && (
+          <label className={label}>{t.everyNDays}<input name="n" type="number" min={2} max={52} value={n} onChange={(e) => setN(e.target.value)} inputMode="numeric" className={field} /></label>
         )}
         {repeat === "weekly" && (
-          <fieldset className="sm:col-span-2">
-            <legend className={label}>{t.days}</legend>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {WEEKDAYS.map((d, i) => (
-                <label key={d} className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border px-3 text-[15px] ${days.includes(d) ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border)] text-[var(--foreground)]"}`}>
-                  <input type="checkbox" className="sr-only" checked={days.includes(d)} onChange={() => setDays((x) => (x.includes(d) ? x.filter((y) => y !== d) : [...x, d]))} />
-                  {t.weekdayNames[i]}
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <>
+            <fieldset className="sm:col-span-2">
+              <legend className={label}>{t.days}</legend>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {WEEKDAYS.map((d, i) => (
+                  <label key={d} className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${days.includes(d) ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border)] text-[var(--foreground)]"}`}>
+                    <input type="checkbox" className="sr-only" checked={days.includes(d)} onChange={() => setDays((x) => (x.includes(d) ? x.filter((y) => y !== d) : [...x, d]))} />
+                    {t.weekdayNames[i]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <label className={label}>{t.everyNWeeks}<input name="weeks" type="number" min={1} max={52} value={weeks} onChange={(e) => setWeeks(e.target.value)} inputMode="numeric" className={field} /></label>
+          </>
         )}
-        {repeat === "monthly" && <label className={label}>{t.monthDay}<input name="monthDay" type="number" min={1} max={31} defaultValue={1} inputMode="numeric" className={field} /></label>}
+        {repeat === "monthly" && <label className={label}>{t.monthDay}<input name="monthDay" type="number" min={1} max={31} value={monthDay} onChange={(e) => setMonthDay(e.target.value)} inputMode="numeric" className={field} /></label>}
         <label className={label}>{t.time}<input name="at_time" type="time" className={field} /></label>
-        <label className={label}>{t.start}<input name="dtstart" type="date" defaultValue={today} className={field} /></label>
+        <label className={label}>{t.start}<input name="dtstart" type="date" value={dtstart} onChange={(e) => setDtstart(e.target.value)} className={field} /></label>
+        <p data-schedule-summary="" aria-live="polite" className="text-[15px] text-[var(--foreground)] sm:col-span-2" suppressHydrationWarning>
+          {rrule ? scheduleSummary(rrule, dtstart, lang) : repeat === "weekly" ? t.needDays : t.needN}
+        </p>
         <div className="flex items-center gap-3 sm:col-span-2">
           <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]">{t.save}</button>
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
         </div>
       </form>
-    </details>
+    </Disclosure>
   );
 }

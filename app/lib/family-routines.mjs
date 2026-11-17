@@ -44,16 +44,26 @@ export function streakText(n, lang) {
   return lang === "RU" ? `${n} ${ruPlural(n, ["раз", "раза", "раз"])} подряд` : `${n} times in a row`;
 }
 
-/** The add form's schedule choice → RRULE. */
+/**
+ * The add form's schedule choice → RRULE (bus 74 #2): «Каждый день» / «Раз в N дней» / «По будням» /
+ * «По дням недели» (every N weeks) / «Раз в месяц». N applies only where it means something.
+ */
 export function buildRule({ repeat, days, interval, monthDay }) {
-  const n = Math.max(1, Math.min(52, Number(interval) || 1));
-  const iv = n > 1 ? `;INTERVAL=${n}` : "";
-  if (repeat === "daily") return `FREQ=DAILY${iv}`;
+  const n = Math.max(1, Math.min(52, Math.trunc(Number(interval)) || 1));
+  if (repeat === "daily") return "FREQ=DAILY";
+  if (repeat === "every_n") return n >= 2 ? `FREQ=DAILY;INTERVAL=${n}` : null;
   if (repeat === "weekdays") return "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR";
   if (repeat === "weekly") {
     const picked = WEEKDAYS.filter((d) => (days ?? []).includes(d));
-    return picked.length ? `FREQ=WEEKLY${iv};BYDAY=${picked.join(",")}` : null;
+    return picked.length ? `FREQ=WEEKLY${n > 1 ? `;INTERVAL=${n}` : ""};BYDAY=${picked.join(",")}` : null;
   }
-  if (repeat === "monthly") { const d = Number(monthDay); return d >= 1 && d <= 31 ? `FREQ=MONTHLY${iv};BYMONTHDAY=${d}` : null; }
+  if (repeat === "monthly") { const d = Math.trunc(Number(monthDay)); return d >= 1 && d <= 31 ? `FREQ=MONTHLY;BYMONTHDAY=${d}` : null; }
   return null;
+}
+
+/** Live summary under the form: «Раз в 2 дня, с 17 ноября» / "Every 2 days, from 17 November". */
+export function scheduleSummary(rrule, dtstart, lang) {
+  if (!rrule) return "";
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(dtstart ?? "") ? new Date(`${dtstart}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" }) : "";
+  return d ? `${describeRule(rrule, lang)}, ${lang === "EN" ? "from" : "с"} ${d}` : describeRule(rrule, lang);
 }

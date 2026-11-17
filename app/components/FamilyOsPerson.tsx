@@ -6,6 +6,7 @@
  * «Копировать» go through the logged service path. Files open only through /api/family-os (no
  * thumbnails of ID pages anywhere).
  */
+import Disclosure from "./Disclosure";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayChecklist, Agenda, RoutineList, AddRoutine } from "./FamilyRoutines";
@@ -55,7 +56,7 @@ type Dict = (typeof T)[Lang];
 const api = (path: string, body?: unknown) => fetch(`/api/family-os/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}), credentials: "same-origin", cache: "no-store" });
 const fmtDate = (d: string | null | undefined, lang: Lang) => fmtDocDate(d, lang);
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
-const field = "mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
+const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 
 export default function FamilyOsPerson({ lang, state, profile, documents, routines }: { lang: Lang; state: OsState; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null }) {
@@ -200,8 +201,7 @@ function Retype({ t, d }: { t: Dict; d: OsDocument }) {
     setMsg(r?.ok ? t.retyped : `${t.error}`); if (r?.ok) router.refresh();
   };
   return (
-    <details className="mt-3 text-[15px]">
-      <summary className="inline-flex min-h-11 cursor-pointer items-center text-[var(--text-secondary)]">{t.retype}</summary>
+    <Disclosure variant="inline" summary={t.retype} className="mt-3 text-[15px]" summaryClassName="w-fit">
       <div className="mt-2 flex flex-wrap items-end gap-3">
         <label className={label}>{t.docType}
           <select className={field} value={type} onChange={(e) => setType(e.target.value as OsDocument["type"])}>
@@ -211,7 +211,7 @@ function Retype({ t, d }: { t: Dict; d: OsDocument }) {
         <button type="button" className={btn} onClick={save} disabled={type === d.type}>{t.retypeSave}</button>
         <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
       </div>
-    </details>
+    </Disclosure>
   );
 }
 
@@ -233,8 +233,7 @@ function DocRow({ t, lang, d, canRetype }: { t: Dict; lang: Lang; d: OsDocument;
           {d.has_pcode && <div className="flex flex-wrap items-center gap-x-3"><dt className="w-36 text-[var(--text-secondary)]">{t.pcode}</dt><dd><Secret t={t} docId={d.id} field="personal_code" hint={null} /></dd></div>}
         </dl>
         {d.type !== "residence" && (f.holder || f.authority || d.issue_date) && (
-          <details className="mt-3 text-[15px]">
-            <summary className="inline-flex min-h-11 cursor-pointer items-center text-[var(--text-secondary)]">{t.details}</summary>
+          <Disclosure variant="inline" summary={t.details} className="mt-3 text-[15px]" summaryClassName="w-fit">
             <dl className="mt-2 grid grid-cols-[10rem_1fr] gap-x-3 gap-y-1">
               {f.holder && <><dt className="text-[var(--text-secondary)]">{t.holder}</dt><dd>{f.holder}</dd></>}
               {f.birth_place && <><dt className="text-[var(--text-secondary)]">{t.birthPlace}</dt><dd>{f.birth_place}</dd></>}
@@ -243,7 +242,7 @@ function DocRow({ t, lang, d, canRetype }: { t: Dict; lang: Lang; d: OsDocument;
               {f.authority && <><dt className="text-[var(--text-secondary)]">{t.authority}</dt><dd>{f.authority}</dd></>}
               {d.issue_date && <><dt className="text-[var(--text-secondary)]">{t.issued}</dt><dd>{fmtDate(d.issue_date, lang)}</dd></>}
             </dl>
-          </details>
+          </Disclosure>
         )}
         {d.files.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-2">
@@ -284,8 +283,7 @@ function AddDocument({ t, personId }: { t: Dict; personId: string }) {
     setStatus(t.saved); location.reload();
   };
   return (
-    <details className="mt-8 rounded-lg border border-[var(--border)] p-4">
-      <summary className="flex min-h-11 cursor-pointer items-center font-medium text-[var(--foreground)]">{t.add}</summary>
+    <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={label}>{t.docType}
           <select className={field} value={type} onChange={(e) => setType(e.target.value as keyof Dict["type"])}>
@@ -309,6 +307,6 @@ function AddDocument({ t, personId }: { t: Dict; personId: string }) {
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
         </div>
       </form>
-    </details>
+    </Disclosure>
   );
 }

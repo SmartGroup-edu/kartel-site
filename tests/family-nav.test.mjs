@@ -18,10 +18,10 @@ test("sub-nav: Family OS off or not a member → no OS items; a single item → 
 });
 
 test("greeting: profile name; no name → no dangling comma; never an email", () => {
-  assert.equal(greeting("RU", "Анна"), "Рады вас видеть, Анна");
+  assert.equal(greeting("RU", "Анна"), "Привет, Анна");
   assert.equal(greeting("EN", "Anna"), "Good to see you, Anna");
   for (const n of [null, "", "  ", undefined]) {
-    assert.equal(greeting("RU", n), "Рады вас видеть"); assert.equal(greeting("EN", n), "Good to see you");
+    assert.equal(greeting("RU", n), "Привет"); assert.equal(greeting("EN", n), "Good to see you");
   }
   assert.equal(greeting("EN", "someone@example.test"), "Good to see you");
   assert.doesNotMatch(greeting("RU", null), /,\s*$/);

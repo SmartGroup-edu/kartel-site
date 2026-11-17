@@ -44,13 +44,13 @@ const T = {
     tier: { expired: "Истёк", lt3: "< 3 мес", lt6: "< 6 мес", lt12: "< 12 мес" },
     docType: DOC_LABELS.RU,
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
-    myDay: "Мой день", todayEmpty: "На сегодня у вас ничего не запланировано.",
-    noneScheduled: "Сегодня по расписанию у вас ничего нет.",
+    myDay: "Мой день", todayEmpty: "На сегодня у тебя ничего не запланировано.",
+    noneScheduled: "Сегодня по расписанию у тебя ничего нет.",
     addOwn: "Добавить распорядок на своей странице", childHint: "Распорядок и дела составляют родители.",
     off: "Раздел «Семья» ещё не подключён.",
-    error: "Раздел «Семья» сейчас не отвечает. Попробуйте через минуту.",
-    notMember: "Вы вошли, но вас ещё нет в разделе «Семья». Попросите администратора семьи добавить вас.",
-    adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "вы",
+    error: "Раздел «Семья» сейчас не отвечает. Попробуй через минуту.",
+    notMember: "Тебя ещё нет в разделе «Семья». Попроси администратора семьи добавить тебя.",
+    adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "ты",
     parents: "Родители", relatives: "С доступом", none: "Опекунов пока нет",
     scope: { routines: "распорядок", health: "здоровье", education: "учёба", documents: "документы" },
     emptyPeople: "Пока никого не добавили.",
@@ -77,7 +77,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
         ) : view === "today" ? (
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
-            <p className={`${META} mt-2`} suppressHydrationWarning>{new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
+            <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
             {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
             {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}

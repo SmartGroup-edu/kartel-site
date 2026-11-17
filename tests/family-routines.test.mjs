@@ -37,3 +37,38 @@ test("sub-nav: the access screen is for the admin inside Family OS only", () => 
   assert.ok(!familySubNav({ lang: "RU", admin: false, os: true }).some((x) => x.id === "access"));
   assert.ok(!familySubNav({ lang: "EN", admin: true, os: false }).some((x) => x.id === "access"));
 });
+
+test("buildRule (bus 74): every shape maps to one meaning; N only where it applies", () => {
+  assert.equal(buildRule({ repeat: "daily", interval: 5 }), "FREQ=DAILY", "«Каждый день» ignores N");
+  assert.equal(buildRule({ repeat: "every_n", interval: 2 }), "FREQ=DAILY;INTERVAL=2");
+  assert.equal(buildRule({ repeat: "every_n", interval: 1 }), null, "«Раз в 1 день» is just every day — refused");
+  assert.equal(buildRule({ repeat: "weekly", days: ["TH", "TU"], interval: 2 }), "FREQ=WEEKLY;INTERVAL=2;BYDAY=TU,TH");
+  assert.equal(buildRule({ repeat: "monthly", monthDay: 15, interval: 3 }), "FREQ=MONTHLY;BYMONTHDAY=15", "«Раз в месяц» has no N");
+  for (const s of [{ repeat: "every_n", interval: 3 }, { repeat: "weekly", days: ["SU"], interval: 2 }, { repeat: "monthly", monthDay: 31 }]) assert.ok(parseRule(buildRule(s)));
+});
+
+test("scheduleSummary: the live line under the form", async () => {
+  const { scheduleSummary } = await import("../app/lib/family-routines.mjs");
+  assert.equal(scheduleSummary("FREQ=DAILY;INTERVAL=2", "2026-11-17", "RU"), "Раз в 2 дня, с 17 ноября");
+  assert.equal(scheduleSummary("FREQ=WEEKLY;BYDAY=TU,TH", "2026-11-17", "EN"), "Tue, Thu, from 17 November");
+  assert.equal(scheduleSummary(null, "2026-11-17", "RU"), "");
+});
+
+test("Family OS speaks «ты» in Russian: no formal address in any Family OS screen (bus 74 #3)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const files = ["app/components/FamilyOs.tsx", "app/components/FamilyOsPerson.tsx", "app/components/FamilyRoutines.tsx", "app/components/FamilyOsAccess.tsx", "app/lib/family-nav.mjs", "app/lib/family-docs.mjs"];
+  const formal = /(^|[^а-яё])(вы|вас|вам|вами|ваш[а-яё]*)(?=[^а-яё]|$)|(попробуйте|попросите|выберите|оставьте|проверьте|добавьте|нажмите|введите|укажите|сохраните|откройте)/i;
+  const hits = [];
+  for (const f of files) for (const lit of readFileSync(f, "utf8").match(/"[^"\n]*[А-Яа-яЁё][^"\n]*"|`[^`\n]*[А-Яа-яЁё][^`\n]*`/g) ?? []) if (formal.test(lit)) hits.push(`${f}: ${lit}`);
+  assert.deepEqual(hits, []);
+});
+
+test("access screen: giving health or documents needs a confirm; removing does not (bus 74 #4)", async () => {
+  const { addedSensitive, confirmGrantText } = await import("../app/lib/family-access.mjs");
+  assert.deepEqual(addedSensitive(["routines"], ["routines", "documents"]), ["documents"]);
+  assert.deepEqual(addedSensitive(["health"], ["health", "routines"]), [], "health already there; routines is not sensitive");
+  assert.deepEqual(addedSensitive(["health", "documents"], ["health"]), [], "removing never asks");
+  assert.deepEqual(addedSensitive([], ["documents", "health", "education"]), ["health", "documents"]);
+  assert.equal(confirmGrantText(["health", "documents"], "QA Родственник", "RU"), "QA Родственник: дать доступ к здоровью и документам ребёнка?");
+  assert.equal(confirmGrantText(["documents"], "QA Relative", "EN"), "QA Relative: give access to the child's documents?");
+});

@@ -23,12 +23,12 @@ export function familySubNav({ lang, admin, os }) {
 }
 export const familySubNavLabel = (lang) => L[lang].nav;
 
-/** "Рады вас видеть, Анна" — the name from the Family OS profile; without one, no dangling comma. */
+/** "Привет, Анна" — Family OS speaks «ты» to everyone in RU (bus 74 #3). Without a name, no dangling comma. */
 export function greeting(lang, name) {
   const n = typeof name === "string" ? name.trim() : "";
   const safe = n && !n.includes("@") ? n : "";
   if (lang === "EN") return safe ? `Good to see you, ${safe}` : "Good to see you";
-  return safe ? `Рады вас видеть, ${safe}` : "Рады вас видеть";
+  return safe ? `Привет, ${safe}` : "Привет";
 }
 
 /** One page container for every family page, so the sub-nav and the heading column sit at the same

@@ -5,6 +5,7 @@
  * every write here from anyone else. The admin manages who is in the family and who may see what,
  * but this screen shows no one's notes, routines or documents.
  */
+import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
@@ -15,32 +16,33 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
 import type { OsPerson, OsGrant, OsScope } from "../lib/family-os";
+import { addedSensitive, confirmGrantText } from "../lib/family-access.mjs";
 
 type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
 const T = {
   EN: {
-    title: "People and access", intro: "Who is in the family and who may see what. Changes apply on the next page load.",
+    title: "People and access", intro: "Who is in the family and who may see what.",
     people: "People", adult: "Adult", child: "Child", edit: "Edit", save: "Save", cancel: "Cancel", nameEn: "Name (English)", nameRu: "Name (Russian)", email: "Email", kind: "Role",
     addPerson: "Add a person", add: "Add", grants: "Guardians and access", noGrants: "No guardians yet.", guardian: "Guardian", relation: "Relation",
     rel: { parent: "Parent", relative: "Relative" }, scope: { routines: "Routines", health: "Health", education: "School", documents: "Documents" },
-    addGrant: "Give access", revoke: "Revoke", confirm: "Revoke access?", keep: "Keep", saved: "Saved.", error: "Could not save", needScope: "Keep at least one area.",
+    addGrant: "Give access", revoke: "Revoke", confirm: "Revoke access?", keep: "Keep", saved: "Saved.", undo: "Undo", undone: "Change undone.", yes: "Give access", no: "Cancel", adults: "Adults", children: "Children", error: "Could not save", needScope: "Keep at least one area.",
     errors: { exists: "Already exists.", bad_person: "Check the name, email and role.", bad_scopes: "Choose at least one area.", guardian_not_adult: "A guardian must be an adult.", subject_not_child: "Access is given for a child." } as Record<string, string>,
   },
   RU: {
-    title: "Люди и доступы", intro: "Кто в семье и кто что видит. Изменения действуют со следующей загрузки страницы.",
+    title: "Люди и доступы", intro: "Кто в семье и кто что видит.",
     people: "Люди", adult: "Взрослый", child: "Ребёнок", edit: "Изменить", save: "Сохранить", cancel: "Отмена", nameEn: "Имя (латиницей)", nameRu: "Имя (кириллицей)", email: "Почта", kind: "Роль",
     addPerson: "Добавить человека", add: "Добавить", grants: "Опекуны и доступ", noGrants: "Опекунов пока нет.", guardian: "Опекун", relation: "Кем приходится",
     rel: { parent: "Родитель", relative: "Родственник" }, scope: { routines: "Распорядок", health: "Здоровье", education: "Учёба", documents: "Документы" },
-    addGrant: "Дать доступ", revoke: "Отозвать", confirm: "Отозвать доступ?", keep: "Оставить", saved: "Сохранено.", error: "Не удалось сохранить", needScope: "Оставьте хотя бы одну область.",
-    errors: { exists: "Уже есть.", bad_person: "Проверьте имя, почту и роль.", bad_scopes: "Выберите хотя бы одну область.", guardian_not_adult: "Опекуном может быть только взрослый.", subject_not_child: "Доступ даётся к ребёнку." } as Record<string, string>,
+    addGrant: "Дать доступ", revoke: "Отозвать", confirm: "Отозвать доступ?", keep: "Оставить", saved: "Сохранено.", undo: "Отменить", undone: "Изменение отменено.", yes: "Дать доступ", no: "Отмена", adults: "Взрослые", children: "Дети", error: "Не удалось сохранить", needScope: "Оставь хотя бы одну область.",
+    errors: { exists: "Уже есть.", bad_person: "Проверь имя, почту и роль.", bad_scopes: "Выбери хотя бы одну область.", guardian_not_adult: "Опекуном может быть только взрослый.", subject_not_child: "Доступ даётся к ребёнку." } as Record<string, string>,
   },
 } as const;
 type Dict = (typeof T)[Lang];
 
 const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null);
-const field = "mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
+const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
 const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
@@ -74,9 +76,14 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
 
           <section aria-labelledby="ppl-h" className="mt-10">
             <h2 id="ppl-h" className={H2}>{t.people}</h2>
-            <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-              {sorted.map((p) => <PersonRow key={p.id} t={t} p={p} />)}
-            </ul>
+            {([[t.adults, adults], [t.children, children]] as const).filter(([, xs]) => xs.length).map(([head, xs]) => (
+              <div key={head} className="mt-6">
+                <h3 className="font-serif text-[20px] text-[var(--foreground)]">{head}</h3>
+                <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                  {xs.map((p) => <PersonRow key={p.id} t={t} p={p} lang={lang} />)}
+                </ul>
+              </div>
+            ))}
             <AddPerson t={t} />
           </section>
 
@@ -89,10 +96,10 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
                 <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {grants.filter((g) => g.child_id === c.id).map((g) => {
                     const who = people.find((x) => x.id === g.guardian_id);
-                    return <GrantRow key={g.id} t={t} g={g} name={who ? nameOf(who) : "—"} />;
+                    return <GrantRow key={g.id} t={t} lang={lang} g={g} name={who ? nameOf(who) : "—"} />;
                   })}
                 </ul>
-                <AddGrant t={t} child={c} adults={adults.filter((a) => !grants.some((g) => g.child_id === c.id && g.guardian_id === a.id))} nameOf={nameOf} />
+                <AddGrant t={t} lang={lang} child={c} adults={adults.filter((a) => !grants.some((g) => g.child_id === c.id && g.guardian_id === a.id))} nameOf={nameOf} />
               </div>
             ))}
           </section>
@@ -103,7 +110,7 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
   );
 }
 
-function PersonRow({ t, p }: { t: Dict; p: OsPerson }) {
+function PersonRow({ t, p, lang }: { t: Dict; p: OsPerson; lang: Lang }) {
   const [edit, setEdit] = useState(false);
   const { msg, run } = useSave(t);
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -126,12 +133,12 @@ function PersonRow({ t, p }: { t: Dict; p: OsPerson }) {
       ) : (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[16px] text-[var(--foreground)]">{p.name_en} <span className="text-[var(--text-secondary)]">/ {p.name_ru}</span></p>
+            <p className="text-[16px] text-[var(--foreground)]">{lang === "EN" ? p.name_en : p.name_ru} <span className="text-[var(--text-secondary)]">/ {lang === "EN" ? p.name_ru : p.name_en}</span></p>
             <p className="mt-0.5 text-[14px] text-[var(--muted)]">{p.kind === "adult" ? t.adult : t.child}</p>
             {p.email && <p className="text-[14px] text-[var(--muted)] [overflow-wrap:anywhere]">{p.email}</p>}
           </div>
-          <button type="button" className={btn} onClick={() => setEdit(true)} aria-label={`${t.edit}: ${p.name_en}`}>{t.edit}</button>
-          <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
+          <button type="button" className={btn} onClick={() => setEdit(true)} aria-label={`${t.edit}: ${lang === "EN" ? p.name_en : p.name_ru}`}>{t.edit}</button>
+          {msg && <p role="status" aria-live="polite" className="basis-full text-[14px] text-[var(--muted)]">{msg}</p>}
         </div>
       )}
     </li>
@@ -147,8 +154,7 @@ function AddPerson({ t }: { t: Dict }) {
     if (await run(send("POST", "people", body))) form.reset();
   };
   return (
-    <details className="mt-6 rounded-lg border border-[var(--border)] p-4">
-      <summary className="flex min-h-11 cursor-pointer items-center font-medium text-[var(--foreground)]">{t.addPerson}</summary>
+    <Disclosure summary={t.addPerson} className="mt-6">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={label}>{t.nameEn}<input name="name_en" required maxLength={200} className={field} /></label>
         <label className={label}>{t.nameRu}<input name="name_ru" required maxLength={200} lang="ru" className={field} /></label>
@@ -159,13 +165,13 @@ function AddPerson({ t }: { t: Dict }) {
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
         </div>
       </form>
-    </details>
+    </Disclosure>
   );
 }
 
-function ScopeBoxes({ t, value, onChange, name }: { t: Dict; value: OsScope[]; onChange: (v: OsScope[]) => void; name: string }) {
+function ScopeBoxes({ t, value, onChange, name, disabled = false }: { t: Dict; value: OsScope[]; onChange: (v: OsScope[]) => void; name: string; disabled?: boolean }) {
   return (
-    <fieldset>
+    <fieldset disabled={disabled}>
       <legend className="sr-only">{name}</legend>
       <div className="flex flex-wrap gap-2">
         {SCOPES.map((s) => (
@@ -179,19 +185,28 @@ function ScopeBoxes({ t, value, onChange, name }: { t: Dict; value: OsScope[]; o
   );
 }
 
-function GrantRow({ t, g, name }: { t: Dict; g: OsGrant; name: string }) {
+function GrantRow({ t, lang, g, name }: { t: Dict; lang: Lang; g: OsGrant; name: string }) {
   const [scopes, setScopes] = useState<OsScope[]>(g.scopes);
   const [ask, setAsk] = useState(false);
+  const [pending, setPending] = useState<OsScope[] | null>(null); // a sensitive grant waiting for «Дать доступ»
+  const [undo, setUndo] = useState<OsScope[] | null>(null);
   const { msg, run } = useSave(t);
   const [local, setLocal] = useState("");
-  const change = async (next: OsScope[]) => {
-    if (next.length === 0) return setLocal(t.needScope);
-    setLocal(""); const prev = scopes; setScopes(next);
-    if (!(await run(send("PATCH", `grants/${g.id}`, { scopes: next })))) setScopes(prev);
+  const save = async (next: OsScope[], prev: OsScope[], isUndo = false) => {
+    setPending(null); setScopes(next);
+    if (await run(send("PATCH", `grants/${g.id}`, { scopes: next }))) { setUndo(isUndo ? null : prev); setLocal(isUndo ? t.undone : ""); }
+    else setScopes(prev);
   };
+  const change = (next: OsScope[]) => {
+    if (next.length === 0) return setLocal(t.needScope);
+    setLocal(""); setUndo(null);
+    if (addedSensitive(scopes, next).length) return setPending(next);
+    void save(next, scopes);
+  };
+  const sensitive = pending ? addedSensitive(scopes, pending) : [];
   return (
     <li data-grant={g.relation} className="py-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="text-[16px] text-[var(--foreground)]">{name} <span className="text-[14px] text-[var(--text-secondary)]">· {t.rel[g.relation]}</span></p>
         {ask ? (
           <span className="flex gap-2">
@@ -200,33 +215,58 @@ function GrantRow({ t, g, name }: { t: Dict; g: OsGrant; name: string }) {
           </span>
         ) : <button type="button" className={btn} onClick={() => setAsk(true)} aria-label={`${t.revoke}: ${name}`}>{t.revoke}</button>}
       </div>
-      <div className="mt-2"><ScopeBoxes t={t} value={scopes} onChange={change} name={`${t.grants}: ${name}`} /></div>
-      <p role="status" aria-live="polite" className="mt-1 text-[14px] text-[var(--muted)]">{local || msg}</p>
+      <div className="mt-2"><ScopeBoxes t={t} value={pending ?? scopes} onChange={change} name={`${t.grants}: ${name}`} disabled={Boolean(pending)} /></div>
+      {pending && (
+        <div data-confirm-grant="" role="alertdialog" aria-label={confirmGrantText(sensitive, name, lang)} className="mt-3 rounded-md border border-[var(--accent)] p-3">
+          <p className="text-[15px] text-[var(--foreground)]">{confirmGrantText(sensitive, name, lang)}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" className={primary} onClick={() => save(pending, scopes)}>{t.yes}</button>
+            <button type="button" className={btn} onClick={() => setPending(null)}>{t.no}</button>
+          </div>
+        </div>
+      )}
+      <div className={`flex flex-wrap items-center gap-3 ${local || msg ? "mt-2 min-h-11" : ""}`}>
+        <p role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{local || msg}</p>
+        {undo && !local && msg === t.saved && <button type="button" className={btn} onClick={() => save(undo, scopes, true)}>{t.undo}</button>}
+      </div>
     </li>
   );
 }
 
-function AddGrant({ t, child, adults, nameOf }: { t: Dict; child: OsPerson; adults: OsPerson[]; nameOf: (p: OsPerson) => string }) {
+function AddGrant({ t, lang, child, adults, nameOf }: { t: Dict; lang: Lang; child: OsPerson; adults: OsPerson[]; nameOf: (p: OsPerson) => string }) {
   const [scopes, setScopes] = useState<OsScope[]>(["routines"]);
   const { msg, run } = useSave(t);
+  const [confirm, setConfirm] = useState<{ guardian_id: string; relation: string; name: string } | null>(null);
   if (adults.length === 0) return null;
+  const give = (b: { guardian_id: string; relation: string }) => { setConfirm(null); return run(send("POST", "grants", { ...b, child_id: child.id, scopes })); };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    await run(send("POST", "grants", { guardian_id: f.get("guardian_id"), child_id: child.id, relation: f.get("relation"), scopes }));
+    const b = { guardian_id: String(f.get("guardian_id")), relation: String(f.get("relation")) };
+    if (addedSensitive([], scopes).length) return setConfirm({ ...b, name: nameOf(adults.find((a) => a.id === b.guardian_id)!) });
+    await give(b);
   };
   return (
-    <details className="mt-3 rounded-lg border border-[var(--border)] p-4">
-      <summary className="flex min-h-11 cursor-pointer items-center font-medium text-[var(--foreground)]">{t.addGrant}</summary>
+    <Disclosure summary={t.addGrant} className="mt-3">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={label}>{t.guardian}<select name="guardian_id" className={field}>{adults.map((a) => <option key={a.id} value={a.id}>{nameOf(a)}</option>)}</select></label>
         <label className={label}>{t.relation}<select name="relation" className={field} defaultValue="relative"><option value="parent">{t.rel.parent}</option><option value="relative">{t.rel.relative}</option></select></label>
         <div className="sm:col-span-2"><ScopeBoxes t={t} value={scopes} onChange={setScopes} name={t.addGrant} /></div>
-        <div className="flex items-center gap-3 sm:col-span-2">
-          <button type="submit" className={primary}>{t.addGrant}</button>
-          <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
-        </div>
+        {confirm ? (
+          <div data-confirm-grant="" role="alertdialog" aria-label={confirmGrantText(addedSensitive([], scopes), confirm.name, lang)} className="rounded-md border border-[var(--accent)] p-3 sm:col-span-2">
+            <p className="text-[15px] text-[var(--foreground)]">{confirmGrantText(addedSensitive([], scopes), confirm.name, lang)}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button type="button" className={primary} onClick={() => give(confirm)}>{t.yes}</button>
+              <button type="button" className={btn} onClick={() => setConfirm(null)}>{t.no}</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 sm:col-span-2">
+            <button type="submit" className={primary}>{t.addGrant}</button>
+            <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
+          </div>
+        )}
       </form>
-    </details>
+    </Disclosure>
   );
 }
