@@ -114,6 +114,9 @@ only).
 - **Env:** `FAMILY_OS_APP_DB_PASSWORD` (≥ 24 chars) in `os.env`. Without it the service does not start.
   Generate it on the host: `openssl rand -hex 24`.
 - The reminders job still connects as the owner (it runs `schema.sql`).
+- **Restores:** the dump carries GRANTs to `kfo_app`. The restore drill uses `pg_restore --no-privileges`
+  because the role does not exist there. On a real restore into a fresh server, start the service: it
+  creates `kfo_app` and re-applies `roles.sql` before taking requests.
 
 ## Read log (fail-closed)
 - Every read and write of care notes is written to `access_log` **before** any data is returned. If that
