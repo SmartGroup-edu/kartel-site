@@ -127,11 +127,15 @@ test("profile: birth date only for self, guardians, admin", async () => {
   assert.equal((await call("GET", `/people/${P.c}`, { actor: as("stranger@example.test") })).status, 403);
 });
 
-test("reminders: expiring within ~6 months, only for people I may read", async () => {
+test("reminders: within 12 months, with tier, only for people I may read; family overview is admin-only", async () => {
   const p = await call("GET", "/reminders", { actor: as("parent1@example.test") });
-  assert.deepEqual(p.json.reminders.map((x) => x.id), [childPassport]);
+  assert.deepEqual(p.json.reminders.map((x) => [x.id, x.tier]), [[childPassport, "lt3"]]);
   assert.deepEqual((await call("GET", "/reminders", { actor: as("grandma@example.test") })).json.reminders, []);
-  assert.deepEqual((await call("GET", "/reminders", { actor: as("eldest@example.test") })).json.reminders, [], "her residence card expires later than 6 months");
+  assert.deepEqual((await call("GET", "/reminders", { actor: as("eldest@example.test") })).json.reminders, [], "her residence card expires in more than 12 months");
+  const fam = await call("GET", "/reminders?scope=family");
+  assert.equal(fam.status, 200); assert.deepEqual(fam.json.reminders.map((x) => x.id), [childPassport]);
+  assert.equal(fam.json.reminders[0].number, undefined);
+  assert.equal((await call("GET", "/reminders?scope=family", { actor: as("parent1@example.test") })).status, 403);
 });
 
 test("archive records: admin only", async () => {

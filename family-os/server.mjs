@@ -11,13 +11,14 @@ import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES } from "./policy.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
+import { daysLeft, tier } from "./reminders.mjs";
 import { join } from "node:path";
 
 const MAX_SKEW_S = 60;
 const MAX_JSON = 32 * 1024;
 const MAX_FILE = 10 * 1024 * 1024;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const REMIND_DAYS = 183; // documents expiring within ~6 months
+const REMIND_DAYS = 365; // documents expiring within 12 months (bus 66)
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
 
@@ -324,17 +325,25 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs" })
       finally { dek.fill(0); }
     }
 
-    // GET /reminders — documents expiring within ~6 months (or expired) for people I may read
+    // GET /reminders — documents expiring within 12 months (or expired) for people I may read.
+    // ?scope=family (admin): the whole family's upcoming expiries — type, person, date only.
     if (req.method === "GET" && path === "/reminders") {
-      if (!me) return reply(res, 200, { reminders: [] });
+      const family = url.searchParams.get("scope") === "family";
+      if (family && !admin) return reply(res, 403, { error: "admin_only" });
+      if (!me && !family) return reply(res, 200, { reminders: [] });
       const [people, grants] = await Promise.all([store.listPeople(), grantsNow()]);
-      const readable = people.filter((p) => canReadDocuments(me, p, grants));
+      const readable = family ? people : people.filter((p) => canReadDocuments(me, p, grants));
       const until = new Date(Date.now() + REMIND_DAYS * 86400_000).toISOString().slice(0, 10);
       const rows = await store.listExpiring(readable.map((p) => p.id), until);
       for (const pid of [...new Set(rows.map((r) => r.person_id))]) {
-        if (!(await logged(res, { actor: who.email, subject: pid, entity: "documents:reminders", action: "read" }))) return;
+        if (!(await logged(res, { actor: who.email, subject: pid, entity: family ? "documents:family-overview" : "documents:reminders", action: "read" }))) return;
       }
-      return reply(res, 200, { reminders: rows.map((r) => ({ id: r.id, person_id: r.person_id, type: r.type, country: r.country, expiry_date: String(r.expiry_date instanceof Date ? r.expiry_date.toISOString().slice(0, 10) : r.expiry_date) })) });
+      const today = new Date();
+      return reply(res, 200, { reminders: rows.map((r) => {
+        const expiry = String(r.expiry_date instanceof Date ? r.expiry_date.toISOString().slice(0, 10) : r.expiry_date);
+        const d = daysLeft(expiry, today);
+        return { id: r.id, person_id: r.person_id, type: r.type, country: r.country, expiry_date: expiry, days_left: d, tier: tier(d) };
+      }) });
     }
     return reply(res, 404, { error: "not_found" });
   }

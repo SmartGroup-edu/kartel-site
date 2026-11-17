@@ -8,7 +8,6 @@
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import Link from "next/link";
-import { expiryState } from "../lib/family-docs.mjs";
 import FamilySubNav from "./FamilySubNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
@@ -23,7 +22,8 @@ type View = "today" | "people";
 
 const T = {
   EN: {
-    remindTitle: "Documents to renew", expired: "expired", until: "valid until",
+    remindTitle: "Documents", familyRemindTitle: "Renewals across the family", expired: "expired", until: "valid until",
+    tier: { expired: "Expired", lt3: "< 3 months", lt6: "< 6 months", lt12: "< 12 months" },
     docType: { passport: "passport", national_id: "ID / personal code", ni_number: "National Insurance", residence: "residence / settlement", other: "document" },
     eyebrow: "Family", nav: "Family sections", today: "Today", people: "People", heritage: "Heritage",
     todayEmpty: "Nothing planned for today yet.",
@@ -37,7 +37,8 @@ const T = {
     emptyPeople: "No one has been added yet.",
   },
   RU: {
-    remindTitle: "Документы, которые пора обновить", expired: "истёк", until: "действует до",
+    remindTitle: "Документы", familyRemindTitle: "Сроки документов всей семьи", expired: "истёк", until: "действует до",
+    tier: { expired: "Истёк", lt3: "< 3 мес", lt6: "< 6 мес", lt12: "< 12 мес" },
     docType: { passport: "паспорт", national_id: "удостоверение / личный код", ni_number: "National Insurance", residence: "вид на жительство / settlement", other: "документ" },
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
     todayEmpty: "На сегодня пока ничего не запланировано.",
@@ -53,7 +54,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[] }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[] }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -73,25 +74,8 @@ export default function FamilyOs({ lang, view, state, reminders = [] }: { lang: 
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" })}</p>
-            {reminders.length > 0 && (
-              <section aria-labelledby="remind-h" data-reminders="" className="mt-8 rounded-lg border border-[var(--accent)] px-5 py-4">
-                <h2 id="remind-h" className="font-serif text-[19px] text-[var(--foreground)]">{t.remindTitle}</h2>
-                <ul className="mt-3 space-y-2 text-[16px]">
-                  {reminders.map((r) => {
-                    const who = state.people.find((x) => x.id === r.person_id);
-                    const ex = expiryState(r.expiry_date, new Date());
-                    return (
-                      <li key={r.id}>
-                        <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
-                          {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
-                        </Link>
-                        <span className="ml-2 text-[var(--text-secondary)]" suppressHydrationWarning>{ex === "expired" ? t.expired : t.until} {new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            )}
+            {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
+            {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
             <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-10 text-center">
               <p className="font-serif text-[20px] text-[var(--foreground)]">{t.todayEmpty}</p>
               <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">{t.todayNext}</p>
@@ -149,6 +133,42 @@ function People({ t, lang, me, people, grants, nameOf }: {
           </ul>
         </div>
       ))}
+    </section>
+  );
+}
+
+/** Expiring documents, soonest first. Status is text + icon (never colour alone). */
+function DocList({ t, lang, id, title, items, people, nameOf }: {
+  t: Dict; lang: Lang; id: string; title: string; items: OsReminder[]; people: OsPerson[]; nameOf: (p: OsPerson) => string;
+}) {
+  const sorted = [...items].sort((a, b) => a.expiry_date.localeCompare(b.expiry_date));
+  return (
+    <section aria-labelledby={id} data-reminders={id} className="mt-8 rounded-lg border border-[var(--border)] px-5 py-4">
+      <h2 id={id} className="font-serif text-[20px] text-[var(--foreground)]">{title}</h2>
+      <ul className="mt-3 divide-y divide-[var(--border)]">
+        {sorted.map((r) => {
+          const who = people.find((x) => x.id === r.person_id);
+          const urgent = r.tier === "expired" || r.tier === "lt3";
+          return (
+            <li key={r.id} data-tier={r.tier ?? ""} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5 text-[16px]">
+              <span className={`inline-flex min-w-[6.5rem] items-center gap-1.5 text-[14px] ${urgent ? "font-semibold text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" className="shrink-0">
+                  {r.tier === "expired"
+                    ? <path d="M7 1 13 12H1L7 1Zm0 4v3.5M7 10.2v.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    : <><circle cx="7" cy="7" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="M7 4v3.2l2 1.3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>}
+                </svg>
+                {r.tier ? t.tier[r.tier] : ""}
+              </span>
+              <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
+                {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
+              </Link>
+              <span className="text-[var(--text-secondary)]" suppressHydrationWarning>
+                {r.tier === "expired" ? t.expired : t.until} {new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

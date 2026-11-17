@@ -20,5 +20,6 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const [state, reminders] = await Promise.all([getOsState(session), getReminders(session)]);
-  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} />;
+  const family = state.status === "ok" && state.admin ? await getReminders(session, "family") : [];
+  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} />;
 }

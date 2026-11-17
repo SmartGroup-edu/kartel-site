@@ -2,7 +2,7 @@ FROM node:24.15.0-alpine3.22
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
-COPY server.mjs store.mjs policy.mjs crypto.mjs schema.sql ./
+COPY server.mjs store.mjs policy.mjs crypto.mjs reminders.mjs reminders-job.mjs relay-sign.mjs schema.sql ./
 # Encrypted document files live on this volume (created from this path, so node owns it).
 RUN mkdir -p /data/docs && chown node:node /data/docs && chmod 700 /data/docs
 USER node

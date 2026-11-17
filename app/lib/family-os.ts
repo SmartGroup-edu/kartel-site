@@ -85,7 +85,7 @@ export type OsProfile = {
   guardians: { guardian_id: string; relation: "parent" | "relative" }[];
   can: { documents: boolean; add_documents: boolean };
 };
-export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string };
+export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string; days_left: number; tier: "expired" | "lt3" | "lt6" | "lt12" | null };
 
 async function getJson<T>(path: string, actor: string): Promise<T | null> {
   const r = await osCall("GET", path, actor);
@@ -104,7 +104,8 @@ export async function getPersonPage(session: { email?: string | null; cpifSubjec
   } catch { return null; }
 }
 
-export async function getReminders(session: { email?: string | null; cpifSubjectId: string }): Promise<OsReminder[]> {
+/** scope "family": the admin's overview of every upcoming expiry (type, person, date only). */
+export async function getReminders(session: { email?: string | null; cpifSubjectId: string }, scope: "mine" | "family" = "mine"): Promise<OsReminder[]> {
   if (!osEnabled()) return [];
-  try { return (await getJson<{ reminders: OsReminder[] }>("/reminders", osActor(session)))?.reminders ?? []; } catch { return []; }
+  try { return (await getJson<{ reminders: OsReminder[] }>(scope === "family" ? "/reminders?scope=family" : "/reminders", osActor(session)))?.reminders ?? []; } catch { return []; }
 }

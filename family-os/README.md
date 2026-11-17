@@ -68,7 +68,19 @@ residence and settlement documents, and other documents.
 - The admin may **add** documents but reads them only under those same rules.
 - Heritage archive records (`/archive/documents`) are admin-only.
 
-**Today** lists documents expiring within ~6 months (or already expired) for the people you may read.
+**Today** has a «Документы» block: documents expiring within 12 months, or already expired, for the
+people you may read. They are sorted by date, and each status is given as text plus an icon: Истёк,
+< 3 мес, < 6 мес, < 12 мес. The admin also sees «Сроки документов всей семьи» (type, person and date
+only).
+
+**Email reminders (bus 66)** are sent by `reminders-job.mjs` (cron, daily).
+- **Milestones:** 12, 6, 3 and 1 month before expiry, and on the day.
+- **Recipients:** an adult holder gets their own; for a minor, the guardians with `documents` get them.
+- **No repeats:** one email per (document, milestone, recipient), recorded in `reminder_sent` before
+  sending. A failed send removes the record, so the next run retries.
+- **What is sent:** the job goes through the relay's fixed `/send-reminder` template — type, first
+  name, date, milestone and a person-page link. There is no field for a document number.
+- **Secret:** the relay secret is piped on stdin from `/opt/kartel-mail-relay/relay.env`.
 
 **Backups and drill:**
 - The backup archive holds the DB dump and the `docs` volume (ciphertext).

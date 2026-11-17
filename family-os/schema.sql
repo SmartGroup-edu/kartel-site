@@ -132,3 +132,12 @@ CREATE TABLE IF NOT EXISTS document_file (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS document_file_doc ON document_file (document_id);
+
+-- Document-expiry reminders already sent (bus 66): one row per document, milestone and recipient.
+CREATE TABLE IF NOT EXISTS reminder_sent (
+  document_id   uuid NOT NULL REFERENCES document(id),
+  milestone     smallint NOT NULL CHECK (milestone IN (12, 6, 3, 1, 0)),
+  recipient_id  uuid NOT NULL REFERENCES person(id),
+  sent_at       timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (document_id, milestone, recipient_id)
+);
