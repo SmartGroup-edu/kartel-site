@@ -154,3 +154,9 @@ test("reminder: only Family OS person links, known kinds, plain first names, val
     assert.equal(r.status, 400); assert.equal((await r.json()).error, err);
   }
 });
+
+test("reminder kinds: RU Russian (Latin only in parentheses), EN without Cyrillic", async () => {
+  const { KINDS } = await import("./server.mjs");
+  for (const v of Object.values(KINDS.ru)) assert.doesNotMatch(v.replace(/\([^)]*\)/g, ""), /[A-Za-z]/, v);
+  for (const v of Object.values(KINDS.en)) assert.doesNotMatch(v, /[А-Яа-яЁё]/, v);
+});

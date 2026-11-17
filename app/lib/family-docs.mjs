@@ -21,3 +21,36 @@ export function expiryState(expiry, on) {
 export function maskNumber(hint) {
   return `•••• ${String(hint ?? "").slice(-3)}`.trim();
 }
+
+/**
+ * Document type labels — one place for the person page, Today and the add form (bus 68 #2).
+ * RU labels are Russian; a Latin official name may appear only in parentheses. EN labels have no
+ * Cyrillic. Tested in tests/family-docs.test.mjs.
+ */
+export const DOC_LABELS = {
+  EN: {
+    passport: "Passport", national_id: "National ID / personal code", ni_number: "National Insurance number",
+    residence: "EU Settlement status", other: "Other document",
+  },
+  RU: {
+    passport: "Паспорт", national_id: "Удостоверение личности / личный код", ni_number: "Номер социального страхования (National Insurance)",
+    residence: "Статус проживания (EU Settlement)", other: "Другой документ",
+  },
+};
+
+export const REVEAL_MS = 30_000;
+
+/**
+ * Hide-again timer for a revealed number (bus 68 #1): hides after `ms`, at once when the tab is
+ * hidden, and on demand. Timers are injectable for tests.
+ */
+export function createRevealTimer({ ms = REVEAL_MS, onHide, setTimer = setTimeout, clearTimer = clearTimeout }) {
+  let h = null, shown = false;
+  const hide = () => { if (h) { clearTimer(h); h = null; } if (shown) { shown = false; onHide(); } };
+  return {
+    reveal() { if (h) clearTimer(h); shown = true; h = setTimer(hide, ms); },
+    visibility(hidden) { if (hidden) hide(); },
+    hide,
+    get shown() { return shown; },
+  };
+}

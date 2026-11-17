@@ -7,9 +7,19 @@ import FamilyOsPerson from "@/app/components/FamilyOsPerson";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
-  const { lang } = await params;
-  return { title: lang === "ru" ? "Человек · Семья" : "Person · Family", robots: { index: false, follow: false } };
+export async function generateMetadata({ params }: { params: Promise<{ lang: string; id: string }> }): Promise<Metadata> {
+  const { lang, id } = await params;
+  // "<display name> · Семья" (bus 68 #5). Only for a signed-in, approved viewer; otherwise generic.
+  let name: string | null = null;
+  if (familyEnv.gateOn()) {
+    const { decision, session } = await familyGateDecision();
+    if (decision === "allow" && session) {
+      const page = await getPersonPage(session, id);
+      if (page) name = lang === "ru" ? page.profile.person.name_ru : page.profile.person.name_en;
+    }
+  }
+  const family = lang === "ru" ? "Семья" : "Family";
+  return { title: name ? `${name} · ${family}` : family, robots: { index: false, follow: false } };
 }
 
 export default async function FamilyOsPersonPage({ params }: { params: Promise<{ lang: string; id: string }> }) {

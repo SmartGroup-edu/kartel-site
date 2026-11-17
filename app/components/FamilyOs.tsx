@@ -8,6 +8,7 @@
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
 import Link from "next/link";
+import { DOC_LABELS } from "../lib/family-docs.mjs";
 import FamilySubNav from "./FamilySubNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
@@ -22,9 +23,9 @@ type View = "today" | "people";
 
 const T = {
   EN: {
-    remindTitle: "Documents", familyRemindTitle: "Renewals across the family", expired: "expired", until: "valid until",
+    remindTitle: "Documents", familyRemindTitle: "Renewals across the family",
     tier: { expired: "Expired", lt3: "< 3 months", lt6: "< 6 months", lt12: "< 12 months" },
-    docType: { passport: "passport", national_id: "ID / personal code", ni_number: "National Insurance", residence: "residence / settlement", other: "document" },
+    docType: DOC_LABELS.EN,
     eyebrow: "Family", nav: "Family sections", today: "Today", people: "People", heritage: "Heritage",
     todayEmpty: "Nothing planned for today yet.",
     todayNext: "Routines, chores and the weekly family council arrive in the next stage. This page will show what is yours today.",
@@ -37,9 +38,9 @@ const T = {
     emptyPeople: "No one has been added yet.",
   },
   RU: {
-    remindTitle: "Документы", familyRemindTitle: "Сроки документов всей семьи", expired: "истёк", until: "действует до",
+    remindTitle: "Документы", familyRemindTitle: "Сроки документов всей семьи",
     tier: { expired: "Истёк", lt3: "< 3 мес", lt6: "< 6 мес", lt12: "< 12 мес" },
-    docType: { passport: "паспорт", national_id: "удостоверение / личный код", ni_number: "National Insurance", residence: "вид на жительство / settlement", other: "документ" },
+    docType: DOC_LABELS.RU,
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
     todayEmpty: "На сегодня пока ничего не запланировано.",
     todayNext: "Распорядок, дела и еженедельный семейный совет появятся на следующем этапе. Здесь будет то, что ваше на сегодня.",
@@ -151,20 +152,19 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
           const urgent = r.tier === "expired" || r.tier === "lt3";
           return (
             <li key={r.id} data-tier={r.tier ?? ""} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5 text-[16px]">
-              <span className={`inline-flex min-w-[6.5rem] items-center gap-1.5 text-[14px] ${urgent ? "font-semibold text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
+              <span className={`inline-flex min-w-[13rem] items-center gap-1.5 text-[14px] ${urgent ? "font-semibold text-[var(--accent)]" : "text-[var(--text-secondary)]"}`}>
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" className="shrink-0">
                   {r.tier === "expired"
                     ? <path d="M7 1 13 12H1L7 1Zm0 4v3.5M7 10.2v.1" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
                     : <><circle cx="7" cy="7" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="M7 4v3.2l2 1.3" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>}
                 </svg>
                 {r.tier ? t.tier[r.tier] : ""}
+                <span aria-hidden="true">·</span>
+                <span suppressHydrationWarning>{new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" }).replace(/ г\.$/, "")}</span>
               </span>
               <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
                 {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
               </Link>
-              <span className="text-[var(--text-secondary)]" suppressHydrationWarning>
-                {r.tier === "expired" ? t.expired : t.until} {new Date(`${r.expiry_date}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric" })}
-              </span>
             </li>
           );
         })}

@@ -151,9 +151,9 @@ async function sendViaBrevo(to, { subject, text, html }) {
 // ── Family OS document-expiry reminders (bus 66) ────────────────────────────
 const REMINDER_LIMITS = { recipient: { max: 10, windowMs: 24 * 3600_000 }, global: { max: 300, windowMs: 24 * 3600_000 } };
 const PERSON_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os\/people\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const KINDS = {
-  en: { passport: "passport", national_id: "ID card", ni_number: "National Insurance document", residence: "residence document", other: "document" },
-  ru: { passport: "паспорт", national_id: "удостоверение личности", ni_number: "документ National Insurance", residence: "документ о проживании", other: "документ" },
+export const KINDS = {
+  en: { passport: "passport", national_id: "ID card", ni_number: "National Insurance number", residence: "EU Settlement status", other: "document" },
+  ru: { passport: "паспорт", national_id: "удостоверение личности", ni_number: "номер социального страхования (National Insurance)", residence: "статус проживания (EU Settlement)", other: "документ" },
 };
 const WHEN = {
   en: { 12: "in 12 months", 6: "in 6 months", 3: "in 3 months", 1: "in a month", 0: "today" },

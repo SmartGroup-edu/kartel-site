@@ -21,3 +21,28 @@ test("mask: never more than the last three characters", () => {
   assert.equal(maskNumber("QA1234567"), "•••• 567");
   assert.doesNotMatch(maskNumber("QA1234567"), /1234/);
 });
+
+import { DOC_LABELS, createRevealTimer } from "../app/lib/family-docs.mjs";
+
+test("labels: RU is Russian (Latin only inside parentheses), EN has no Cyrillic; all types covered", () => {
+  const types = ["passport", "national_id", "ni_number", "residence", "other"];
+  for (const t of types) {
+    const ru = DOC_LABELS.RU[t], en = DOC_LABELS.EN[t];
+    assert.ok(ru && en, t);
+    assert.doesNotMatch(ru.replace(/\([^)]*\)/g, ""), /[A-Za-z]/, `RU "${ru}" mixes scripts outside parentheses`);
+    assert.doesNotMatch(en, /[А-Яа-яЁё]/, `EN "${en}" has Cyrillic`);
+  }
+  assert.equal(DOC_LABELS.RU.residence, "Статус проживания (EU Settlement)");
+  assert.equal(DOC_LABELS.EN.residence, "EU Settlement status");
+});
+
+test("reveal timer: hides after 30 s, at once when the tab is hidden, restarts on a new reveal", () => {
+  let t = 0; const timers = new Map(); let id = 0, hides = 0;
+  const clock = { setTimer: (fn, ms) => { timers.set(++id, { fn, at: t + ms }); return id; }, clearTimer: (i) => timers.delete(i) };
+  const tick = (ms) => { t += ms; for (const [i, x] of [...timers]) if (x.at <= t) { timers.delete(i); x.fn(); } };
+  const r = createRevealTimer({ onHide: () => hides++, ...clock });
+  r.reveal(); tick(29_999); assert.equal(r.shown, true); tick(1); assert.equal(r.shown, false); assert.equal(hides, 1);
+  r.reveal(); tick(10_000); r.reveal(); tick(25_000); assert.equal(r.shown, true, "a second reveal restarts the 30 s");
+  r.visibility(true); assert.equal(r.shown, false); assert.equal(hides, 2);
+  r.visibility(false); r.hide(); assert.equal(hides, 2, "hiding twice fires once");
+});

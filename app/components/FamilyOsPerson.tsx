@@ -6,7 +6,7 @@
  * «Копировать» go through the logged service path. Files open only through /api/family-os (no
  * thumbnails of ID pages anywhere).
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteHeader from "./SiteHeader";
 import SiteFooter from "./SiteFooter";
@@ -14,7 +14,7 @@ import FamilySubNav from "./FamilySubNav";
 import FamilyPortrait from "./FamilyPortrait";
 import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { ageOn, expiryState, maskNumber } from "../lib/family-docs.mjs";
+import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
 import type { OsState, OsProfile, OsDocument } from "../lib/family-os";
@@ -24,7 +24,7 @@ const T = {
   EN: {
     back: "People", born: "Born", age: (n: number) => `${n} years`, adult: "Adult", child: "Child", parents: "Parents", relatives: "With access",
     documents: "Documents", noDocs: "No documents yet.", noAccess: "Only this person and their guardians can see these documents.",
-    type: { passport: "Passport", national_id: "National ID / personal code", ni_number: "National Insurance number", residence: "Residence / settlement", other: "Other document" },
+    type: DOC_LABELS.EN, docType: "Document type",
     number: "Number", pcode: "Personal code", show: "Show", hide: "Hide", copy: "Copy", copied: "Copied", issued: "Issued", expires: "Expires", expired: "Expired", soon: "Expires soon",
     details: "Details", authority: "Authority", holder: "Holder", birthPlace: "Place of birth", sex: "Sex", nationality: "Nationality", open: "Open", file: "File",
     add: "Add a document", country: "Issuing country", save: "Save document", attach: "File (PDF, JPG, PNG or HEIC, up to 4 MB)", saving: "Saving…", saved: "Saved.", error: "Could not save",
@@ -33,7 +33,7 @@ const T = {
   RU: {
     back: "Люди", born: "Дата рождения", age: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "год" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "года" : "лет"}`, adult: "Взрослый", child: "Ребёнок", parents: "Родители", relatives: "С доступом",
     documents: "Документы", noDocs: "Документов пока нет.", noAccess: "Эти документы видят только сам человек и его опекуны.",
-    type: { passport: "Паспорт", national_id: "Удостоверение / личный код", ni_number: "Номер National Insurance", residence: "Вид на жительство / settlement", other: "Другой документ" },
+    type: DOC_LABELS.RU, docType: "Тип документа",
     number: "Номер", pcode: "Личный код", show: "Показать", hide: "Скрыть", copy: "Копировать", copied: "Скопировано", issued: "Выдан", expires: "Действует до", expired: "Истёк", soon: "Скоро истекает",
     details: "Подробнее", authority: "Кем выдан", holder: "Владелец", birthPlace: "Место рождения", sex: "Пол", nationality: "Гражданство", open: "Открыть", file: "Файл",
     add: "Добавить документ", country: "Страна выдачи", save: "Сохранить документ", attach: "Файл (PDF, JPG, PNG или HEIC, до 4 МБ)", saving: "Сохраняется…", saved: "Сохранено.", error: "Не удалось сохранить",
@@ -113,21 +113,40 @@ function DocIcon() {
 function Secret({ t, docId, field, hint }: { t: Dict; docId: string; field: "number" | "personal_code"; hint: string | null }) {
   const [value, setValue] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
-  const reveal = async () => {
+  // Re-hide (bus 68 #1): after 30 s, at once when the tab is hidden; print never shows it (print:hidden).
+  const [timer] = useState(() => createRevealTimer({ onHide: () => setValue(null) }));
+  useEffect(() => {
+    const onVis = () => timer.visibility(document.visibilityState === "hidden");
+    document.addEventListener("visibilitychange", onVis);
+    return () => { document.removeEventListener("visibilitychange", onVis); timer.hide(); };
+  }, [timer]);
+  const fetchValue = async () => {
     const r = await api(`documents/${docId}/reveal`, { field });
-    if (r.ok) setValue(((await r.json()) as { value: string }).value); else setMsg(t.error);
+    if (!r.ok) { setMsg(t.error); return null; }
+    return ((await r.json()) as { value: string }).value;
   };
+  const reveal = async () => { const v = await fetchValue(); if (v) { setValue(v); timer.reveal(); } };
   const copy = async () => {
-    let v = value;
-    if (!v) { const r = await api(`documents/${docId}/reveal`, { field }); if (!r.ok) return setMsg(t.error); v = ((await r.json()) as { value: string }).value; }
+    const v = value ?? (await fetchValue());
+    if (!v) return;
     await navigator.clipboard.writeText(v);
     await api(`documents/${docId}/copied`, { field });
     setMsg(t.copied); setTimeout(() => setMsg(""), 2000);
+    // Best effort: clear the clipboard after 30 s if it still holds this value and the page may
+    // touch it (browsers allow clipboard writes only while the document has focus).
+    setTimeout(async () => {
+      try {
+        const now = await navigator.clipboard.readText().catch(() => null);
+        if (now === null || now === v) await navigator.clipboard.writeText("");
+      } catch { /* not allowed without focus — the value stays until the user copies something else */ }
+    }, REVEAL_MS);
   };
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <span data-secret={value ? "shown" : "masked"} className="font-mono text-[16px] tracking-wide text-[var(--foreground)]">{value ?? (field === "number" ? maskNumber(hint) : "•••• ••••")}</span>
-      <button type="button" className={btn} onClick={() => (value ? setValue(null) : reveal())}>{value ? t.hide : t.show}</button>
+      <span data-secret={value ? "shown" : "masked"} className="font-mono text-[16px] tracking-wide text-[var(--foreground)]">
+        {value ? <><span className="print:hidden">{value}</span><span className="hidden print:inline">{field === "number" ? maskNumber(hint) : "•••• ••••"}</span></> : (field === "number" ? maskNumber(hint) : "•••• ••••")}
+      </span>
+      <button type="button" className={btn} onClick={() => (value ? timer.hide() : reveal())}>{value ? t.hide : t.show}</button>
       <button type="button" className={btn} onClick={copy}>{t.copy}</button>
       <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>
     </span>
@@ -205,7 +224,7 @@ function AddDocument({ t, personId }: { t: Dict; personId: string }) {
     <details className="mt-8 rounded-lg border border-[var(--border)] p-4">
       <summary className="cursor-pointer font-medium text-[var(--foreground)]">{t.add}</summary>
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className={label}>{t.documents}
+        <label className={label}>{t.docType}
           <select className={field} value={type} onChange={(e) => setType(e.target.value as keyof Dict["type"])}>
             {Object.entries(t.type).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
