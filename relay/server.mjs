@@ -3,9 +3,12 @@
 // Why it exists: the Brevo account blocks API calls from unlisted IPs, and Vercel has no fixed
 // egress IP. kartel-site signs a request; this relay checks it and calls Brevo.
 //
-// It is NOT a general mail relay. It sends exactly one template, to one recipient, and only a link
-// that starts with ALLOWED_LINK_PREFIX. A leaked RELAY_SECRET lets someone send our sign-in email
-// with a link to our own verify endpoint — nothing else.
+// It is NOT a general mail relay. It sends two fixed templates, each to one recipient:
+//  - /send: the sign-in link (only links that start with ALLOWED_LINK_PREFIX);
+//  - /send-reminder: a Family OS document-expiry reminder (fixed wording; validated document type,
+//    first name, date and milestone; the link must be a Family OS person page). It never carries a
+//    document number — there is no field for one.
+// A leaked RELAY_SECRET lets someone send these two emails with links to our own pages — nothing else.
 //
 // Node 22, standard library only. No address is ever written to the log.
 
@@ -129,8 +132,7 @@ export function renderSignInEmail({ link, ttlMinutes = LINK_TTL_MIN, lang = "en"
   return { subject: c.subject, text, html };
 }
 
-async function sendViaBrevo(to, link, ttlMinutes, lang) {
-  const { subject, text, html } = renderSignInEmail({ link, ttlMinutes, lang });
+async function sendViaBrevo(to, { subject, text, html }) {
   const res = await fetch(BREVO_ENDPOINT, {
     method: "POST",
     headers: { "api-key": BREVO_API_KEY, "content-type": "application/json", accept: "application/json" },
@@ -145,6 +147,64 @@ async function sendViaBrevo(to, link, ttlMinutes, lang) {
   return res.status;
 }
 
+
+// ── Family OS document-expiry reminders (bus 66) ────────────────────────────
+const REMINDER_LIMITS = { recipient: { max: 10, windowMs: 24 * 3600_000 }, global: { max: 300, windowMs: 24 * 3600_000 } };
+const PERSON_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os\/people\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+export const KINDS = {
+  en: { passport: "passport", national_id: "ID card", ni_number: "National Insurance number", residence: "EU Settlement status", other: "document" },
+  ru: { passport: "паспорт", national_id: "удостоверение личности", ni_number: "номер социального страхования (National Insurance)", residence: "статус проживания (EU Settlement)", other: "документ" },
+};
+const WHEN = {
+  en: { 12: "in 12 months", 6: "in 6 months", 3: "in 3 months", 1: "in a month", 0: "today" },
+  ru: { 12: "через 12 месяцев", 6: "через 6 месяцев", 3: "через 3 месяца", 1: "через месяц", 0: "сегодня" },
+};
+
+/** Fixed wording; only the type, first name, date and milestone vary. No document numbers, ever. */
+export function renderReminderEmail({ lang, kind, firstName, expiry, milestone, link }) {
+  const ru = lang === "ru";
+  const k = KINDS[ru ? "ru" : "en"][kind], w = WHEN[ru ? "ru" : "en"][milestone];
+  const date = new Date(`${expiry}T12:00:00Z`).toLocaleDateString(ru ? "ru-RU" : "en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const subject = ru ? `Срок документа: ${firstName}, ${k} — ${w}` : `Document renewal: ${firstName}'s ${k} — ${w}`;
+  const lead = ru ? `${firstName}: ${k} действует до ${date}.` : `${firstName}'s ${k} is valid until ${date}.`;
+  const ask = ru ? "Пора подумать о продлении. Подробности — в разделе «Семья»:" : "Time to plan the renewal. Details are in the Family area:";
+  const button = ru ? "Открыть профиль" : "Open the profile";
+  const text = [lead, "", ask, link, "", "Virtus et Potestas · kartel.org.uk"].join("\n");
+  const html = `<!doctype html><html lang="${ru ? "ru" : "en"}"><head><meta charset="utf-8"><meta name="color-scheme" content="light only"></head><body style="margin:0;padding:0;background:#ffffff;">
+<div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
+  <p style="margin:0 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#7b1e2d;">KARTEL</p>
+  <p style="margin:0 0 16px;font-size:18px;line-height:1.5;">${esc(lead)}</p>
+  <p style="margin:0 0 20px;font-size:16px;line-height:1.55;color:#4a453e;">${esc(ask)}</p>
+  <p style="margin:0 0 28px;"><a href="${esc(link)}" style="display:inline-block;padding:14px 28px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(button)}</a></p>
+  <p style="margin:0;font-size:14px;color:#6f685c;"><a href="https://kartel.org.uk" style="color:#6f685c;text-decoration:none;">kartel.org.uk</a></p>
+</div></body></html>`;
+  return { subject, text, html };
+}
+
+function handleReminder(req, res) {
+  let raw = "", tooBig = false;
+  req.setEncoding("utf8");
+  req.on("data", (c) => { raw += c; if (raw.length > MAX_BODY) { tooBig = true; req.destroy(); } });
+  req.on("end", async () => {
+    if (tooBig) return;
+    if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
+    if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
+    if (typeof b.link !== "string" || !PERSON_LINK_RE.test(b.link)) return reply(res, 400, { error: "bad_link" });
+    if (!Object.hasOwn(KINDS.en, b.kind)) return reply(res, 400, { error: "bad_kind" });
+    if (typeof b.firstName !== "string" || !/^[\p{L}\p{M}' -]{1,40}$/u.test(b.firstName)) return reply(res, 400, { error: "bad_name" });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(b.expiry ?? "")) return reply(res, 400, { error: "bad_date" });
+    if (![12, 6, 3, 1, 0].includes(b.milestone)) return reply(res, 400, { error: "bad_milestone" });
+    if (!allowAll([["r:global", REMINDER_LIMITS.global], [`r:to:${to}`, REMINDER_LIMITS.recipient]])) { console.warn("[relay] reminder rate limited"); return reply(res, 429, { error: "rate_limited" }); }
+    try {
+      const status = await sendViaBrevo(to, renderReminderEmail({ lang: b.lang === "en" ? "en" : "ru", kind: b.kind, firstName: b.firstName.trim(), expiry: b.expiry, milestone: b.milestone, link: b.link }));
+      console.log(`[relay] reminder brevo ${status}`);
+      return status >= 200 && status < 300 ? reply(res, 202, { ok: true }) : reply(res, 502, { error: "upstream", status });
+    } catch { console.error("[relay] brevo unreachable"); return reply(res, 502, { error: "upstream" }); }
+  });
+}
+
 const reply = (res, code, obj) => {
   res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(obj));
@@ -152,6 +212,7 @@ const reply = (res, code, obj) => {
 
 const server = createServer((req, res) => {
   if (req.method === "GET" && req.url === "/healthz") return reply(res, 200, { ok: true });
+  if (req.method === "POST" && req.url === "/send-reminder") return handleReminder(req, res);
   if (req.method !== "POST" || req.url !== "/send") return reply(res, 404, { error: "not_found" });
 
   let raw = "";
@@ -179,7 +240,7 @@ const server = createServer((req, res) => {
       return reply(res, 429, { error: "rate_limited" });
     }
     try {
-      const status = await sendViaBrevo(to, link, ttl, lang);
+      const status = await sendViaBrevo(to, renderSignInEmail({ link, ttlMinutes: ttl, lang }));
       console.log(`[relay] brevo ${status}`);
       if (status >= 200 && status < 300) return reply(res, 202, { ok: true });
       return reply(res, 502, { error: "upstream", status });

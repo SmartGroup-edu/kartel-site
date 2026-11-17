@@ -43,6 +43,49 @@ family-media (`app/lib/media-signature.mjs`). The signed actor is `admin:<email>
   offline drive, next to the backup identity.
 - **Rotation.** `rewrap()` re-wraps the data keys under a new master key; the field ciphertexts stay.
 
+## Documents (Stage 2a)
+Each person has a «Документы» section: passports, national IDs and personal codes, NI numbers,
+residence and settlement documents, and other documents.
+
+**Stored data:**
+- **Files:** PDF / JPEG / PNG / HEIC up to 10 MB at the service, and 4 MB through the site (the Vercel
+  body limit).
+  - The type is checked by magic bytes; anything else gets 415.
+  - JPEG and PNG are re-encoded, so no EXIF/GPS survives.
+  - Every file has its own data key and is stored on the `docs` volume as AES-GCM ciphertext under a
+    random id. The original name is encrypted too.
+  - Files are served only through `GET /documents/:id/files/:fid` after an access check and a
+    read-log row. The site serves them `private, no-store` with `CSP: sandbox`.
+- **Fields:** the number and personal code are encrypted. Lists carry only the last 3 characters.
+  - «Показать» (`/reveal`) and «Копировать» (`/copied`) each write a log row before anything is
+    returned. The holder name, birth data, authority and nationality are an encrypted JSON blob.
+  - Type, issuing country and dates stay plain: lists and expiry reminders need them.
+  - Residence and settlement documents keep the type and file only.
+
+**Access:**
+- The holder (a minor too) and guardians whose grant includes `documents`.
+- An adult's documents are hers alone.
+- The admin may **add** documents but reads them only under those same rules.
+- Heritage archive records (`/archive/documents`) are admin-only.
+
+**Today** has a «Документы» block: documents expiring within 12 months, or already expired, for the
+people you may read. They are sorted by date, and each status is given as text plus an icon: Истёк,
+< 3 мес, < 6 мес, < 12 мес. The admin also sees «Сроки документов всей семьи» (type, person and date
+only).
+
+**Email reminders (bus 66)** are sent by `reminders-job.mjs` (cron, daily).
+- **Milestones:** 12, 6, 3 and 1 month before expiry, and on the day.
+- **Recipients:** an adult holder gets their own; for a minor, the guardians with `documents` get them.
+- **No repeats:** one email per (document, milestone, recipient), recorded in `reminder_sent` before
+  sending. A failed send removes the record, so the next run retries.
+- **What is sent:** the job goes through the relay's fixed `/send-reminder` template — type, first
+  name, date, milestone and a person-page link. There is no field for a document number.
+- **Secret:** the relay secret is piped on stdin from `/opt/kartel-mail-relay/relay.env`.
+
+**Backups and drill:**
+- The backup archive holds the DB dump and the `docs` volume (ciphertext).
+- The drill decrypts the canary, one care note and one document file using R0's offline master key.
+
 ## Read log (fail-closed)
 - Every read and write of care notes is written to `access_log` **before** any data is returned. If that
   write fails, the request fails with 503 (tested).

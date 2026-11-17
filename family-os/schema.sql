@@ -78,3 +78,66 @@ CREATE TABLE IF NOT EXISTS drill_canary (
   key_version  integer NOT NULL,
   created_at   timestamptz NOT NULL DEFAULT now()
 );
+
+-- ---- Stage 2a: documents (R0 2026-11-17) -------------------------------------------------------
+ALTER TABLE person ADD COLUMN IF NOT EXISTS birth_date date;
+
+-- Grants gain a "documents" scope; reads/reveals/copies are logged like note reads.
+ALTER TABLE guardian_grant DROP CONSTRAINT IF EXISTS guardian_grant_scopes_check;
+ALTER TABLE guardian_grant ADD CONSTRAINT guardian_grant_scopes_check
+  CHECK (cardinality(scopes) >= 1 AND scopes <@ ARRAY['routines', 'health', 'education', 'documents']::text[]);
+ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;
+ALTER TABLE access_log ADD CONSTRAINT access_log_action_check CHECK (action IN ('read', 'write', 'reveal', 'copy'));
+
+CREATE TABLE IF NOT EXISTS schema_migration (name text PRIMARY KEY, at timestamptz NOT NULL DEFAULT now());
+-- One-time: parents' existing grants on minors include documents (R0 2026-11-17). Later grants are
+-- whatever the admin sets.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM schema_migration WHERE name = '2026-11-17-parents-documents') THEN
+    UPDATE guardian_grant SET scopes = array_append(scopes, 'documents')
+      WHERE relation = 'parent' AND revoked_at IS NULL AND NOT ('documents' = ANY (scopes));
+    INSERT INTO schema_migration (name) VALUES ('2026-11-17-parents-documents');
+  END IF;
+END $$;
+
+-- An identity document. Plain: what lists and reminders need (type, issuing country, dates, the last
+-- three characters of the number). Everything else is ciphertext under the document's own data key.
+CREATE TABLE IF NOT EXISTS document (
+  id           uuid PRIMARY KEY,
+  person_id    uuid REFERENCES person(id),
+  archive      boolean NOT NULL DEFAULT false,   -- heritage archive record (admin-only), not a person
+  type         text NOT NULL CHECK (type IN ('passport', 'national_id', 'ni_number', 'residence', 'other')),
+  country      text CHECK (country IS NULL OR length(country) <= 60),
+  issue_date   date,
+  expiry_date  date,
+  number_hint  text CHECK (number_hint IS NULL OR length(number_hint) <= 3),
+  wrapped_key  text NOT NULL,
+  fields_ct    text NOT NULL,      -- JSON: authority, holder name, birth date/place, sex, nationality
+  number_ct    text,
+  pcode_ct     text,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK (archive OR person_id IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS document_person ON document (person_id);
+
+CREATE TABLE IF NOT EXISTS document_file (
+  id           uuid PRIMARY KEY,
+  document_id  uuid NOT NULL REFERENCES document(id),
+  name_ct      text NOT NULL,      -- the original file name is personal too
+  mime         text NOT NULL CHECK (mime IN ('application/pdf', 'image/jpeg', 'image/png', 'image/heic')),
+  size         integer NOT NULL,
+  wrapped_key  text NOT NULL,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS document_file_doc ON document_file (document_id);
+
+-- Document-expiry reminders already sent (bus 66): one row per document, milestone and recipient.
+CREATE TABLE IF NOT EXISTS reminder_sent (
+  document_id   uuid NOT NULL REFERENCES document(id),
+  milestone     smallint NOT NULL CHECK (milestone IN (12, 6, 3, 1, 0)),
+  recipient_id  uuid NOT NULL REFERENCES person(id),
+  sent_at       timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (document_id, milestone, recipient_id)
+);

@@ -121,3 +121,42 @@ test("email on the site's type system: serif accent heading, 16px body, ≥44px 
   const ru = renderSignInEmail({ link: PREFIX + "x", ttlMinutes: 21, lang: "ru" }).html;
   assert.match(ru, /действует 21 минуту,/);
 });
+
+// ── Family OS document reminders (bus 66) ──
+async function remind(payload) {
+  const body = JSON.stringify(payload), ts = String(Math.floor(Date.now() / 1000));
+  return fetch(base + "/send-reminder", { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": await signRelayRequest(SECRET, ts, body) }, body });
+}
+const LINK = "https://kartel.org.uk/ru/family/os/people/11111111-1111-4111-8111-111111111111";
+const GOOD = { to: "parent@example.test", kind: "passport", firstName: "Анна", expiry: "2027-12-01", milestone: 12, link: LINK, lang: "ru" };
+
+test("reminder: fixed template — type, first name, date, milestone; no document number anywhere", async () => {
+  brevoCalls = [];
+  const r = await remind({ ...GOOD, number: "QA1234567", personal_code: "999999-99999" });
+  assert.equal(r.status, 202);
+  const mail = JSON.stringify(brevoCalls[0].body);
+  assert.ok(mail.includes("Анна") && mail.includes("паспорт") && mail.includes("1 декабря 2027") && mail.includes("через 12 месяцев"));
+  assert.ok(!mail.includes("QA1234567") && !mail.includes("999999"), "unknown fields never reach the email");
+  assert.equal(brevoCalls[0].body.to[0].email, "parent@example.test");
+});
+
+test("reminder: only Family OS person links, known kinds, plain first names, valid milestones", async () => {
+  for (const [patch, err] of [
+    [{ link: "https://evil.example/x" }, "bad_link"],
+    [{ link: "https://kartel.org.uk/api/family-auth/verify?token=x" }, "bad_link"],
+    [{ kind: "visa" }, "bad_kind"],
+    [{ firstName: "<b>x</b>" }, "bad_name"],
+    [{ firstName: "a".repeat(41) }, "bad_name"],
+    [{ expiry: "01.12.2027" }, "bad_date"],
+    [{ milestone: 2 }, "bad_milestone"],
+  ]) {
+    const r = await remind({ ...GOOD, ...patch });
+    assert.equal(r.status, 400); assert.equal((await r.json()).error, err);
+  }
+});
+
+test("reminder kinds: RU Russian (Latin only in parentheses), EN without Cyrillic", async () => {
+  const { KINDS } = await import("./server.mjs");
+  for (const v of Object.values(KINDS.ru)) assert.doesNotMatch(v.replace(/\([^)]*\)/g, ""), /[A-Za-z]/, v);
+  for (const v of Object.values(KINDS.en)) assert.doesNotMatch(v, /[А-Яа-яЁё]/, v);
+});
