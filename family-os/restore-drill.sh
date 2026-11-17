@@ -18,7 +18,9 @@ docker run -d --name kfo-drill -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=drill p
 until docker logs kfo-drill 2>&1 | grep -q 'PostgreSQL init process complete'; do sleep 1; done
 until docker exec kfo-drill pg_isready -U postgres -d drill >/dev/null 2>&1; do sleep 1; done
 docker cp "$WORK/db.dump" kfo-drill:/tmp/db.dump
-docker exec kfo-drill pg_restore -U postgres -d drill --no-owner /tmp/db.dump
+# --no-privileges: the dump carries GRANTs to the request role kfo_app, which only exists where the
+# service runs (it re-applies roles.sql on every start). The drill proves data + keys, not grants.
+docker exec kfo-drill pg_restore -U postgres -d drill --no-owner --no-privileges /tmp/db.dump
 q() { docker exec kfo-drill psql -U postgres -d drill -tAc "$1" 2>/dev/null || true; }
 for t in person guardian_grant care_note access_log audit drill_canary document document_file; do
   printf '%s restored=%s\n' "$t" "$(q "SELECT count(*) FROM $t")"
