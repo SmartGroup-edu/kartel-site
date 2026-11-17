@@ -110,11 +110,64 @@ export function pgStore(pool) {
     async addCheck(routineId, date, done, actor) {
       await q("INSERT INTO routine_check (routine_id, on_date, done, by_actor) VALUES ($1, $2, $3, $4)", [routineId, date, done, actor]);
     },
+    // ---- Stage 3a: events, rules, prefs, pauses, rotations
+    async emit(type, actor, subject = null, ref = null) {
+      await q("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, $2, $3, $4)", [type, actor, subject, ref]);
+    },
+    async listRules() { return (await q("SELECT id, enabled, dry_run, updated_at FROM rule ORDER BY id")).rows; },
+    async setRule(id, patch, actor) {
+      const r = await q("UPDATE rule SET enabled = COALESCE($2, enabled), dry_run = COALESCE($3, dry_run), updated_by = $4, updated_at = now() WHERE id = $1", [id, patch.enabled ?? null, patch.dry_run ?? null, actor]);
+      if (r.rowCount) await audit(actor, "rule.update", `rule:${id}`);
+      return r.rowCount === 1;
+    },
+    async ruleRunCounts(sinceDate) {
+      return (await q("SELECT rule_id, outcome, count(*)::int AS n FROM rule_run WHERE family_date >= $1 GROUP BY rule_id, outcome ORDER BY 1, 2", [sinceDate])).rows;
+    },
+    async getPrefs(personId) {
+      return (await q("SELECT email_on, digest_time, evening_on, evening_time, lang FROM notification_pref WHERE person_id = $1", [personId])).rows[0] ?? null;
+    },
+    async setPrefs(personId, p, actor) {
+      await q(`INSERT INTO notification_pref (person_id, email_on, digest_time, evening_on, evening_time, lang, updated_by, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+               ON CONFLICT (person_id) DO UPDATE SET email_on = $2, digest_time = $3, evening_on = $4, evening_time = $5, lang = $6, updated_by = $7, updated_at = now()`,
+        [personId, p.email_on, p.digest_time, p.evening_on, p.evening_time, p.lang, actor]);
+    },
+    async listPauses(personId) {
+      return (await q("SELECT id, person_id, to_char(from_date, 'YYYY-MM-DD') AS from_date, to_char(to_date, 'YYYY-MM-DD') AS to_date, cancelled_at FROM pause WHERE person_id = $1 AND cancelled_at IS NULL ORDER BY from_date", [personId])).rows;
+    },
+    async getPause(id) { return (await q("SELECT id, person_id, cancelled_at FROM pause WHERE id = $1", [id])).rows[0] ?? null; },
+    async createPause(p, actor) {
+      await q("INSERT INTO pause (id, person_id, from_date, to_date, created_by) VALUES ($1, $2, $3, $4, $5)", [p.id, p.person_id, p.from_date, p.to_date, actor]);
+    },
+    async cancelPause(id) { return (await q("UPDATE pause SET cancelled_at = now() WHERE id = $1 AND cancelled_at IS NULL", [id])).rowCount === 1; },
+    async listRotations() {
+      return (await q("SELECT id, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, members FROM rotation WHERE archived_at IS NULL ORDER BY created_at")).rows;
+    },
+    async getRotation(id) {
+      return (await q("SELECT id, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, members, archived_at FROM rotation WHERE id = $1", [id])).rows[0] ?? null;
+    },
+    async createRotation(r, actor) {
+      await q("INSERT INTO rotation (id, title, rrule, dtstart, at_time, members, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)", [r.id, r.title, r.rrule, r.dtstart, r.at_time, r.members, actor]);
+      await audit(actor, "rotation.create", `rotation:${r.id}`);
+    },
+    async archiveRotation(id, actor) {
+      const r = await q("UPDATE rotation SET archived_at = now() WHERE id = $1 AND archived_at IS NULL", [id]);
+      if (r.rowCount) await audit(actor, "rotation.archive", `rotation:${id}`);
+      return r.rowCount === 1;
+    },
+    async listRotationChecks(ids, from) {
+      if (!ids.length) return [];
+      return (await q(`SELECT DISTINCT ON (rotation_id, on_date) rotation_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, done FROM rotation_check
+                       WHERE rotation_id = ANY($1::uuid[]) AND on_date >= $2 ORDER BY rotation_id, on_date, id DESC`, [ids, from])).rows;
+    },
+    async addRotationCheck(id, date, personId, done, actor) {
+      await q("INSERT INTO rotation_check (rotation_id, on_date, person_id, done, by_actor) VALUES ($1, $2, $3, $4, $5)", [id, date, personId, done, actor]);
+    },
   };
 }
 
 export function memoryStore() {
-  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [];
+  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [];
+  const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
   return {
     failLog: false, // tests flip this to prove reads fail closed
@@ -163,7 +216,29 @@ export function memoryStore() {
       return [...latest.values()].map(({ routine_id, on_date, done }) => ({ routine_id, on_date, done }));
     },
     async addCheck(routineId, date, done, actor) { checks.push({ routine_id: routineId, on_date: date, done, by_actor: actor }); },
+    // ---- Stage 3a
+    failEvents: false,
+    async emit(type, actor, subject = null, ref = null) { if (this.failEvents) throw new Error("event bus down"); events.push({ type, actor, subject_person_id: subject, ref }); },
+    async listRules() { return [...rules.values()]; },
+    async setRule(id, patch) { const r = rules.get(id); if (!r) return false; if (patch.enabled !== undefined) r.enabled = patch.enabled; if (patch.dry_run !== undefined) r.dry_run = patch.dry_run; return true; },
+    async ruleRunCounts() { return []; },
+    async getPrefs(id) { return prefs.get(id) ?? null; },
+    async setPrefs(id, p) { prefs.set(id, { ...p }); },
+    async listPauses(id) { return [...pauses.values()].filter((p) => p.person_id === id && !p.cancelled_at); },
+    async getPause(id) { return pauses.get(id) ?? null; },
+    async createPause(p) { pauses.set(p.id, { ...p, cancelled_at: null }); },
+    async cancelPause(id) { const p = pauses.get(id); if (!p || p.cancelled_at) return false; p.cancelled_at = now(); return true; },
+    async listRotations() { return [...rotations.values()].filter((r) => !r.archived_at); },
+    async getRotation(id) { return rotations.get(id) ?? null; },
+    async createRotation(r) { rotations.set(r.id, { ...r, archived_at: null }); },
+    async archiveRotation(id) { const r = rotations.get(id); if (!r || r.archived_at) return false; r.archived_at = now(); return true; },
+    async listRotationChecks(ids, from) {
+      const latest = new Map();
+      for (const c of rchecks) if (ids.includes(c.rotation_id) && c.on_date >= from) latest.set(`${c.rotation_id}|${c.on_date}`, c);
+      return [...latest.values()].map(({ rotation_id, on_date, done }) => ({ rotation_id, on_date, done }));
+    },
+    async addRotationCheck(id, date, personId, done, actor) { rchecks.push({ rotation_id: id, on_date: date, person_id: personId, done, by_actor: actor }); },
 
-    _raw: { notes, log, docs: () => docs, files: () => files, checks },
+    _raw: { notes, log, docs: () => docs, files: () => files, checks, events, rchecks },
   };
 }

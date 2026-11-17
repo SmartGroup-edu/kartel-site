@@ -205,6 +205,81 @@ function handleReminder(req, res) {
   });
 }
 
+// ── Family OS engine notifications (Stage 3a, bus 77) ────────────────────────
+// Fixed templates: a first name, item titles and times, document type + date + holder's first name,
+// and a fixed link to Today. Nothing else can be sent through this route (no free text, no numbers).
+const FAMILY_LIMITS = { recipient: { max: 6, windowMs: 24 * 3600_000 }, global: { max: 500, windowMs: 24 * 3600_000 } };
+const TODAY_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os$/;
+const NAME_RE = /^[\p{L}\p{M}' -]{1,40}$/u, HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/, DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const fmtDay = (d, ru, year = false) => new Date(`${d}T12:00:00Z`).toLocaleDateString(ru ? "ru-RU" : "en-GB", { day: "numeric", month: "long", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" }).replace(/\s*г\.$/, "");
+
+/** Validate a /send-family body; returns null when valid, else an error code. */
+export function checkFamily(b) {
+  if (!["digest", "evening", "council"].includes(b?.kind)) return "bad_kind";
+  if (typeof b.firstName !== "string" || !NAME_RE.test(b.firstName.trim())) return "bad_name";
+  if (!DATE_ONLY_RE.test(b.date ?? "")) return "bad_date";
+  if (typeof b.link !== "string" || !TODAY_LINK_RE.test(b.link)) return "bad_link";
+  const items = b.items ?? [], docs = b.docs ?? [], notes = b.notes ?? [];
+  if (!Array.isArray(items) || items.length > 30 || items.some((i) => typeof i?.title !== "string" || !i.title.trim() || i.title.length > 120 || (i.time != null && !HHMM_RE.test(i.time)) || Object.keys(i).some((k) => !["title", "time"].includes(k)))) return "bad_items";
+  if (!Array.isArray(docs) || docs.length > 10 || docs.some((d) => !Object.hasOwn(KINDS.en, d?.type) || !DATE_ONLY_RE.test(d.expiry ?? "") || !NAME_RE.test(String(d.who ?? "")) || Object.keys(d).some((k) => !["type", "expiry", "who"].includes(k)))) return "bad_docs";
+  if (!Array.isArray(notes) || notes.length > 10 || notes.some((n) => !NAME_RE.test(String(n?.child ?? "")) || typeof n.title !== "string" || !n.title.trim() || n.title.length > 120 || Object.keys(n).some((k) => !["child", "title"].includes(k)))) return "bad_notes";
+  if (b.kind !== "council" && !items.length && !docs.length && !notes.length) return "empty";
+  return null;
+}
+
+/** «Ты» in Russian (bus 74). No shaming: open items are listed plainly, a miss is never called a failure. */
+export function renderFamilyEmail({ kind, lang, firstName, date, items = [], docs = [], notes = [], link }) {
+  const ru = lang !== "en", day = fmtDay(date, ru);
+  const t = ru ? {
+    digest: [`${firstName}, твой день: ${day}`, "На сегодня:"], evening: [`${firstName}, что ещё не отмечено сегодня`, "Ещё открыто:"], council: [`${firstName}, сегодня семейный совет`, "Сегодня в 19:00 — семейный совет. Неделя уже собрана в разделе «Семья»."],
+    docs: "Документы:", until: "до", expired: "истёк", notes: "Для родителей:", note: (c, x) => `${c}: «${x}» — три раза подряд без отметки. Может, стоит спокойно поговорить.`,
+    evening_tail: "Если уже сделано — отметь в разделе «Семья». Если нет — ничего страшного, завтра новый день.", open: "Открыть «Сегодня»", off: "Письма можно выключить на своей странице в разделе «Семья».",
+  } : {
+    digest: [`${firstName}, your day: ${day}`, "Today:"], evening: [`${firstName}, still open today`, "Still open:"], council: [`${firstName}, family council today`, "Family council today at 19:00. The week is already gathered in the Family area."],
+    docs: "Documents:", until: "until", expired: "expired", notes: "For parents:", note: (c, x) => `${c}: “${x}” — three times in a row without a tick. Maybe worth a calm chat.`,
+    evening_tail: "If it is done, tick it in the Family area. If not, no matter — tomorrow is a new day.", open: "Open Today", off: "You can turn these emails off on your page in the Family area.",
+  };
+  const [subject, lead] = t[kind];
+  const lines = items.map((i) => (i.time ? `${i.time} · ${i.title}` : i.title));
+  const docLines = docs.map((d) => `${KINDS[ru ? "ru" : "en"][d.type]} (${d.who}) — ${d.expiry < date ? t.expired : t.until} ${fmtDay(d.expiry, ru, true)}`);
+  const noteLines = notes.map((n) => t.note(n.child, n.title));
+  const text = [lead, ...lines.map((l) => `• ${l}`), ...(docLines.length ? ["", t.docs, ...docLines.map((l) => `• ${l}`)] : []), ...(noteLines.length ? ["", t.notes, ...noteLines] : []),
+    ...(kind === "evening" ? ["", t.evening_tail] : []), "", link, "", t.off].join("\n");
+  const ul = (xs) => `<ul style="margin:0 0 20px;padding-left:20px;font-size:16px;line-height:1.6;">${xs.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  const html = `<!doctype html><html lang="${ru ? "ru" : "en"}"><head><meta charset="utf-8"><meta name="color-scheme" content="light only"></head><body style="margin:0;padding:0;background:#ffffff;">
+<div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
+  <p style="margin:0 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#7b1e2d;">KARTEL</p>
+  <p style="margin:0 0 12px;font-size:18px;line-height:1.5;">${esc(lead)}</p>
+  ${lines.length ? ul(lines) : ""}${docLines.length ? `<p style="margin:0 0 6px;font-size:15px;color:#4a453e;">${esc(t.docs)}</p>${ul(docLines)}` : ""}${noteLines.length ? `<p style="margin:0 0 6px;font-size:15px;color:#4a453e;">${esc(t.notes)}</p>${noteLines.map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.55;">${esc(l)}</p>`).join("")}` : ""}
+  ${kind === "evening" ? `<p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#4a453e;">${esc(t.evening_tail)}</p>` : ""}
+  <p style="margin:0 0 28px;"><a href="${esc(link)}" style="display:inline-block;padding:14px 28px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(t.open)}</a></p>
+  <p style="margin:0;font-size:14px;color:#6f685c;">${esc(t.off)}</p>
+</div></body></html>`;
+  return { subject, text, html };
+}
+
+const FAMILY_MAX_BODY = 16 * 1024; // a full digest (≤ 30 items of ≤ 120 chars) exceeds the 4 KB sign-in limit
+function handleFamily(req, res) {
+  let raw = "", tooBig = false;
+  req.setEncoding("utf8");
+  req.on("data", (c) => { raw += c; if (raw.length > FAMILY_MAX_BODY) { tooBig = true; req.destroy(); } });
+  req.on("end", async () => {
+    if (tooBig) return;
+    if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
+    if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
+    const err = checkFamily(b);
+    if (err) return reply(res, 400, { error: err });
+    if (!allowAll([["f:global", FAMILY_LIMITS.global], [`f:to:${to}`, FAMILY_LIMITS.recipient]])) { console.warn("[relay] family rate limited"); return reply(res, 429, { error: "rate_limited" }); }
+    try {
+      const status = await sendViaBrevo(to, renderFamilyEmail({ ...b, firstName: b.firstName.trim(), lang: b.lang === "en" ? "en" : "ru" }));
+      console.log(`[relay] family ${b.kind} brevo ${status}`);
+      return status >= 200 && status < 300 ? reply(res, 202, { ok: true }) : reply(res, 502, { error: "upstream", status });
+    } catch { console.error("[relay] brevo unreachable"); return reply(res, 502, { error: "upstream" }); }
+  });
+}
+
 const reply = (res, code, obj) => {
   res.writeHead(code, { "content-type": "application/json", "cache-control": "no-store" });
   res.end(JSON.stringify(obj));
@@ -213,6 +288,7 @@ const reply = (res, code, obj) => {
 const server = createServer((req, res) => {
   if (req.method === "GET" && req.url === "/healthz") return reply(res, 200, { ok: true });
   if (req.method === "POST" && req.url === "/send-reminder") return handleReminder(req, res);
+  if (req.method === "POST" && req.url === "/send-family") return handleFamily(req, res);
   if (req.method !== "POST" || req.url !== "/send") return reply(res, 404, { error: "not_found" });
 
   let raw = "";

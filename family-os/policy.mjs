@@ -93,3 +93,12 @@ export function canSeeGuardians(me, subject, grants, admin) {
 }
 
 export const ROUTINE_KINDS = ["routine", "chore"];
+
+// ---- Stage 3a: notification settings and pauses (bus 77) ----------------------------------------
+// A person's settings and «день без ритма»: the person themselves (a child too — it is their inbox),
+// and for a child, guardians with "routines". Admin is not implicit.
+export function canEditPrefs(me, subject, grants) {
+  if (!me || !subject) return false;
+  if (me.id === subject.id) return true;
+  return subject.kind === "child" && guardianOf(me, subject, grants, "routines");
+}

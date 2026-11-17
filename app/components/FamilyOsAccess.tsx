@@ -15,7 +15,8 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsPerson, OsGrant, OsScope } from "../lib/family-os";
+import type { OsPerson, OsGrant, OsScope, OsRule } from "../lib/family-os";
+import FamilyRules from "./FamilyRules";
 import { addedSensitive, confirmGrantText } from "../lib/family-access.mjs";
 
 type Lang = "EN" | "RU";
@@ -59,7 +60,7 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; people: OsPerson[]; grants: OsGrant[] }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -103,6 +104,8 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
               </div>
             ))}
           </section>
+
+          {rules && <FamilyRules lang={lang} rules={rules} />}
         </div>
       </main>
       <SiteFooter copy="KARTEL" contactEmail={null} />
