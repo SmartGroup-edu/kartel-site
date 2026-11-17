@@ -57,7 +57,7 @@ export default function FamilyPrefs({ lang, personId, prefs, pauses, today }: { 
     setPmsg(r?.ok ? t.cancelled : t.error); if (r?.ok) router.refresh();
   };
   return (
-    <section aria-labelledby="prefs-h" data-prefs="" className="mt-12">
+    <section id="letters" aria-labelledby="prefs-h" data-prefs="" className="mt-12 scroll-mt-24">
       <h2 id="prefs-h" className="font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">{t.title}</h2>
       <form onSubmit={save} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={`${check} sm:col-span-2`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={p.email_on} onChange={(e) => setP({ ...p, email_on: e.target.checked })} />{t.email}</label>

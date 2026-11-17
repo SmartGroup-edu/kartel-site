@@ -51,7 +51,8 @@ for (const s of plan) {
   if (outcome !== "sent") { s.skip ? out.skipped++ : out.dry_run++; await event(`notify.${outcome}`, s.person.id, s.rule); continue; }
   const lang = s.payload.lang === "en" ? "en" : "ru";
   const body = JSON.stringify({ to: s.person.email, kind: s.payload.kind, lang, firstName: s.payload.firstName, date: s.payload.date,
-    items: s.payload.items ?? [], docs: s.payload.docs ?? [], notes: s.payload.notes ?? [], link: `${SITE}/${lang}/family/os` });
+    items: s.payload.items ?? [], docs: s.payload.docs ?? [], notes: s.payload.notes ?? [], link: `${SITE}/${lang}/family/os`,
+    settingsLink: `${SITE}/${lang}/family/os/people/${s.person.id}#letters` }); // bus 78: straight to their «Письма и паузы»
   const ts = String(Math.floor(Date.now() / 1000));
   let ok = false;
   try {

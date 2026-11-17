@@ -108,6 +108,8 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
             )}
           </section>
 
+          {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} />}
+
           <section aria-labelledby="docs-h" className="mt-12">
             <h2 id="docs-h" className={H2}>{t.documents}</h2>
             {documents === null ? (
@@ -121,8 +123,6 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
             )}
             {profile.can.add_documents && <AddDocument t={t} personId={p.id} />}
           </section>
-
-          {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} />}
 
           {profile.guardians.length > 0 && (
             <section aria-labelledby="guardians-h" className="mt-12">

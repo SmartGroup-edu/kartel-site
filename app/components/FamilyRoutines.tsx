@@ -143,8 +143,8 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
     setAsk(null); setMsg(r?.ok ? t.removed : t.saveError); if (r?.ok) router.refresh();
   };
   return (
-    <section aria-labelledby="all-h" className="mt-10">
-      <h3 id="all-h" className="font-serif text-[20px] text-[var(--foreground)]">{t.all}</h3>
+    // Folded by default (bus 78 #7): today's list and the agenda are what people read every day.
+    <Disclosure summary={`${t.all} (${routines.length})`} className="mt-10" variant="inline" summaryClassName="w-fit font-serif text-[20px] text-[var(--foreground)]">
       {routines.length === 0 ? <p className="mt-2 text-[14px] text-[var(--muted)]">{t.none}</p> : (
         <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {routines.map((r) => (
@@ -166,7 +166,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
         </ul>
       )}
       <p role="status" aria-live="polite" className="mt-2 text-[14px] text-[var(--muted)]">{msg}</p>
-    </section>
+    </Disclosure>
   );
 }
 

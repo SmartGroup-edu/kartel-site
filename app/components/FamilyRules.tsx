@@ -26,8 +26,8 @@ const NAMES: Record<Lang, Record<string, [string, string]>> = {
   },
 };
 const T = {
-  RU: { title: "Правила", intro: "Что движок делает сам. В пробном режиме письма не уходят — только запись о том, что ушло бы.", on: "Включено", dry: "Пробный режим", last: "За 7 дней", sent: "отправлено", dry_run: "в пробном режиме", skipped: "пропущено (выключено у человека, тихие часы, лимит)", none: "событий не было", confirm: "Письма начнут уходить семье. Выключить пробный режим?", yes: "Да, отправлять", no: "Отмена", saved: "Сохранено.", error: "Не удалось сохранить" },
-  EN: { title: "Rules", intro: "What the engine does by itself. In dry run nothing is sent — it only records what would have gone.", on: "On", dry: "Dry run", last: "Last 7 days", sent: "sent", dry_run: "in dry run", skipped: "skipped (turned off by the person, quiet hours, cap)", none: "nothing yet", confirm: "Emails will start going to the family. Leave dry run?", yes: "Yes, send", no: "Cancel", saved: "Saved.", error: "Could not save" },
+  RU: { chipSend: "Письма уходят", chipDry: "Только запись", chipOff: "Выключено", title: "Правила", intro: "Что движок делает сам. В пробном режиме письма не уходят — только запись о том, что ушло бы.", on: "Включено", dry: "Пробный режим", last: "За 7 дней", sent: "отправлено", dry_run: "в пробном режиме", skipped: "пропущено (выключено у человека, тихие часы, лимит)", none: "событий не было", confirm: "Письма начнут уходить семье. Выключить пробный режим?", yes: "Да, отправлять", no: "Отмена", saved: "Сохранено.", error: "Не удалось сохранить" },
+  EN: { chipSend: "Emails go out", chipDry: "Recording only", chipOff: "Off", title: "Rules", intro: "What the engine does by itself. In dry run nothing is sent — it only records what would have gone.", on: "On", dry: "Dry run", last: "Last 7 days", sent: "sent", dry_run: "in dry run", skipped: "skipped (turned off by the person, quiet hours, cap)", none: "nothing yet", confirm: "Emails will start going to the family. Leave dry run?", yes: "Yes, send", no: "Cancel", saved: "Saved.", error: "Could not save" },
 } as const;
 
 const send = (id: string, body: unknown) => fetch(`/api/family-os/rules/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
@@ -37,7 +37,7 @@ const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)]
 export default function FamilyRules({ lang, rules }: { lang: Lang; rules: OsRule[] }) {
   const t = T[lang];
   return (
-    <section aria-labelledby="rules-h" data-rules="" className="mt-12">
+    <section id="rules" aria-labelledby="rules-h" data-rules="" className="mt-12 scroll-mt-24">
       <h2 id="rules-h" className="font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">{t.title}</h2>
       <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.intro}</p>
       <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -63,7 +63,14 @@ function RuleRow({ lang, r }: { lang: Lang; r: OsRule }) {
   const counts = [r.last7.sent ? `${r.last7.sent} ${t.sent}` : null, r.last7.dry_run ? `${r.last7.dry_run} ${t.dry_run}` : null, skipped ? `${skipped} ${t.skipped}` : null].filter(Boolean);
   return (
     <li data-rule={r.id} className="py-4">
-      <p className="text-[17px] text-[var(--foreground)]">{name}</p>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-[17px] text-[var(--foreground)]">{name}</p>
+        {/* bus 78 #6: the state in one word, not two checkboxes to parse */}
+        <span data-rule-state={!state.enabled ? "off" : state.dry_run ? "dry" : "send"}
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[14px] font-medium ${!state.enabled ? "border border-[var(--border)] text-[var(--muted)]" : state.dry_run ? "border border-[var(--border)] text-[var(--text-secondary)]" : "bg-[var(--accent)] text-[var(--on-accent)]"}`}>
+          {!state.enabled ? t.chipOff : state.dry_run ? t.chipDry : t.chipSend}
+        </span>
+      </div>
       <p className="mt-1 text-[15px] text-[var(--text-secondary)]">{desc}</p>
       <div className="mt-2 flex flex-wrap gap-x-6">
         <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[16px]"><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={state.enabled} onChange={(e) => save({ ...state, enabled: e.target.checked })} />{t.on}</label>

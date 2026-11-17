@@ -23,7 +23,7 @@ type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
 const T = {
   EN: {
-    title: "People and access", intro: "Who is in the family and who may see what.",
+    title: "People and access", jump: "On this page", rulesTab: "Rules", intro: "Who is in the family and who may see what.",
     people: "People", adult: "Adult", child: "Child", edit: "Edit", save: "Save", cancel: "Cancel", nameEn: "Name (English)", nameRu: "Name (Russian)", email: "Email", kind: "Role",
     addPerson: "Add a person", add: "Add", grants: "Guardians and access", noGrants: "No guardians yet.", guardian: "Guardian", relation: "Relation",
     rel: { parent: "Parent", relative: "Relative" }, scope: { routines: "Routines", health: "Health", education: "School", documents: "Documents" },
@@ -31,7 +31,7 @@ const T = {
     errors: { exists: "Already exists.", bad_person: "Check the name, email and role.", bad_scopes: "Choose at least one area.", guardian_not_adult: "A guardian must be an adult.", subject_not_child: "Access is given for a child." } as Record<string, string>,
   },
   RU: {
-    title: "Люди и доступы", intro: "Кто в семье и кто что видит.",
+    title: "Люди и доступы", jump: "На этой странице", rulesTab: "Правила", intro: "Кто в семье и кто что видит.",
     people: "Люди", adult: "Взрослый", child: "Ребёнок", edit: "Изменить", save: "Сохранить", cancel: "Отмена", nameEn: "Имя (латиницей)", nameRu: "Имя (кириллицей)", email: "Почта", kind: "Роль",
     addPerson: "Добавить человека", add: "Добавить", grants: "Опекуны и доступ", noGrants: "Опекунов пока нет.", guardian: "Опекун", relation: "Кем приходится",
     rel: { parent: "Родитель", relative: "Родственник" }, scope: { routines: "Распорядок", health: "Здоровье", education: "Учёба", documents: "Документы" },
@@ -74,8 +74,14 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null }: {
         <div className="max-w-4xl pb-8">
           <h1 className={H1}>{t.title}</h1>
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
+          {/* bus 78 #5: one tap to each part of a long page */}
+          <nav aria-label={t.jump} data-access-jump="" className="mt-4 flex flex-wrap gap-2">
+            {([["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab]] : [])] as const).map(([href, label]) => (
+              <a key={href} href={href} className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{label}</a>
+            ))}
+          </nav>
 
-          <section aria-labelledby="ppl-h" className="mt-10">
+          <section id="people" aria-labelledby="ppl-h" className="mt-10 scroll-mt-24">
             <h2 id="ppl-h" className={H2}>{t.people}</h2>
             {([[t.adults, adults], [t.children, children]] as const).filter(([, xs]) => xs.length).map(([head, xs]) => (
               <div key={head} className="mt-6">
@@ -88,7 +94,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null }: {
             <AddPerson t={t} />
           </section>
 
-          <section aria-labelledby="grants-h" className="mt-12">
+          <section id="grants" aria-labelledby="grants-h" className="mt-12 scroll-mt-24">
             <h2 id="grants-h" className={H2}>{t.grants}</h2>
             {children.map((c) => (
               <div key={c.id} data-child-grants="" className="mt-6">
