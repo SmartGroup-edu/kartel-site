@@ -123,9 +123,12 @@ export async function getReminders(session: { email?: string | null; cpifSubject
 export type OsRoutineAccess = { read: boolean; manage: boolean; check: boolean; reason: string | null };
 export type OsRoutine = {
   id: string; kind: "routine" | "chore" | "rotation"; title: string; rrule: string; dtstart: string; at_time: string | null; members?: number;
-  due_today: boolean; done_today: boolean; done_recent: string[]; streak: number; next: string[];
+  due_today: boolean; done_today: boolean; done_recent: string[];
+  /** bus 86: «N из M на этой неделе» — always present for routines; `streak` only when an adult chose it. */
+  week?: { done: number; of: number }; streak?: number; next: string[];
+  anchor_text?: string | null; anchor_routine_id?: string | null; anchor_title?: string | null;
 };
-export type OsRoutines = { today: string; can: OsRoutineAccess; paused_today?: boolean; routines: OsRoutine[] };
+export type OsRoutines = { today: string; can: OsRoutineAccess; paused_today?: boolean; count_mode?: "week" | "streak"; routines: OsRoutine[] };
 
 /** The member's own routines (Today). null = not a member, no access, or the service is down. */
 export async function getMyRoutines(session: { email?: string | null; cpifSubjectId: string }, personId: string | null): Promise<OsRoutines | null> {
@@ -134,7 +137,7 @@ export async function getMyRoutines(session: { email?: string | null; cpifSubjec
 }
 
 // ---- Stage 3a: notification settings, pauses, rules -------------------------------------------
-export type OsPrefs = { email_on: boolean; digest_time: string; evening_on: boolean; evening_time: string; lang: "ru" | "en" };
+export type OsPrefs = { email_on: boolean; digest_time: string; evening_on: boolean; evening_time: string; lang: "ru" | "en"; count_mode?: "week" | "streak" };
 export type OsPause = { id: string; from_date: string; to_date: string };
 export type OsRule = { id: string; enabled: boolean; dry_run: boolean; last7: Record<string, number> };
 
@@ -147,11 +150,14 @@ export async function getRules(session: { email?: string | null; cpifSubjectId: 
 // ---- Stage 3b: council, goals, calendar, notes, ICS -------------------------------------------
 export type OsTask = { id: string; title: string; owner_id: string; due_date: string; done: boolean };
 export type OsCouncil = {
-  date: string; today: string; held: boolean; status: "upcoming" | "today" | "live" | "held" | "missed"; days_until: number; notes: string; can: { write: boolean; mark_held: boolean }; tasks: OsTask[];
+  date: string; today: string; held: boolean; status: "upcoming" | "today" | "live" | "held" | "missed"; days_until: number; notes: string; can: { write: boolean; mark_held: boolean; pick_principle?: boolean }; tasks: OsTask[];
+  principle?: { this_week: OsPrinciple; next_week: OsPrinciple };
   previous: { date: string; tasks: OsTask[] } | null;
   agenda: { from: string; to: string; items: { scheduled: number; done: number }; tasks: { done: number; open: number } };
 };
-export type OsGoal = { id: string; sphere: string; visibility: "owner" | "guardians" | "family"; status: "active" | "done"; title: string; checkins: { week_start: string; mood: "on_track" | "slow" | "paused"; note: string }[]; checked_this_week: boolean };
+export type OsWoop = { wish?: string; outcome?: string; obstacle?: string; plan?: string };
+export type OsGoal = { id: string; sphere: string; visibility: "owner" | "guardians" | "family"; status: "active" | "done"; title: string; checkins: { week_start: string; mood: "on_track" | "slow" | "paused"; note: string }[]; checked_this_week: boolean;
+  /** Present only for the goal's owner (bus 86). */ woop?: OsWoop | null };
 export type OsGoals = { can: { write: boolean; visibilities: OsGoal["visibility"][] }; week: string; goals: OsGoal[] };
 export type OsNotes = { kinds: ("health" | "education")[]; notes: { id: string; kind: "health" | "education"; updated_at: string; title: string; body: string }[] };
 export type OsIcs = { active: boolean; created_at: string | null };
@@ -162,6 +168,21 @@ type S = { email?: string | null; cpifSubjectId: string };
 const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, osActor(session)); } catch { return null; } };
 export const getCouncil = (session: S, date?: string) => safe<OsCouncil>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/council?date=${date}` : "/council", session);
 export const getCalendar = (session: S) => safe<OsCalendar>("/calendar?days=62", session);
+
+// ---- Stage 3d-1: Кодекс, принцип недели, признание (bus 86) ------------------------------------
+export type OsKodeksPrinciple = { element: string; element_ru: string; meaning: string; principle: string; practice: string };
+export type OsKodeksBody = { principles: OsKodeksPrinciple[]; motto: string };
+export type OsKodeks = {
+  can: { edit: boolean };
+  current: { version: number; status: "approved" | "draft"; approved_on: string | null; body: OsKodeksBody } | null;
+  history: { version: number; status: "approved" | "draft"; approved_on: string | null; at: string; by: { name_ru: string; name_en: string } | null }[];
+};
+export type OsPrinciple = { week_start: string; index: number; picked: boolean; element: string; principle: string; practice: string; can?: { pick: boolean } };
+export type OsRecognition = { id: string; from: { id: string; name_ru?: string; name_en?: string }; to: { id: string; name_ru?: string; name_en?: string }; index: number; principle: string; on_date: string; text: string };
+export const getKodeks = (session: S) => safe<OsKodeks>("/kodeks", session);
+export const getPrinciple = (session: S) => safe<OsPrinciple>("/principle", session);
+export const getRecognitions = async (session: S, week?: string) =>
+  (await safe<{ week_start: string; recognitions: OsRecognition[] }>(week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? `/recognitions?week=${week}` : "/recognitions", session));
 
 // ---- Stage 3c: the family board (bus 82, amended by 83/84) ------------------------------------
 export type OsTaskState = "proposed" | "approved" | "accepted" | "in_progress" | "done" | "reviewed" | "declined" | "declined_by_adult" | "carried_over" | "cancelled";

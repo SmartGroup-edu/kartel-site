@@ -16,13 +16,15 @@ const T = {
   EN: {
     title: "Emails and pauses", email: "Send me family emails", digest: "Morning summary at", evening: "Evening check-in (what is still open)", eveningAt: "Evening check-in at",
     lang: "Language of the emails", quiet: "No emails between 21:00 and 07:00.", save: "Save", saved: "Saved.", error: "Could not save — please try again.",
-    pause: "A day without rhythm", pauseHint: "Holiday or illness: no items, no reminders, and streaks simply wait.", from: "From", to: "To (up to 61 days)", addPause: "Add a pause",
+    pause: "A day without rhythm", pauseHint: "Holiday or illness: no items and no reminders; those days simply do not count.",
+    count: "Show how many times in a row instead of “N of M this week”", countHint: "For adults only. Children always see the weekly count.", from: "From", to: "To (up to 61 days)", addPause: "Add a pause",
     pauses: "Pauses", none: "No pauses planned.", cancel: "Cancel the pause", cancelled: "Pause cancelled.", added: "Pause added.", badPause: "Check the dates: from today, up to 61 days.",
   },
   RU: {
     title: "Письма и паузы", email: "Присылать письма семьи", digest: "Утренняя сводка в", evening: "Вечерняя отметка (что ещё не сделано)", eveningAt: "Вечерняя отметка в",
     lang: "Язык писем", quiet: "С 21:00 до 07:00 писем нет.", save: "Сохранить", saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
-    pause: "День без ритма", pauseHint: "Отпуск или болезнь: ни дел, ни напоминаний, а серии просто ждут.", from: "С", to: "По (до 61 дня)", addPause: "Добавить паузу",
+    pause: "День без ритма", pauseHint: "Отпуск или болезнь: ни дел, ни напоминаний — эти дни просто не считаются.",
+    count: "Показывать «сколько раз подряд» вместо «N из M на этой неделе»", countHint: "Только для взрослых. Дети всегда видят счёт за неделю.", from: "С", to: "По (до 61 дня)", addPause: "Добавить паузу",
     pauses: "Паузы", none: "Пауз не запланировано.", cancel: "Отменить паузу", cancelled: "Пауза отменена.", added: "Пауза добавлена.", badPause: "Проверь даты: с сегодняшнего дня, не дольше 61 дня.",
   },
 } as const;
@@ -35,7 +37,7 @@ const check = "flex min-h-11 cursor-pointer items-center gap-3 text-[16px] text-
 const send = (method: "POST" | "PUT" | "PATCH", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 
-export default function FamilyPrefs({ lang, personId, prefs, pauses, today }: { lang: Lang; personId: string; prefs: OsPrefs; pauses: OsPause[]; today: string }) {
+export default function FamilyPrefs({ lang, personId, prefs, pauses, today, adult = false }: { lang: Lang; personId: string; prefs: OsPrefs; pauses: OsPause[]; today: string; adult?: boolean }) {
   const t = T[lang];
   const router = useRouter();
   const [p, setP] = useState<OsPrefs>(prefs);
@@ -68,6 +70,11 @@ export default function FamilyPrefs({ lang, personId, prefs, pauses, today }: { 
         <label className={`${check} sm:col-span-2`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={p.evening_on} disabled={!p.email_on} onChange={(e) => setP({ ...p, evening_on: e.target.checked })} />{t.evening}</label>
         {p.evening_on && <label className={label}>{t.eveningAt}<input type="time" min="07:00" max="20:59" required value={p.evening_time} disabled={!p.email_on} onChange={(e) => setP({ ...p, evening_time: e.target.value })} className={field} /></label>}
         <p className="text-[14px] text-[var(--muted)] sm:col-span-2">{t.quiet}</p>
+        {/* bus 86: бережный счёт — an adult may choose the streak for themselves; never offered for a child */}
+        {adult && <div className="sm:col-span-2">
+          <label className={check}><input type="checkbox" data-count-mode="" className="h-5 w-5 accent-[var(--accent)]" checked={p.count_mode === "streak"} onChange={(e) => setP({ ...p, count_mode: e.target.checked ? "streak" : "week" })} />{t.count}</label>
+          <p className="text-[14px] text-[var(--muted)]">{t.countHint}</p>
+        </div>}
         <div className="flex items-center gap-3 sm:col-span-2">
           <button type="submit" className={primary}>{t.save}</button>
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span>

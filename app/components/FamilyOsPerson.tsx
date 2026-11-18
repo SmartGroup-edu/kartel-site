@@ -102,7 +102,7 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
                 <TodayChecklist lang={lang} today={routines.today} routines={routines.routines} canCheck={routines.can.check} headingId="person-today-h" heading={t.today} paused={routines.paused_today} />
                 <Agenda lang={lang} routines={routines.routines} />
                 <RoutineList lang={lang} routines={routines.routines} canManage={routines.can.manage} />
-                {routines.can.manage && <AddRoutine lang={lang} personId={p.id} today={routines.today} candidates={candidates} />}
+                {routines.can.manage && <AddRoutine lang={lang} personId={p.id} today={routines.today} candidates={candidates} routines={routines.routines} />}
               </>
             ) : (
               <p className={`${META} mt-4`}>{rc?.reason === "adult_private" ? t.routinesPrivate : t.routinesNoAccess}</p>
@@ -111,7 +111,7 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
 
           {goals && <FamilyGoals lang={lang} personId={p.id} data={goals} />}
 
-          {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} />}
+          {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} adult={p.kind === "adult"} />}
           {ics && <FamilyIcs lang={lang} personId={p.id} data={ics} />}
           {notes && notes.kinds.length > 0 && <FamilyNotes lang={lang} personId={p.id} data={notes} />}
 
