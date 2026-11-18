@@ -36,6 +36,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
   // Board reads for the 30 s live refresh (bus 82): JSON, only these paths, only a date/week query.
+  if (new RegExp(`^/tasks/${ID}$`).test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
     const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
     const key = q.has("week") ? "week" : "date";
@@ -67,7 +68,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g.actor, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|council-tasks/${ID}/done|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|council-tasks/${ID}/done|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
   return json(404, { error: "not_found" });
 }
 
@@ -83,7 +84,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ op: st
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations|goals|events|templates|sprint/goals)/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations|goals|events|templates|sprint/goals)/${ID}|plan/\\d{4}-\\d{2}-\\d{2}/tasks/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PATCH", path, g.actor);
 }
 

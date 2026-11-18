@@ -2,6 +2,9 @@
 // methods; authorisation lives in server.mjs/policy.mjs, not here.
 import { randomUUID } from "node:crypto";
 
+/** The timestamp column each state sets (a same-state update, like «Продолжаю», stamps nothing). */
+const STAMP = { approved: "approved_at", accepted: "accepted_at", in_progress: "started_at", done: "done_at", reviewed: "reviewed_at", declined: "declined_at", declined_by_adult: "declined_at" };
+
 export function pgStore(pool) {
   const q = (sql, args) => pool.query(sql, args);
   const audit = (actor, action, entity) => q("INSERT INTO audit (actor, action, entity) VALUES ($1, $2, $3)", [actor, action, entity]);
@@ -216,24 +219,27 @@ export function pgStore(pool) {
     async boardTasks(from, to) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date FROM task WHERE plan_date BETWEEN $1 AND $2 ORDER BY due_time NULLS LAST, created_at`, [from, to])).rows; },
     async boardTask(id) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date FROM task WHERE id = $1`, [id])).rows[0] ?? null; },
     async insertTask(t, actor) {
-      return (await q(`INSERT INTO task (id, plan_date, kind, origin, template_id, sprint_goal_id, carried_from, assignee_id, wrapped_key, title_ct, due_time, needs_review, state, approved_by, approved_at, created_by)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CASE WHEN $14::text IS NULL THEN NULL ELSE now() END, $15) ON CONFLICT DO NOTHING RETURNING id`,
-        [t.id, t.plan_date, t.kind, t.origin, t.template_id ?? null, t.sprint_goal_id ?? null, t.carried_from ?? null, t.assignee_id, t.wrapped_key, t.title_ct, t.due_time ?? null, Boolean(t.needs_review), t.state ?? "proposed", t.approved_by ?? null, actor])).rowCount === 1;
+      return (await q(`INSERT INTO task (id, plan_date, kind, origin, template_id, sprint_goal_id, carried_from, assignee_id, wrapped_key, title_ct, due_time, needs_review, state, approved_by, approved_at, created_by,
+                         co_ids, accountable_id, when_slot, estimate_min)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CASE WHEN $14::text IS NULL THEN NULL ELSE now() END, $15, $16, $17, $18, $19) ON CONFLICT DO NOTHING RETURNING id`,
+        [t.id, t.plan_date, t.kind, t.origin, t.template_id ?? null, t.sprint_goal_id ?? null, t.carried_from ?? null, t.assignee_id, t.wrapped_key, t.title_ct, t.due_time ?? null, Boolean(t.needs_review), t.state ?? "proposed", t.approved_by ?? null, actor,
+         t.co_ids ?? [], t.accountable_id ?? null, t.when_slot ?? null, t.estimate_min ?? null])).rowCount === 1;
     },
     /** Move only if the task is still in `from` (two taps never double-move); stamps the matching *_at column. */
     async moveTask(id, from, to, patch = {}) {
-      const stamp = { approved: "approved_at", accepted: "accepted_at", in_progress: "started_at", done: "done_at", reviewed: "reviewed_at", declined: "declined_at" }[to];
+      const stamp = from === to ? null : STAMP[to];
       const sets = ["state = $3", "updated_at = now()"], args = [id, from, to];
       if (stamp) sets.push(`${stamp} = now()`);
       for (const [k, v] of Object.entries(patch)) { args.push(v); sets.push(`${k} = $${args.length}`); }
       return (await q(`UPDATE task SET ${sets.join(", ")} WHERE id = $1 AND state = $2`, args)).rowCount === 1;
     },
-    async inProgressOf(personId) { return (await q(`SELECT id FROM task WHERE assignee_id = $1 AND state = 'in_progress'`, [personId])).rows[0] ?? null; },
+    async inProgressOf(personId) { return (await q(`SELECT id FROM task WHERE state = 'in_progress' AND (assignee_id = $1 OR $1 = ANY (co_ids))`, [personId])).rows[0] ?? null; },
+    async taskEvents(id) { return (await q(`SELECT type, actor, at FROM event WHERE ref = $1 AND type LIKE 'task.%' ORDER BY at, id`, [id])).rows; },
     async listTemplates() { return (await q(`SELECT *, to_char(dtstart, 'YYYY-MM-DD') AS dtstart FROM task_template WHERE archived_at IS NULL ORDER BY created_at`)).rows; },
     async getTemplate(id) { return (await q(`SELECT *, to_char(dtstart, 'YYYY-MM-DD') AS dtstart FROM task_template WHERE id = $1`, [id])).rows[0] ?? null; },
     async insertTemplate(t, actor) {
-      await q("INSERT INTO task_template (id, wrapped_key, title_ct, mask, dtstart, assignee_id, members, due_time, needs_review, active, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-        [t.id, t.wrapped_key, t.title_ct, t.mask, t.dtstart, t.assignee_id ?? null, t.members ?? null, t.due_time ?? null, Boolean(t.needs_review), Boolean(t.active), actor]);
+      await q("INSERT INTO task_template (id, wrapped_key, title_ct, mask, dtstart, assignee_id, members, due_time, needs_review, active, created_by, when_slot, estimate_min) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        [t.id, t.wrapped_key, t.title_ct, t.mask, t.dtstart, t.assignee_id ?? null, t.members ?? null, t.due_time ?? null, Boolean(t.needs_review), Boolean(t.active), actor, t.when_slot ?? null, t.estimate_min ?? null]);
       await audit(actor, "template.create", `template:${t.id}`);
     },
     async updateTemplate(id, p, actor) {
@@ -313,7 +319,7 @@ export function memoryStore() {
     async addCheck(routineId, date, done, actor) { checks.push({ routine_id: routineId, on_date: date, done, by_actor: actor }); },
     // ---- Stage 3a
     failEvents: false,
-    async emit(type, actor, subject = null, ref = null) { if (this.failEvents) throw new Error("event bus down"); events.push({ type, actor, subject_person_id: subject, ref }); },
+    async emit(type, actor, subject = null, ref = null) { if (this.failEvents) throw new Error("event bus down"); events.push({ type, actor, subject_person_id: subject, ref, at: now() }); },
     async listRules() { return [...rules.values()]; },
     async setRule(id, patch) { const r = rules.get(id); if (!r) return false; if (patch.enabled !== undefined) r.enabled = patch.enabled; if (patch.dry_run !== undefined) r.dry_run = patch.dry_run; return true; },
     async ruleRunCounts() { return []; },
@@ -363,21 +369,23 @@ export function memoryStore() {
     // ---- Stage 3c
     async boardTasks(from, to) { return [...btasks.values()].filter((t) => t.plan_date >= from && t.plan_date <= to); },
     async boardTask(id) { return btasks.get(id) ?? null; },
-    async insertTask(t) {
+    async insertTask(t, actor) {
       const all = [...btasks.values()];
       if ((t.template_id && all.some((x) => x.template_id === t.template_id && x.plan_date === t.plan_date)) || (t.carried_from && all.some((x) => x.carried_from === t.carried_from))) return false;
-      btasks.set(t.id, { ...t, state: t.state ?? "proposed", approved_at: t.approved_by ? now() : null, created_at: now() }); return true;
+      btasks.set(t.id, { co_ids: [], accountable_id: null, when_slot: null, estimate_min: null, ...t, state: t.state ?? "proposed", approved_at: t.approved_by ? now() : null, created_by: actor, created_at: now() }); return true;
     },
     async moveTask(id, from, to, patch = {}) {
       const t = btasks.get(id); if (!t || t.state !== from) return false;
-      if (to === "in_progress" && [...btasks.values()].some((x) => x.id !== id && x.assignee_id === t.assignee_id && x.state === "in_progress")) throw Object.assign(new Error("one in progress"), { code: "23505" });
-      const stamp = { approved: "approved_at", accepted: "accepted_at", in_progress: "started_at", done: "done_at", reviewed: "reviewed_at", declined: "declined_at" }[to];
+      const who = (x) => [x.assignee_id, ...(x.co_ids ?? [])], mine = who({ ...t, ...patch });
+      if (to === "in_progress" && [...btasks.values()].some((x) => x.id !== id && x.state === "in_progress" && who(x).some((p) => mine.includes(p)))) throw Object.assign(new Error("one in progress"), { code: "23505" });
+      const stamp = from === to ? null : STAMP[to];
       Object.assign(t, patch, { state: to }); if (stamp) t[stamp] = now(); return true;
     },
-    async inProgressOf(pid) { const t = [...btasks.values()].find((x) => x.assignee_id === pid && x.state === "in_progress"); return t ? { id: t.id } : null; },
+    async inProgressOf(pid) { const t = [...btasks.values()].find((x) => x.state === "in_progress" && (x.assignee_id === pid || (x.co_ids ?? []).includes(pid))); return t ? { id: t.id } : null; },
+    async taskEvents(id) { return events.filter((e) => e.ref === id && e.type.startsWith("task.")).map((e) => ({ type: e.type, actor: e.actor, at: e.at })); },
     async listTemplates() { return [...templates.values()].filter((t) => !t.archived_at); },
     async getTemplate(id) { return templates.get(id) ?? null; },
-    async insertTemplate(t) { templates.set(t.id, { ...t, active: Boolean(t.active), archived_at: null }); },
+    async insertTemplate(t, actor) { templates.set(t.id, { ...t, active: Boolean(t.active), archived_at: null, created_by: actor }); },
     async updateTemplate(id, p) { const t = templates.get(id); if (!t || t.archived_at) return false; for (const k of ["mask", "needs_review"]) if (p[k] !== undefined) t[k] = p[k]; if ("due_time" in p) t.due_time = p.due_time; if (p.archived) t.archived_at = now(); return true; },
     async activateTemplates(ids) { let n = 0; for (const t of templates.values()) if (!t.archived_at && !t.active && (!ids || ids.includes(t.id))) { t.active = true; n++; } return n; },
     async sprintGoals(week) { return [...sgoals.values()].filter((g) => g.week_start === week && !g.archived_at); },

@@ -60,7 +60,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [], myBoard = null, plan = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; plan?: OsBoard["plan"] | null }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [], myBoard = null, board = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; board?: OsBoard | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -69,7 +69,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} />
+        <FamilySubNav lang={lang} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
         <div className="max-w-4xl pb-8">
 
         {state.status !== "ok" ? (
@@ -80,7 +80,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
-            {myBoard && <TodayBoard lang={lang} data={myBoard} plan={plan} />}
+            {myBoard && <TodayBoard lang={lang} data={myBoard} board={board} me={state.me} routines={mine ? { done: mine.routines.filter((r) => r.due_today && r.done_today).length, total: mine.paused_today ? 0 : mine.routines.filter((r) => r.due_today).length } : null} />}
             {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} paused={mine.paused_today} />}
             {state.me && <TodayCouncil lang={lang} tasks={tasks} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}

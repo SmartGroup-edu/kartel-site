@@ -27,7 +27,7 @@ const T = {
   RU: {
     title: "Семейный совет", at: "в 19:00", week: "Неделя", prevAria: "Прошлый совет", nextAria: "Следующий совет", items: (d: number, n: number) => `Отмечено ${d} из ${n} пунктов распорядка и дел`, noItems: "На этой неделе пунктов распорядка не было.",
     prevTasks: "Задачи с прошлого совета", prevSummary: (d: number, o: number) => `Сделано: ${d} · в работе: ${o}`, noPrev: "Прошлых задач нет.",
-    notes: "Заметки совета", notesHint: "Что обсудили, что решили.", held: "Совет прошёл", save: "Сохранить", saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
+    notes: "Заметки совета", notesHint: "Что обсудили, что решили.", held: "Совет прошёл", save: "Сохранить", saveNotes: "Сохранить заметки", saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
     decisions: "Решения", none: "Решений пока нет.", add: "Добавить решение", what: "Что сделать", who: "Кто отвечает", due: "К какому дню", addBtn: "Добавить",
     done: "Сделано", inWork: "В работе", markDone: "Отметить сделанным", reopen: "Вернуть в работу", prev: "← Прошлый", next: "Следующий →", notMember: "Совет видят члены семьи.",
     readOnly: "Заметки и решения ведут взрослые.", heldLater: "Отметить можно с 19:00 в день совета.",
@@ -36,7 +36,7 @@ const T = {
   EN: {
     title: "Family council", at: "at 19:00", week: "Week", prevAria: "Previous council", nextAria: "Next council", items: (d: number, n: number) => `${d} of ${n} routine and chore items ticked`, noItems: "No routine items this week.",
     prevTasks: "Tasks from the last council", prevSummary: (d: number, o: number) => `Done: ${d} · in progress: ${o}`, noPrev: "No earlier tasks.",
-    notes: "Council notes", notesHint: "What was discussed and decided.", held: "The council took place", save: "Save", saved: "Saved.", error: "Could not save — please try again.",
+    notes: "Council notes", notesHint: "What was discussed and decided.", held: "The council took place", save: "Save", saveNotes: "Save the notes", saved: "Saved.", error: "Could not save — please try again.",
     decisions: "Decisions", none: "No decisions yet.", add: "Add a decision", what: "What to do", who: "Who is responsible", due: "By when", addBtn: "Add",
     done: "Done", inWork: "In progress", markDone: "Mark as done", reopen: "Back to in progress", prev: "← Previous", next: "Next →", notMember: "The council is for family members.",
     readOnly: "Adults keep the notes and decisions.", heldLater: "You can mark it from 19:00 on the council day.",
@@ -148,25 +148,38 @@ function TaskList({ lang, tasks, nameOf, me }: { lang: Lang; tasks: OsTask[]; na
 function Notes({ t, date, notes, held, canWrite, canMarkHeld }: { t: Dict; date: string; notes: string; held: boolean; canWrite: boolean; canMarkHeld: boolean }) {
   const router = useRouter();
   const [text, setText] = useState(notes);
+  const [savedText, setSavedText] = useState(notes);
   const [isHeld, setHeld] = useState(held);
   const [msg, setMsg] = useState("");
+  const [heldMsg, setHeldMsg] = useState("");
+  // bus 83 L2: the notes button saves the notes only; «Совет прошёл» is its own row and saves itself.
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = await send("PUT", `council/${date}`, { notes: text, held: isHeld });
-    setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh();
+    setMsg(r?.ok ? t.saved : t.error); if (r?.ok) { setSavedText(text); router.refresh(); }
+  };
+  const toggleHeld = async (next: boolean) => {
+    setHeld(next); setHeldMsg("");
+    const r = await send("PUT", `council/${date}`, { notes: savedText, held: next });
+    if (!r?.ok) { setHeld(!next); setHeldMsg(t.error); } else { setHeldMsg(t.saved); router.refresh(); }
   };
   return (
     <section aria-labelledby="notes-h" className="mt-10">
       <h2 id="notes-h" className="font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">{t.notes}</h2>
       {canWrite ? (
-        <form onSubmit={save} className="mt-3 grid gap-3">
-          <label className={label}>{t.notesHint}
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={8000} rows={6} className={`${field} min-h-32`} />
-          </label>
-          <label className={`flex min-h-11 items-center gap-3 text-[16px] ${canMarkHeld ? "cursor-pointer text-[var(--foreground)]" : "text-[var(--muted)]"}`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={isHeld} disabled={!canMarkHeld} onChange={(e) => setHeld(e.target.checked)} />{t.held}</label>
-          {!canMarkHeld && <p className="-mt-2 text-[14px] text-[var(--muted)]">{t.heldLater}</p>}
-          <div className="flex items-center gap-3"><button type="submit" className={primary}>{t.save}</button><span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span></div>
-        </form>
+        <>
+          <form onSubmit={save} className="mt-3 grid gap-3">
+            <label className={label}>{t.notesHint}
+              <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={8000} rows={6} className={`${field} min-h-32`} />
+            </label>
+            <div className="flex items-center gap-3"><button type="submit" className={primary}>{t.saveNotes}</button><span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span></div>
+          </form>
+          <div data-held-row="" className="mt-5 border-t border-[var(--border)] pt-4">
+            <label className={`flex min-h-11 items-center gap-3 text-[16px] ${canMarkHeld ? "cursor-pointer text-[var(--foreground)]" : "text-[var(--muted)]"}`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={isHeld} disabled={!canMarkHeld} onChange={(e) => toggleHeld(e.target.checked)} />{t.held}</label>
+            {!canMarkHeld && <p className="text-[14px] text-[var(--muted)]">{t.heldLater}</p>}
+            <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{heldMsg}</span>
+          </div>
+        </>
       ) : (
         <>
           {notes ? <p className="mt-3 whitespace-pre-line text-[16px] leading-[1.6] text-[var(--foreground)]">{notes}</p> : null}

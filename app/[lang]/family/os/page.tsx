@@ -28,5 +28,5 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
     ok && state.me ? getMyBoard(session) : Promise.resolve(null),
     ok && state.me ? getBoard(session) : Promise.resolve(null),
   ]);
-  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} tasks={tasks} myBoard={myBoard} plan={board?.plan ?? null} />;
+  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} tasks={tasks} myBoard={myBoard} board={board} />;
 }

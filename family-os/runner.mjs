@@ -29,8 +29,11 @@ const kek = parseMasterKey(await readFile(process.env.FAMILY_OS_MASTER_KEY_FILE 
 const board = await boardTick(now, pgStore(pool), kek);
 const boardCounts = { tomorrow: (await q("SELECT count(*)::int AS n FROM task WHERE plan_date = $1::date + 1 AND state = 'proposed'", [date]))[0].n,
   tomorrowApproved: (await q("SELECT 1 FROM plan_approval WHERE plan_date = $1::date + 1", [date])).length > 0,
-  declined: (await q("SELECT count(*)::int AS n FROM task WHERE plan_date >= $1 AND state = 'declined'", [date]))[0].n,
-  newByPerson: new Map((await q("SELECT assignee_id, count(*)::int AS n FROM task WHERE plan_date = $1 AND state = 'approved' GROUP BY assignee_id", [date])).map((r) => [r.assignee_id, r.n])) };
+  // «Нужно решение» (bus 83 §2): declined, or a child's task of today still not accepted (the 19:00 note is past 12:00).
+  declined: (await q(`SELECT count(*)::int AS n FROM task t JOIN person p ON p.id = t.assignee_id
+                      WHERE (t.plan_date <= $1 AND t.state = 'declined') OR (t.plan_date = $1 AND t.state = 'approved' AND p.kind = 'child')`, [date]))[0].n,
+  // a joint task is new for every participant
+  newByPerson: new Map((await q("SELECT pid, count(*)::int AS n FROM task, unnest(ARRAY[assignee_id] || co_ids) AS pid WHERE plan_date = $1 AND state = 'approved' GROUP BY pid", [date])).map((r) => [r.pid, r.n])) };
 const [people, grants, routines, rotations, pauses, checks, rotationChecks, documents, prefRows, ruleRows, ledgerRows, sentRows] = await Promise.all([
   q("SELECT id, email, name_en, name_ru, kind FROM person"),
   q("SELECT guardian_id, child_id, relation, scopes, revoked_at FROM guardian_grant WHERE revoked_at IS NULL"),

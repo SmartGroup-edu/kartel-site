@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
   canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
 import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
-import { canMove, nextState, isParent, progress, sprintProgress, validMask, CARRY_TIME, PLAN_TIME } from "./board.mjs";
+import { canMove, nextState, isParent, progress, sprintProgress, validMask, participants, needsDecision, nudgeDue, sortMinute, DECLINE_CODES, WHEN_SLOTS, MAX_PARTICIPANTS, CARRY_TIME, PLAN_TIME } from "./board.mjs";
 import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
@@ -768,61 +768,120 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 200, { ok: true });
     }
 
-    // ================= Stage 3c: family board (bus 82) =================
+    // ================= Stage 3c: family board (bus 82, amended by 83 and 84) =================
     const sealTitle = (scope, id, title) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `${scope}:${id}`) }; } finally { dek.fill(0); } };
     const openWith = (scope, row, field, aad) => { if (!row[field]) return ""; const k = unwrapDataKey(kek, row.wrapped_key, scope, row.id); try { return open(k, row[field], aad).toString("utf8"); } finally { k.fill(0); } };
     const ageOf = (p) => { const b = p?.birth_date ? String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date) : null; if (!b) return null;
       const t = localDate(clock()); let a = Number(t.slice(0, 4)) - Number(b.slice(0, 4)); if (t.slice(5) < b.slice(5)) a--; return a; };
-    /** A task as the board shows it. Decline reasons and rework notes only to parents (and rework to the assignee). */
-    const taskView = (t, viewer, parent) => ({
-      id: t.id, plan_date: t.plan_date, title: openWith("task", t, "title_ct", `task:${t.id}`), kind: t.kind, origin: t.origin, assignee_id: t.assignee_id, state: t.state,
-      due_time: t.due_time, needs_review: t.needs_review, sprint_goal_id: t.sprint_goal_id, started_at: t.started_at ?? null, done_at: t.done_at ?? null,
-      ...(parent && t.decline_ct ? { decline_reason: openWith("task", t, "decline_ct", `decline:${t.id}`) } : {}),
-      ...((parent || viewer?.id === t.assignee_id) && t.rework_ct ? { rework_note: openWith("task", t, "rework_ct", `rework:${t.id}`) } : {}),
+    /** Who did a step, as the board can show it: a member's id, never an email. */
+    const actorRef = (people, actor) => (!actor ? null : actor === "auto" ? "auto" : String(actor).startsWith("system:") ? "system" : people.find((x) => x.email === actor)?.id ?? "admin");
+    const hhmmOf = (at) => (at ? localParts(new Date(at)).hhmm : null);
+    /** A task as the board shows it. Decline reasons: parents only. Rework notes: the participants only. */
+    const taskView = (t, viewer, parent, people) => ({
+      id: t.id, plan_date: t.plan_date, title: openWith("task", t, "title_ct", `task:${t.id}`), kind: t.kind, origin: t.origin, assignee_id: t.assignee_id, co_ids: t.co_ids ?? [], accountable_id: t.accountable_id ?? null,
+      state: t.state, due_time: t.due_time, when_slot: t.when_slot ?? null, estimate_min: t.estimate_min ?? null, needs_review: t.needs_review, sprint_goal_id: t.sprint_goal_id,
+      started_at: t.started_at ?? null, done_at: t.done_at ?? null, reviewed_by: t.reviewed_by ? actorRef(people, t.reviewed_by) : null,
+      ...(parent && t.decline_code ? { decline_code: t.decline_code, decline_reason: t.decline_ct ? openWith("task", t, "decline_ct", `decline:${t.id}`) : "" } : {}),
+      ...(viewer && participants(t).includes(viewer.id) && t.rework_ct ? { rework_note: openWith("task", t, "rework_ct", `rework:${t.id}`) } : {}),
     });
     const ON_BOARD = ["approved", "accepted", "in_progress", "done", "reviewed", "declined"];
+    const byMinute = (a, b) => sortMinute(a) - sortMinute(b);
+    /** Validated task input for ad-hoc, sprint and edits: one assignee, up to 3 people together, a time OR a slot, an optional estimate. */
+    const taskInput = async (b) => {
+      const title = text(b?.title, 160), who2 = UUID_RE.test(b?.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
+      const co = Array.isArray(b?.co_ids) ? b.co_ids : [];
+      if (!title || !who2 || co.length > MAX_PARTICIPANTS - 1 || new Set(co).size !== co.length || co.includes(who2.id) || !co.every((x) => UUID_RE.test(x))) return null;
+      for (const c of co) if (!(await store.getPerson(c))) return null;
+      if ((b?.due_time && !TIME_RE.test(String(b.due_time))) || (b?.when_slot && !(b.when_slot in WHEN_SLOTS))) return null;
+      const est = b?.estimate_min === undefined || b?.estimate_min === null || b?.estimate_min === "" ? null : Number(b.estimate_min);
+      if (est !== null && !(Number.isInteger(est) && est >= 1 && est <= 600)) return null;
+      return { title, assignee_id: who2.id, co_ids: co, due_time: b.due_time || null, when_slot: b.due_time ? null : b.when_slot || null, estimate_min: est, needs_review: Boolean(b.needs_review) };
+    };
+    /** A child's routines today, as one count — for the child and guardians with "routines" only. */
+    const routineSummary = async (subject, today) => {
+      const [rows, pauses, rots] = await Promise.all([store.listRoutines(subject.id), store.listPauses(subject.id), store.listRotations()]);
+      if (pausedOn(pauses, subject.id, today)) return { done: 0, total: 0 };
+      const checks = await store.listChecks(rows.map((r) => r.id), addDays(today, -2));
+      const myRots = rots.filter((x) => x.members.includes(subject.id)), rchecks = await store.listRotationChecks(myRots.map((x) => x.id), addDays(today, -2));
+      const items = [...rows.map((r) => routineView(r, checks, today, 1)), ...myRots.map((x) => rotationView(x, subject.id, rchecks, today, 1))].filter((x) => x.due_today);
+      return { done: items.filter((x) => x.done_today).length, total: items.length };
+    };
 
-    // GET /board?date= — every family task of the day (never routines, goals or notes), who is doing what,
-    // the day's progress; for parents also «Нужно решение», tomorrow's plan status and (from 21:00) carry-over.
+    // GET /board?date= — every family task of the day (never routines, goals or notes), who is doing what, the day's
+    // progress (a joint task counts once), the approval stamp; a child's routine count only to the child and their
+    // routines guardians; for parents also «Нужно решение», tomorrow's plan status and (from 21:00) carry-over.
     if (req.method === "GET" && path === "/board") {
       if (!me) return reply(res, 403, { error: "not_a_member" });
       const lp = localParts(clock()), today = lp.date, q = url.searchParams.get("date"), date = q && DATE_RE.test(q) ? q : today;
       const grants = await grantsNow(), parent = isParent(me, grants), tomorrow = addDays(date, 1), week = weekStart(date);
-      const [people, rows, goals, weekRows, approval] = await Promise.all([store.listPeople(), store.boardTasks(date, tomorrow), store.sprintGoals(week), store.boardTasks(week, addDays(week, 6)), store.planApproval(tomorrow)]);
-      const day = rows.filter((t) => t.plan_date === date && ON_BOARD.includes(t.state)).map((t) => taskView(t, me, parent));
-      const members = people.map((p) => {
-        const mine = day.filter((t) => t.assignee_id === p.id), cur = mine.find((t) => t.state === "in_progress");
-        return { id: p.id, name_en: p.name_en, name_ru: p.name_ru, kind: p.kind, current: cur ? { id: cur.id, title: cur.title, started_at: cur.started_at, kind: cur.kind } : null,
+      const [people, rows, goals, weekRows, approval, approvalToday, ahead] = await Promise.all([store.listPeople(), store.boardTasks(date, tomorrow), store.sprintGoals(week),
+        store.boardTasks(week, addDays(week, 6)), store.planApproval(tomorrow), store.planApproval(date), store.boardTasks(tomorrow, addDays(date, 7))]);
+      const personOf = (id) => people.find((x) => x.id === id);
+      const day = rows.filter((t) => t.plan_date === date && ON_BOARD.includes(t.state)).sort(byMinute).map((t) => taskView(t, me, parent, people));
+      const members = [];
+      for (const p of people) {
+        const mine = day.filter((t) => participants(t).includes(p.id)), cur = mine.find((t) => t.state === "in_progress");
+        const m = { id: p.id, name_en: p.name_en, name_ru: p.name_ru, kind: p.kind, current: cur ? { id: cur.id, title: cur.title, started_at: cur.started_at, kind: cur.kind, co_ids: participants(cur).filter((x) => x !== p.id) } : null,
           waiting: mine.filter((t) => t.state === "approved").length, done: mine.filter((t) => t.state === "done" || t.state === "reviewed").length, total: mine.length };
-      });
+        if (!m.total) {
+          const nx = ahead.filter((t) => ["approved", "accepted"].includes(t.state) && t.plan_date > date && participants(t).includes(p.id)).sort((a, b) => a.plan_date.localeCompare(b.plan_date) || byMinute(a, b))[0];
+          if (nx) m.next = { date: nx.plan_date, title: openWith("task", nx, "title_ct", `task:${nx.id}`), due_time: nx.due_time, when_slot: nx.when_slot ?? null };
+        }
+        if (p.kind === "child" && routineAccess(me, p, grants).read) {
+          if (me.id !== p.id && !(await logged(res, { actor: who.email, subject: p.id, entity: "routines:summary", action: "read" }))) return;
+          m.routines = await routineSummary(p, date);
+        }
+        members.push(m);
+      }
       const proposedTomorrow = rows.filter((t) => t.plan_date === tomorrow && t.state === "proposed").length;
-      return reply(res, 200, { date, today, now: lp.hhmm, members, tasks: day, progress: progress(day), can: { approve: parent, sprint: canWriteCouncil(me) },
+      const stamp = approvalToday ? { auto: Boolean(approvalToday.auto), by: approvalToday.auto ? "auto" : actorRef(people, approvalToday.approved_by), at: hhmmOf(approvalToday.at) } : null;
+      return reply(res, 200, { date, today, now: lp.hhmm, members, tasks: day, progress: progress(day), approval: stamp, can: { approve: parent, sprint: canWriteCouncil(me) },
         sprint: { week_start: week, goals: sprintProgress(goals, weekRows) },
         ...(parent ? {
-          needs_decision: rows.filter((t) => t.state === "declined").map((t) => taskView(t, me, true)),
+          needs_decision: rows.filter((t) => t.plan_date <= today && needsDecision(t, personOf(t.assignee_id), today, lp.hhmm))
+            .map((t) => ({ ...taskView(t, me, true, people), why: t.state === "declined" ? "declined" : "not_accepted" })),
           plan: { date: tomorrow, proposed: proposedTomorrow, approved: Boolean(approval), auto: Boolean(approval?.auto), ready: lp.hhmm >= PLAN_TIME || proposedTomorrow > 0 },
           carry_offer: date === today && lp.hhmm >= CARRY_TIME ? day.filter((t) => ["approved", "accepted", "in_progress"].includes(t.state)) : [],
         } : {}) });
     }
 
-    // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»
+    // GET /tasks/:id — the drawer: facts and the history, for anyone who can see the board.
+    const tgm = path.match(/^\/tasks\/([^/]+)$/);
+    if (tgm && req.method === "GET") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const t = UUID_RE.test(tgm[1]) ? await store.boardTask(tgm[1]) : null;
+      if (!t || !ON_BOARD.includes(t.state) && t.state !== "proposed") return reply(res, 404, { error: "not_found" });
+      const grants = await grantsNow(), parent = isParent(me, grants);
+      if (t.state === "proposed" && !parent) return reply(res, 404, { error: "not_found" });
+      const [people, evs] = await Promise.all([store.listPeople(), store.taskEvents(t.id)]);
+      const STEP = { "task.approved": "approved", "task.accepted": "accepted", "task.in_progress": "started", "task.done": "done", "task.reviewed": "reviewed", "task.declined": "declined",
+        "task.paused": "paused", "task.edited": "edited", "task.carried_over": "carried_over", "task.cancelled": "cancelled", "task.continued": "continued" };
+      const history = [{ step: "proposed", origin: t.origin, at: t.created_at, by: actorRef(people, t.created_by) }];
+      if (t.approved_by === "auto" && t.approved_at) history.push({ step: "approved", at: t.approved_at, by: "auto" });
+      for (const e of evs) if (STEP[e.type] && !(e.type === "task.approved" && t.approved_by === "auto")) history.push({ step: STEP[e.type], at: e.at, by: actorRef(people, e.actor) });
+      history.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      return reply(res, 200, { task: taskView(t, me, parent, people), history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+    }
+
+    // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»; the quiet nudge only here, only to participants
     if (req.method === "GET" && path === "/my-tasks") {
       if (!me) return reply(res, 200, { new: [], mine: [] });
-      const today = localDate(clock()), rows = (await store.boardTasks(today, today)).filter((t) => t.assignee_id === me.id);
-      const v = (t) => taskView(t, me, false);
+      const today = localDate(clock()), [people, all] = await Promise.all([store.listPeople(), store.boardTasks(today, today)]);
+      const rows = all.filter((t) => participants(t).includes(me.id)).sort(byMinute), nowMs = clock().getTime();
+      const v = (t) => ({ ...taskView(t, me, false, people), ...(nudgeDue(t, nowMs) ? { nudge: true } : {}) });
       return reply(res, 200, { today, new: rows.filter((t) => t.state === "approved").map(v), mine: rows.filter((t) => ["accepted", "in_progress", "done", "reviewed", "declined"].includes(t.state)).map(v) });
     }
-    // POST /tasks/accept-all — every approved task of today assigned to me
+    // POST /tasks/accept-all — every approved task of today I take part in
     if (req.method === "POST" && path === "/tasks/accept-all") {
       if (!me) return reply(res, 403, { error: "not_a_member" });
       const today = localDate(clock()); let n = 0;
-      for (const t of (await store.boardTasks(today, today)).filter((x) => x.assignee_id === me.id && x.state === "approved"))
-        if (await store.moveTask(t.id, "approved", "accepted")) { n++; await emit("task.accepted", me.id, t.id); }
+      for (const t of (await store.boardTasks(today, today)).filter((x) => participants(x).includes(me.id) && x.state === "approved"))
+        if (await store.moveTask(t.id, "approved", "accepted")) { n++; await emit("task.accepted", t.assignee_id, t.id); }
       return reply(res, 200, { accepted: n });
     }
 
-    // POST /tasks/:id/:action — accept · decline{reason} · start{pause_other} · done · review · rework{note} · reassign{assignee_id} · cancel · carry
-    const tam = path.match(/^\/tasks\/([^/]+)\/(accept|decline|start|done|review|rework|reassign|cancel|carry)$/);
+    // POST /tasks/:id/:action — accept · decline{code, text?} · start{pause_other} · done · continue · review · rework{note} · reassign{assignee_id} · cancel · carry
+    const tam = path.match(/^\/tasks\/([^/]+)\/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)$/);
     if (tam && req.method === "POST") {
       const t = UUID_RE.test(tam[1]) ? await store.boardTask(tam[1]) : null;
       if (!t) return reply(res, 404, { error: "not_found" });
@@ -831,70 +890,99 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (why) return reply(res, why === "bad_state" ? 409 : 403, { error: why === "bad_state" ? "bad_state" : "forbidden", reason: why });
       const b = json(body) ?? {}, patch = {};
       const sealNote = (field, aad, txt) => { const k = unwrapDataKey(kek, t.wrapped_key, "task", t.id); try { patch[field] = seal(k, Buffer.from(txt), aad); } finally { k.fill(0); } };
-      if (action === "decline") { const r = typeof b.reason === "string" ? b.reason.trim() : ""; if (!r || r.length > 140) return reply(res, 400, { error: "bad_reason" }); sealNote("decline_ct", `decline:${t.id}`, r); }
+      if (action === "decline") {
+        const code = DECLINE_CODES.includes(b.code) ? b.code : null, r = typeof b.text === "string" ? b.text.trim() : "";
+        if (!code || (code === "other" && (!r || r.length > 140)) || (code !== "other" && r)) return reply(res, 400, { error: "bad_reason" });
+        patch.decline_code = code; if (code === "other") sealNote("decline_ct", `decline:${t.id}`, r);
+      }
       if (action === "rework") { const r = typeof b.note === "string" ? b.note.trim() : ""; if (r.length > 140) return reply(res, 400, { error: "bad_note" }); if (r) sealNote("rework_ct", `rework:${t.id}`, r); }
+      if (action === "review") patch.reviewed_by = who.email;
+      if (action === "continue") patch.continued_at = clock().toISOString();
       if (action === "reassign") {
         const to = UUID_RE.test(b.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
         if (!to) return reply(res, 400, { error: "bad_assignee" });
-        patch.assignee_id = to.id; patch.decline_ct = null;
+        patch.assignee_id = to.id; patch.co_ids = (t.co_ids ?? []).filter((x) => x !== to.id); patch.decline_ct = null; patch.decline_code = null;
       }
       if (action === "start") {
-        const cur = await store.inProgressOf(t.assignee_id);
-        if (cur && cur.id !== t.id) {
+        // The person starting is me (a participant), or the child a parent starts for. Their running task may be paused;
+        // another participant's running task is never touched — they finish or pause it themselves.
+        const starter = participants(t).includes(me.id) ? me.id : t.assignee_id;
+        for (const pid of participants(t)) {
+          const cur = await store.inProgressOf(pid);
+          if (!cur || cur.id === t.id) continue;
+          if (pid !== starter) return reply(res, 409, { error: "participant_busy", person_id: pid });
           if (b.pause_other !== true) { const o = await store.boardTask(cur.id); return reply(res, 409, { error: "one_in_progress", task_id: cur.id, title: openWith("task", o, "title_ct", `task:${o.id}`) }); }
-          await store.moveTask(cur.id, "in_progress", "accepted"); await emit("task.paused", t.assignee_id, cur.id);
+          await store.moveTask(cur.id, "in_progress", "accepted"); await emit("task.paused", pid, cur.id);
         }
       }
       if (action === "carry") {
         const id = randomUUID(), title = openWith("task", t, "title_ct", `task:${t.id}`);
-        await store.insertTask({ id, plan_date: addDays(t.plan_date, 1), kind: t.kind, origin: "carry", sprint_goal_id: t.sprint_goal_id, carried_from: t.id, assignee_id: t.assignee_id,
-          ...sealTitle("task", id, title), due_time: t.due_time, needs_review: t.needs_review, state: "proposed" }, who.email);
+        await store.insertTask({ id, plan_date: addDays(t.plan_date, 1), kind: t.kind, origin: "carry", sprint_goal_id: t.sprint_goal_id, carried_from: t.id, assignee_id: t.assignee_id, co_ids: t.co_ids ?? [],
+          accountable_id: t.accountable_id ?? null, ...sealTitle("task", id, title), due_time: t.due_time, when_slot: t.when_slot ?? null, estimate_min: t.estimate_min ?? null, needs_review: t.needs_review, state: "proposed" }, who.email);
       }
-      const to = nextState(action, t);
+      const to = nextState(action, t, assignee), subject = t.assignee_id;
       let moved;
       try { moved = await store.moveTask(t.id, t.state, to, patch); }
       catch (e) { if (e?.code === "23505") return reply(res, 409, { error: "one_in_progress" }); throw e; }
       if (!moved) return reply(res, 409, { error: "bad_state", reason: "changed" });
-      await emit(`task.${to}`, t.assignee_id, t.id);
+      await emit(action === "continue" ? "task.continued" : `task.${to}`, subject, t.id);
       return reply(res, 200, { ok: true, state: to });
     }
 
-    // GET /plan?date= (parents) — the proposed set for a day · POST /plan/:date/build · PUT /plan/:date (approve) · POST /plan/:date/tasks (add)
-    const pm2 = path.match(/^\/plan\/(\d{4}-\d{2}-\d{2})(\/build|\/tasks)?$/);
+    // Plan (parents): GET /plan?date= · POST /plan/:date/build · PUT /plan/:date (approve; the first approval wins) ·
+    // POST /plan/:date/tasks (add) · PATCH /plan/:date/tasks/:id («Изменить» after approval: logged, only the affected assignees are told)
+    const pm2 = path.match(/^\/plan\/(\d{4}-\d{2}-\d{2})(\/build|\/tasks(?:\/([^/]+))?)?$/);
     if ((req.method === "GET" && path === "/plan") || pm2) {
       const grants = await grantsNow();
       if (!isParent(me, grants)) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
       const today = localDate(clock());
       const date = pm2 ? pm2[1] : (DATE_RE.test(url.searchParams.get("date") ?? "") ? url.searchParams.get("date") : addDays(today, 1));
       if (date < today) return reply(res, 400, { error: "past" });
+      const people = await store.listPeople();
+      const stampOf = (a) => (a ? { auto: Boolean(a.auto), by: a.auto ? "auto" : actorRef(people, a.approved_by), at: hhmmOf(a.at) } : null);
       if (req.method === "GET") {
         const [rows, approval] = await Promise.all([store.boardTasks(date, date), store.planApproval(date)]);
-        return reply(res, 200, { date, approval: approval ? { auto: approval.auto } : null, tasks: rows.filter((t) => t.state === "proposed").map((t) => taskView(t, me, true)) });
+        const states = approval ? ["proposed", "approved", "accepted"] : ["proposed"];
+        return reply(res, 200, { date, approval: stampOf(approval), tasks: rows.filter((t) => states.includes(t.state)).sort(byMinute).map((t) => taskView(t, me, true, people)) });
       }
       if (req.method === "POST" && pm2[2] === "/build") return reply(res, 200, await buildDayPlan(store, kek, date, who.email));
       if (req.method === "POST" && pm2[2] === "/tasks") {
-        const b = json(body), title = text(b?.title, 160), who2 = UUID_RE.test(b?.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
-        if (!title || !who2 || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_task" });
+        const inp = await taskInput(json(body));
+        if (!inp) return reply(res, 400, { error: "bad_task" });
         const id = randomUUID(), approved = Boolean(await store.planApproval(date));
-        await store.insertTask({ id, plan_date: date, kind: "oneoff", origin: "adhoc", assignee_id: who2.id, ...sealTitle("task", id, title), due_time: b.due_time || null, needs_review: Boolean(b.needs_review),
+        await store.insertTask({ id, plan_date: date, kind: "oneoff", origin: "adhoc", ...inp, accountable_id: me.id, ...sealTitle("task", id, inp.title),
           state: approved ? "approved" : "proposed", approved_by: approved ? who.email : null }, who.email);
-        await emit("task.created", who2.id, id);
+        await emit("task.created", inp.assignee_id, id);
         return reply(res, 201, { id, state: approved ? "approved" : "proposed" });
+      }
+      if (req.method === "PATCH" && pm2[3]) {
+        const t = UUID_RE.test(pm2[3]) ? await store.boardTask(pm2[3]) : null, b = json(body) ?? {};
+        if (!t || t.plan_date !== date || !["proposed", "approved", "accepted"].includes(t.state)) return reply(res, 404, { error: "not_found" });
+        if (b.include === false) { if (!(await store.moveTask(t.id, t.state, "cancelled"))) return reply(res, 409, { error: "bad_state" }); await emit("task.cancelled", t.assignee_id, t.id); return reply(res, 200, { ok: true, state: "cancelled" }); }
+        const patch = {};
+        if (b.assignee_id !== undefined && b.assignee_id !== t.assignee_id) { if (!UUID_RE.test(b.assignee_id) || !(await store.getPerson(b.assignee_id))) return reply(res, 400, { error: "bad_assignee" }); patch.assignee_id = b.assignee_id; patch.co_ids = (t.co_ids ?? []).filter((x) => x !== b.assignee_id); }
+        if ("due_time" in b) { if (b.due_time && !TIME_RE.test(String(b.due_time))) return reply(res, 400, { error: "bad_time" }); patch.due_time = b.due_time || null; if (b.due_time) patch.when_slot = null; }
+        // A new assignee has to accept again; a time change keeps the state.
+        const to = patch.assignee_id && t.state === "accepted" ? "approved" : t.state, was = t.assignee_id;
+        if (!(await store.moveTask(t.id, t.state, to, patch))) return reply(res, 409, { error: "bad_state" });
+        for (const pid of new Set([was, patch.assignee_id].filter(Boolean))) await emit("task.edited", pid, t.id);
+        return reply(res, 200, { ok: true, state: to });
       }
       if (req.method === "PUT" && !pm2[2]) {
         const items = Array.isArray(json(body)?.items) ? json(body).items : null;
         if (!items) return reply(res, 400, { error: "bad_plan" });
+        // The first approval wins: claim the day before moving anything; the second parent gets the stamp back.
+        if (!(await store.approvePlan(date, who.email, false))) return reply(res, 409, { error: "already_approved", approval: stampOf(await store.planApproval(date)) });
         let approved = 0, skipped = 0;
         for (const it of items) {
           const t = UUID_RE.test(it?.id ?? "") ? await store.boardTask(it.id) : null;
           if (!t || t.plan_date !== date || t.state !== "proposed") continue;
           if (it.include === false) { if (await store.moveTask(t.id, "proposed", "cancelled")) skipped++; continue; }
-          const patch = { approved_by: who.email };
-          if (it.assignee_id && it.assignee_id !== t.assignee_id) { if (!UUID_RE.test(it.assignee_id) || !(await store.getPerson(it.assignee_id))) return reply(res, 400, { error: "bad_assignee" }); patch.assignee_id = it.assignee_id; }
-          if ("due_time" in (it ?? {})) { if (it.due_time && !TIME_RE.test(String(it.due_time))) return reply(res, 400, { error: "bad_time" }); patch.due_time = it.due_time || null; }
+          const patch = { approved_by: who.email, accountable_id: me.id };
+          if (it.assignee_id && it.assignee_id !== t.assignee_id && UUID_RE.test(it.assignee_id) && (await store.getPerson(it.assignee_id))) { patch.assignee_id = it.assignee_id; patch.co_ids = (t.co_ids ?? []).filter((x) => x !== it.assignee_id); }
+          if ("due_time" in (it ?? {}) && (!it.due_time || TIME_RE.test(String(it.due_time)))) { patch.due_time = it.due_time || null; if (it.due_time) patch.when_slot = null; }
           if (await store.moveTask(t.id, "proposed", "approved", patch)) { approved++; await emit("task.approved", patch.assignee_id ?? t.assignee_id, t.id); }
         }
-        await store.approvePlan(date, who.email, false);
         await emit("plan.approved", null, date);
         return reply(res, 200, { approved, skipped });
       }
@@ -911,14 +999,16 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         const n = await store.activateTemplates(ids, who.email); await emit("template.activated", null, String(n));
         return reply(res, 200, { activated: n });
       }
-      if (req.method === "GET" && !tpm[1]) return reply(res, 200, { templates: (await store.listTemplates()).map((t) => ({ id: t.id, title: openWith("template", t, "title_ct", `template:${t.id}`), mask: t.mask, dtstart: t.dtstart, assignee_id: t.assignee_id, members: t.members, due_time: t.due_time, needs_review: t.needs_review, active: t.active })) });
+      if (req.method === "GET" && !tpm[1]) return reply(res, 200, { templates: (await store.listTemplates()).map((t) => ({ id: t.id, title: openWith("template", t, "title_ct", `template:${t.id}`), mask: t.mask, dtstart: t.dtstart, assignee_id: t.assignee_id, members: t.members, due_time: t.due_time, when_slot: t.when_slot ?? null, estimate_min: t.estimate_min ?? null, needs_review: t.needs_review, active: t.active })) });
       if (req.method === "POST" && !tpm[1]) {
         const b = json(body), title = text(b?.title, 160), members = Array.isArray(b?.members) ? b.members : null;
         const okWho = members ? members.length >= 2 && members.length <= 8 && new Set(members).size === members.length && members.every((m) => UUID_RE.test(m)) : UUID_RE.test(b?.assignee_id ?? "");
-        if (!title || !validMask(b?.mask) || !okWho || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_template" });
+        const est = b?.estimate_min === undefined || b?.estimate_min === null || b?.estimate_min === "" ? null : Number(b.estimate_min);
+        if (!title || !validMask(b?.mask) || !okWho || (b?.due_time && !TIME_RE.test(String(b.due_time))) || (b?.when_slot && !(b.when_slot in WHEN_SLOTS))
+          || (est !== null && !(Number.isInteger(est) && est >= 1 && est <= 600))) return reply(res, 400, { error: "bad_template" });
         for (const pid of members ?? [b.assignee_id]) if (!(await store.getPerson(pid))) return reply(res, 400, { error: "bad_template" });
         const id = randomUUID();
-        await store.insertTemplate({ id, ...sealTitle("template", id, title), mask: b.mask, dtstart: localDate(clock()), assignee_id: members ? null : b.assignee_id, members, due_time: b.due_time || null, needs_review: Boolean(b.needs_review), active: b.active !== false }, who.email);
+        await store.insertTemplate({ id, ...sealTitle("template", id, title), mask: b.mask, dtstart: localDate(clock()), assignee_id: members ? null : b.assignee_id, members, due_time: b.due_time || null, when_slot: b.due_time ? null : b.when_slot || null, estimate_min: est, needs_review: Boolean(b.needs_review), active: b.active !== false }, who.email);
         await emit("template.created", null, id);
         return reply(res, 201, { id });
       }
@@ -960,13 +1050,12 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         return reply(res, 200, { ok: true });
       }
       if (req.method === "POST" && spm[2]) {
-        const b = json(body), title = text(b?.title, 160), who2 = UUID_RE.test(b?.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
-        const date = b?.plan_date;
-        if (!title || !who2 || !DATE_RE.test(date ?? "") || date < today || date > addDays(g.week_start, 6) || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_task" });
+        const b = json(body), inp = await taskInput(b), date = b?.plan_date;
+        if (!inp || !DATE_RE.test(date ?? "") || date < today || date > addDays(g.week_start, 6)) return reply(res, 400, { error: "bad_task" });
         const id = randomUUID(), approved = Boolean(await store.planApproval(date));
-        await store.insertTask({ id, plan_date: date, kind: "sprint", origin: "sprint", sprint_goal_id: g.id, assignee_id: who2.id, ...sealTitle("task", id, title), due_time: b.due_time || null, needs_review: Boolean(b.needs_review),
+        await store.insertTask({ id, plan_date: date, kind: "sprint", origin: "sprint", sprint_goal_id: g.id, ...inp, accountable_id: me.id, ...sealTitle("task", id, inp.title),
           state: approved ? "approved" : "proposed", approved_by: approved ? who.email : null }, who.email);
-        await emit("task.created", who2.id, id);
+        await emit("task.created", inp.assignee_id, id);
         return reply(res, 201, { id });
       }
       return reply(res, 404, { error: "not_found" });
@@ -1034,6 +1123,8 @@ export function routeClass(url = "") {
   if (/^\/ics\/[^/]+$/.test(p)) return "/ics/:token";
   if (p === "/board" || p === "/my-tasks" || p === "/plan" || p === "/templates" || p === "/sprint" || p === "/sprint/goals" || p === "/tasks/accept-all") return p;
   if (/^\/tasks\/[^/]+\/[a-z_]+$/.test(p)) return "/tasks/:id/" + p.split("/").pop();
+  if (/^\/tasks\/[^/]+$/.test(p)) return "/tasks/:id";
+  if (/^\/plan\/\d{4}-\d{2}-\d{2}\/tasks\/[^/]+$/.test(p)) return "/plan/:date/tasks/:id";
   if (/^\/plan\/\d{4}-\d{2}-\d{2}(\/build|\/tasks)?$/.test(p)) return "/plan/:date" + (p.match(/\/(build|tasks)$/)?.[0] ?? "");
   if (/^\/templates\/[^/]+$/.test(p)) return p.endsWith("/activate") ? "/templates/activate" : "/templates/:id";
   if (/^\/sprint\/goals\/[^/]+(\/tasks)?$/.test(p)) return p.endsWith("/tasks") ? "/sprint/goals/:id/tasks" : "/sprint/goals/:id";

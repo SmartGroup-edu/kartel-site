@@ -15,10 +15,13 @@ const sealTask = (kek, id, title) => { const { dek, wrapped } = newDataKey(kek, 
 /** Build the proposed set for `date` from active templates. Returns counts only. */
 export async function buildDayPlan(store, kek, date, actor) {
   const templates = (await store.listTemplates()).map((t) => ({ ...t, title: t.active ? openTitle(kek, t) : "" }));
+  // The template's author is accountable for its tasks until a parent approves the plan (then: that parent).
+  const people = await store.listPeople(), personOf = (email) => people.find((x) => x.email === email)?.id ?? null;
   let created = 0, existing = 0;
   for (const p of buildPlan(date, { templates })) {
-    const id = randomUUID();
-    const ok = await store.insertTask({ id, plan_date: date, kind: p.kind, origin: p.origin, template_id: p.template_id, assignee_id: p.assignee_id, ...sealTask(kek, id, p.title), due_time: p.due_time, needs_review: p.needs_review, state: "proposed" }, actor);
+    const id = randomUUID(), tpl = templates.find((x) => x.id === p.template_id);
+    const ok = await store.insertTask({ id, plan_date: date, kind: p.kind, origin: p.origin, template_id: p.template_id, assignee_id: p.assignee_id, ...sealTask(kek, id, p.title), due_time: p.due_time,
+      when_slot: p.when_slot, estimate_min: p.estimate_min, accountable_id: personOf(tpl?.created_by), needs_review: p.needs_review, state: "proposed" }, actor);
     ok ? created++ : existing++;
   }
   return { date, created, existing };
