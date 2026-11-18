@@ -80,7 +80,7 @@ test("heraldic accents: pillar tokens in light, dark and print; used as rules/ic
 test("3d-2 item 4: the review photo is optional and parents-only in the drawer; the proxy forwards only the photo path", () => {
   const b = src("app/components/FamilyBoard.tsx");
   assert.match(b, /x\.needs_review && data\?\.photo && \(data\.photo\.can_add \|\| data\.photo\.has\) && <TaskPhoto /);
-  assert.match(b, /photo: "Фото к проверке — по желанию"/, "never presented as required");
+  assert.match(b, /photoHint: "По желанию\./, "never presented as required");
   assert.doesNotMatch(b, /<input type="file"[^>]*\brequired\b/, "no required file input");
   assert.doesNotMatch(b, /capture=/, "no forced camera");
   const r = src("app/api/family-os/[...op]/route.ts");

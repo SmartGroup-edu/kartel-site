@@ -36,7 +36,7 @@ function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }
   const invitedToday = r.invite?.on_date === today;
   const resend = async () => {
     const res = await fetch(`/api/family-os/people/${r.id}/invite`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", credentials: "same-origin", cache: "no-store" }).catch(() => null);
-    if (res?.status === 202) { setMsg(t.queued); router.refresh(); }
+    if (res?.status === 202) { setMsg(""); router.refresh(); } // the row's own invite line says «Уйдёт…»
     else setMsg(res?.status === 409 ? t.already : t.error);
   };
   return (
