@@ -105,6 +105,14 @@ test("refusals: not a review task, wrong state, wrong person, wrong type, too la
   assert.equal(routeClass(`/tasks/${id}/photo`), "/tasks/:id/photo");
 });
 
+test("a real phone-sized photo (≈ 2 MB) is accepted — the upload body limit covers the photo route, not only documents", async () => {
+  const id = await task("done");
+  const big = await sharp({ create: { width: 2600, height: 1950, channels: 3, noise: { type: "gaussian", mean: 128, sigma: 60 } } }).jpeg({ quality: 95 }).toBuffer();
+  assert.ok(big.length > 1_000_000, `fixture is large (${big.length} bytes)`);
+  const r = await call("POST", `/tasks/${id}/photo`, { actor: as("c"), raw: big }).catch((e) => ({ status: String(e.cause?.code ?? e.message) }));
+  assert.equal(r.status, 201);
+});
+
 test("7-day deletion: purgePhotos removes the file and marks the row; nothing younger is touched; the read then 404s", async () => {
   const id = await task("done");
   await call("POST", `/tasks/${id}/photo`, { actor: as("c"), raw: jpeg });

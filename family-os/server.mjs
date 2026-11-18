@@ -113,7 +113,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const url = new URL(req.url, "http://x");
     if (req.method === "GET" && url.pathname === "/healthz") return reply(res, 200, { ok: true });
 
-    const isUpload = req.method === "POST" && /^\/documents\/[^/]+\/files$/.test(url.pathname);
+    // Raw-byte uploads: document files and (bus 97 item 4) the review photo. Everything else is small JSON.
+    const isUpload = req.method === "POST" && /^\/(documents\/[^/]+\/files|tasks\/[^/]+\/photo)$/.test(url.pathname);
     const body = await readBody(req, isUpload ? MAX_FILE + 1024 : MAX_JSON);
     const auth = verify(req, body);
     if (!auth) { console.warn("[os] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
