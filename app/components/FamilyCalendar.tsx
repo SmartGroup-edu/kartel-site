@@ -33,7 +33,7 @@ const btn = "inline-flex min-h-11 items-center justify-center rounded-md border 
 const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
 const dayHead = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCalendar({ lang, cal, meId, admin }: { lang: Lang; cal: OsCalendar | null; meId: string | null; admin: boolean }) {
+export default function FamilyCalendar({ lang, cal, meId, admin, editor = false }: { lang: Lang; cal: OsCalendar | null; meId: string | null; admin: boolean; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
@@ -43,7 +43,7 @@ export default function FamilyCalendar({ lang, cal, meId, admin }: { lang: Lang;
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} os active="calendar" />
+        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="calendar" />
         <div className="max-w-4xl pb-8">
           {!cal ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
             <>

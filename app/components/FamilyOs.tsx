@@ -59,7 +59,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[] }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [], editor = false }: { lang: Lang; view: View; state: OsState; editor?: boolean; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[] }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -68,7 +68,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} />
+        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} />
         <div className="max-w-4xl pb-8">
 
         {state.status !== "ok" ? (

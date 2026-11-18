@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getCalendar } from "@/app/lib/family-os";
 import FamilyCalendar from "@/app/components/FamilyCalendar";
@@ -21,5 +21,5 @@ export default async function FamilyCalendarPage({ params }: { params: Promise<{
   if (decision !== "allow" || !session) notFound();
   const [state, cal] = await Promise.all([getOsState(session), getCalendar(session)]);
   if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
-  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} admin={state.admin} />;
+  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} admin={state.admin}  editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

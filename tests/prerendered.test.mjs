@@ -706,6 +706,34 @@ describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
   });
 });
 
+describe("cycle 11 — residuals: explorer heading case, error page on the scale (2026-11-15)", () => {
+  const src = (f) => readFileSync(f, "utf8");
+  test("explorer heading in sentence case (EN)", () => {
+    assert.ok(read("en.html").includes(">Explore the coat of arms</h3>"));
+    assert.ok(!read("en.html").includes("Explore the Coat of Arms"));
+  });
+  test("route error page: H1 and reading text from the scale, sentence-case actions, a way back", () => {
+    const e = src("app/[lang]/error.tsx");
+    assert.match(e, /<h1 className=\{H1\}>/);
+    assert.match(e, /\$\{PROSE\}/);
+    assert.doesNotMatch(e, /TRY AGAIN|ПОВТОРИТЬ|tracking-\[0\.1em\]|hover:text-white/);
+    assert.match(e, /cta: "Try again", home: "Back to the coat of arms"/);
+    assert.match(e, /cta: "Повторить", home: "К гербу"/);
+  });
+  test("explorer element labels in sentence case (bus 92 L1)", () => {
+    const c = src("app/components/CrestExplorer.tsx");
+    const labels = [...c.matchAll(/labelEN: "([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(labels.includes("Crossed keys"));
+    for (const l of labels) assert.doesNotMatch(l, /\s[A-Z]/, `Title Case label: ${l}`);
+  });
+  test("route error page renders inside the site chrome: header + footer (bus 92 L2)", () => {
+    const e = src("app/[lang]/error.tsx");
+    assert.match(e, /<SiteHeader lang=/);
+    assert.match(e, /<SiteFooter /);
+    assert.match(e, /contactEmail=\{null\}/);
+  });
+});
+
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
     const hits = walk(".next/static").filter((f) => FAMILY_NAMES.test(unescape(readFileSync(f, "utf8"))));

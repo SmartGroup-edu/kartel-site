@@ -205,6 +205,62 @@ function handleReminder(req, res) {
   });
 }
 
+// ── Family editor review notices (bus 87): counts only — never titles, names or images ──────
+const REVIEW_LIMITS = { recipient: { max: 12, windowMs: 24 * 3600_000 }, global: { max: 200, windowMs: 24 * 3600_000 } };
+/** Validate a /send-review body; null when valid, else an error code. */
+export function checkReview(b) {
+  const to = typeof b?.to === "string" ? b.to.trim().toLowerCase() : "";
+  if (!EMAIL_RE.test(to) || to.length > 254) return "bad_recipient";
+  if (b.lang !== undefined && !["ru", "en"].includes(b.lang)) return "bad_lang";
+  const n = (v) => Number.isInteger(v) && v >= 0 && v <= 999;
+  if (b.kind === "pending") { if (!n(b.count) || b.count < 1 || Object.keys(b).some((k) => !["to", "kind", "count", "lang"].includes(k))) return "bad_count"; return null; }
+  if (b.kind === "decided") { if (!n(b.approved) || !n(b.rejected) || b.approved + b.rejected < 1 || Object.keys(b).some((k) => !["to", "kind", "approved", "rejected", "lang"].includes(k))) return "bad_count"; return null; }
+  return "bad_kind";
+}
+/** The two review notices, fixed copy («ты»), one link to the editor. Exported for tests. */
+export function renderReviewEmail({ kind, count = 0, approved = 0, rejected = 0, lang = "ru" }) {
+  const ru = lang !== "en";
+  const link = `https://kartel.org.uk/${ru ? "ru" : "en"}/family/admin#${kind === "pending" ? "review" : "mine"}`;
+  const c = kind === "pending"
+    ? (ru ? { subject: `Новые изменения на утверждение: ${count}`, heading: "Изменения ждут утверждения", lines: [`На утверждении: ${count}.`, "Открой редактор, чтобы посмотреть и утвердить или отклонить."], button: "Открыть редактор" }
+          : { subject: `Changes waiting for approval: ${count}`, heading: "Changes are waiting", lines: [`Waiting for approval: ${count}.`, "Open the editor to review, approve or reject them."], button: "Open the editor" })
+    : (ru ? { subject: "Твои изменения рассмотрены", heading: "Твои изменения рассмотрены", lines: [`Утверждено: ${approved}. Отклонено: ${rejected}.`, rejected ? "Комментарии — в редакторе, в разделе «Мои изменения»." : "Утверждённое уже видно семье."], button: "Открыть редактор" }
+          : { subject: "Your changes were reviewed", heading: "Your changes were reviewed", lines: [`Approved: ${approved}. Rejected: ${rejected}.`, rejected ? "The comments are in the editor, under “My changes”." : "Approved changes are already visible to the family."], button: "Open the editor" });
+  const serif = "Georgia,'Times New Roman',serif";
+  const text = [c.heading, "", ...c.lines, "", link, "", "Virtus et Potestas · kartel.org.uk"].join("\n");
+  const html = `<!doctype html><html lang="${ru ? "ru" : "en"}"><head><meta charset="utf-8"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"></head><body style="margin:0;padding:0;background:#ffffff;">
+<div style="max-width:480px;margin:0 auto;padding:32px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
+  <p style="margin:0 0 28px;font-family:${serif};font-size:24px;letter-spacing:0.12em;color:#7b1e2d;">KARTEL</p>
+  <h1 style="margin:0 0 16px;font-family:${serif};font-size:28px;line-height:1.15;font-weight:normal;color:#7b1e2d;">${esc(c.heading)}</h1>
+  ${c.lines.map((l) => `<p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(l)}</p>`).join("\n  ")}
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 28px;"><tr><td style="border-radius:8px;background:#7b1e2d;">
+    <a href="${esc(link)}" style="display:inline-block;padding:14px 28px;line-height:20px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(c.button)}</a>
+  </td></tr></table>
+  <p style="margin:16px 0 0;font-family:${serif};font-size:16px;font-style:italic;color:#7b1e2d;">Virtus et Potestas</p>
+</div></body></html>`;
+  return { subject: c.subject, text, html };
+}
+function handleReview(req, res) {
+  let raw = "", tooBig = false;
+  req.setEncoding("utf8");
+  req.on("data", (c) => { raw += c; if (raw.length > MAX_BODY) { tooBig = true; req.destroy(); } });
+  req.on("end", async () => {
+    if (tooBig) return;
+    if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    const err = checkReview(b);
+    if (err) return reply(res, 400, { error: err });
+    const to = b.to.trim().toLowerCase();
+    if (!allowAll([["v:global", REVIEW_LIMITS.global], [`v:to:${to}`, REVIEW_LIMITS.recipient]])) { console.warn("[relay] review rate limited"); return reply(res, 429, { error: "rate_limited" }); }
+    try {
+      const status = await sendViaBrevo(to, renderReviewEmail({ ...b, lang: b.lang ?? "ru" }));
+      console.log(`[relay] review brevo ${status}`);
+      return status >= 200 && status < 300 ? reply(res, 202, { ok: true }) : reply(res, 502, { error: "upstream", status });
+    } catch { console.error("[relay] brevo unreachable"); return reply(res, 502, { error: "upstream" }); }
+  });
+}
+
+
 // ── Family OS engine notifications (Stage 3a, bus 77) ────────────────────────
 // Fixed templates: a first name, item titles and times, document type + date + holder's first name,
 // and a fixed link to Today. Nothing else can be sent through this route (no free text, no numbers).
@@ -312,6 +368,7 @@ const reply = (res, code, obj) => {
 const server = createServer((req, res) => {
   if (req.method === "GET" && req.url === "/healthz") return reply(res, 200, { ok: true });
   if (req.method === "POST" && req.url === "/send-reminder") return handleReminder(req, res);
+  if (req.method === "POST" && req.url === "/send-review") return handleReview(req, res);
   if (req.method === "POST" && req.url === "/send-family") return handleFamily(req, res);
   if (req.method !== "POST" || req.url !== "/send") return reply(res, 404, { error: "not_found" });
 

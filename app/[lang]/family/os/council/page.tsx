@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getCouncil } from "@/app/lib/family-os";
 import FamilyCouncil from "@/app/components/FamilyCouncil";
@@ -21,5 +21,5 @@ export default async function FamilyCouncilPage({ params, searchParams }: { para
   if (decision !== "allow" || !session) notFound();
   const [state, council] = await Promise.all([getOsState(session), getCouncil(session, (await searchParams).date)]);
   if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
-  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} />;
+  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

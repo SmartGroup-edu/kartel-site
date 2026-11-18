@@ -1,12 +1,13 @@
-import { familyGateDecision, isFamilyAdmin } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole, mediaActor } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { fetchMedia, mediaEnabled } from "@/app/lib/family-media";
 
 /**
  * GET /api/family-media/:id/:variant — a family photo, for signed-in approved viewers only.
  * /api is outside proxy.ts, so this route checks the session itself. Never cached anywhere
- * (private, no-store), never indexed. Viewers get only files the published content uses; admins
- * also see draft files (scope=admin) so the editor can preview them.
+ * (private, no-store), never indexed. Viewers get only files the published content uses; the owner
+ * also sees draft files (scope=admin); an editor sees those too, plus only her own hidden uploads
+ * (family-media decides that on the signed "editor:" actor).
  */
 export const dynamic = "force-dynamic";
 
@@ -21,8 +22,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!ID.test(id) || !VARIANT.test(variant)) return deny(404);
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) return deny(401);
-  const admin = isFamilyAdmin(session.cpifSubjectId);
-  const r = await fetchMedia(id, variant, admin ? "admin" : "published", session.cpifSubjectId).catch(() => null);
+  const role = familyRole(session.cpifSubjectId);
+  const r = await fetchMedia(id, variant, role === "member" ? "published" : "admin", mediaActor(session.cpifSubjectId)).catch(() => null);
   if (!r || !r.ok || !r.body) return deny(r?.status === 404 ? 404 : 502);
   return new Response(r.body, {
     status: 200,

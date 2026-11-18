@@ -1,6 +1,7 @@
 // Bus 63: one family sub-nav on every family page; greeting from the Family OS profile.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
 import { familySubNav, greeting } from "../app/lib/family-nav.mjs";
 
 const ids = (o) => familySubNav(o).map((x) => x.id);
@@ -25,4 +26,17 @@ test("greeting: profile name; no name → no dangling comma; never an email", ()
   }
   assert.equal(greeting("EN", "someone@example.test"), "Good to see you");
   assert.doesNotMatch(greeting("RU", null), /,\s*$/);
+});
+
+test("sub-nav (bus 87): an editor sees «Редактор» but never «Доступы»", () => {
+  assert.deepEqual(ids({ lang: "RU", admin: false, os: true, editor: true }), ["heritage", "today", "people", "council", "calendar", "admin"]);
+  assert.deepEqual(ids({ lang: "RU", admin: false, os: false, editor: true }), ["heritage", "admin"]);
+  assert.ok(!ids({ lang: "RU", admin: false, os: true, editor: true }).includes("access"));
+});
+
+test("sub-nav (bus 95 integration): every Family OS page except «Доступы» passes `editor`, so «Редактор» never vanishes", () => {
+  const files = readdirSync("app/components").filter((f) => f.endsWith(".tsx"));
+  const calls = files.flatMap((f) => (readFileSync(`app/components/${f}`, "utf8").match(/<FamilySubNav [^>]*\/>/g) ?? []).map((c) => [f, c]));
+  assert.ok(calls.length >= 6);
+  assert.deepEqual(calls.filter(([f, c]) => !/editor=/.test(c) && !/active="access"/.test(c)).map(([f]) => f), []);
 });

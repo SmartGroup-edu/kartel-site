@@ -14,12 +14,23 @@ import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { KEY_RE, UUID_RE, validatePerson, validateEvent, referencedMedia } from "./validate.mjs";
+import { keyMedia } from "./store.mjs";
 import { processImage, WIDTHS, FORMATS, MAX_BYTES } from "./images.mjs";
 
 const MAX_SKEW_S = 60;
 const MAX_JSON = 64 * 1024;
 const VARIANT_RE = new RegExp(`^(${WIDTHS.join("|")})\\.(${FORMATS.join("|")})$`);
 const TYPES = { webp: "image/webp", avif: "image/avif" };
+const EMAIL = /^[^\s@:]+@[^\s@]+$/;
+/**
+ * The signed actor says who is asking and in which role (bus 87): "<email>" is the owner (FAMILY_ADMIN_EMAILS
+ * on the site), "editor:<email>" an editor whose every change waits for the owner. Only kartel-site holds the
+ * signing secret, so the role cannot be forged by a browser. Reads by family viewers carry their email too.
+ */
+export function parseActor(raw = "") {
+  if (raw.startsWith("editor:")) { const email = raw.slice(7); return EMAIL.test(email) ? { role: "editor", email } : null; }
+  return EMAIL.test(raw) ? { role: "owner", email: raw } : raw === "" ? { role: "viewer", email: "" } : null;
+}
 
 export function sign(secret, ts, nonce, method, path, actor, bodySha) {
   return createHmac("sha256", secret).update(`${ts}.${nonce}.${method}.${path}.${actor}.${bodySha}`).digest("hex");
@@ -78,9 +89,10 @@ export function createApp({ store, mediaDir, secret }) {
     const body = await readBody(req, isUpload ? MAX_BYTES + 1024 : MAX_JSON);
     const auth = verify(req, body);
     if (!auth) { console.warn("[media] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    const { actor } = auth;
+    const who = parseActor(auth.actor);
     const writes = req.method !== "GET";
-    if (writes && !/^[^\s@]+@[^\s@]+$/.test(actor)) return reply(res, 403, { error: "actor_required" });
+    if (!who || (writes && !who.email)) return reply(res, 403, { error: "actor_required" });
+    const actor = who.email, editor = who.role === "editor";
     if (writes && !allow(`w:${actor}`, isUpload ? 120 : 600, 3600_000)) return reply(res, 429, { error: "rate_limited" });
     // Reads are limited per viewer too, so one session cannot exhaust the shared budget.
     if (!writes && actor && !allow(`r:${actor}`, 3000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
@@ -93,10 +105,73 @@ export function createApp({ store, mediaDir, secret }) {
       const dims = (...docs) => store.mediaDims([...new Set(docs.flatMap((d) => [...referencedMedia(d)]))]);
       if (state === "draft") {
         const content = await store.getDraft(), published = await store.getPublished();
-        return reply(res, 200, { content, published, dims: await dims(content, published.content) });
+        if (editor) {
+          // The editor works on the draft with her own open proposals laid over it.
+          const mine = { persons: {}, events: {} };
+          for (const r of await store.revisions({ state: "pending", author: actor })) { const [k, id] = r.key.split(":"); (k === "person" ? mine.persons : mine.events)[id] = r.after; }
+          return reply(res, 200, { content, published, mine, dims: await dims(content, published.content, mine) });
+        }
+        return reply(res, 200, { content, published, pending: (await store.pendingStats(null)).pending, dims: await dims(content, published.content) });
       }
       if (state === "published") { const pub = await store.getPublished(); return reply(res, 200, { ...pub, dims: await dims(pub.content) }); }
       return reply(res, 400, { error: "bad_state" });
+    }
+
+    // The owner's own paths. An editor never writes the draft, publishes, undoes or reads the audit (who did what).
+    const ownerOnly = (req.method === "PUT" && url.pathname.startsWith("/draft/")) || (req.method === "POST" && ["/undo", "/publish"].includes(url.pathname))
+      || url.pathname === "/audit" || /^\/revisions\/([^/]+\/(approve|reject)|approve-all)$/.test(url.pathname) || (req.method === "GET" && url.pathname === "/revisions" && url.searchParams.get("scope") === "pending");
+    if (editor && ownerOnly) return reply(res, 403, { error: "owner_only" });
+
+    // POST /revisions/:kind/:key — an editor proposes a key's new body (a later save updates the same proposal)
+    const pr = url.pathname.match(/^\/revisions\/(person|event)\/([^/]+)$/);
+    if (req.method === "POST" && pr) {
+      if (!editor) return reply(res, 403, { error: "owner_edits_directly" });
+      if (!KEY_RE.test(pr[2])) return reply(res, 400, { error: "bad_key" });
+      let parsed; try { parsed = JSON.parse(body.toString("utf8")); } catch { return reply(res, 400, { error: "bad_json" }); }
+      let clean; try { clean = pr[1] === "person" ? validatePerson(parsed) : validateEvent(parsed); } catch (e) { return reply(res, 422, { error: "invalid", detail: String(e.message) }); }
+      for (const id of keyMedia(`${pr[1]}:${pr[2]}`, clean)) {
+        const info = await store.mediaInfo(id);
+        // an editor may use published/approved files and her own hidden uploads — never another editor's
+        if (!info || (info.pending && info.created_by !== actor)) return reply(res, 422, { error: "invalid", detail: "unknown media id" });
+      }
+      return reply(res, 200, { ok: true, ...(await store.propose(`${pr[1]}:${pr[2]}`, clean, actor)), saved: clean });
+    }
+    // GET /revisions?scope=mine (editor: her own, every state) | scope=pending (owner: everything waiting)
+    if (req.method === "GET" && url.pathname === "/revisions") {
+      const scope = url.searchParams.get("scope");
+      if (scope === "mine" && editor) return reply(res, 200, { revisions: (await store.revisions({ author: actor, limit: 50 })).map(({ author, decided_by, ...r }) => r) });
+      if (scope === "pending" && !editor) {
+        const rows = (await store.revisions({ state: "pending" })).reverse(), draft = await store.getDraft();
+        const cur = (key) => { const [k, id] = key.split(":"); return (k === "person" ? draft.persons : draft.events)[id] ?? null; };
+        return reply(res, 200, { revisions: rows.map((r) => ({ ...r, stale: JSON.stringify(cur(r.key)) !== JSON.stringify(r.before) })),
+          dims: await store.mediaDims([...new Set(rows.flatMap((r) => [...keyMedia(r.key, r.after), ...keyMedia(r.key, r.before)]))]) });
+      }
+      return reply(res, 400, { error: "bad_scope" });
+    }
+    // POST /revisions/:id/approve | reject {comment} | withdraw · POST /revisions/approve-all
+    const rv = url.pathname.match(/^\/revisions\/([^/]+)\/(approve|reject|withdraw)$/);
+    if (req.method === "POST" && rv) {
+      if (!UUID_RE.test(rv[1])) return reply(res, 404, { error: "not_found" });
+      if (rv[2] === "withdraw") return (editor && (await store.withdraw(rv[1], actor))) ? reply(res, 200, { ok: true }) : reply(res, editor ? 404 : 403, { error: editor ? "not_found" : "editor_only" });
+      const rev = await store.getRevision(rv[1]);
+      if (!rev || rev.state !== "pending") return reply(res, 404, { error: "not_found" });
+      if (rev.author === actor) return reply(res, 403, { error: "not_own_approval" }); // never one's own change
+      if (rv[2] === "reject") {
+        let c = ""; try { c = String(JSON.parse(body.toString("utf8") || "{}").comment ?? "").trim(); } catch { return reply(res, 400, { error: "bad_json" }); }
+        if (c.length > 500) return reply(res, 400, { error: "bad_comment" });
+        await store.reject(rv[1], actor, c || null);
+        return reply(res, 200, { ok: true });
+      }
+      const out = await store.approve(rv[1], actor);
+      if (!out) return reply(res, 404, { error: "not_found" });
+      await store.publish(actor); // approval runs the normal publish path
+      return reply(res, 200, { ok: true, stale: out.stale });
+    }
+    if (req.method === "POST" && url.pathname === "/revisions/approve-all") {
+      const rows = (await store.revisions({ state: "pending" })).reverse().filter((r) => r.author !== actor);
+      let n = 0; for (const r of rows) if (await store.approve(r.id, actor)) n++;
+      if (n) await store.publish(actor);
+      return reply(res, 200, { ok: true, approved: n });
     }
 
     // PUT /draft/person/:id | /draft/event/:id
@@ -128,7 +203,7 @@ export function createApp({ store, mediaDir, secret }) {
       const dir = join(mediaDir, id);
       await mkdir(dir, { recursive: true, mode: 0o700 });
       for (const [name, buf] of Object.entries(out.variants)) await writeFile(join(dir, name), buf, { mode: 0o600 });
-      await store.addMedia({ id, width: out.width, height: out.height, bytes: body.length }, actor);
+      await store.addMedia({ id, width: out.width, height: out.height, bytes: body.length }, actor, editor); // an editor's upload stays hidden
       return reply(res, 201, { id, width: out.width, height: out.height });
     }
 
@@ -137,7 +212,11 @@ export function createApp({ store, mediaDir, secret }) {
     if (req.method === "GET" && mm) {
       if (!UUID_RE.test(mm[1]) || !VARIANT_RE.test(mm[2])) return reply(res, 404, { error: "not_found" });
       const scope = url.searchParams.get("scope");
-      if (scope !== "admin") {
+      if (scope === "admin" && editor) {
+        // An editor previews published/approved files and her own hidden uploads only.
+        const info = await store.mediaInfo(mm[1]);
+        if (!info || (info.pending && info.created_by !== actor)) return reply(res, 404, { error: "not_found" });
+      } else if (scope !== "admin") {
         const pub = await store.getPublished();
         if (!referencedMedia(pub.content).has(mm[1])) return reply(res, 404, { error: "not_found" });
       }
@@ -178,10 +257,11 @@ async function main() {
 export function routeClass(url = "") {
   const [first, ...rest] = url.split("?")[0].split("/").filter(Boolean);
   if (!first) return "/";
-  const known = ["healthz", "content", "draft", "undo", "publish", "audit", "media"];
+  const known = ["healthz", "content", "draft", "undo", "publish", "audit", "media", "revisions"];
   if (!known.includes(first)) return "/:other";
   if (first === "draft") return rest.length ? "/draft/:kind/:key" : "/draft";
   if (first === "media") return rest.length ? "/media/:id/:variant" : "/media";
+  if (first === "revisions") return rest[0] === "approve-all" ? "/revisions/approve-all" : rest.length === 2 && ["approve", "reject", "withdraw"].includes(rest[1]) ? `/revisions/:id/${rest[1]}` : rest.length === 2 ? "/revisions/:kind/:key" : "/revisions";
   return `/${first}`;
 }
 

@@ -8,6 +8,7 @@
 import { getSession, type FamilySession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
+import { familyRoleOf, mediaActorFor } from "@/app/lib/family-roles.mjs";
 
 export type GateDecision = "login" | "pending" | "allow";
 
@@ -22,7 +23,14 @@ export async function familyGateDecision(): Promise<{
   return { decision: approved ? "allow" : "pending", session };
 }
 
-/** True iff this viewer is a Family admin (local allowlist — never a federation role). */
+/** True iff this viewer is a Family admin (local allowlist — never a federation role). Owner only. */
 export function isFamilyAdmin(subject: string): boolean {
   return familyEnv.adminEmails().includes(subject.trim().toLowerCase());
 }
+
+/** owner | editor | member (bus 87). The editor role only ever widens the family editor, never access. */
+export function familyRole(subject: string): "owner" | "editor" | "member" {
+  return familyRoleOf(subject, familyEnv.adminEmails(), familyEnv.editorEmails()) as "owner" | "editor" | "member";
+}
+/** The actor family-media is told for this viewer ("editor:<email>" for an editor). */
+export const mediaActor = (subject: string) => mediaActorFor(familyRole(subject), subject);
