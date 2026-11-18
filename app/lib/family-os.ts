@@ -84,7 +84,7 @@ export type OsDocument = {
 export type OsProfile = {
   person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null };
   guardians: { guardian_id: string; relation: "parent" | "relative"; scopes: OsScope[] }[];
-  can: { documents: boolean; add_documents: boolean; retype_documents: boolean; routines: OsRoutineAccess; prefs?: boolean };
+  can: { documents: boolean; add_documents: boolean; retype_documents: boolean; routines: OsRoutineAccess; prefs?: boolean; notes?: ("health" | "education")[]; goals?: boolean; ics?: boolean };
 };
 export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string; days_left: number; tier: "expired" | "lt3" | "lt6" | "lt12" | null };
 
@@ -100,13 +100,16 @@ export async function getPersonPage(session: { email?: string | null; cpifSubjec
   try {
     const profile = await getJson<OsProfile>(`/people/${id}`, actor);
     if (!profile) return null;
-    const [docs, routines, prefs, pauses] = await Promise.all([
+    const [docs, routines, prefs, pauses, goals, notes, ics] = await Promise.all([
       profile.can.documents ? getJson<{ documents: OsDocument[] }>(`/people/${id}/documents`, actor) : null,
       profile.can.routines?.read ? getJson<OsRoutines>(`/people/${id}/routines?days=7`, actor) : null,
       profile.can.prefs ? getJson<{ prefs: OsPrefs }>(`/people/${id}/prefs`, actor) : null,
       profile.can.prefs ? getJson<{ pauses: OsPause[] }>(`/people/${id}/pauses`, actor) : null,
+      getJson<OsGoals>(`/people/${id}/goals`, actor),
+      profile.can.notes?.length ? getJson<OsNotes>(`/people/${id}/notes`, actor) : null,
+      profile.can.ics ? getJson<OsIcs>(`/people/${id}/ics`, actor) : null,
     ]);
-    return { profile, documents: docs?.documents ?? null, routines, prefs: prefs?.prefs ?? null, pauses: pauses?.pauses ?? null };
+    return { profile, documents: docs?.documents ?? null, routines, prefs: prefs?.prefs ?? null, pauses: pauses?.pauses ?? null, goals, notes, ics };
   } catch { return null; }
 }
 
@@ -140,3 +143,23 @@ export async function getRules(session: { email?: string | null; cpifSubjectId: 
   if (!osEnabled()) return null;
   try { return (await getJson<{ rules: OsRule[] }>("/rules", osActor(session)))?.rules ?? null; } catch { return null; }
 }
+
+// ---- Stage 3b: council, goals, calendar, notes, ICS -------------------------------------------
+export type OsTask = { id: string; title: string; owner_id: string; due_date: string; done: boolean };
+export type OsCouncil = {
+  date: string; today: string; held: boolean; notes: string; can: { write: boolean }; tasks: OsTask[];
+  previous: { date: string; tasks: OsTask[] } | null;
+  agenda: { from: string; to: string; items: { scheduled: number; done: number }; tasks: { done: number; open: number } };
+};
+export type OsGoal = { id: string; sphere: string; visibility: "owner" | "guardians" | "family"; status: "active" | "done"; title: string; checkins: { week_start: string; mood: "on_track" | "slow" | "paused"; note: string }[]; checked_this_week: boolean };
+export type OsGoals = { can: { write: boolean; visibilities: OsGoal["visibility"][] }; week: string; goals: OsGoal[] };
+export type OsNotes = { kinds: ("health" | "education")[]; notes: { id: string; kind: "health" | "education"; updated_at: string; title: string; body: string }[] };
+export type OsIcs = { active: boolean; created_at: string | null };
+export type OsCalItem = { date: string; time: string | null; kind: "council" | "event" | "birthday"; id?: string; title?: string; person_id?: string; name_ru?: string; name_en?: string };
+export type OsCalendar = { today: string; can: { write: boolean }; items: OsCalItem[] };
+
+type S = { email?: string | null; cpifSubjectId: string };
+const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, osActor(session)); } catch { return null; } };
+export const getCouncil = (session: S, date?: string) => safe<OsCouncil>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/council?date=${date}` : "/council", session);
+export const getCalendar = (session: S) => safe<OsCalendar>("/calendar?days=62", session);
+export const getMyTasks = async (session: S) => (await safe<{ tasks: Omit<OsTask, "owner_id" | "done">[] }>("/council-tasks", session))?.tasks ?? [];

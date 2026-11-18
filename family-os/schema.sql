@@ -260,3 +260,73 @@ CREATE TABLE IF NOT EXISTS rotation_check (
   at           timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS rotation_check_day ON rotation_check (rotation_id, on_date, id DESC);
+
+-- ---- Stage 3b: council, goals, calendar (bus 79) --------------------------------------------------
+-- Family council: one meeting per date. Notes are free text → envelope-encrypted like care notes.
+CREATE TABLE IF NOT EXISTS council_meeting (
+  id           uuid PRIMARY KEY,
+  on_date      date NOT NULL UNIQUE,
+  wrapped_key  text NOT NULL,
+  notes_ct     text,
+  held_at      timestamptz,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+-- A decision becomes a task with an owner and a date. The title is shown on Today, like a routine title.
+CREATE TABLE IF NOT EXISTS council_task (
+  id           uuid PRIMARY KEY,
+  meeting_id   uuid NOT NULL REFERENCES council_meeting(id),
+  title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  owner_id     uuid NOT NULL REFERENCES person(id),
+  due_date     date NOT NULL,
+  done_at      timestamptz,
+  done_by      text,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS council_task_owner ON council_task (owner_id) WHERE done_at IS NULL;
+
+-- Goals: the title and every check-in note are ciphertext under the goal's own data key.
+CREATE TABLE IF NOT EXISTS goal (
+  id           uuid PRIMARY KEY,
+  person_id    uuid NOT NULL REFERENCES person(id),
+  sphere       text NOT NULL CHECK (sphere IN ('health', 'learning', 'character', 'finance', 'contribution', 'joy')),
+  visibility   text NOT NULL DEFAULT 'owner' CHECK (visibility IN ('owner', 'guardians', 'family')),
+  wrapped_key  text NOT NULL,
+  title_ct     text NOT NULL,
+  status       text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'done', 'archived')),
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  updated_at   timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS goal_person ON goal (person_id);
+-- Weekly check-in: how it is going (no score of the person) + an optional short note.
+CREATE TABLE IF NOT EXISTS goal_checkin (
+  id           bigserial PRIMARY KEY,
+  goal_id      uuid NOT NULL REFERENCES goal(id),
+  week_start   date NOT NULL,
+  mood         text NOT NULL CHECK (mood IN ('on_track', 'slow', 'paused')),
+  note_ct      text,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (goal_id, week_start)
+);
+
+CREATE TABLE IF NOT EXISTS family_event (
+  id           uuid PRIMARY KEY,
+  title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  on_date      date NOT NULL,
+  at_time      text CHECK (at_time IS NULL OR at_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz
+);
+CREATE INDEX IF NOT EXISTS family_event_date ON family_event (on_date) WHERE archived_at IS NULL;
+
+-- Personal calendar feed: only the SHA-256 of the token is stored; a new link revokes the old one.
+CREATE TABLE IF NOT EXISTS ics_token (
+  person_id    uuid PRIMARY KEY REFERENCES person(id),
+  token_hash   text NOT NULL UNIQUE CHECK (token_hash ~ '^[0-9a-f]{64}$'),
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  revoked_at   timestamptz
+);

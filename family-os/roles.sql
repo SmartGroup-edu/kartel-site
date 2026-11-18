@@ -19,3 +19,6 @@ GRANT SELECT, UPDATE ON rule TO kfo_app;
 GRANT SELECT ON rule_run TO kfo_app;
 GRANT SELECT, INSERT, UPDATE ON notification_pref, pause, rotation TO kfo_app;
 GRANT USAGE ON SEQUENCE event_id_seq, rotation_check_id_seq TO kfo_app;
+-- Stage 3b
+GRANT SELECT, INSERT, UPDATE ON council_meeting, council_task, goal, goal_checkin, family_event, ics_token TO kfo_app;
+GRANT USAGE ON SEQUENCE goal_checkin_id_seq TO kfo_app;

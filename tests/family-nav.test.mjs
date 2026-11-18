@@ -6,10 +6,10 @@ import { familySubNav, greeting } from "../app/lib/family-nav.mjs";
 const ids = (o) => familySubNav(o).map((x) => x.id);
 
 test("sub-nav: member sees Heritage · Today · People; admin also Access and Editor", () => {
-  assert.deepEqual(ids({ lang: "RU", admin: false, os: true }), ["heritage", "today", "people"]);
-  assert.deepEqual(ids({ lang: "RU", admin: true, os: true }), ["heritage", "today", "people", "access", "admin"]);
-  assert.deepEqual(familySubNav({ lang: "RU", admin: false, os: true }).map((x) => x.label), ["Наследие", "Сегодня", "Люди"]);
-  assert.deepEqual(familySubNav({ lang: "EN", admin: true, os: true }).map((x) => x.href), ["/en/family", "/en/family/os", "/en/family/os/people", "/en/family/os/access", "/en/family/admin"]);
+  assert.deepEqual(ids({ lang: "RU", admin: false, os: true }), ["heritage", "today", "people", "council", "calendar"]);
+  assert.deepEqual(ids({ lang: "RU", admin: true, os: true }), ["heritage", "today", "people", "council", "calendar", "access", "admin"]);
+  assert.deepEqual(familySubNav({ lang: "RU", admin: false, os: true }).map((x) => x.label), ["Наследие", "Сегодня", "Люди", "Совет", "Календарь"]);
+  assert.deepEqual(familySubNav({ lang: "EN", admin: true, os: true }).map((x) => x.href), ["/en/family", "/en/family/os", "/en/family/os/people", "/en/family/os/council", "/en/family/os/calendar", "/en/family/os/access", "/en/family/admin"]);
 });
 
 test("sub-nav: Family OS off or not a member → no OS items; a single item → no row at all", () => {
