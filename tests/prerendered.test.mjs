@@ -720,6 +720,18 @@ describe("cycle 11 — residuals: explorer heading case, error page on the scale
     assert.match(e, /cta: "Try again", home: "Back to the coat of arms"/);
     assert.match(e, /cta: "Повторить", home: "К гербу"/);
   });
+  test("explorer element labels in sentence case (bus 92 L1)", () => {
+    const c = src("app/components/CrestExplorer.tsx");
+    const labels = [...c.matchAll(/labelEN: "([^"]+)"/g)].map((m) => m[1]);
+    assert.ok(labels.includes("Crossed keys"));
+    for (const l of labels) assert.doesNotMatch(l, /\s[A-Z]/, `Title Case label: ${l}`);
+  });
+  test("route error page renders inside the site chrome: header + footer (bus 92 L2)", () => {
+    const e = src("app/[lang]/error.tsx");
+    assert.match(e, /<SiteHeader lang=/);
+    assert.match(e, /<SiteFooter /);
+    assert.match(e, /contactEmail=\{null\}/);
+  });
 });
 
 describe("client static files — no family names", () => {
