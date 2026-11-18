@@ -26,3 +26,9 @@ test("greeting: profile name; no name → no dangling comma; never an email", ()
   assert.equal(greeting("EN", "someone@example.test"), "Good to see you");
   assert.doesNotMatch(greeting("RU", null), /,\s*$/);
 });
+
+test("sub-nav (bus 87): an editor sees «Редактор» but never «Доступы»", () => {
+  assert.deepEqual(ids({ lang: "RU", admin: false, os: true, editor: true }), ["heritage", "today", "people", "admin"]);
+  assert.deepEqual(ids({ lang: "RU", admin: false, os: false, editor: true }), ["heritage", "admin"]);
+  assert.ok(!ids({ lang: "RU", admin: false, os: true, editor: true }).includes("access"));
+});

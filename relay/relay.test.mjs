@@ -160,3 +160,31 @@ test("reminder kinds: RU Russian (Latin only in parentheses), EN without Cyrilli
   for (const v of Object.values(KINDS.ru)) assert.doesNotMatch(v.replace(/\([^)]*\)/g, ""), /[A-Za-z]/, v);
   for (const v of Object.values(KINDS.en)) assert.doesNotMatch(v, /[А-Яа-яЁё]/, v);
 });
+
+// ── bus 87: review notices ──
+async function review(payload, { secret = SECRET } = {}) {
+  const body = JSON.stringify(payload), ts = String(Math.floor(Date.now() / 1000));
+  return fetch(base + "/send-review", { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": await signRelayRequest(secret, ts, body) }, body });
+}
+test("review: owner «Новые изменения на утверждение: N» and editor decided — counts only, one editor link", async () => {
+  brevoCalls = [];
+  assert.equal((await review({ to: "owner@example.test", kind: "pending", count: 3, lang: "ru" })).status, 202);
+  assert.equal((await review({ to: "editor@example.test", kind: "decided", approved: 2, rejected: 1 })).status, 202);
+  const [a, b] = brevoCalls.map((c) => c.body);
+  assert.equal(a.subject, "Новые изменения на утверждение: 3");
+  assert.match(a.htmlContent, /https:\/\/kartel\.org\.uk\/ru\/family\/admin#review/);
+  assert.equal(b.subject, "Твои изменения рассмотрены");
+  assert.match(b.textContent, /Утверждено: 2\. Отклонено: 1\./);
+  assert.doesNotMatch(a.textContent + b.textContent, /Вы |Ваш/, "«ты»");
+});
+test("review: rejects anything but fixed counts — no titles, names or extra fields", async () => {
+  for (const [p, err] of [
+    [{ to: "x@example.test", kind: "pending", count: 0 }, "bad_count"],
+    [{ to: "x@example.test", kind: "pending", count: 2, title: "Story about someone" }, "bad_count"],
+    [{ to: "x@example.test", kind: "decided", approved: 0, rejected: 0 }, "bad_count"],
+    [{ to: "x@example.test", kind: "decided", approved: 1, rejected: 0, comment: "x" }, "bad_count"],
+    [{ to: "x@example.test", kind: "publish", count: 1 }, "bad_kind"],
+    [{ to: "not-an-email", kind: "pending", count: 1 }, "bad_recipient"],
+  ]) { const r = await review(p); assert.equal(r.status, 400); assert.equal((await r.json()).error, err, JSON.stringify(p)); }
+  assert.equal((await review({ to: "x@example.test", kind: "pending", count: 1 }, { secret: "wrong-secret-at-least-32-characters-long" })).status, 401);
+});

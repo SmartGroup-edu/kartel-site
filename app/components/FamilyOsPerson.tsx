@@ -59,7 +59,7 @@ const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--b
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 
-export default function FamilyOsPerson({ lang, state, profile, documents, routines }: { lang: Lang; state: OsState; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null }) {
+export default function FamilyOsPerson({ lang, state, profile, documents, routines, editor = false }: { lang: Lang; state: OsState; editor?: boolean; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const ok = state.status === "ok";
@@ -75,7 +75,7 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={ok && state.admin} os active="people" />
+        <FamilySubNav lang={lang} editor={editor} admin={ok && state.admin} os active="people" />
         <div className="max-w-4xl pb-8">
           <p className="text-[15px]"><Link href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>
           <div className="mt-4 flex items-start gap-5">
