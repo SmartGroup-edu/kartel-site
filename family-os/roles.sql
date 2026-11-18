@@ -31,3 +31,5 @@ GRANT SELECT, INSERT, UPDATE ON principle_week TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (last_on) ON signin_seen TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (sent_at) ON invite_request TO kfo_app;
 GRANT USAGE ON SEQUENCE invite_request_id_seq TO kfo_app;
+-- 3d-2 review photo: rows are never deleted by the app; the file is removed and deleted_at set.
+GRANT SELECT, INSERT, UPDATE (deleted_at) ON task_photo TO kfo_app;

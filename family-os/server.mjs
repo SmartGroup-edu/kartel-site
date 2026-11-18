@@ -17,6 +17,7 @@ import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
 import { familyWeek, adoptionRows } from "./adoption.mjs";
+import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -996,7 +997,51 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       for (const e of evs) if (STEP[e.type] && !(e.type === "task.approved" && t.approved_by === "auto")) history.push({ step: STEP[e.type], at: e.at, by: actorRef(people, e.actor) });
       history.sort((a, b) => String(a.at).localeCompare(String(b.at)));
       const assignee = await store.getPerson(t.assignee_id);
-      return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+      // bus 97 item 4: whether this viewer may add the optional photo; only a parent learns that one exists.
+      const ph = t.needs_review ? await store.activeTaskPhoto(t.id) : null;
+      const photo = { can_add: canAddPhoto(me, t, assignee, grants), ...(canSeePhoto(me, grants) && ph ? { has: true, delete_after: new Date(ph.delete_after).toISOString().slice(0, 10) } : {}) };
+      return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), photo, history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+    }
+
+    // ================= bus 97 item 4: optional review photo =================
+    // POST /tasks/:id/photo — raw bytes (JPEG/PNG/HEIC ≤ 10 MB); metadata stripped, sealed, deleted after 7 days.
+    // A new photo replaces the previous one. GET /tasks/:id/photo — parents only, through the logged read path.
+    const photoM = path.match(/^\/tasks\/([^/]+)\/photo$/);
+    if (photoM && (req.method === "POST" || req.method === "GET")) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const t = UUID_RE.test(photoM[1]) ? await store.boardTask(photoM[1]) : null;
+      if (!t) return reply(res, 404, { error: "not_found" });
+      const grants = await grantsNow(), assignee = await store.getPerson(t.assignee_id);
+      if (req.method === "GET") {
+        if (!canSeePhoto(me, grants)) return reply(res, 403, { error: "parent_only" });
+        const ph = await store.activeTaskPhoto(t.id);
+        if (!ph) return reply(res, 404, { error: "not_found" });
+        if (!(await logged(res, { actor: who.email, subject: t.assignee_id, entity: "task:photo", action: "read" }))) return;
+        const k = unwrapDataKey(kek, ph.wrapped_key, "photo", ph.id);
+        try {
+          const plain = openBytes(k, await readFile(join(filesDir, photoFile(ph.id))), `photo:${ph.id}`);
+          res.writeHead(200, { "content-type": ph.mime, "cache-control": "private, no-store", "x-content-type-options": "nosniff" });
+          return res.end(plain);
+        } catch { return reply(res, 404, { error: "not_found" }); } finally { k.fill(0); }
+      }
+      if (!canAddPhoto(me, t, assignee, grants)) return reply(res, 403, { error: t.needs_review ? "forbidden" : "no_review" });
+      let bytes = body;
+      if (bytes.length === 0 || bytes.length > MAX_FILE) return reply(res, 413, { error: "too_large" });
+      const mime = sniffDoc(bytes);
+      if (!["image/jpeg", "image/png", "image/heic"].includes(mime)) return reply(res, 415, { error: "unsupported_type" });
+      if (mime === "image/heic") { try { bytes = stripHeifMetadata(bytes).bytes; } catch { return reply(res, 415, { error: "unsupported_type" }); } }
+      else bytes = await stripImage(bytes, mime); // no EXIF/GPS survives
+      if (!(await logged(res, { actor: who.email, subject: t.assignee_id, entity: "task:photo", action: "write" }))) return;
+      const old = await store.activeTaskPhoto(t.id);
+      if (old) { const { unlink } = await import("node:fs/promises"); await unlink(join(filesDir, photoFile(old.id))).catch(() => {}); await store.markPhotoDeleted(old.id); }
+      const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "photo", id), at = clock();
+      try {
+        await mkdir(filesDir, { recursive: true });
+        await writeFile(join(filesDir, photoFile(id)), sealBytes(dek, bytes, `photo:${id}`), { mode: 0o600 });
+        await store.addTaskPhoto({ id, task_id: t.id, mime, size: bytes.length, wrapped_key: wrapped, uploaded_at: at, delete_after: deleteAfter(at) }, who.email);
+      } finally { dek.fill(0); }
+      await emit("task.photo", t.assignee_id, null);
+      return reply(res, 201, { ok: true, delete_after: deleteAfter(at).toISOString().slice(0, 10) });
     }
 
     // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»; the quiet nudge only here, only to participants
@@ -1249,6 +1294,7 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
   if (p === "/signins" || p === "/adoption") return p;
+  if (/^\/tasks\/[^/]+\/photo$/.test(p)) return "/tasks/:id/photo";
   if (/^\/people\/[^/]+\/invite$/.test(p)) return "/people/:id/invite";
   if (p === "/rotations" || p === "/rules") return p;
   if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";

@@ -502,3 +502,20 @@ CREATE TABLE IF NOT EXISTS invite_request (
   sent_at       timestamptz,
   UNIQUE (person_id, on_date)
 );
+-- Optional review photo (bus 84/97 item 4): bytes live sealed in the files dir as photo-<id>; this row has
+-- no image data. One active photo per task. delete_after = upload + 7 days; the runner deletes the file and
+-- sets deleted_at. Parents only (enforced in code).
+CREATE TABLE IF NOT EXISTS task_photo (
+  id            uuid PRIMARY KEY,
+  task_id       uuid NOT NULL REFERENCES task(id),
+  mime          text NOT NULL CHECK (mime IN ('image/jpeg', 'image/png', 'image/heic')),
+  size          integer NOT NULL CHECK (size > 0),
+  wrapped_key   text NOT NULL,
+  uploaded_by   text NOT NULL,
+  uploaded_at   timestamptz NOT NULL DEFAULT now(),
+  delete_after  timestamptz NOT NULL,
+  deleted_at    timestamptz,
+  CHECK (delete_after <= uploaded_at + interval '7 days')
+);
+CREATE UNIQUE INDEX IF NOT EXISTS task_photo_one_active ON task_photo (task_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS task_photo_due ON task_photo (delete_after) WHERE deleted_at IS NULL;

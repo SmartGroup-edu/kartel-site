@@ -11,6 +11,7 @@ import { pgStore } from "./store.mjs";
 import { parseMasterKey } from "./crypto.mjs";
 import { boardTick } from "./board-jobs.mjs";
 import { isParent } from "./board.mjs";
+import { purgePhotos } from "./photo.mjs";
 
 const RELAY_URL = process.env.RELAY_URL ?? "https://mail-relay.kartel.org.uk";
 const SITE = process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk";
@@ -27,6 +28,8 @@ const D = "'YYYY-MM-DD'";
 // Board (bus 82): 20:30 builds tomorrow's plan, 07:00 auto-approves today's template set if no parent did.
 const kek = parseMasterKey(await readFile(process.env.FAMILY_OS_MASTER_KEY_FILE ?? "/run/secrets/master_key"));
 const board = await boardTick(now, pgStore(pool), kek);
+// Review photos (bus 97 item 4): deleted 7 days after upload — the sealed file, then the row is marked.
+const photosDeleted = await purgePhotos({ store: pgStore(pool), filesDir: process.env.FAMILY_OS_FILES_DIR ?? "/data/docs", now });
 const boardCounts = { tomorrow: (await q("SELECT count(*)::int AS n FROM task WHERE plan_date = $1::date + 1 AND state = 'proposed'", [date]))[0].n,
   tomorrowApproved: (await q("SELECT 1 FROM plan_approval WHERE plan_date = $1::date + 1", [date])).length > 0,
   // «Нужно решение» (bus 83 §2): declined, or a child's task of today still not accepted (the 19:00 note is past 12:00).
@@ -95,4 +98,4 @@ async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
 }
 await pool.end();
-if (out.due || Object.keys(board).length || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, date, board })}`);
+if (out.due || out.invites || photosDeleted || Object.keys(board).length || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, photos_deleted: photosDeleted, date, board })}`);

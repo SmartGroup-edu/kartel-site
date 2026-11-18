@@ -76,3 +76,13 @@ test("heraldic accents: pillar tokens in light, dark and print; used as rules/ic
   assert.ok(uses.length > 0);
   assert.deepEqual(uses.filter((u) => /^(bg|text)-/.test(u)), [], "no fills or text in pillar colours");
 });
+
+test("3d-2 item 4: the review photo is optional and parents-only in the drawer; the proxy forwards only the photo path", () => {
+  const b = src("app/components/FamilyBoard.tsx");
+  assert.match(b, /x\.needs_review && data\?\.photo && \(data\.photo\.can_add \|\| data\.photo\.has\) && <TaskPhoto /);
+  assert.match(b, /photo: "Фото к проверке — по желанию"/, "never presented as required");
+  assert.doesNotMatch(b, /<input type="file"[^>]*\brequired\b/, "no required file input");
+  assert.doesNotMatch(b, /capture=/, "no forced camera");
+  const r = src("app/api/family-os/[...op]/route.ts");
+  assert.match(r, /tasks\/\$\{ID\}\/photo/);
+});
