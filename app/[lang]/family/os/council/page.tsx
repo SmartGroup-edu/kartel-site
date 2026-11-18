@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getCouncil, getSprint } from "@/app/lib/family-os";
 import FamilyCouncil from "@/app/components/FamilyCouncil";
@@ -23,5 +23,5 @@ export default async function FamilyCouncilPage({ params, searchParams }: { para
   if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
   // The sprint is the council's own week (Mon–Sun ending on the council Sunday).
   const sprint = council && state.me ? await getSprint(session, council.date) : null;
-  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} sprint={sprint} />;
+  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} sprint={sprint} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

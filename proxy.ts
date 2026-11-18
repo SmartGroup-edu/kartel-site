@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
+import { familyRoleOf } from "@/app/lib/family-roles.mjs";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -32,11 +33,17 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
     // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
     if (sub && (await isViewerApproved(sub, email))) {
-      // The family editor is admins-only. Refused here, at the edge, with a real 404: a page-level
+      // The family editor is for the owner and editors only (bus 87: FAMILY_EDITOR_EMAILS — their changes
+      // wait for the owner's approval). Refused here, at the edge, with a real 404: a page-level
       // notFound() in a streamed dynamic render still answers 200 (seen 2026-11-16).
       if (/^\/(en|ru)\/family\/admin(\/|$)/.test(pathname)) {
-        const admins = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-        if (!admins.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
+        const list = (v?: string) => (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (familyRoleOf(sub, list(process.env.FAMILY_ADMIN_EMAILS), list(process.env.FAMILY_EDITOR_EMAILS)) === "member") return new NextResponse("Not found", { status: 404 });
+      }
+      // Family OS «Доступы» (grants, emails): the owner only — never an editor or a member (bus 87).
+      if (/^\/(en|ru)\/family\/os\/access(\/|$)/.test(pathname)) {
+        const owners = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (!owners.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
       }
       return NextResponse.next();
     }
