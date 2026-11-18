@@ -16,6 +16,7 @@ import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
+import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -622,6 +623,37 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /rules (admin) — rules with on/off, dry-run and the last 7 days of outcomes (counts only)
     // PATCH /rules/:id (admin) — { enabled?, dry_run? }
+    // ================= Stage 3d-2 (bus 84/97 item 3): «Кто уже с нами» =================
+    // POST /signins — the site reports a completed sign-in for THIS actor (date only). Any signed-in actor;
+    // it can only ever record its own address.
+    if (path === "/signins" && req.method === "POST") {
+      await store.noteSignIn(who.email, localDate(clock()));
+      return reply(res, 200, { ok: true });
+    }
+    // GET /adoption — owner only: per person sign-in dates, digest time, passkey state, last invite; and one
+    // family line «N из M отмечают распорядок на этой неделе». No per-person activity numbers anywhere.
+    if (path === "/adoption" && req.method === "GET") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const today = localDate(clock()), week = mondayOf(today);
+      const people = await store.listPeople();
+      const [seen, invites, routinesAll, checks, prefList] = await Promise.all([store.signIns(), store.lastInvites(), store.allRoutines(), store.allChecks(week),
+        Promise.all(people.map(async (p) => [p.id, await store.getPrefs(p.id)]))]);
+      return reply(res, 200, {
+        people: adoptionRows(people, seen, new Map(prefList.filter(([, v]) => v)), invites),
+        family: { week_start: week, ...familyWeek(people, routinesAll, checks, week, today) },
+        owner_signed_in: seen.find((x) => x.email === who.email) ?? null,
+      });
+    }
+    // POST /people/:id/invite — owner only: queue «Отправить ссылку ещё раз» (the runner sends it). One a day.
+    const invm = path.match(/^\/people\/([0-9a-f-]{36})\/invite$/);
+    if (invm && req.method === "POST") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      if (!(await store.getPerson(invm[1]))) return reply(res, 404, { error: "not_found" });
+      if (!(await store.requestInvite(invm[1], localDate(clock()), who.email))) return reply(res, 409, { error: "already_today" });
+      await emit("invite.requested", invm[1], null);
+      return reply(res, 202, { ok: true });
+    }
+
     if (path === "/rules" && req.method === "GET") {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       const [rules, counts] = await Promise.all([store.listRules(), store.ruleRunCounts(addDays(localDate(clock()), -7))]);
@@ -1216,6 +1248,8 @@ export function routeClass(url = "") {
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
+  if (p === "/signins" || p === "/adoption") return p;
+  if (/^\/people\/[^/]+\/invite$/.test(p)) return "/people/:id/invite";
   if (p === "/rotations" || p === "/rules") return p;
   if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";
   if (/^\/rotations\/[^/]+$/.test(p)) return "/rotations/:id";

@@ -15,8 +15,9 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsPerson, OsGrant, OsScope, OsRule } from "../lib/family-os";
+import type { OsPerson, OsGrant, OsScope, OsRule, OsAdoption } from "../lib/family-os";
 import FamilyRules from "./FamilyRules";
+import FamilyAdoption from "./FamilyAdoption";
 import { addedSensitive, confirmGrantText } from "../lib/family-access.mjs";
 
 type Lang = "EN" | "RU";
@@ -60,7 +61,7 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -76,10 +77,12 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null }: {
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
           {/* bus 78 #5: one tap to each part of a long page */}
           <nav aria-label={t.jump} data-access-jump="" className="mt-4 flex flex-wrap gap-2">
-            {([["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab]] : [])] as const).map(([href, label]) => (
+            {([...(adoption ? [["#with-us", lang === "EN" ? "Who is with us" : "Кто уже с нами"]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab]] : [])] as const).map(([href, label]) => (
               <a key={href} href={href} className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{label}</a>
             ))}
           </nav>
+
+          {adoption && <FamilyAdoption lang={lang} data={adoption} />}
 
           <section id="people" aria-labelledby="ppl-h" className="mt-10 scroll-mt-24">
             <h2 id="ppl-h" className={H2}>{t.people}</h2>

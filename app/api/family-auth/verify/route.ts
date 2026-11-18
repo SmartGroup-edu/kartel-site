@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { verifySignInLink, clearSignInNonce, createSession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
 import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
+import { noteSignIn } from "@/app/lib/family-os";
 
 /**
  * GET /api/family-auth/verify?token=… — consume a sign-in link and create the session.
@@ -40,6 +41,8 @@ export async function GET(request: Request): Promise<Response> {
 
   await createSession({ email: claims.email, name: null });
   await clearSignInNonce();
+  // «Кто уже с нами» (bus 97 item 3): the sign-in DATE, after the response, so it never slows or blocks sign-in.
+  after(() => noteSignIn(claims.email));
 
   return NextResponse.redirect(new URL(safeReturnTo(claims.returnTo), url.origin));
 }

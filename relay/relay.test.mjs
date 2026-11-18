@@ -247,3 +247,17 @@ test("review: rejects anything but fixed counts — no titles, names or extra fi
   ]) { const r = await review(p); assert.equal(r.status, 400); assert.equal((await r.json()).error, err, JSON.stringify(p)); }
   assert.equal((await review({ to: "x@example.test", kind: "pending", count: 1 }, { secret: "wrong-secret-at-least-32-characters-long" })).status, 401);
 });
+
+test("send-family invite (bus 97 item 3): first name + the fixed Today link; nothing else accepted", async () => {
+  const { checkFamily, renderFamilyEmail } = await import("./server.mjs");
+  const inv = famBody({ kind: "invite", items: [], docs: [], notes: [] });
+  assert.equal(checkFamily(inv), null);
+  assert.equal(checkFamily({ ...inv, items: [{ title: "x" }] }), "bad_items");
+  assert.equal(checkFamily({ ...inv, count: 2 }), "bad_count");
+  assert.equal(checkFamily({ ...inv, link: "https://example.test/x" }), "bad_link");
+  const m = renderFamilyEmail(inv);
+  assert.equal(m.subject, "Тебя ждут в семейном разделе KARTEL");
+  assert.match(m.text, /введи свой адрес почты/);
+  assert.match(m.text, /https:\/\/kartel\.org\.uk\/ru\/family\/os/);
+  assert.doesNotMatch(m.text, /token=|Вы |Ваш/);
+});

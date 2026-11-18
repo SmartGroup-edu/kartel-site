@@ -27,3 +27,7 @@ GRANT SELECT, INSERT, UPDATE ON task_template, sprint_goal, task, plan_approval 
 -- Stage 3d: Кодекс versions are insert-only for kfo_app (append-only by privilege and by trigger).
 GRANT SELECT, INSERT ON kodeks_version, recognition TO kfo_app;
 GRANT SELECT, INSERT, UPDATE ON principle_week TO kfo_app;
+-- 3d-2: sign-in dates (upsert) and invite requests (the runner marks sent_at). No DELETE on either.
+GRANT SELECT, INSERT, UPDATE (last_on) ON signin_seen TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (sent_at) ON invite_request TO kfo_app;
+GRANT USAGE ON SEQUENCE invite_request_id_seq TO kfo_app;

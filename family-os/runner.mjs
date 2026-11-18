@@ -5,7 +5,7 @@
 // removes its row so the next tick retries. Prints counts only — never names, titles or addresses.
 import pg from "pg";
 import { readFile } from "node:fs/promises";
-import { planSends, localParts, DOC_DIGEST_DAYS } from "./engine.mjs";
+import { planSends, planInvites, localParts, DOC_DIGEST_DAYS } from "./engine.mjs";
 import { sign as relaySign } from "./relay-sign.mjs";
 import { pgStore } from "./store.mjs";
 import { parseMasterKey } from "./crypto.mjs";
@@ -77,6 +77,19 @@ for (const s of plan) {
   } catch { ok = false; }
   if (ok) { out.sent++; await event("notify.sent", s.person.id, s.rule); }
   else { out.failed++; await pool.query("DELETE FROM rule_run WHERE rule_id = $1 AND key = $2 AND person_id = $3", [s.rule, s.key, s.person.id]); }
+}
+// «Отправить ссылку ещё раз» (bus 84/97 item 3): the owner's queued invites. Marked sent only on a 202.
+const invitesDue = planInvites(await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1::date - 2", [date]),
+  people, new Map(prefRows.map((p) => [p.person_id, p])), now);
+out.invites = 0;
+for (const i of invitesDue) {
+  const body = JSON.stringify({ to: i.person.email, kind: "invite", lang: i.lang, firstName: i.firstName, date: i.date, items: [], docs: [], notes: [],
+    link: `${SITE}/${i.lang}/family/os`, settingsLink: `${SITE}/${i.lang}/family/os/people/${i.person.id}#letters` });
+  const ts = String(Math.floor(Date.now() / 1000));
+  let ok = false;
+  try { ok = (await fetch(`${RELAY_URL}/send-family`, { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": relaySign(secret, ts, body) }, body, signal: AbortSignal.timeout(15000) })).status === 202; } catch { ok = false; }
+  if (ok) { await pool.query("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [i.id]); out.invites++; await event("invite.sent", i.person.id, null); }
+  else out.failed++;
 }
 async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
