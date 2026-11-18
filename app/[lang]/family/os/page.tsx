@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getReminders, getMyRoutines } from "@/app/lib/family-os";
 import FamilyOs from "@/app/components/FamilyOs";
@@ -25,5 +25,5 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
     ok && state.admin ? getReminders(session, "family") : Promise.resolve([]),
     ok && state.me ? getMyRoutines(session, state.me.id) : Promise.resolve(null),
   ]);
-  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} />;
+  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

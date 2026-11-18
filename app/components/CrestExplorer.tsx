@@ -95,7 +95,7 @@ const ELEMENTS: HeraldicElement[] = [
   },
   {
     id: "keys",
-    labelEN: "Crossed Keys",
+    labelEN: "Crossed keys",
     labelRU: "Ключи",
     descEN:
       "Two crossed keys at the base of the shield — a symbol of ecclesiastical authority rooted in the Apostle Peter, and a sign of deep knowledge. Their intersection forms a cross, affirming belief in one's own strength. A reminder that every person holds the keys to their own destiny.",
@@ -206,7 +206,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
     }
   }, [activeId]);
 
-  const title = lang === "EN" ? "Explore the Coat of Arms" : "Исследуйте герб";
+  const title = lang === "EN" ? "Explore the coat of arms" : "Исследуйте герб";
   const hint =
     lang === "EN"
       ? "Select an element to learn its meaning"

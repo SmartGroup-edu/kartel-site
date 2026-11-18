@@ -28,17 +28,21 @@ describe("photo route: approved viewers only, never cached", () => {
   });
   test("strict id and variant, viewers get published files only", () => {
     assert.match(r, /const VARIANT = \/\^\(256\|640\|1280\)\\\.\(webp\|avif\)\$\/;/);
-    assert.match(r, /admin \? "admin" : "published"/);
+    // bus 87: members get published files; the owner and editors the editor scope, under their signed role
+    assert.match(r, /role === "member" \? "published" : "admin", mediaActor\(session\.cpifSubjectId\)/);
   });
   test("private, no-store, noindex, nosniff", () => {
     for (const h of [/"cache-control": "private, no-store"/, /"x-robots-tag": "noindex, nofollow"/, /"x-content-type-options": "nosniff"/]) assert.match(r, h);
   });
 });
 
-describe("editor API and page: admins only", () => {
+describe("editor API and page: the owner and editors only (bus 87)", () => {
   const a = src("app/api/family-admin/[...op]/route.ts");
-  test("guard: gate on, approved session, admin, same-origin writes", () => {
-    assert.match(a, /if \(!isFamilyAdmin\(session\.cpifSubjectId\)\) return json\(403/);
+  test("guard: gate on, approved session, owner or editor, same-origin writes; owner-only actions", () => {
+    assert.match(a, /if \(role === "member"\) return json\(403/);
+    assert.match(a, /op === "undo" \|\| op === "publish"\) return g\.role === "owner" \?/);
+    assert.match(a, /\(action === "approve" \|\| action === "reject"\) && g\.role !== "owner"\) return ownerOnly\(\)/);
+    assert.match(a, /g\.role === "owner" \? `\/draft\/\$\{kind\}\/\$\{id\}` : `\/revisions\/\$\{kind\}\/\$\{id\}`/, "an editor's save is a proposal");
     assert.match(a, /req\.method !== "GET" && req\.headers\.get\("origin"\) !== familyEnv\.siteOrigin\(\)/);
   });
   test("only existing people and chronicle entries can be edited", () => {
@@ -48,10 +52,12 @@ describe("editor API and page: admins only", () => {
     assert.match(a, /\^image\\\/\(jpeg\|png\|webp\)\$/);
     assert.match(a, /buf\.length > 4 \* 1024 \* 1024/);
   });
-  test("non-admins get a real 404 at the edge (page notFound() would stream a 200)", () => {
+  test("members get a real 404 at the edge (page notFound() would stream a 200); «Доступы» owner-only (bus 87)", () => {
     const p = src("proxy.ts");
     assert.match(p, /\\\/\(en\|ru\)\\\/family\\\/admin\(\\\/\|\$\)/);
-    assert.match(p, /if \(!admins\.includes\(sub\.toLowerCase\(\)\)\) return new NextResponse\("Not found", \{ status: 404 \}\);/);
+    assert.match(p, /familyRoleOf\(sub, list\(process\.env\.FAMILY_ADMIN_EMAILS\), list\(process\.env\.FAMILY_EDITOR_EMAILS\)\) === "member"\) return new NextResponse\("Not found", \{ status: 404 \}\);/);
+    assert.match(p, /\\\/family\\\/os\\\/access/);
+    assert.match(p, /if \(!owners\.includes\(sub\.toLowerCase\(\)\)\) return new NextResponse\("Not found", \{ status: 404 \}\);/);
   });
   test("editor page never prerendered or indexed", () => {
     const pg = src("app/[lang]/family/admin/page.tsx");
