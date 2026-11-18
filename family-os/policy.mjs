@@ -127,3 +127,6 @@ export const canWriteGoal = (me, owner) => Boolean(me && owner && me.id === owne
 // the birth date may be seen (canSeeBirth). The personal ICS link is the person's own, nobody else's.
 export const canWriteEvent = (me) => Boolean(me) && me.kind === "adult";
 export const canSeeBirthday = (me, person, grants) => canSeeBirth(me, person, grants, false);
+// R0 2026-11-18 (bus 81): every member sees every living person's birthday as day + month
+// (capability "birthday.daymonth"). The year — and so the age — stays under canSeeBirth.
+export const canSeeBirthdayDayMonth = (me) => Boolean(me);

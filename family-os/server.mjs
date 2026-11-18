@@ -9,7 +9,7 @@ import { createHmac, createHash, timingSafeEqual, randomUUID, randomBytes } from
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
-  canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday } from "./policy.mjs";
+  canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
 import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
@@ -82,12 +82,22 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     try { await store.logAccess(entry); return true; } catch { console.error("[os] access log write failed"); reply(res, 503, { error: "log_unavailable" }); return false; }
   }
 
+  /**
+   * Birthdays a viewer may see (bus 81): every living member's day + month for any member; the year only
+   * where the full birth-date rule allows. `person` holds living family members only — the heritage
+   * (deceased) people live in the heritage store, never here.
+   */
+  const birthdayRows = (viewer, people, grants) => (canSeeBirthdayDayMonth(viewer) ? people : [])
+    .filter((p) => p && p.birth_date)
+    .map((p) => { const b = String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date);
+      return { id: p.id, name_ru: p.name_ru, name_en: p.name_en, md: b.slice(5), year: canSeeBirthday(viewer, p, grants) ? Number(b.slice(0, 4)) : null }; });
+
   /** The person's own feed: their routines and turns, the council, family events, birthdays they may see. */
   async function serveIcs(res, person) {
     const today = localDate(clock());
     const [routines, rotations, events, people, grants] = await Promise.all([store.listRoutines(person.id), store.listRotations(), store.listEvents(today, addDays(today, 365)), store.listPeople(), store.listGrants()]);
     const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
-    const birthdayPeople = full.filter((p) => p && p.birth_date && canSeeBirthday(person, p, grants)).map((p) => ({ ...p, birth_date: String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date) }));
+    const birthdayPeople = birthdayRows(person, full, grants).map((b) => ({ ...b, year: null })); // the feed never carries a year
     const stamp = new Date(clock()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
     const ics = buildIcs({ today, stamp, calName: "KARTEL · Семья", routines, rotations: rotations.filter((x) => x.members.includes(person.id)), personId: person.id, events, birthdayPeople, nameOf: (p) => p.name_ru, labels: { council: "Семейный совет", birthday: "День рождения" } });
     res.writeHead(200, { "content-type": "text/calendar; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
@@ -734,7 +744,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const today = localDate(clock()), days = Math.min(92, Math.max(1, Number(url.searchParams.get("days") ?? 60) || 60)), to = addDays(today, days - 1);
       const [people, grants, events] = await Promise.all([store.listPeople(), grantsNow(), store.listEvents(today, to)]);
       const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
-      const birthdayPeople = full.filter((p) => p && p.birth_date && canSeeBirthday(me, p, grants)).map((p) => ({ id: p.id, name_ru: p.name_ru, name_en: p.name_en, birth_date: String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date) }));
+      const birthdayPeople = birthdayRows(me, full, grants);
       return reply(res, 200, { today, can: { write: canWriteEvent(me) }, items: calendarItems(today, to, { events, birthdayPeople, nameOf }).map(({ name, ...x }) => ({ ...x, ...(name ? { name_ru: name, name_en: birthdayPeople.find((p) => p.id === x.person_id)?.name_en } : {}) })) });
     }
     // POST /events { title, on_date, at_time } (adults) · PATCH /events/:id { archived } (adults)

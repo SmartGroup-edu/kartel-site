@@ -56,14 +56,25 @@ export function buildAgenda(meetingDate, today, { routines, rotations = [], chec
  * Calendar items in [from, to] for one viewer: council Sundays, family events, and birthdays of people
  * whose birth date this viewer may see (the caller filters `birthdayPeople` with canSeeBirthday).
  */
+const leap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+/** Does a birthday (MM-DD) fall on date d? 29 February is kept on 28 February in other years. */
+export const birthdayOn = (md, d) => md === d.slice(5) || (md === "02-29" && d.slice(5) === "02-28" && !leap(Number(d.slice(0, 4))));
+/** Next date (≥ today) of a birthday — the ICS start, so the feed never carries a birth year. */
+export function nextBirthday(md, today) {
+  for (let i = 0; i < 400; i++) { const d = addDays(today, i); if (birthdayOn(md, d)) return d; }
+  return null;
+}
+
 export function calendarItems(from, to, { events, birthdayPeople, nameOf }) {
   const out = [];
   // Only the next council is listed (bus 80 #3): the weekly rhythm is shown once, pinned, by the page.
   const next = councilDate(from);
   if (next <= to) out.push({ date: next, time: COUNCIL_TIME, kind: "council" });
+  // birthdayPeople: [{ id, md: "MM-DD", year: number | null }] — year only for viewers with the full
+  // birth-date right; without it, nothing here can produce or leak the year (bus 81).
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    for (const p of birthdayPeople) if (p.birth_date && p.birth_date.slice(5) === d.slice(5) && p.birth_date <= d)
-      out.push({ date: d, time: null, kind: "birthday", person_id: p.id, name: nameOf(p), age: Number(d.slice(0, 4)) - Number(p.birth_date.slice(0, 4)) });
+    for (const p of birthdayPeople) if (birthdayOn(p.md, d) && (!p.year || p.year <= Number(d.slice(0, 4))))
+      out.push({ date: d, time: null, kind: "birthday", person_id: p.id, name: nameOf(p), ...(p.year ? { age: Number(d.slice(0, 4)) - p.year } : {}) });
   }
   for (const e of events) if (e.on_date >= from && e.on_date <= to) out.push({ date: e.on_date, time: e.at_time ?? null, kind: "event", id: e.id, title: e.title });
   return out.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? "99").localeCompare(b.time ?? "99"));
@@ -108,7 +119,8 @@ export function buildIcs({ today, stamp, calName, routines, rotations, personId,
   for (const x of rotations) for (let i = 0; i <= 30; i++) { const d = addDays(today, i); if (rotationAssignee(x, d) === personId) ev(`rotation-${x.id}-${ymd(d)}`, d, x.at_time, x.title); }
   ev("council", councilDate(today), COUNCIL_TIME, labels.council, ["RRULE:FREQ=WEEKLY;BYDAY=SU"]);
   for (const e of events) ev(`event-${e.id}`, e.on_date, e.at_time, e.title);
-  for (const p of birthdayPeople) if (p.birth_date) ev(`birthday-${p.id}`, p.birth_date, null, `${labels.birthday}: ${nameOf(p)}`, ["RRULE:FREQ=YEARLY"]);
+  // Birthdays start on their next date, never on the birth date: the feed carries no birth year (bus 81).
+  for (const p of birthdayPeople) { const d = nextBirthday(p.md, today); if (d) ev(`birthday-${p.id}`, d, null, `${labels.birthday}: ${nameOf(p)}`, ["RRULE:FREQ=YEARLY"]); }
   L.push("END:VCALENDAR");
   return L.map(fold).join("\r\n") + "\r\n";
 }

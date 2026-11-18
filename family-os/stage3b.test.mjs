@@ -108,18 +108,32 @@ test("goals: owner creates (a child too); a parent cannot write a child's goal; 
   assert.equal((await call("GET", `/people/${P.c}/goals`, { actor: as(E.x) })).status, 403);
 });
 
-test("calendar: council Sundays, family events (adults add), birthdays only where the birth date may be seen", async () => {
+test("calendar: council, family events (adults add); birthdays day+month for every member, year/age only with the birth-date right (bus 81)", async () => {
   assert.equal((await call("POST", "/events", { actor: as(E.c), body: { title: "x", on_date: "2026-11-25" } })).status, 403);
   assert.equal((await call("POST", "/events", { actor: as(E.p1), body: { title: "Grandma visits", on_date: "2026-11-25", at_time: "15:00" } })).status, 201);
   assert.equal((await call("POST", "/events", { actor: as(E.p1), body: { title: "x", on_date: "2026-11-01" } })).json.error, "bad_event", "not in the past");
-  const kinds = async (actor) => (await call("GET", "/calendar?days=14", { actor })).json.items.map((i) => `${i.date}:${i.kind}${i.name_ru ? `:${i.name_ru}` : ""}`);
-  const p1 = await kinds(as(E.p1));
-  assert.ok(p1.includes("2026-11-20:birthday:QA c") && p1.includes("2026-11-22:council") && p1.includes("2026-11-25:event"));
-  assert.ok(!p1.includes("2026-11-29:council"), "only the next council is listed (bus 80 #3)");
-  assert.ok(!p1.includes("2026-12-01:birthday:QA e"), "another adult's birthday: not visible to p1");
-  assert.ok((await kinds(as(E.e))).every((x) => !x.includes("birthday:QA c")), "unrelated adult: no child's birthday");
-  assert.ok((await kinds(as(E.c))).includes("2026-11-20:birthday:QA c"), "own birthday");
-  assert.equal((await call("GET", "/calendar", { actor: as(E.x) })).status, 403);
+  const cal = async (actor) => (await call("GET", "/calendar?days=21", { actor })).json;
+  const bdays = (j) => Object.fromEntries(j.items.filter((i) => i.kind === "birthday").map((i) => [i.name_ru, i]));
+  // parent: child's birthday with age (guardian), another adult's birthday day+month only
+  const p1 = bdays(await cal(as(E.p1)));
+  assert.equal(p1["QA c"].date, "2026-11-20"); assert.equal(p1["QA c"].age, 11);
+  assert.equal(p1["QA e"].date, "2026-12-01"); assert.equal(p1["QA e"].age, undefined, "another adult: no age for p1");
+  // unrelated adult: day+month of the child and of another adult, never a year
+  const ej = await cal(as(E.e)), e = bdays(ej);
+  assert.equal(e["QA c"].date, "2026-11-20"); assert.equal(e["QA c"].age, undefined);
+  assert.equal(e["QA e"].age, 36, "own birthday: own age");
+  const leak = JSON.stringify(ej.items.filter((i) => i.name_ru === "QA c"));
+  assert.ok(!/2015|birth_date|"age"/.test(leak), `no birth year anywhere for a viewer without the right: ${leak}`);
+  // a relative WITHOUT a grant: day+month, never the year
+  const r2 = (await call("POST", "/people", { body: { email: "relative2@example.test", name_en: "QA r2", name_ru: "QA r2", kind: "adult" } })).json.id;
+  const rj = await cal(as("relative2@example.test"));
+  assert.equal(bdays(rj)["QA c"].date, "2026-11-20"); assert.ok(!/2015|1990|"age":(11|36)/.test(JSON.stringify(rj.items.filter((i) => i.kind === "birthday" && i.person_id !== r2))), "relative without a grant: no year, no age");
+  // a relative WITH a grant is a guardian under the existing birth-date rule → year/age allowed
+  assert.equal(bdays(await cal(as(E.g)))["QA c"].age, 11);
+  // the heritage archive is not people: an archive record never becomes a birthday
+  await call("POST", "/archive/documents", { body: { type: "passport", holder: "QA elder", birth_date: "1920-11-21" } });
+  assert.equal((await cal(as(E.p1))).items.filter((i) => i.kind === "birthday").length, 2, "only living members (person rows)");
+  assert.equal((await call("GET", "/calendar", { actor: as(E.x) })).status, 403, "outsider: nothing");
 });
 
 test("ICS: own link only; token shown once, hash stored; feed; new link revokes the old; switch off", async () => {
@@ -142,6 +156,10 @@ test("ICS: own link only; token shown once, hash stored; feed; new link revokes 
   assert.equal((await call("GET", `/ics/${t2}`, { actor: "system:ics" })).status, 404);
   assert.equal((await call("GET", `/people/${P.c}/ics`, { actor: as(E.c) })).json.active, false);
   assert.equal(routeClass(`/ics/${t2}`), "/ics/:token", "tokens never reach the log");
+  const te = (await call("POST", `/people/${P.e}/ics`, { actor: as(E.e) })).json.token;
+  const fe = (await call("GET", `/ics/${te}`, { actor: "system:ics" })).text;
+  assert.match(fe, /DTSTART;VALUE=DATE:20261120\r\nDTEND;VALUE=DATE:20261121\r\nSUMMARY:День рождения: QA c\r\nRRULE:FREQ=YEARLY/, "unrelated adult's feed: the child's birthday from its next date");
+  assert.ok(!/2015\d{4}|1990\d{4}/.test(fe), "no birth year in any feed (bus 81)");
 });
 
 test("profile: capabilities for notes, goals and the ICS link", async () => {
@@ -162,9 +180,10 @@ test("council status chip: upcoming → today → live → held / missed; held o
 });
 
 test("calendar: only the next council is listed; birthdays carry the age (bus 80 #3, #8)", () => {
-  const items = calendarItems("2026-11-18", "2027-01-16", { events: [], birthdayPeople: [{ id: "c", birth_date: "2015-11-20", name_ru: "Вера" }], nameOf: (p) => p.name_ru });
+  const items = calendarItems("2026-11-18", "2027-03-01", { events: [], nameOf: (p) => p.name_ru,
+    birthdayPeople: [{ id: "c", md: "11-20", year: 2015, name_ru: "Вера" }, { id: "e", md: "12-01", year: null, name_ru: "Ева" }, { id: "l", md: "02-29", year: null, name_ru: "Лев" }] });
   assert.deepEqual(items.filter((i) => i.kind === "council").map((i) => i.date), ["2026-11-22"]);
-  assert.deepEqual(items.filter((i) => i.kind === "birthday").map((i) => [i.date, i.age]), [["2026-11-20", 11]]);
+  assert.deepEqual(items.filter((i) => i.kind === "birthday").map((i) => [i.date, i.age]), [["2026-11-20", 11], ["2026-12-01", undefined], ["2027-02-28", undefined]], "age only with the year; 29 Feb on 28 Feb in a common year");
 });
 
 test("ICS parses with a real parser (ical.js); VTIMEZONE Europe/London gives the right UTC across DST (bus 80 #9)", async () => {
