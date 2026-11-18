@@ -206,7 +206,7 @@ export default function CrestExplorer({ lang }: CrestExplorerProps) {
     }
   }, [activeId]);
 
-  const title = lang === "EN" ? "Explore the Coat of Arms" : "Исследуйте герб";
+  const title = lang === "EN" ? "Explore the coat of arms" : "Исследуйте герб";
   const hint =
     lang === "EN"
       ? "Select an element to learn its meaning"
