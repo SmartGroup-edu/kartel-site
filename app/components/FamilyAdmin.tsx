@@ -147,6 +147,7 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
   const [publishedAt, setPublishedAt] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(0); // bumps on every (re)load so cards accept the server's value
   const [status, setStatus] = useState("");
+  const [tone, setTone] = useState<"accent" | "muted">("accent");
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState("");
 
@@ -194,8 +195,8 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
     if (editor) { setMine((d) => ({ ...d, events: { ...d.events, [id]: v } })); refreshRevs(); } else setDraft((d) => ({ ...d, events: { ...d.events, [id]: v } }));
   }, [editor, refreshRevs]);
   const pendingN = revs.filter((r) => r.state === "pending").length;
-  const decide = async (path: string, body?: unknown, msg?: string) => {
-    setBusy(true); setStatus("");
+  const decide = async (path: string, body?: unknown, msg?: string, msgTone: "accent" | "muted" = "accent") => {
+    setBusy(true); setStatus(""); setTone(msgTone);
     try {
       const r = await api(path, { method: "POST", ...(body ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}) });
       setStatus(r.ok ? msg ?? "" : `${t.error} (${r.status})`); await load();
@@ -211,7 +212,7 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
   };
 
   const act = async (path: string, done: (j: { undone?: boolean }) => string) => {
-    setBusy(true); setStatus("");
+    setBusy(true); setStatus(""); setTone("accent");
     try {
       const r = await api(path, { method: "POST" });
       if (!r.ok) { setStatus(`${t.error} (${r.status})`); return; }
@@ -254,7 +255,10 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
               </details>}
               <span className="flex-1" />
               {editor ? (
-                <a href="#mine" data-proposal-note="" className={`${btnSecondary} whitespace-nowrap`}>{pendingN ? t.myPending(pendingN) : t.proposalNote}</a>
+                <span data-proposal-note="" className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-[14px] text-[var(--muted)]">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" className="shrink-0"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.4" /><path d="M8 7v4M8 4.8v.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
+                  {pendingN ? t.myPending(pendingN) : t.proposalNote}
+                </span>
               ) : (
                 <>
                   {/* phones: the queue section sits right under the toolbar, so the badge stays on wider screens (one-row toolbar, bus 60 #9) */}
@@ -275,11 +279,11 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
               </details>}
             </div>
             <p className={`${META} mt-2 hidden sm:block`}>{t.publishedAt}: {lastPublished}</p>
-            <p role="status" aria-live="polite" className="mt-1 min-h-5 text-[14px] text-[var(--accent)]">{status}</p>
+            <p role="status" aria-live="polite" className={`mt-1 min-h-5 text-[14px] ${tone === "muted" ? "text-[var(--muted)]" : "text-[var(--accent)]"}`}>{status}</p>
 
             {!editor && pendingN > 0 && <ReviewQueue t={t} lang={lang} revs={revs} dims={dims} nameOf={nameOf} busy={busy}
               onApprove={(id) => decide(`review/${id}/approve`, undefined, t.approved)} onReject={(id, comment) => decide(`review/${id}/reject`, { comment }, t.rejected)} onApproveAll={() => decide("review/approve-all", undefined, t.approved)} />}
-            {editor && <MyChanges t={t} lang={lang} revs={revs} nameOf={nameOf} busy={busy} onWithdraw={(id) => decide(`review/${id}/withdraw`, undefined, t.withdrawn)} />}
+            {editor && <MyChanges t={t} lang={lang} revs={revs} nameOf={nameOf} busy={busy} onWithdraw={(id) => decide(`review/${id}/withdraw`, undefined, t.withdrawn, "muted")} />}
 
             <section className="mt-12 scroll-mt-40" aria-labelledby="people-h" id="people">
               <h2 id="people-h" className={`${H2} scroll-mt-40`}>{t.people}</h2>
@@ -681,7 +685,7 @@ function ReviewItem({ t, lang, r, nameOf, thumb, busy, onApprove, onReject }: {
 
 /** Editor (bus 87): her changes and what happened to them; a pending one can be withdrawn. */
 function MyChanges({ t, lang, revs, nameOf, busy, onWithdraw }: { t: Dict; lang: Lang; revs: Revision[]; nameOf: (k: string) => string; busy: boolean; onWithdraw: (id: string) => void }) {
-  const tone: Record<Revision["state"], string> = { pending: "border-[var(--accent)] text-[var(--accent)]", approved: "border-[var(--border)] text-[var(--text-secondary)]", rejected: "border-[var(--destructive)] text-[var(--destructive)]", withdrawn: "border-dashed border-[var(--border)] text-[var(--muted)]" };
+  const tone: Record<Revision["state"], string> = { pending: "border-[var(--accent)] text-[var(--accent)]", approved: "border-[var(--border)] text-[var(--text-secondary)]", rejected: "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)]", withdrawn: "border-dashed border-[var(--border)] text-[var(--muted)]" };
   return (
     <section id="mine" aria-labelledby="mine-h" data-mine="" className="mt-10 scroll-mt-40">
       <h2 id="mine-h" className="font-serif text-[24px] text-[var(--accent)]">{t.mine}</h2>
