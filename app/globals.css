@@ -403,7 +403,9 @@ summary:focus-visible,
     margin: 16mm 15mm;
   }
   :root,
-  .dark {
+  .dark,
+  :root.hc:not(.dark),
+  :root.dark.hc {
     --pillar-rhythm: #000000;
     --pillar-health: #000000;
     --pillar-growth: #000000;

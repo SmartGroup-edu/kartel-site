@@ -42,3 +42,9 @@ test("theme menu: Светлая / Тёмная / Системная + «Выс�
   const layout = readFileSync("app/[lang]/layout.tsx", "utf8");
   assert.match(layout, /kartel-contrast/); assert.match(layout, /classList\.add\('hc'\)/);
 });
+
+test("print beats high contrast: the print block also targets the .hc selectors (same specificity, later in the file)", () => {
+  const p = css.indexOf("@media print");
+  assert.ok(p > css.indexOf(":root.dark.hc {"), "print comes after the HC blocks");
+  assert.match(css.slice(p), /:root\.hc:not\(\.dark\),\s*:root\.dark\.hc \{/);
+});

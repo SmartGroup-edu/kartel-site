@@ -81,6 +81,8 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
                 <Link href={`${base}?date=${shift(council.date, -7)}`} aria-label={t.prevAria} className={btn}>{t.prev}</Link>
                 <Link href={`${base}?date=${shift(council.date, 7)}`} aria-label={t.nextAria} className={btn}>{t.next}</Link>
               </nav>
+              {/* bus 97 item 5: one A4 sheet for the council and the fridge */}
+              {me && <p className="mt-3"><Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{lang === "EN" ? "Family week · PDF" : "Неделя семьи · PDF"}</Link></p>}
 
               {/* bus 86: the principle of the week is the first item of the agenda */}
               {council.principle && principles && <CouncilPrinciple lang={lang} principle={council.principle} canPick={Boolean(council.can.pick_principle)} principles={principles} />}
