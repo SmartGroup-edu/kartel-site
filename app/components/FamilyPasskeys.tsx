@@ -24,6 +24,9 @@ const T = {
     added_on: (d: string) => `добавлен ${d}`, used_on: (d: string) => `последний вход ${d}`, synced: "синхронизируется", flagged: "Приостановлен: ключ повёл себя необычно",
     rename: "Переименовать", save: "Сохранить", cancel: "Отмена", name: "Название", revoke: "Отозвать", confirm: "Отозвать этот ключ? Войти с ним больше не получится.", yes: "Отозвать", no: "Оставить",
     restore: "Вернуть", error: "Не получилось — попробуй ещё раз.",
+    ended: "Сеанс завершён владельцем. Войди заново по ссылке из письма.",
+    endOne: "Завершить сеансы", endOneLead: "Все открытые сеансы этого человека: документы, ключи и доступы потребуют нового входа по ссылке из письма.",
+    endOneConfirm: "Завершить открытые сеансы этого человека?", endOneYes: "Завершить", endOneNo: "Отмена", endOneDone: "Готово. Нужен новый вход.",
     kind: { iphone: "iPhone", ipad: "iPad", mac: "Mac", android: "Android", windows: "Windows", linux: "Linux", key: "Ключ безопасности", other: "Устройство" } as Record<string, string>,
   },
   EN: {
@@ -36,6 +39,9 @@ const T = {
     added_on: (d: string) => `added ${d}`, used_on: (d: string) => `last sign-in ${d}`, synced: "synced", flagged: "Paused: the key behaved unusually",
     rename: "Rename", save: "Save", cancel: "Cancel", name: "Name", revoke: "Revoke", confirm: "Revoke this passkey? It will no longer sign in.", yes: "Revoke", no: "Keep",
     restore: "Restore", error: "Could not do that — please try again.",
+    ended: "The owner ended this session. Please sign in again with an email link.",
+    endOne: "End sessions", endOneLead: "Every open session of this person: documents, keys and access will need a fresh sign-in with an email link.",
+    endOneConfirm: "End this person's open sessions?", endOneYes: "End sessions", endOneNo: "Cancel", endOneDone: "Done. A fresh sign-in is needed.",
     kind: { iphone: "iPhone", ipad: "iPad", mac: "Mac", android: "Android", windows: "Windows", linux: "Linux", key: "Security key", other: "Device" } as Record<string, string>,
   },
 } as const;
@@ -66,11 +72,11 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
     setBusy(true); setMsg(t.adding);
     try {
       const o = await post("/api/family-auth/passkey/register/options");
-      if (!o?.ok) { setMsg(o?.status === 403 ? t.reauth : o?.status === 409 ? t.tooMany : o?.status === 429 ? t.later : t.failed); return; }
+      if (!o?.ok) { setMsg(o?.status === 401 ? t.ended : o?.status === 403 ? t.reauth : o?.status === 409 ? t.tooMany : o?.status === 429 ? t.later : t.failed); return; }
       const { options } = await o.json();
       const response = await startRegistration({ optionsJSON: options });
       const v = await post("/api/family-auth/passkey/register/verify", { response });
-      setMsg(v?.status === 201 ? t.added : v?.status === 429 ? t.later : t.failed);
+      setMsg(v?.status === 201 ? t.added : v?.status === 401 ? t.ended : v?.status === 429 ? t.later : t.failed);
       load();
     } catch { setMsg(t.failed); } finally { setBusy(false); }
   };
@@ -88,7 +94,32 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
         : canAdd ? <p className="mt-4"><button type="button" data-passkey-add="" onClick={add} disabled={busy} className={primary}>{t.add}</button></p>
         : <p data-passkey-reauth="" className="mt-4 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.reauth} <a href={signinHref} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.reauthLink}</a></p>)}
       <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
+      {!self && personId && data?.can.clear && <EndSessions lang={lang} personId={personId} />}
     </section>
+  );
+}
+
+/** Go-live R1: the owner ends one person's open sessions (a cut-off on documents, keys and access). */
+function EndSessions({ lang, personId }: { lang: Lang; personId: string }) {
+  const t = T[lang];
+  const [ask, setAsk] = useState(false);
+  const [msg, setMsg] = useState("");
+  const go = async () => {
+    const r = await post(`/api/family-os/people/${personId}/end-sessions`);
+    setAsk(false); setMsg(r?.ok ? t.endOneDone : t.error);
+  };
+  return (
+    <div data-end-sessions="" className="mt-6 border-t border-[var(--border)] pt-4">
+      <p className="max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.endOneLead}</p>
+      {ask ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className="text-[15px] text-[var(--foreground)]">{t.endOneConfirm}</span>
+          <button type="button" data-end-sessions-yes="" onClick={go} className={btn}>{t.endOneYes}</button>
+          <button type="button" onClick={() => setAsk(false)} className={btn}>{t.endOneNo}</button>
+        </div>
+      ) : <p className="mt-3"><button type="button" data-end-sessions-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.endOne}</button></p>}
+      <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
+    </div>
   );
 }
 

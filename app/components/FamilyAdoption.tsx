@@ -16,6 +16,8 @@ const T = {
     last: "Last sign-in", first: "first", never: "Has not signed in yet", letter: (t: string) => `Morning letter at ${t}`, letterOff: "Letters off",
     pk: { on: "Passkey: yes", off: "Passkey: no" }, resend: "Send the link again", queued: "Goes out within 5 minutes", queuedQuiet: "Goes out after 07:00 (quiet hours)", sentToday: (t: string) => `Invitation sent today at ${t}`, sent: (d: string) => `Invitation sent ${d}`,
     already: "Already sent today.", error: "Could not send — please try again.", child: "child", adult: "adult",
+    endAll: "End all sessions", endAllLead: "If a phone or laptop is lost: everyone, you included, signs in again with an email link before opening documents, adding a key or changing access.",
+    endAllConfirm: "End every open session in the family?", endAllYes: "End all sessions", endAllNo: "Cancel", endAllDone: "Done. Documents, keys and access now need a fresh sign-in.", endAllErr: "Could not do that — please try again.",
   },
   RU: {
     head: "Кто уже с нами", lead: "Кто уже входил и как у кого настроено утреннее письмо. Только даты — ничего о том, кто что делает.",
@@ -23,6 +25,8 @@ const T = {
     last: "Последний вход", first: "впервые", never: "Входа ещё не было", letter: (t: string) => `Утреннее письмо в ${t}`, letterOff: "Письма выключены",
     pk: { on: "Ключ доступа: есть", off: "Ключ доступа: нет" }, resend: "Отправить ссылку ещё раз", queued: "Уйдёт в ближайшие 5 минут", queuedQuiet: "Уйдёт утром после 07:00 (тихие часы)", sentToday: (t: string) => `Приглашение отправлено сегодня в ${t}`, sent: (d: string) => `Приглашение отправлено ${d}`,
     already: "Сегодня уже отправляли.", error: "Не удалось отправить — попробуй ещё раз.", child: "ребёнок", adult: "взрослый",
+    endAll: "Завершить все сеансы", endAllLead: "Если потерян телефон или ноутбук: все, включая тебя, войдут заново по ссылке из письма, прежде чем открыть документы, добавить ключ или изменить доступы.",
+    endAllConfirm: "Завершить все открытые сеансы в семье?", endAllYes: "Завершить все сеансы", endAllNo: "Отмена", endAllDone: "Готово. Для документов, ключей и доступов теперь нужен новый вход.", endAllErr: "Не получилось — попробуй ещё раз.",
   },
 } as const;
 
@@ -80,6 +84,32 @@ export default function FamilyAdoption({ lang, data }: { lang: Lang; data: OsAdo
       <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {data.people.map((r) => <Row key={r.id} lang={lang} r={r} today={today} />)}
       </ul>
+      <EndAll lang={lang} />
     </section>
+  );
+}
+
+/** Go-live R1: the owner's «Завершить все сеансы» — a family-wide cut-off on the sensitive routes. */
+function EndAll({ lang }: { lang: Lang }) {
+  const t = T[lang];
+  const [ask, setAsk] = useState(false);
+  const [msg, setMsg] = useState("");
+  const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
+  const go = async () => {
+    const r = await fetch("/api/family-os/sessions/end-all", { method: "POST", headers: { "content-type": "application/json" }, body: "{}", credentials: "same-origin", cache: "no-store" }).catch(() => null);
+    setAsk(false); setMsg(r?.ok ? t.endAllDone : t.endAllErr);
+  };
+  return (
+    <div data-end-all="" className="mt-6">
+      <p className="max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.endAllLead}</p>
+      {ask ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className="text-[15px] text-[var(--foreground)]">{t.endAllConfirm}</span>
+          <button type="button" data-end-all-yes="" onClick={go} className={btn}>{t.endAllYes}</button>
+          <button type="button" onClick={() => setAsk(false)} className={btn}>{t.endAllNo}</button>
+        </div>
+      ) : <p className="mt-3"><button type="button" data-end-all-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.endAll}</button></p>}
+      <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
+    </div>
   );
 }
