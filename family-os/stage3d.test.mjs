@@ -214,3 +214,15 @@ test("route classes for logs carry no ids", () => {
   assert.equal(routeClass("/principle/2026-11-23"), "/principle/:week");
   for (const p of ["/kodeks", "/principle", "/recognitions"]) assert.equal(routeClass(p), p);
 });
+
+test("Dockerfile ships every local module the service imports (3d: kodeks.mjs was missing → the container would not start)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const here = (f) => new URL(f, import.meta.url);
+  const copied = new Set(readFileSync(here("./Dockerfile"), "utf8").split("\n").filter((l) => l.startsWith("COPY ")).flatMap((l) => l.split(/\s+/).slice(1, -1)));
+  const seen = new Set(), queue = ["server.mjs"];
+  while (queue.length) {
+    const f = queue.pop(); if (seen.has(f)) continue; seen.add(f);
+    for (const m of readFileSync(here(`./${f}`), "utf8").matchAll(/from "\.\/([\w.-]+\.mjs)"|import\("\.\/([\w.-]+\.mjs)"\)/g)) queue.push(m[1] ?? m[2]);
+  }
+  assert.deepEqual([...seen].filter((f) => !copied.has(f)), []);
+});
