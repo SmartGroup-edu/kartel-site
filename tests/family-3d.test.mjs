@@ -70,7 +70,8 @@ test("Today (bus 95): recognition collapsed behind «Отметить хорош
 
 test("heraldic accents: pillar tokens in light, dark and print; used as rules/icons, never fills", () => {
   const css = src("app/globals.css");
-  for (const k of ["rhythm", "health", "growth", "kodeks"]) assert.equal((css.match(new RegExp(`--pillar-${k}:`, "g")) ?? []).length, 3, k);
+  // root, dark, print + the two high-contrast sets (bus 97 item 2: pillars → plain black / white there)
+  for (const k of ["rhythm", "health", "growth", "kodeks"]) assert.equal((css.match(new RegExp(`--pillar-${k}:`, "g")) ?? []).length, 5, k);
   const uses = walk("app").filter((f) => /\.tsx$/.test(f)).flatMap((f) => src(f).match(/[a-z:-]+-\[var\(--pillar-[a-z]+\)\]/g) ?? []);
   assert.ok(uses.length > 0);
   assert.deepEqual(uses.filter((u) => /^(bg|text)-/.test(u)), [], "no fills or text in pillar colours");
