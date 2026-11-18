@@ -5,6 +5,9 @@
 import { localParts, inQuiet, DEFAULT_PREFS } from "./engine.mjs";
 
 const first = (p, lang) => String((lang === "en" ? p?.name_en : p?.name_ru) ?? "").trim().split(/\s+/)[0] || undefined;
+// The parents' copy names the child in full, as on «Люди», so «Люди» → <имя> → «Вход» finds the right page.
+// Single inner spaces are kept (bus 105 M1); runs of whitespace collapse to one; capped at 40 like the relay.
+const full = (p, lang) => String((lang === "en" ? p?.name_en : p?.name_ru) ?? "").replace(/\s+/g, " ").trim().slice(0, 40).trim() || undefined;
 
 export function planSecurityNotices(notices, people, grants, prefsById, now) {
   const { hhmm } = localParts(now);
@@ -23,7 +26,7 @@ export function planSecurityNotices(notices, people, grants, prefsById, now) {
         const parent = people.find((p) => p.id === g.guardian_id);
         if (!parent?.email) continue;
         const pl = (prefsById.get(parent.id)?.lang ?? DEFAULT_PREFS.lang) === "en" ? "en" : "ru";
-        sends.push({ ...base, lang: pl, to: parent.email, ...(first(parent, pl) ? { firstName: first(parent, pl) } : {}), ...(first(person, pl) ? { about: first(person, pl) } : {}) });
+        sends.push({ ...base, lang: pl, to: parent.email, ...(first(parent, pl) ? { firstName: first(parent, pl) } : {}), ...(full(person, pl) ? { about: full(person, pl) } : {}) });
       }
     }
     out.push({ id: n.id, sends });

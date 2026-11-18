@@ -68,6 +68,18 @@ function sigOk(ts, raw, sig) {
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// bus 105 M1: every name field in a family letter keeps single inner spaces. Runs of whitespace (incl. NBSP and
+// other Unicode spaces) collapse to one ASCII space and the ends are trimmed — before validation, so a name with
+// a non-breaking space is neither refused nor glued together.
+const oneSpace = (v) => (typeof v === "string" ? v.replace(/\s+/gu, " ").trim() : v);
+export function normNames(b) {
+  if (!b || typeof b !== "object" || Array.isArray(b)) return b;
+  const o = { ...b };
+  for (const k of ["firstName", "about"]) if (k in o) o[k] = oneSpace(o[k]);
+  if (Array.isArray(o.docs)) o.docs = o.docs.map((d) => (d && typeof d === "object" && "who" in d ? { ...d, who: oneSpace(d.who) } : d));
+  if (Array.isArray(o.notes)) o.notes = o.notes.map((n) => (n && typeof n === "object" && "child" in n ? { ...n, child: oneSpace(n.child) } : n));
+  return o;
+}
 
 /** 1 минуту · 2 минуты · 5 минут · 21 минуту — accusative after «действует». */
 function ruMinutes(n) {
@@ -188,7 +200,7 @@ function handleReminder(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     if (typeof b.link !== "string" || !PERSON_LINK_RE.test(b.link)) return reply(res, 400, { error: "bad_link" });
@@ -247,7 +259,7 @@ function handleReview(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const err = checkReview(b);
     if (err) return reply(res, 400, { error: err });
     const to = b.to.trim().toLowerCase();
@@ -413,7 +425,7 @@ function handleSecurity(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const err = checkSecurity(b);
     if (err) return reply(res, 400, { error: err });
     const to = b.to.trim().toLowerCase();
@@ -434,7 +446,7 @@ function handleFamily(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     const err = checkFamily(b);

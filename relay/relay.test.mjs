@@ -294,3 +294,37 @@ test("security notices: the route sends one letter; a bad signature is 401; an e
   assert.equal((await security(secBody(), { secret: "wrong-secret-at-least-32-characters-long" })).status, 401);
   const r = await security(secBody({ credential_id: "x" })); assert.equal(r.status, 400); assert.equal((await r.json()).error, "bad_field");
 });
+
+// ── bus 105 M1: a two-word name keeps its single inner space in every family template ──
+async function post(path, payload) {
+  const body = JSON.stringify(payload), ts = String(Math.floor(Date.now() / 1000));
+  return fetch(base + path, { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": await signRelayRequest(SECRET, ts, body) }, body });
+}
+test("two-word names keep one inner space across reminder, digest, invite and security letters (NBSP and runs collapse)", async () => {
+  const messy = "QA  Ребёнок", clean = "QA Ребёнок", glued = /QAРебёнок|QA Ребёнок|QA {2,}Ребёнок/;
+  const cases = [
+    ["/send-reminder", { ...GOOD, to: "r1@example.test", firstName: messy }],
+    ["/send-family", famBody({ to: "f1@example.test", firstName: messy, docs: [{ type: "passport", expiry: "2027-01-31", who: messy }], notes: [{ child: messy, title: "Почистить зубы" }] })],
+    ["/send-family", famBody({ to: "f2@example.test", kind: "invite", firstName: messy, items: [], docs: [], notes: [] })],
+    ["/send-security", secBody({ to: "s1@example.test", firstName: messy })],
+    ["/send-security", secBody({ to: "s2@example.test", about: messy })],
+    ["/send-security", secBody({ to: "s3@example.test", kind: "revoked", about: messy })],
+    ["/send-security", secBody({ to: "s4@example.test", kind: "flagged", about: messy })],
+  ];
+  for (const [path, payload] of cases) {
+    brevoCalls = [];
+    const r = await post(path, payload);
+    assert.equal(r.status, 202, `${path} ${payload.kind}: ${r.status === 400 ? (await r.json()).error : r.status}`);
+    const { textContent, htmlContent } = brevoCalls[0].body;
+    assert.ok(textContent.includes(clean), `${path} ${payload.kind}: text keeps «${clean}»`);
+    assert.ok(htmlContent.includes(clean), `${path} ${payload.kind}: html keeps «${clean}»`);
+    assert.doesNotMatch(textContent + htmlContent, glued, `${path} ${payload.kind}: no glued or doubled space`);
+  }
+  // The parents' copy names the child in both places — «Чей» and the «Люди» path.
+  brevoCalls = [];
+  await post("/send-security", secBody({ to: "s5@example.test", about: clean }));
+  assert.match(brevoCalls[0].body.textContent, /Чей: QA Ребёнок\. .*«Люди» → QA Ребёнок → «Вход»/s);
+  // Review notices carry no names at all: a name field is refused, not rendered.
+  const r = await post("/send-review", { to: "x@example.test", kind: "pending", count: 1, firstName: clean });
+  assert.equal(r.status, 400);
+});

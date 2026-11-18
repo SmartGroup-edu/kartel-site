@@ -198,13 +198,16 @@ test("C1 planner: the person always; a child's parents too (their copy names the
   const [a] = planSecurityNotices([n("new_key")], people, grants, new Map(), day);
   assert.deepEqual(a.sends, [
     { kind: "new_key", device: "iphone", date: "2026-11-18", lang: "ru", to: "c@example.test", firstName: "Миша" },
-    { kind: "new_key", device: "iphone", date: "2026-11-18", lang: "ru", to: "p@example.test", firstName: "Анна", about: "Миша" },
+    { kind: "new_key", device: "iphone", date: "2026-11-18", lang: "ru", to: "p@example.test", firstName: "Анна", about: "Миша QA" },
   ], "a relative is not told");
   assert.equal(planSecurityNotices([n("new_key")], people, grants, new Map(), night).length, 1, "new key: through quiet hours");
   assert.equal(planSecurityNotices([n("revoked")], people, grants, new Map(), night).length, 0, "revoked: waits for the morning");
   assert.equal(planSecurityNotices([n("flagged")], people, grants, new Map(), night).length, 0);
   assert.deepEqual(planSecurityNotices([n("new_key", "owner@example.test")], people, grants, new Map(), day)[0].sends, [{ kind: "new_key", device: "iphone", date: "2026-11-18", lang: "ru", to: "owner@example.test" }], "an owner with no person row: no name");
   assert.equal(planSecurityNotices([{ ...n("new_key"), sent_at: "x" }], people, grants, new Map(), day).length, 0);
+  // bus 105 M1: a two-word name keeps its single inner space; runs of whitespace (incl. NBSP) collapse to one.
+  const spaced = [{ ...people[0], name_ru: "  QA\u00a0 Ребёнок  " }, ...people.slice(1)];
+  assert.equal(planSecurityNotices([n("new_key")], spaced, grants, new Map(), day)[0].sends[1].about, "QA Ребёнок");
   const runner = readFileSync(new URL("./runner.mjs", import.meta.url), "utf8");
   assert.match(runner, /\/send-security/); assert.match(runner, /DELETE FROM passkey WHERE revoked_at < now\(\) - interval '90 days'/);
 });
