@@ -30,7 +30,7 @@ const T = {
     tier: { expired: "Expired", lt3: "< 3 months", lt6: "< 6 months", lt12: "< 12 months" },
     docType: DOC_LABELS.EN,
     eyebrow: "Family", nav: "Family sections", today: "Today", people: "People", heritage: "Heritage",
-    myDay: "My day", todayEmpty: "Nothing planned for you today.",
+    myDay: "My routine", todayEmpty: "Nothing planned for you today.",
     noneScheduled: "Nothing of yours is scheduled for today.",
     addOwn: "Add a routine on your page", childHint: "Your parents set up your routines and chores.",
     off: "Family OS is not connected yet.",
@@ -46,7 +46,7 @@ const T = {
     tier: { expired: "Истёк", lt3: "< 3 мес", lt6: "< 6 мес", lt12: "< 12 мес" },
     docType: DOC_LABELS.RU,
     eyebrow: "Семья", nav: "Разделы семьи", today: "Сегодня", people: "Люди", heritage: "Наследие",
-    myDay: "Мой день", todayEmpty: "На сегодня у тебя ничего не запланировано.",
+    myDay: "Мой распорядок", todayEmpty: "На сегодня у тебя ничего не запланировано.",
     noneScheduled: "Сегодня по расписанию у тебя ничего нет.",
     addOwn: "Добавить распорядок на своей странице", childHint: "Распорядок и дела составляют родители.",
     off: "Раздел «Семья» ещё не подключён.",
@@ -60,7 +60,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [], myBoard = null, board = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; board?: OsBoard | null }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, myBoard = null, board = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; board?: OsBoard | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -82,7 +82,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
             <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
             {myBoard && <TodayBoard lang={lang} data={myBoard} board={board} me={state.me} routines={mine ? { done: mine.routines.filter((r) => r.due_today && r.done_today).length, total: mine.paused_today ? 0 : mine.routines.filter((r) => r.due_today).length } : null} />}
             {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} paused={mine.paused_today} />}
-            {state.me && <TodayCouncil lang={lang} tasks={tasks} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
+            {state.me && <TodayCouncil lang={lang} tasks={[]} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
             {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
             {!mine?.paused_today && !(mine?.routines.some((r) => r.due_today)) && !(myBoard?.new.length || myBoard?.mine.length) && (

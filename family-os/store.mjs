@@ -216,14 +216,19 @@ export function pgStore(pool) {
     },
     async personByIcs(hash) { return (await q("SELECT p.* FROM ics_token t JOIN person p ON p.id = t.person_id WHERE t.token_hash = $1 AND t.revoked_at IS NULL", [hash])).rows[0] ?? null; },
     // ---- Stage 3c: board
-    async boardTasks(from, to) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date FROM task WHERE plan_date BETWEEN $1 AND $2 ORDER BY due_time NULLS LAST, created_at`, [from, to])).rows; },
-    async boardTask(id) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date FROM task WHERE id = $1`, [id])).rows[0] ?? null; },
+    // ---- bus 85: council decisions are tasks; legacy chores/rotations/council_task rows migrate to the task model
+    async councilTasks(date) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date, to_char(council_date, 'YYYY-MM-DD') AS council_date FROM task WHERE council_date = $1 ORDER BY created_at`, [date])).rows; },
+    async openCouncilTasksOf(pid) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date, to_char(council_date, 'YYYY-MM-DD') AS council_date FROM task WHERE origin = 'council' AND state IN ('approved', 'accepted', 'in_progress') AND (assignee_id = $1 OR $1 = ANY (co_ids)) ORDER BY task.plan_date`, [pid])).rows; },
+    async choreRoutines() { return (await q("SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, created_by FROM routine WHERE archived_at IS NULL AND kind = 'chore'")).rows; },
+    async legacyCouncilTasks() { return (await q("SELECT t.id, t.title, t.owner_id, to_char(t.due_date, 'YYYY-MM-DD') AS due_date, t.done_at, t.created_by, to_char(m.on_date, 'YYYY-MM-DD') AS on_date FROM council_task t JOIN council_meeting m ON m.id = t.meeting_id")).rows; },
+    async boardTasks(from, to) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date, to_char(council_date, 'YYYY-MM-DD') AS council_date FROM task WHERE plan_date BETWEEN $1 AND $2 ORDER BY due_time NULLS LAST, created_at`, [from, to])).rows; },
+    async boardTask(id) { return (await q(`SELECT *, to_char(plan_date, 'YYYY-MM-DD') AS plan_date, to_char(council_date, 'YYYY-MM-DD') AS council_date FROM task WHERE id = $1`, [id])).rows[0] ?? null; },
     async insertTask(t, actor) {
       return (await q(`INSERT INTO task (id, plan_date, kind, origin, template_id, sprint_goal_id, carried_from, assignee_id, wrapped_key, title_ct, due_time, needs_review, state, approved_by, approved_at, created_by,
-                         co_ids, accountable_id, when_slot, estimate_min)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CASE WHEN $14::text IS NULL THEN NULL ELSE now() END, $15, $16, $17, $18, $19) ON CONFLICT DO NOTHING RETURNING id`,
+                         co_ids, accountable_id, when_slot, estimate_min, council_date)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CASE WHEN $14::text IS NULL THEN NULL ELSE now() END, $15, $16, $17, $18, $19, $20) ON CONFLICT DO NOTHING RETURNING id`,
         [t.id, t.plan_date, t.kind, t.origin, t.template_id ?? null, t.sprint_goal_id ?? null, t.carried_from ?? null, t.assignee_id, t.wrapped_key, t.title_ct, t.due_time ?? null, Boolean(t.needs_review), t.state ?? "proposed", t.approved_by ?? null, actor,
-         t.co_ids ?? [], t.accountable_id ?? null, t.when_slot ?? null, t.estimate_min ?? null])).rowCount === 1;
+         t.co_ids ?? [], t.accountable_id ?? null, t.when_slot ?? null, t.estimate_min ?? null, t.council_date ?? null])).rowCount === 1;
     },
     /** Move only if the task is still in `from` (two taps never double-move); stamps the matching *_at column. */
     async moveTask(id, from, to, patch = {}) {
@@ -367,11 +372,15 @@ export function memoryStore() {
     async revokeIcs(pid) { const t = ics.get(pid); if (!t || t.revoked_at) return false; t.revoked_at = now(); return true; },
     async personByIcs(hash) { for (const [pid, t] of ics) if (t.hash === hash && !t.revoked_at) return people.get(pid) ?? null; return null; },
     // ---- Stage 3c
+    async councilTasks(date) { return [...btasks.values()].filter((t) => t.council_date === date); },
+    async openCouncilTasksOf(pid) { return [...btasks.values()].filter((t) => t.origin === "council" && ["approved", "accepted", "in_progress"].includes(t.state) && (t.assignee_id === pid || (t.co_ids ?? []).includes(pid))); },
+    async choreRoutines() { return [...routines.values()].filter((r) => !r.archived_at && r.kind === "chore"); },
+    async legacyCouncilTasks() { return [...tasks.values()].map((t) => ({ ...t, on_date: [...meetings.values()].find((m) => m.id === t.meeting_id)?.on_date })); },
     async boardTasks(from, to) { return [...btasks.values()].filter((t) => t.plan_date >= from && t.plan_date <= to); },
     async boardTask(id) { return btasks.get(id) ?? null; },
     async insertTask(t, actor) {
       const all = [...btasks.values()];
-      if ((t.template_id && all.some((x) => x.template_id === t.template_id && x.plan_date === t.plan_date)) || (t.carried_from && all.some((x) => x.carried_from === t.carried_from))) return false;
+      if (btasks.has(t.id) || (t.template_id && all.some((x) => x.template_id === t.template_id && x.plan_date === t.plan_date)) || (t.carried_from && all.some((x) => x.carried_from === t.carried_from))) return false; // same as the PK + ON CONFLICT in Postgres
       btasks.set(t.id, { co_ids: [], accountable_id: null, when_slot: null, estimate_min: null, ...t, state: t.state ?? "proposed", approved_at: t.approved_by ? now() : null, created_by: actor, created_at: now() }); return true;
     },
     async moveTask(id, from, to, patch = {}) {

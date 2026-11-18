@@ -54,6 +54,9 @@ export function canMove(action, me, task, assignee, grants, ageOf = () => null) 
     case "done":
       if (!["accepted", "in_progress"].includes(task.state)) return "bad_state";
       return self || parentForMinor ? null : "assignee_only";
+    case "pause":
+      if (task.state !== "in_progress") return "bad_state";
+      return self || parentForMinor ? null : "assignee_only";
     case "continue":
       if (task.state !== "in_progress") return "bad_state";
       return self ? null : "assignee_only";
@@ -74,7 +77,10 @@ export function canMove(action, me, task, assignee, grants, ageOf = () => null) 
 }
 
 /** The state after an allowed move. */
-export const NEXT = { accept: "accepted", decline: "declined", start: "in_progress", done: (t) => "done", review: "reviewed", rework: "in_progress", reassign: "approved", cancel: "cancelled", carry: "carried_over" };
+export const NEXT = { accept: "accepted", decline: "declined", start: "in_progress", pause: "accepted", done: (t) => "done", review: "reviewed", rework: "in_progress", reassign: "approved", cancel: "cancelled", carry: "carried_over" };
+export const ACTIONS = ["accept", "decline", "start", "pause", "done", "continue", "review", "rework", "reassign", "carry", "cancel"];
+/** Every move this viewer may make on this task now — the drawer shows exactly these (bus 85 #9). */
+export const allowedActions = (me, task, assignee, grants, ageOf) => ACTIONS.filter((a) => canMove(a, me, task, assignee, grants, ageOf) === null);
 export const nextState = (action, task, assignee) => (action === "decline" && assignee?.kind === "adult" ? "declined_by_adult"
   : action === "continue" ? "in_progress" : typeof NEXT[action] === "function" ? NEXT[action](task) : NEXT[action]);
 

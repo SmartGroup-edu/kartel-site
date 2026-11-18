@@ -79,10 +79,11 @@ test("council: members read, adults write, agenda aggregate only; tasks ticked b
   assert.equal(t.status, 201);
   assert.equal((await call("POST", "/council/2026-11-22/tasks", { actor: as(E.c), body: { title: "x", owner_id: P.c, due_date: "2026-11-29" } })).status, 403);
   assert.equal((await call("POST", "/council/2026-11-22/tasks", { actor: as(E.p1), body: { title: "x", owner_id: P.c, due_date: "2026-11-20" } })).json.error, "bad_task", "due before the council");
-  assert.deepEqual((await call("GET", "/council-tasks", { actor: as(E.c) })).json.tasks.map((x) => x.title), ["Plan the trip"]);
-  assert.equal((await call("POST", `/council-tasks/${t.json.id}/done`, { actor: as(E.c2), body: { done: true } })).status, 403, "another child cannot tick it");
-  assert.equal((await call("POST", `/council-tasks/${t.json.id}/done`, { actor: as(E.c), body: { done: true } })).status, 200);
-  assert.deepEqual((await call("GET", "/council-tasks", { actor: as(E.c) })).json.tasks, []);
+  // bus 85: a decision is a task — in the owner's «Мои задачи», ticked through the task moves
+  assert.ok((await call("GET", "/my-tasks", { actor: as(E.c) })).json.mine.some((x) => x.title === "Plan the trip" && x.origin === "council"));
+  assert.equal((await call("POST", `/tasks/${t.json.id}/done`, { actor: as(E.c2) })).status, 403, "another child cannot tick it");
+  assert.equal((await call("POST", `/tasks/${t.json.id}/done`, { actor: as(E.c) })).status, 200);
+  assert.ok(!(await call("GET", "/my-tasks", { actor: as(E.c) })).json.mine.some((x) => x.title === "Plan the trip" && x.state !== "done"));
 });
 
 const G = {};

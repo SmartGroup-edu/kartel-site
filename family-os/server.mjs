@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
   canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
 import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
-import { canMove, nextState, isParent, progress, sprintProgress, validMask, participants, needsDecision, nudgeDue, sortMinute, DECLINE_CODES, WHEN_SLOTS, MAX_PARTICIPANTS, CARRY_TIME, PLAN_TIME } from "./board.mjs";
+import { canMove, allowedActions, nextState, isParent, progress, sprintProgress, validMask, participants, needsDecision, nudgeDue, sortMinute, DECLINE_CODES, WHEN_SLOTS, MAX_PARTICIPANTS, CARRY_TIME, PLAN_TIME } from "./board.mjs";
 import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
@@ -465,6 +465,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const b = json(body);
       const r = { id: randomUUID(), person_id: subject.id, kind: b?.kind, title: text(b?.title, 120), rrule: typeof b?.rrule === "string" ? b.rrule : "",
         dtstart: b?.dtstart ?? today, at_time: b?.at_time ? String(b.at_time) : null };
+      // bus 85: one model — routines are personal habits; anything assigned is a task (templates on the board)
+      if (r.kind === "chore") return reply(res, 400, { error: "use_templates" });
       if (!ROUTINE_KINDS.includes(r.kind) || !r.title || !parseRule(r.rrule) || !DATE_RE.test(r.dtstart) || (r.at_time && !TIME_RE.test(r.at_time))) return reply(res, 400, { error: "bad_routine" });
       if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: `routine:${r.kind}`, action: "write" }))) return;
       await store.createRoutine(r, who.email);
@@ -561,6 +563,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     }
 
     // POST /rotations — a chore that goes round 2–8 members. The caller must manage every member.
+    // bus 85: a chore in turns is a task template with members now; no new rotations
+    if (path === "/rotations" && req.method === "POST") return reply(res, 410, { error: "use_templates" });
     if (path === "/rotations" && req.method === "POST") {
       const b = json(body), grants = await grantsNow(), today = localDate(clock());
       const members = Array.isArray(b?.members) ? b.members : [];
@@ -619,6 +623,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 200, { ok: true });
     }
 
+    // Envelope helpers for task titles and notes (task scope) — used by the council (decisions are tasks) and the board.
+    const sealTitle = (scope, id, title) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `${scope}:${id}`) }; } finally { dek.fill(0); } };
+    const openWith = (scope, row, field, aad) => { if (!row[field]) return ""; const k = unwrapDataKey(kek, row.wrapped_key, scope, row.id); try { return open(k, row[field], aad).toString("utf8"); } finally { k.fill(0); } };
     // ================= Stage 3b: council, goals, calendar, ICS =================
     const nameOf = (p) => p.name_ru;
     const meetingKey = (m) => unwrapDataKey(kek, m.wrapped_key, "council", m.id);
@@ -630,15 +637,18 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const today = localDate(clock());
       const q = url.searchParams.get("date");
       const date = q && DATE_RE.test(q) ? councilDate(q) : councilDate(today);
-      const [m, prev, routines, rotations, pauses] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses()]);
-      const [checks, rchecks, tasks, prevTasks] = await Promise.all([store.allChecks(addDays(date, -7)), store.allRotationChecks(addDays(date, -7)), m ? store.listTasks(m.id) : [], prev ? store.listTasks(prev.id) : []]);
+      const [m, prev, routines, rotations, pauses, people] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses(), store.listPeople()]);
+      // Decisions are tasks (bus 85): this council's and the previous one's, from the task table.
+      const [checks, rchecks, tasks, prevTasks] = await Promise.all([store.allChecks(addDays(date, -7)), store.allRotationChecks(addDays(date, -7)), store.councilTasks(date), prev ? store.councilTasks(prev.on_date) : []]);
       let notes = "";
       if (m?.notes_ct) { const k = meetingKey(m); try { notes = open(k, m.notes_ct, `council:${m.id}`).toString("utf8"); } finally { k.fill(0); } }
-      const view = (t) => ({ id: t.id, title: t.title, owner_id: t.owner_id, due_date: t.due_date, done: Boolean(t.done_at) });
+      const isDone = (t) => t.state === "done" || t.state === "reviewed";
+      const live = (t) => !["cancelled", "carried_over", "declined_by_adult"].includes(t.state);
+      const view = (t) => ({ id: t.id, title: openWith("task", t, "title_ct", `task:${t.id}`), owner_id: t.assignee_id, due_date: t.plan_date, done: isDone(t), state: t.state });
       const st = councilStatus(date, today, localParts(clock()).hhmm, Boolean(m?.held_at));
       return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld },
-        tasks: tasks.map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.map(view) } : null,
-        agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks }) });
+        tasks: tasks.filter(live).map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.filter(live).map(view) } : null,
+        agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks: prevTasks.filter(live).map((t) => ({ done_at: isDone(t) ? t.done_at ?? true : null })) }) });
     }
     // PUT /council/:date { notes, held } — adults only
     const cm = path.match(/^\/council\/(\d{4}-\d{2}-\d{2})$/);
@@ -666,25 +676,12 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (councilDate(ctm[1]) !== ctm[1] || !title || !owner || !DATE_RE.test(b?.due_date ?? "") || b.due_date < ctm[1]) return reply(res, 400, { error: "bad_task" });
       let m = await store.getMeeting(ctm[1]);
       if (!m) { const id = randomUUID(), nk = newDataKey(kek, "council", id); nk.dek.fill(0); await store.saveMeeting({ id, on_date: ctm[1], wrapped_key: nk.wrapped, notes_ct: null, held: false }, who.email); m = await store.getMeeting(ctm[1]); }
+      // A decision taken at the council is a task: accepted there and then, due on its date, the deciding adult accountable.
       const id = randomUUID();
-      await store.createTask({ id, meeting_id: m.id, title, owner_id: owner.id, due_date: b.due_date }, who.email);
+      await store.insertTask({ id, plan_date: b.due_date, kind: "oneoff", origin: "council", council_date: ctm[1], assignee_id: owner.id, ...sealTitle("task", id, title),
+        accountable_id: me.id, state: "accepted", approved_by: who.email }, who.email);
       await emit("council.task_created", owner.id, id);
       return reply(res, 201, { id });
-    }
-    // GET /council-tasks — my open tasks · POST /council-tasks/:id/done { done }
-    if (req.method === "GET" && path === "/council-tasks") {
-      if (!me) return reply(res, 200, { tasks: [] });
-      return reply(res, 200, { tasks: (await store.openTasksOf(me.id)).map((t) => ({ id: t.id, title: t.title, due_date: t.due_date })) });
-    }
-    const tdm = path.match(/^\/council-tasks\/([^/]+)\/done$/);
-    if (tdm && req.method === "POST") {
-      const t = UUID_RE.test(tdm[1]) ? await store.getTask(tdm[1]) : null;
-      if (!t) return reply(res, 404, { error: "not_found" });
-      if (!canTickTask(me, t)) return reply(res, 403, { error: "forbidden" });
-      if (typeof json(body)?.done !== "boolean") return reply(res, 400, { error: "bad_request" });
-      await store.setTaskDone(t.id, json(body).done, who.email);
-      await emit(json(body).done ? "council.task_done" : "council.task_reopened", t.owner_id, t.id);
-      return reply(res, 200, { ok: true });
     }
 
     // GET|POST /people/:id/goals — only goals the viewer may see; only the owner creates
@@ -769,8 +766,6 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     }
 
     // ================= Stage 3c: family board (bus 82, amended by 83 and 84) =================
-    const sealTitle = (scope, id, title) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `${scope}:${id}`) }; } finally { dek.fill(0); } };
-    const openWith = (scope, row, field, aad) => { if (!row[field]) return ""; const k = unwrapDataKey(kek, row.wrapped_key, scope, row.id); try { return open(k, row[field], aad).toString("utf8"); } finally { k.fill(0); } };
     const ageOf = (p) => { const b = p?.birth_date ? String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date) : null; if (!b) return null;
       const t = localDate(clock()); let a = Number(t.slice(0, 4)) - Number(b.slice(0, 4)); if (t.slice(5) < b.slice(5)) a--; return a; };
     /** Who did a step, as the board can show it: a member's id, never an email. */
@@ -860,14 +855,17 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (t.approved_by === "auto" && t.approved_at) history.push({ step: "approved", at: t.approved_at, by: "auto" });
       for (const e of evs) if (STEP[e.type] && !(e.type === "task.approved" && t.approved_by === "auto")) history.push({ step: STEP[e.type], at: e.at, by: actorRef(people, e.actor) });
       history.sort((a, b) => String(a.at).localeCompare(String(b.at)));
-      return reply(res, 200, { task: taskView(t, me, parent, people), history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+      const assignee = await store.getPerson(t.assignee_id);
+      return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
     }
 
     // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»; the quiet nudge only here, only to participants
     if (req.method === "GET" && path === "/my-tasks") {
       if (!me) return reply(res, 200, { new: [], mine: [] });
-      const today = localDate(clock()), [people, all] = await Promise.all([store.listPeople(), store.boardTasks(today, today)]);
-      const rows = all.filter((t) => participants(t).includes(me.id)).sort(byMinute), nowMs = clock().getTime();
+      const today = localDate(clock()), [people, all, council] = await Promise.all([store.listPeople(), store.boardTasks(today, today), store.openCouncilTasksOf(me.id)]);
+      // Today's tasks, plus open council decisions whatever their date («до <день>»; never «просрочено»).
+      const seen = new Set(all.map((t) => t.id));
+      const rows = [...all, ...council.filter((t) => !seen.has(t.id))].filter((t) => participants(t).includes(me.id)).sort(byMinute), nowMs = clock().getTime();
       const v = (t) => ({ ...taskView(t, me, false, people), ...(nudgeDue(t, nowMs) ? { nudge: true } : {}) });
       return reply(res, 200, { today, new: rows.filter((t) => t.state === "approved").map(v), mine: rows.filter((t) => ["accepted", "in_progress", "done", "reviewed", "declined"].includes(t.state)).map(v) });
     }
@@ -881,7 +879,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     }
 
     // POST /tasks/:id/:action — accept · decline{code, text?} · start{pause_other} · done · continue · review · rework{note} · reassign{assignee_id} · cancel · carry
-    const tam = path.match(/^\/tasks\/([^/]+)\/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)$/);
+    const tam = path.match(/^\/tasks\/([^/]+)\/(accept|decline|start|pause|done|continue|review|rework|reassign|cancel|carry)$/);
     if (tam && req.method === "POST") {
       const t = UUID_RE.test(tam[1]) ? await store.boardTask(tam[1]) : null;
       if (!t) return reply(res, 404, { error: "not_found" });

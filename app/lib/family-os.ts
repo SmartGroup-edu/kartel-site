@@ -162,7 +162,6 @@ type S = { email?: string | null; cpifSubjectId: string };
 const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, osActor(session)); } catch { return null; } };
 export const getCouncil = (session: S, date?: string) => safe<OsCouncil>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/council?date=${date}` : "/council", session);
 export const getCalendar = (session: S) => safe<OsCalendar>("/calendar?days=62", session);
-export const getMyTasks = async (session: S) => (await safe<{ tasks: Omit<OsTask, "owner_id" | "done">[] }>("/council-tasks", session))?.tasks ?? [];
 
 // ---- Stage 3c: the family board (bus 82, amended by 83/84) ------------------------------------
 export type OsTaskState = "proposed" | "approved" | "accepted" | "in_progress" | "done" | "reviewed" | "declined" | "declined_by_adult" | "carried_over" | "cancelled";

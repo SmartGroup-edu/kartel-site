@@ -89,7 +89,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
                 {council.previous?.tasks.length ? (
                   <>
                     <p className={`${META} mt-2`}>{t.prevSummary(council.agenda.tasks.done, council.agenda.tasks.open)}</p>
-                    <TaskList lang={lang} tasks={council.previous.tasks} nameOf={nameOf} me={me} />
+                    <TaskList lang={lang} tasks={council.previous.tasks} nameOf={nameOf} me={me} people={people} />
                   </>
                 ) : <p className={`${META} mt-2`}>{t.noPrev}</p>}
               </section>
@@ -99,7 +99,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
 
               <section aria-labelledby="dec-h" className="mt-10">
                 <h2 id="dec-h" className={H2}>{t.decisions}</h2>
-                {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} /> : <p className={`${META} mt-2`}>{t.none}</p>}
+                {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} people={people} /> : <p className={`${META} mt-2`}>{t.none}</p>}
                 {council.can.write && <AddDecision t={t} date={council.date} people={people} lang={lang} />}
               </section>
               {sprint && <CouncilSprint key={sprint.week_start} lang={lang} sprint={sprint} />}
@@ -116,14 +116,17 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
 export function TaskTick({ lang, task, meta, canTick, onDone }: { lang: Lang; task: { id: string; title: string; done: boolean }; meta: string; canTick: boolean; onDone?: (done: boolean) => void }) {
   const [done, setDone] = useState(task.done);
   const [err, setErr] = useState(false);
+  // bus 85: a council decision is a task — ticking it is the task's «Готово» (the service checks who may);
+  // a finished one stays finished here (rework is a parent's move on the board).
   const toggle = async () => {
-    const next = !done; setDone(next); setErr(false);
-    const r = await send("POST", `council-tasks/${task.id}/done`, { done: next });
-    if (!r?.ok) { setDone(!next); setErr(true); } else onDone?.(next);
+    if (done) return;
+    setDone(true); setErr(false);
+    const r = await send("POST", `tasks/${task.id}/done`, {});
+    if (!r?.ok) { setDone(false); setErr(true); } else onDone?.(true);
   };
   return (
     <li data-task={done ? "done" : "open"} data-my-task="">
-      <button type="button" role="checkbox" aria-checked={done} disabled={!canTick} onClick={toggle} aria-label={`${task.title}, ${meta}`}
+      <button type="button" role="checkbox" aria-checked={done} disabled={!canTick || done} onClick={toggle} aria-label={`${task.title}, ${meta}`}
         className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
         <Check checked={done} />
         <span className="min-w-0 flex-1">
@@ -136,11 +139,13 @@ export function TaskTick({ lang, task, meta, canTick, onDone }: { lang: Lang; ta
   );
 }
 
-function TaskList({ lang, tasks, nameOf, me }: { lang: Lang; tasks: OsTask[]; nameOf: (id: string) => string; me: { id: string; kind: string } | null }) {
+function TaskList({ lang, tasks, nameOf, me, people }: { lang: Lang; tasks: OsTask[]; nameOf: (id: string) => string; me: { id: string; kind: string } | null; people: OsPerson[] }) {
+  // The task rules (bus 85): the person themselves, or an adult for a child (the service checks the parent grant).
+  const childOwner = (id: string) => people.find((p) => p.id === id)?.kind === "child";
   const by = lang === "EN" ? "by" : "до";
   return (
     <ul data-tasks="" className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-      {tasks.map((x) => <TaskTick key={x.id} lang={lang} task={x} canTick={Boolean(me && (me.id === x.owner_id || me.kind === "adult"))} meta={`${nameOf(x.owner_id)} · ${by} ${fmtFamilyDate(x.due_date, lang)}`} />)}
+      {tasks.map((x) => <TaskTick key={x.id} lang={lang} task={x} canTick={Boolean(me && (me.id === x.owner_id || (me.kind === "adult" && childOwner(x.owner_id))))} meta={`${nameOf(x.owner_id)} · ${by} ${fmtFamilyDate(x.due_date, lang)}`} />)}
     </ul>
   );
 }

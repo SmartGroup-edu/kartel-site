@@ -21,6 +21,7 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { fmtWeekRange } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H2, H1, META } from "../lib/typeScale";
+import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
 import type { OsBoard, OsBoardMember, OsBoardTask, OsPlan, OsTemplate, OsSprint, OsSprintGoal, OsMyBoard, OsApprovalStamp, OsWhenSlot, OsDeclineCode, OsTaskHistory } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -32,15 +33,15 @@ const T = {
     legend: { done: "Готово", in_progress: "В работе", accepted: "Принято", waiting: "Ждёт принятия" },
     stamp: (who: string, at: string) => `План утверждён — ${who} в ${at}`, stampAuto: (at: string) => `Утверждён автоматически по шаблону в ${at}`,
     strip: "Кто чем занят", since: "с", nothing: "Сейчас ничего", waitingN: (n: number) => `Ждёт принятия: ${n}`, acceptBy: "принять до 12:00", doneOf: (d: number, n: number) => `готово ${d} из ${n}`, noTasks: "Сегодня задач нет", nearest: "ближайшее",
-    who: "Кто", adult: "взрослый", child: "ребёнок", empty: "—", with: "вместе с", routineLine: (d: number, n: number) => `Распорядок ${d} из ${n}`, routineNote: "видят только сам ребёнок и родители",
-    tag: { sprint: "Спринт", rotation: "Очередь" }, cant: "Не могу", decide: "решают родители", reviewedBy: (n: string) => `Проверено · ${n}`, reviewed: "Проверено", needsReview: "с проверкой", newT: "новая", by: "до", est: (m: number) => `~${m} мин`,
+    who: "Кто", adult: "взрослый", child: "ребёнок", empty: "—", with: "вместе с", routineLine: (d: number, n: number) => `Распорядок ${d}\u00a0из\u00a0${n}`, routineNote: "видят только сам ребёнок и родители",
+    tag: { sprint: "Спринт", rotation: "Очередь", council: "Совет" }, cant: "Не могу", decide: "решают родители", reviewedBy: (n: string) => `Проверено · ${n}`, reviewed: "Проверено", needsReview: "с проверкой", newT: "новая", by: "до", est: (m: number) => `~${m} мин`,
     slot: { morning: "утром", after_school: "после школы", after_dinner: "после ужина", evening: "вечером" } as Record<OsWhenSlot, string>,
-    act: { accept: "Принимаю", start: "Начал", done: "Готово", review: "Проверено", rework: "Ещё немного" },
+    act: { accept: "Принимаю", start: "Начал", done: "Готово", review: "Проверено", rework: "Ещё немного", pause: "Пауза" },
     reasons: { lessons: "Уроки", away: "Не буду дома", unwell: "Плохо себя чувствую", other: "Другое…" } as Record<OsDeclineCode, string>, whyCant: "Почему не можешь?", otherText: "Своими словами",
     reworkNote: "Что доделать", send: "Отправить", error: "Не удалось сохранить — попробуй ещё раз.",
     pauseQ: (x: string) => `Сейчас в работе: «${x}». Поставить её на паузу и начать эту?`, pauseYes: "Да, на паузу", cancel: "Отмена", busy: "Кто-то из участников сейчас занят другим делом.",
     nudgeQ: "Ещё в работе?", nudgeGoOn: "Продолжаю",
-    inbox: (n: number) => `Нужно твоё решение: ${n}`, inboxGo: "Разобрать", calm: "Сегодня ничего не требует твоего решения.", calmAll: "Все задачи приняты.",
+    inbox: (n: number) => `Нужно твоё решение: ${n}`, inboxGo: "Разобрать", inboxClose: "Свернуть", calm: "Сегодня ничего не требует твоего решения.", calmAll: "Все задачи приняты.",
     inboxCant: (who: string, x: string) => `${who}: не может — «${x}»`, inboxLate: (who: string, x: string) => `${who}: не принято к 12:00 — «${x}»`, inboxPlan: "План на завтра — утвердить до 21:00",
     view: "Вид", board: "Доска", list: "Список", filter: "Чьи задачи", mine: "Мои", kids: "Дети", all: "Все",
     summary: (n: number, w: number, d: number | null) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "задача" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "задачи" : "задач"} · ${w} ждут принятия${d === null ? "" : ` · ${d} ждёт решения`}`,
@@ -67,15 +68,15 @@ const T = {
     legend: { done: "Done", in_progress: "In progress", accepted: "Accepted", waiting: "Waiting" },
     stamp: (who: string, at: string) => `Plan approved — ${who} at ${at}`, stampAuto: (at: string) => `Approved automatically from the templates at ${at}`,
     strip: "Who is doing what", since: "since", nothing: "Nothing right now", waitingN: (n: number) => `Waiting to accept: ${n}`, acceptBy: "accept by 12:00", doneOf: (d: number, n: number) => `${d} of ${n} done`, noTasks: "No tasks today", nearest: "next",
-    who: "Who", adult: "adult", child: "child", empty: "—", with: "with", routineLine: (d: number, n: number) => `Routine ${d} of ${n}`, routineNote: "seen only by the child and the parents",
-    tag: { sprint: "Sprint", rotation: "Rota" }, cant: "Can't", decide: "parents decide", reviewedBy: (n: string) => `Checked · ${n}`, reviewed: "Checked", needsReview: "to check", newT: "new", by: "by", est: (m: number) => `~${m} min`,
+    who: "Who", adult: "adult", child: "child", empty: "—", with: "with", routineLine: (d: number, n: number) => `Routine ${d}\u00a0of\u00a0${n}`, routineNote: "seen only by the child and the parents",
+    tag: { sprint: "Sprint", rotation: "Rota", council: "Council" }, cant: "Can't", decide: "parents decide", reviewedBy: (n: string) => `Checked · ${n}`, reviewed: "Checked", needsReview: "to check", newT: "new", by: "by", est: (m: number) => `~${m} min`,
     slot: { morning: "in the morning", after_school: "after school", after_dinner: "after dinner", evening: "in the evening" } as Record<OsWhenSlot, string>,
-    act: { accept: "Accept", start: "Start", done: "Done", review: "Checked", rework: "A bit more" },
+    act: { accept: "Accept", start: "Start", done: "Done", review: "Checked", rework: "A bit more", pause: "Pause" },
     reasons: { lessons: "Homework", away: "Not at home", unwell: "Not feeling well", other: "Other…" } as Record<OsDeclineCode, string>, whyCant: "Why can't you?", otherText: "In your own words",
     reworkNote: "What is left", send: "Send", error: "Could not save — please try again.",
     pauseQ: (x: string) => `In progress now: “${x}”. Pause it and start this one?`, pauseYes: "Yes, pause it", cancel: "Cancel", busy: "Someone doing this with you is busy with another task.",
     nudgeQ: "Still on it?", nudgeGoOn: "Still going",
-    inbox: (n: number) => `Needs your decision: ${n}`, inboxGo: "Sort it out", calm: "Nothing needs your decision today.", calmAll: "Every task is accepted.",
+    inbox: (n: number) => `Needs your decision: ${n}`, inboxGo: "Sort it out", inboxClose: "Collapse", calm: "Nothing needs your decision today.", calmAll: "Every task is accepted.",
     inboxCant: (who: string, x: string) => `${who} can't — “${x}”`, inboxLate: (who: string, x: string) => `${who}: not accepted by 12:00 — “${x}”`, inboxPlan: "Tomorrow's plan — approve by 21:00",
     view: "View", board: "Board", list: "List", filter: "Whose tasks", mine: "Mine", kids: "Children", all: "All",
     summary: (n: number, w: number, d: number | null) => `${n} task${n === 1 ? "" : "s"} · ${w} waiting to accept${d === null ? "" : ` · ${d} to decide`}`,
@@ -122,26 +123,17 @@ const maskText = (mask: string, t: Dict) => (mask === "1111111" ? t.everyDay : t
 /** «до 19:30» · «после ужина» — human times, never a bare machine time. */
 const whenText = (x: { due_time: string | null; when_slot: OsWhenSlot | null }, t: Dict) => (x.due_time ? `${t.by} ${x.due_time}` : x.when_slot ? t.slot[x.when_slot] : "");
 
-/** Avatars: one letter, two when two members share an initial; a fixed colour per member (white text ≥ 5.2:1). */
-const AV = ["#7b1e2d", "#2f6b4f", "#3b4a7a", "#5d4a7a", "#8a5a00", "#1f5f73", "#6b3a5e", "#4a5d23"];
-function avatarsFor(people: Person[], lang: Lang) {
-  const first = (p: Person) => nameOfM(p, lang).trim().charAt(0).toUpperCase();
-  const sorted = [...people].sort((a, b) => a.id.localeCompare(b.id));
-  return new Map(people.map((p) => {
-    const shared = people.some((o) => o.id !== p.id && first(o) === first(p));
-    const words = nameOfM(p, lang).trim().split(/\s+/);
-    const two = words.length > 1 ? (words[0][0] + words[1][0]) : nameOfM(p, lang).trim().slice(0, 2);
-    return [p.id, { text: shared ? two.charAt(0).toUpperCase() + two.charAt(1).toLowerCase() : first(p), bg: AV[sorted.findIndex((x) => x.id === p.id) % AV.length] }];
-  }));
-}
+/** Avatars (bus 85 M2): colour fixed per id, letters from the display name in the UI language (app/lib/family-avatars.mjs). */
+const avatarsFor = (people: Person[], lang: Lang) => avatarsOf(people.map((p) => ({ id: p.id, name: nameOfM(p, lang) }))) as Map<string, { text: string; bg: string }>;
 type Avatars = ReturnType<typeof avatarsFor>;
 function Avatar({ id, av }: { id: string; av: Avatars }) {
   const a = av.get(id);
-  return <span aria-hidden="true" className="grid h-8 w-8 flex-none place-items-center rounded-full text-[14px] font-semibold text-white" style={{ background: a?.bg ?? AV[0] }}>{a?.text ?? "?"}</span>;
+  return <span aria-hidden="true" className="grid h-8 w-8 flex-none place-items-center rounded-full text-[14px] font-semibold text-white" style={{ background: a?.bg ?? "#7b1e2d" }}>{a?.text ?? "?"}</span>;
 }
 
 /** The small tag before a title: sprint (blue) or rota (green). Plain chores carry none. */
-function Tag({ task, t }: { task: { kind: string }; t: Dict }) {
+function Tag({ task, t }: { task: { kind: string; origin?: string }; t: Dict }) {
+  if (task.origin === "council") return <span className="mr-1.5 inline-block rounded-md bg-[var(--surface)] px-1.5 py-0.5 align-[1px] text-[14px] font-semibold leading-none text-[var(--accent)] ring-1 ring-[var(--border)]">{t.tag.council}</span>;
   if (task.kind === "sprint") return <span className="mr-1.5 inline-block rounded-md bg-[var(--sprint-soft)] px-1.5 py-0.5 align-[1px] text-[14px] font-semibold leading-none text-[var(--sprint)]">{t.tag.sprint}</span>;
   if (task.kind === "rotation") return <span className="mr-1.5 inline-block rounded-md bg-[var(--ok-soft)] px-1.5 py-0.5 align-[1px] text-[14px] font-semibold leading-none text-[var(--ok)]">{t.tag.rotation}</span>;
   return null;
@@ -200,7 +192,6 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin 
             <Toolbar c={c} view={view} setView={setView} who={who} setWho={setWho} tasks={tasks} decisions={parent ? decisions : null} />
             <Strip c={c} members={board.members.filter(shown)} />
             {view === "board" ? <Lanes c={c} board={board} members={board.members.filter(shown)} /> : <ListView c={c} tasks={tasks} />}
-            {board.needs_decision && board.needs_decision.length > 0 && <Decisions c={c} tasks={board.needs_decision} />}
             {board.carry_offer && board.carry_offer.length > 0 && <CarryOffer c={c} tasks={board.carry_offer} />}
             <div className={`mt-8 grid gap-5 ${parent && board.plan ? "lg:grid-cols-[1.35fr_1fr]" : ""}`}>
               {parent && board.plan && <PlanPanel key={`${board.plan.date}:${board.plan.approved}:${plan?.tasks.length ?? 0}:${plan?.approval?.at ?? ""}`} c={c} summary={board.plan} plan={plan} />}
@@ -226,11 +217,13 @@ function stampText(a: OsApprovalStamp, c: Ctx) {
 function Progress({ t, p }: { t: Dict; p: OsBoard["progress"] }) {
   if (!p.total) return <p data-progress="" className={`${META} text-[16px]`}>{t.noneToday}</p>;
   const pc = (n: number) => `${(n / p.total) * 100}%`;
-  const segs: [Col, string, number][] = [["done", "var(--ok)", p.done], ["in_progress", "var(--accent)", p.in_progress], ["accepted", "var(--sprint)", p.accepted], ["waiting", "var(--wait-border)", p.waiting]];
+  // «Принято» neutral taupe, «Ждёт» a dashed outline (bus 85 M5) — blue stays for «Спринт» only.
+  const segs: [Col, string, number][] = [["done", "var(--ok)", p.done], ["in_progress", "var(--accent)", p.in_progress], ["accepted", "var(--wait-border)", p.accepted], ["waiting", "transparent", p.waiting]];
+  const dashed = (k: Col) => (k === "waiting" ? { border: "1.5px dashed var(--wait-border)", boxSizing: "border-box" as const } : {});
   return (
     <div data-progress="" className="w-full max-w-sm">
       <p className="flex items-baseline justify-between text-[14px] text-[var(--muted)]"><span>{t.today}</span><span><b className="font-serif text-[22px] font-normal text-[var(--foreground)]">{p.done}</b> {t.of} {p.total} {t.ready}</span></p>
-      <div aria-hidden="true" className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[var(--surface)]">{segs.map(([k, col, n]) => <i key={k} className="block h-full" style={{ width: pc(n), background: col }} />)}</div>
+      <div aria-hidden="true" className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[var(--surface)]">{segs.map(([k, col, n]) => <i key={k} data-seg={k} className="block h-full rounded-[2px]" style={{ width: pc(n), background: col, ...(n ? dashed(k) : {}) }} />)}</div>
       {/* the text equivalent of the bar — state is never colour-only */}
       <p data-bar-text="" className="mt-2 text-[14px] text-[var(--text-secondary)]">{t.barText(p)}</p>
     </div>
@@ -238,8 +231,9 @@ function Progress({ t, p }: { t: Dict; p: OsBoard["progress"] }) {
 }
 
 /** Parents: «Нужно твоё решение: N» with one-line items, or a calm line when there is nothing to decide. */
-function Inbox({ c, board }: { c: Ctx; board: OsBoard }) {
+function Inbox({ c, board, startOpen = false }: { c: Ctx; board: OsBoard; startOpen?: boolean }) {
   const { t } = c;
+  const [open, setOpen] = useState(startOpen);
   const items: string[] = (board.needs_decision ?? []).map((x) => { const w = nameOfM(c.people.find((p) => p.id === x.assignee_id), c.lang); return x.why === "not_accepted" ? t.inboxLate(w, x.title) : t.inboxCant(w, x.title); });
   const planDue = board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0;
   if (planDue) items.push(t.inboxPlan);
@@ -248,11 +242,20 @@ function Inbox({ c, board }: { c: Ctx; board: OsBoard }) {
       <span aria-hidden="true" className="font-bold">✓</span>{t.calm}{board.progress.waiting === 0 && board.progress.total > 0 ? ` ${t.calmAll}` : ""}
     </p>
   );
+  // «Разобрать» opens the decisions right here, full width (bus 85 L7 — no second «Нужно решение» block below).
+  const decisions = board.needs_decision ?? [];
   return (
-    <section data-inbox="open" aria-labelledby="inbox-h" className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[var(--warn-border)] bg-[var(--warn-soft)] px-4 py-3">
-      <h2 id="inbox-h" className="text-[15px] font-semibold text-[var(--foreground)]">{t.inbox(items.length)}</h2>
-      <ul className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-[15px] text-[var(--text-secondary)]">{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
-      <a href={board.needs_decision?.length ? "#decide-h" : "#plan-h"} className={primary}>{t.inboxGo}</a>
+    <section data-inbox="open" aria-labelledby="inbox-h" className="mt-6 rounded-xl border border-[var(--warn-border)] bg-[var(--warn-soft)] px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <h2 id="inbox-h" className="text-[15px] font-semibold text-[var(--foreground)]">{t.inbox(items.length)}</h2>
+        <ul className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-[15px] text-[var(--text-secondary)]">{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
+        {decisions.length > 0
+          ? <button type="button" aria-expanded={open} aria-controls="decide-list" onClick={() => setOpen(!open)} className={primary}>{open ? t.inboxClose : t.inboxGo}</button>
+          : <a href="#plan-h" className={primary}>{t.inboxGo}</a>}
+      </div>
+      {open && decisions.length > 0 && (
+        <ul id="decide-list" data-decisions="" aria-label={t.decision} className="mt-3 grid gap-3 md:grid-cols-2">{decisions.map((x) => <DecisionRow key={x.id} c={c} task={x} />)}</ul>
+      )}
     </section>
   );
 }
@@ -280,8 +283,9 @@ function Strip({ c, members }: { c: Ctx; members: OsBoardMember[] }) {
       <h2 id="strip-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.strip}</h2>
       <ul aria-live="polite" data-strip="" className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
         {members.map((m) => (
-          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} className={`rounded-xl border px-3 py-3 ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"}`}>
-            <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]"><Avatar id={m.id} av={c.av} />{nameOfM(m, lang)}{m.id === c.me?.id ? <span className="font-normal text-[var(--muted)]">· {lang === "EN" ? "you" : "ты"}</span> : null}</p>
+          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} data-self={m.id === c.me?.id ? "" : undefined}
+            className={`rounded-xl border px-3 py-3 ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"} ${m.id === c.me?.id ? "ring-2 ring-[var(--muted-light)] ring-offset-1 ring-offset-[var(--background)]" : ""}`}>
+            <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]"><Avatar id={m.id} av={c.av} /><span className="min-w-0 flex-1">{nameOfM(m, lang)}</span>{m.id === c.me?.id ? <span data-you="" className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[14px] font-medium text-[var(--text-secondary)]">{lang === "EN" ? "You" : "Ты"}</span> : null}</p>
             {m.current ? (
               <>
                 <p className="mt-2 text-[15px] font-semibold leading-snug text-[var(--accent)]"><span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[var(--accent)] align-[1px] motion-safe:animate-pulse" />{m.current.title}</p>
@@ -322,7 +326,8 @@ function Card({ c, task, lane }: { c: Ctx; task: OsBoardTask; lane: string }) {
         {meta.filter(Boolean).length > 0 && <span className="mt-0.5 block text-[14px] text-[var(--muted)]" suppressHydrationWarning>{meta.filter(Boolean).join(" · ")}</span>}
       </button>
       <span id={descId} className="sr-only">{t.stateSr[task.state] ?? ""}</span>
-      {mine && ["approved", "accepted", "in_progress"].includes(task.state) && <Move c={c} task={task} compact />}
+      {/* in lanes only the compact «Готово» for one's own running task; every other move is in the drawer (bus 85 L6) */}
+      {mine && task.state === "in_progress" && <QuickDone c={c} task={task} />}
     </li>
   );
 }
@@ -351,6 +356,19 @@ function Move({ c, task, compact = false, onDone }: { c: Ctx; task: OsBoardTask;
         </div>
       )}
       {err && <p role="status" className="mt-1 text-[14px] text-[var(--muted)]">{err}</p>}
+    </div>
+  );
+}
+
+/** A compact ✓ inside a lane card: one's own running task → «Готово». Full-size buttons stay on Today. */
+function QuickDone({ c, task }: { c: Ctx; task: OsBoardTask }) {
+  const [err, setErr] = useState(false);
+  const go = async () => { const r = await osSend("POST", `tasks/${task.id}/done`); if (r?.ok) c.onChange(); else setErr(true); };
+  return (
+    <div className="mt-1 flex justify-end">
+      <button type="button" data-quick-done="" onClick={go} aria-label={`${c.t.act.done}: ${task.title}`} title={c.t.act.done}
+        className="grid h-11 w-11 place-items-center rounded-full border border-[var(--accent)] text-[18px] font-bold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--on-accent)]">✓</button>
+      {err && <p role="status" className="sr-only">{c.t.error}</p>}
     </div>
   );
 }
@@ -410,14 +428,15 @@ function PersonHead({ c, m }: { c: Ctx; m: OsBoardMember }) {
     </div>
   );
 }
-/** A child's routines as one count — only ever present for the child and their routines guardians. */
+/** A child's routines as one count — only ever present for the child and their routines guardians.
+ *  A <div>, not a <p>: the global unlayered `p { text-wrap: pretty }` beats Tailwind's layered `whitespace-nowrap`. */
 function RoutineLine({ t, r }: { t: Dict; r: { done: number; total: number } }) {
   if (!r.total) return null; // nothing scheduled today: no empty line (bus 84)
   return (
-    <p data-routine-line="" className="mt-1.5 flex items-center gap-1.5 text-[14px] text-[var(--muted)]">
+    <div data-routine-line="" className="mt-1.5 flex items-center gap-1.5 whitespace-nowrap text-[14px] text-[var(--muted)]">
       <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v7h-9z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
       {t.routineLine(r.done, r.total)}<span className="sr-only"> ({t.routineNote})</span>
-    </p>
+    </div>
   );
 }
 const nextText = (m: OsBoardMember, c: Ctx) => (m.next ? `${c.t.noTasks} · ${c.t.nearest}: ${m.next.title}, ${shortDate(m.next.date, c.lang)}${whenText(m.next, c.t) ? ` ${whenText(m.next, c.t)}` : ""}` : c.t.noTasks);
@@ -505,7 +524,7 @@ function ListView({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
 /** The task drawer: facts, actions, history. Side panel on wide screens, a full sheet on a phone. */
 function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void }) {
   const { t, lang } = c;
-  const [data, setData] = useState<{ task: OsBoardTask; history: OsTaskHistory } | null>(null);
+  const [data, setData] = useState<{ task: OsBoardTask; can: string[]; history: OsTaskHistory } | null>(null);
   const [declining, setDeclining] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -528,9 +547,7 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
   const name = (pid: string | null) => (!pid ? t.drawer.none : t.actor[pid] ?? nameOfM(c.people.find((p) => p.id === pid), lang));
   const dayLabel = (iso: string) => { const d = new Date(iso).toLocaleDateString("en-CA", { timeZone: "Europe/London" }); const today = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/London" });
     const y = new Date(Date.parse(`${today}T12:00:00Z`) - 86400_000).toISOString().slice(0, 10); return d === today ? t.todayW : d === y ? t.yesterday : shortDate(d, lang); };
-  const mine = x ? parts(x).includes(c.me?.id ?? "") : false;
-  const canReview = x && x.state === "done" && x.needs_review && !mine && (x.accountable_id ? x.accountable_id === c.me?.id : c.parent);
-  return (
+  const can = new Set(data?.can ?? []);  return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button type="button" aria-label={t.drawer.close} tabIndex={-1} onClick={onClose} className="absolute inset-0 bg-black/30" />
       <div role="dialog" aria-modal="true" aria-labelledby="drawer-h" data-drawer="" className="relative flex h-full w-full flex-col overflow-y-auto bg-[var(--background)] p-5 shadow-xl sm:max-w-md">
@@ -540,17 +557,16 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
         </div>
         {x && (
           <>
-            <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{t.stateSr[x.state] ?? ""}</p>
+            <p className="mt-2"><StateChip t={t} state={x.state} /></p>
             <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div><dt className="text-[14px] text-[var(--muted)]">{t.drawer.assignee}</dt><dd className="text-[15px] font-semibold text-[var(--foreground)]">{name(x.assignee_id)}{x.co_ids.length ? <span className="block font-normal text-[var(--text-secondary)]">{t.with} {x.co_ids.map(name).join(", ")}</span> : null}</dd></div>
               <div><dt className="text-[14px] text-[var(--muted)]">{t.drawer.accountable}</dt><dd className="text-[15px] font-semibold text-[var(--foreground)]">{name(x.accountable_id)}</dd></div>
               <div><dt className="text-[14px] text-[var(--muted)]">{t.drawer.due}</dt><dd className="text-[15px] font-semibold text-[var(--foreground)]">{[whenText(x, t), x.estimate_min ? t.est(x.estimate_min) : ""].filter(Boolean).join(" · ") || t.drawer.none}</dd></div>
             </dl>
             {x.rework_note && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.act.rework}: {x.rework_note}</p>}
-            {mine && ["approved", "accepted", "in_progress"].includes(x.state) && (declining ? <Decline c={inner} task={x} onCancel={() => setDeclining(false)} /> : (
-              <div className="grid gap-2"><Move c={inner} task={x} />{x.state === "approved" && <button type="button" className={btn} onClick={() => setDeclining(true)}>{t.cant}</button>}</div>
-            ))}
-            {canReview && <Review c={inner} task={x} />}
+            {/* exactly the moves the service allows this viewer (bus 85 #9) */}
+            {declining ? <Decline c={inner} task={x} onCancel={() => setDeclining(false)} /> : <DrawerActions c={inner} task={x} can={can} onDecline={() => setDeclining(true)} />}
+            {(can.has("review") || can.has("rework")) && <Review c={inner} task={x} />}
             {x.needs_review && <p className={`${META} mt-3`}>{t.drawer.reviewNote}</p>}
             <h3 className="mt-6 font-serif text-[20px] text-[var(--foreground)]">{t.drawer.history}</h3>
             <ol data-history="" className="mt-2 grid gap-2 border-l border-[var(--border)] pl-4">
@@ -568,18 +584,50 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
   );
 }
 
+function StateChip({ t, state }: { t: Dict; state: OsBoardTask["state"] }) {
+  const tone = state === "in_progress" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : state === "done" || state === "reviewed" ? "bg-[var(--ok-soft)] text-[var(--ok)]"
+    : state === "declined" ? "bg-[var(--warn-soft)] text-[var(--foreground)] ring-1 ring-[var(--warn-border)]" : "bg-[var(--surface)] text-[var(--text-secondary)] ring-1 ring-[var(--border)]";
+  return <span data-state-chip={state} className={`inline-flex items-center rounded-full px-2.5 py-1 text-[14px] font-medium ${tone}`}>{((x) => x.charAt(0).toUpperCase() + x.slice(1))(t.stateSr[state] ?? state)}</span>;
+}
+
+/** The drawer's moves, from the service's `can` list: the primary move (with the pause prompt), then Не могу ·
+ *  Готово · Пауза · Передать… · На завтра · Снять — whichever this viewer may make now. */
+function DrawerActions({ c, task, can, onDecline }: { c: Ctx; task: OsBoardTask; can: Set<string>; onDecline: () => void }) {
+  const { t } = c;
+  const [to, setTo] = useState(c.people.find((m) => m.id !== task.assignee_id)?.id ?? task.assignee_id);
+  const [err, setErr] = useState(false);
+  const go = async (action: string, body: unknown = {}) => { setErr(false); const r = await osSend("POST", `tasks/${task.id}/${action}`, body); if (r?.ok) c.onChange(); else setErr(true); };
+  const primary = (task.state === "approved" && can.has("accept")) || (task.state === "accepted" && can.has("start")) || (task.state === "in_progress" && can.has("done"));
+  const extra: [string, string][] = [];
+  if (can.has("done") && task.state === "accepted") extra.push(["done", t.act.done]);
+  if (can.has("pause")) extra.push(["pause", t.act.pause]);
+  if (can.has("carry")) extra.push(["carry", t.toTomorrow]);
+  if (can.has("cancel")) extra.push(["cancel", t.cancelTask]);
+  if (!primary && !extra.length && !can.has("decline") && !can.has("reassign")) return null;
+  return (
+    <div data-drawer-actions="" className="mt-4 grid gap-2">
+      {primary && <Move c={c} task={task} />}
+      {(can.has("decline") || extra.length > 0) && (
+        <div className="flex flex-wrap gap-2">
+          {can.has("decline") && <button type="button" className={btn} onClick={onDecline}>{t.cant}</button>}
+          {extra.map(([a, l]) => <button key={a} type="button" className={btn} onClick={() => go(a)}>{l}</button>)}
+        </div>
+      )}
+      {can.has("reassign") && (
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <AssigneeSelect c={c} value={to} onChange={setTo} labelText={t.whoDoes} />
+          <button type="button" className={btn} onClick={() => go("reassign", { assignee_id: to })}>{t.reassign}</button>
+        </div>
+      )}
+      {err && <p role="status" className="text-[14px] text-[var(--muted)]">{t.error}</p>}
+    </div>
+  );
+}
+
 function AssigneeSelect({ c, value, onChange, labelText }: { c: Ctx; value: string; onChange: (v: string) => void; labelText: string }) {
   return <label className={label}>{labelText}<select value={value} onChange={(e) => onChange(e.target.value)} className={field}>{c.people.map((m) => <option key={m.id} value={m.id}>{nameOfM(m, c.lang)}</option>)}</select></label>;
 }
 
-function Decisions({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
-  return (
-    <section aria-labelledby="decide-h" data-decisions="" className="mt-8 scroll-mt-24">
-      <h2 id="decide-h" className="font-serif text-[22px] text-[var(--foreground)]">{c.t.decision} <span className="text-[16px] text-[var(--muted)]">{tasks.length}</span></h2>
-      <ul className="mt-3 grid gap-3 md:grid-cols-2">{tasks.map((x) => <DecisionRow key={x.id} c={c} task={x} />)}</ul>
-    </section>
-  );
-}
 function DecisionRow({ c, task }: { c: Ctx; task: OsBoardTask }) {
   const { t, lang } = c;
   const [to, setTo] = useState(c.people.find((m) => m.id !== task.assignee_id)?.id ?? task.assignee_id);
@@ -693,11 +741,11 @@ function PlanPanel({ c, summary, plan }: { c: Ctx; summary: NonNullable<OsBoard[
           ) : (
             <ul data-plan-rows="" className="mt-2 divide-y divide-[var(--border)]">
               {tasks.map((x) => { const r = rows.find((y) => y.id === x.id)!; return (
-                <li key={x.id} data-plan-row={r.include ? "in" : "out"} className="grid grid-cols-[44px_1fr] items-center gap-x-2 gap-y-2 py-2.5 sm:grid-cols-[44px_1fr_170px_110px]">
+                <li key={x.id} data-plan-row={r.include ? "in" : "out"} className="grid grid-cols-[44px_1fr] items-center gap-x-2 gap-y-2 py-2.5 xl:grid-cols-[44px_1fr_minmax(22ch,auto)_120px]">
                   <label className="grid h-11 w-11 cursor-pointer place-items-center"><input type="checkbox" checked={r.include} onChange={(e) => set(x.id, { include: e.target.checked })} aria-label={`${t.include}: ${x.title}`} className="h-5 w-5 accent-[var(--accent)]" /></label>
                   <span className={`text-[15px] ${r.include ? "text-[var(--foreground)]" : "text-[var(--muted)] line-through"}`}><Tag task={x} t={t} />{x.title}{x.co_ids.length ? <span className="text-[14px] text-[var(--muted)]"> · {t.with} {x.co_ids.map(nameById).join(", ")}</span> : null}{x.when_slot && !r.due_time ? <span className="text-[14px] text-[var(--muted)]"> · {t.slot[x.when_slot]}</span> : null}{x.origin === "carry" && <span className="text-[14px] text-[var(--muted)]"> ({t.carried})</span>}</span>
-                  <select aria-label={`${t.whoDoes}: ${x.title}`} value={r.assignee_id} onChange={(e) => set(x.id, { assignee_id: e.target.value })} className={`${field} col-start-2 mt-0 sm:col-start-auto`}>{c.people.map((m) => <option key={m.id} value={m.id}>{nameOfM(m, lang)}</option>)}</select>
-                  <input type="time" aria-label={`${t.time}: ${x.title}`} value={r.due_time} onChange={(e) => set(x.id, { due_time: e.target.value })} className={`${field} col-start-2 mt-0 sm:col-start-auto`} />
+                  <select aria-label={`${t.whoDoes}: ${x.title}`} value={r.assignee_id} onChange={(e) => set(x.id, { assignee_id: e.target.value })} className={`${field} col-start-2 mt-0 min-w-[22ch] xl:col-start-auto`}>{c.people.map((m) => <option key={m.id} value={m.id}>{nameOfM(m, lang)}</option>)}</select>
+                  <input type="time" aria-label={`${t.time}: ${x.title}`} value={r.due_time} onChange={(e) => set(x.id, { due_time: e.target.value })} className={`${field} col-start-2 mt-0 max-w-[10rem] xl:col-start-auto xl:max-w-none`} />
                 </li>); })}
             </ul>
           )}
@@ -798,7 +846,7 @@ function Templates({ c, templates }: { c: Ctx; templates: OsTemplate[] }) {
 
 /** Today: parents' decision line; «Новые задачи» (Принимаю / Не могу / Принять все) above «Мои задачи»
  *  (one primary move; the quiet «Ещё в работе?» only to the person doing it); «Мой распорядок N из M» under them. */
-export function TodayBoard({ lang, data, board, me, routines }: { lang: Lang; data: OsMyBoard; board: OsBoard | null; me: { id: string; kind: string } | null; routines: { done: number; total: number } | null }) {
+export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBoard; board: OsBoard | null; me: { id: string; kind: string } | null; routines: { done: number; total: number } | null }) {
   const t = T[lang];
   const router = useRouter();
   const [err, setErr] = useState(false);
@@ -854,7 +902,7 @@ export function TodayBoard({ lang, data, board, me, routines }: { lang: Lang; da
           </ul>
         </section>
       )}
-      {routines && routines.total > 0 && (data.new.length > 0 || data.mine.length > 0) && <p data-my-routine="" className="mt-4 text-[15px] text-[var(--text-secondary)]"><a href="#myday-h" className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{L.routine(routines.done, routines.total)}</a></p>}
+      {/* «Мой распорядок» (circles) follows right below as its own section (bus 85 order) */}
       {err && <p role="status" className="mt-1 text-[14px] text-[var(--muted)]">{t.error}</p>}
     </div>
   );

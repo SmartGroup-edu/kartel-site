@@ -370,7 +370,8 @@ CREATE TABLE IF NOT EXISTS task (
   id              uuid PRIMARY KEY,
   plan_date       date NOT NULL,
   kind            text NOT NULL CHECK (kind IN ('chore', 'rotation', 'sprint', 'oneoff')),
-  origin          text NOT NULL CHECK (origin IN ('template', 'rotation', 'sprint', 'carry', 'adhoc')),
+  origin          text NOT NULL CHECK (origin IN ('template', 'rotation', 'sprint', 'carry', 'adhoc', 'council')),
+  council_date    date,                                      -- a council decision (bus 85: one model — decisions are tasks)
   template_id     uuid REFERENCES task_template(id),
   sprint_goal_id  uuid REFERENCES sprint_goal(id),
   carried_from    uuid REFERENCES task(id),
@@ -401,6 +402,7 @@ CREATE TABLE IF NOT EXISTS task (
   updated_at      timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS task_day ON task (plan_date, assignee_id);
+CREATE INDEX IF NOT EXISTS task_council ON task (council_date) WHERE council_date IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS task_template_day ON task (template_id, plan_date) WHERE template_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS task_carried_once ON task (carried_from) WHERE carried_from IS NOT NULL;
 -- At most one task in progress per person (bus 82 §4) — enforced by the database too.

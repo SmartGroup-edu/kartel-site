@@ -19,7 +19,7 @@ const T = {
   EN: {
     routine: "Routine", chore: "Chore", rotation: "Chore in turns", rotationShort: "In turns", members: "Who takes turns", needMembers: "Choose at least two people.", paused: "A day without rhythm — nothing is scheduled today.", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
     progress: (d: number, n: number) => `${d} of ${n} done`, nextOn: "Next", agenda: "Next 7 days", nothingAhead: "Nothing scheduled in the next 7 days.",
-    add: "Add a routine or chore", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
+    add: "Add a routine", choresMoved: "Chores and chores in turns are planned as tasks now.", toTemplates: "Plan templates on the board", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
     repeatOpt: { daily: "Every day", every_n: "Every N days", weekdays: "Weekdays", weekly: "On chosen days", monthly: "Once a month" },
     everyNDays: "Every how many days", everyNWeeks: "Every how many weeks", days: "Days", monthDay: "Day of the month",
     time: "Time (optional)", start: "Starts", save: "Add", saving: "Saving…", added: "Added.", needDays: "Choose at least one day.", needN: "Enter a number from 2 to 52.",
@@ -29,7 +29,7 @@ const T = {
   RU: {
     routine: "Распорядок", chore: "Дело", rotation: "Дело по очереди", rotationShort: "По очереди", members: "Кто делает по очереди", needMembers: "Выбери хотя бы двоих.", paused: "День без ритма — на сегодня ничего не запланировано.", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
     progress: (d: number, n: number) => `Сделано ${d} из ${n}`, nextOn: "Дальше", agenda: "Ближайшие 7 дней", nothingAhead: "На ближайшие 7 дней ничего не запланировано.",
-    add: "Добавить распорядок или дело", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
+    add: "Добавить распорядок", choresMoved: "Дела и дела по очереди теперь планируются как задачи.", toTemplates: "Шаблоны плана на доске", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
     repeatOpt: { daily: "Каждый день", every_n: "Раз в N дней", weekdays: "По будням", weekly: "По дням недели", monthly: "Раз в месяц" },
     everyNDays: "Раз в сколько дней", everyNWeeks: "Раз в сколько недель", days: "Дни", monthDay: "Число месяца",
     time: "Время (необязательно)", start: "Начать с", save: "Добавить", saving: "Сохраняется…", added: "Добавлено.", needDays: "Выбери хотя бы один день.", needN: "Введи число от 2 до 52.",
@@ -170,7 +170,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
   );
 }
 
-export function AddRoutine({ lang, personId, today, candidates = [] }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[] }) {
+export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[] }) {
   const t = T[lang];
   const router = useRouter();
   const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
@@ -180,8 +180,6 @@ export function AddRoutine({ lang, personId, today, candidates = [] }: { lang: L
   const [monthDay, setMonthDay] = useState(String(Number(today.slice(8, 10))));
   const [dtstart, setDtstart] = useState(today);
   const [status, setStatus] = useState("");
-  const [kind, setKind] = useState<"routine" | "chore" | "rotation">("routine");
-  const [members, setMembers] = useState<string[]>([personId]);
   const rrule = buildRule({ repeat, days, interval: repeat === "every_n" ? n : weeks, monthDay });
   const reset = () => { setRepeat("daily"); setN("2"); setWeeks("1"); setDays([]); setDtstart(today); };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -189,37 +187,17 @@ export function AddRoutine({ lang, personId, today, candidates = [] }: { lang: L
     if (!rrule) return setStatus(repeat === "weekly" ? t.needDays : t.needN);
     const form = e.currentTarget, f = new FormData(form);
     setStatus(t.saving);
-    if (kind === "rotation" && members.length < 2) return setStatus(t.needMembers);
     const common = { title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
-    // A rotation keeps the members in the order they appear in the list (the turn order).
-    const r = await (kind === "rotation" ? send("POST", "rotations", { ...common, members: candidates.map((c) => c.id).filter((id) => members.includes(id)) })
-      : send("POST", `people/${personId}/routines`, { ...common, kind })).catch(() => null);
+    const r = await send("POST", `people/${personId}/routines`, { ...common, kind: "routine" }).catch(() => null);
     if (!r?.ok) return setStatus(t.saveError);
-    setStatus(t.added); form.reset(); reset(); setKind("routine"); setMembers([personId]); router.refresh();
+    setStatus(t.added); form.reset(); reset(); router.refresh();
   };
   return (
     <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
-        <label className={label}>{t.kind}
-          <select name="kind" className={field} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
-            <option value="routine">{t.routine}</option><option value="chore">{t.chore}</option>
-            {candidates.length >= 2 && <option value="rotation">{t.rotation}</option>}
-          </select>
-        </label>
-        {kind === "rotation" && (
-          <fieldset data-rotation-members="" className="sm:col-span-2">
-            <legend className={label}>{t.members}</legend>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {candidates.map((c) => (
-                <label key={c.id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${members.includes(c.id) ? "border-[var(--accent)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
-                  <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={members.includes(c.id)} onChange={() => setMembers((x) => (x.includes(c.id) ? x.filter((y) => y !== c.id) : [...x, c.id]))} />
-                  {c.name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
+        {/* bus 85: one model — a routine is a personal habit; chores and turns are tasks (plan templates on the board) */}
+        <p data-chores-moved="" className="text-[15px] text-[var(--text-secondary)] sm:col-span-2">{t.choresMoved} <a href={`/${lang === "EN" ? "en" : "ru"}/family/os/board#tpl-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toTemplates}</a></p>
         <label className={label}>{t.repeat}
           <select name="repeat" className={field} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
             {(["daily", "every_n", "weekdays", "weekly", "monthly"] as const).map((k) => <option key={k} value={k}>{t.repeatOpt[k]}</option>)}
