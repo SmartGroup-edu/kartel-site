@@ -86,15 +86,15 @@ export function pgStore(pool) {
       return r.rowCount === 1;
     },
     async listRoutines(personId) {
-      return (await q(`SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, created_at FROM routine
+      return (await q(`SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, anchor_text, anchor_routine_id, created_at FROM routine
                        WHERE person_id = $1 AND archived_at IS NULL ORDER BY at_time NULLS LAST, created_at`, [personId])).rows;
     },
     async getRoutine(id) {
       return (await q("SELECT id, person_id, kind, title, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart, at_time, archived_at FROM routine WHERE id = $1", [id])).rows[0] ?? null;
     },
     async createRoutine(r, actor) {
-      await q("INSERT INTO routine (id, person_id, kind, title, rrule, dtstart, at_time, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-        [r.id, r.person_id, r.kind, r.title, r.rrule, r.dtstart, r.at_time, actor]);
+      await q("INSERT INTO routine (id, person_id, kind, title, rrule, dtstart, at_time, anchor_text, anchor_routine_id, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        [r.id, r.person_id, r.kind, r.title, r.rrule, r.dtstart, r.at_time, r.anchor_text ?? null, r.anchor_routine_id ?? null, actor]);
       await audit(actor, "routine.create", `routine:${r.id}`);
     },
     async updateRoutine(id, patch, actor) {
@@ -127,12 +127,12 @@ export function pgStore(pool) {
       return (await q("SELECT rule_id, outcome, count(*)::int AS n FROM rule_run WHERE family_date >= $1 GROUP BY rule_id, outcome ORDER BY 1, 2", [sinceDate])).rows;
     },
     async getPrefs(personId) {
-      return (await q("SELECT email_on, digest_time, evening_on, evening_time, lang FROM notification_pref WHERE person_id = $1", [personId])).rows[0] ?? null;
+      return (await q("SELECT email_on, digest_time, evening_on, evening_time, lang, count_mode FROM notification_pref WHERE person_id = $1", [personId])).rows[0] ?? null;
     },
     async setPrefs(personId, p, actor) {
-      await q(`INSERT INTO notification_pref (person_id, email_on, digest_time, evening_on, evening_time, lang, updated_by, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, now())
-               ON CONFLICT (person_id) DO UPDATE SET email_on = $2, digest_time = $3, evening_on = $4, evening_time = $5, lang = $6, updated_by = $7, updated_at = now()`,
-        [personId, p.email_on, p.digest_time, p.evening_on, p.evening_time, p.lang, actor]);
+      await q(`INSERT INTO notification_pref (person_id, email_on, digest_time, evening_on, evening_time, lang, count_mode, updated_by, updated_at) VALUES ($1, $2, $3, $4, $5, $6, COALESCE($8, 'week'), $7, now())
+               ON CONFLICT (person_id) DO UPDATE SET email_on = $2, digest_time = $3, evening_on = $4, evening_time = $5, lang = $6, count_mode = COALESCE($8, notification_pref.count_mode), updated_by = $7, updated_at = now()`,
+        [personId, p.email_on, p.digest_time, p.evening_on, p.evening_time, p.lang, actor, p.count_mode ?? null]);
     },
     async listPauses(personId) {
       return (await q("SELECT id, person_id, to_char(from_date, 'YYYY-MM-DD') AS from_date, to_char(to_date, 'YYYY-MM-DD') AS to_date, cancelled_at FROM pause WHERE person_id = $1 AND cancelled_at IS NULL ORDER BY from_date", [personId])).rows;
@@ -186,12 +186,35 @@ export function pgStore(pool) {
       await audit(actor, "council.task", `task:${t.id}`);
     },
     async setTaskDone(id, done, actor) { return (await q("UPDATE council_task SET done_at = CASE WHEN $2::boolean THEN now() END, done_by = CASE WHEN $2::boolean THEN $3 END WHERE id = $1", [id, done, actor])).rowCount === 1; },
-    async listGoals(personId) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, status, created_at FROM goal WHERE person_id = $1 AND status <> 'archived' ORDER BY status, created_at", [personId])).rows; },
-    async getGoal(id) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, status FROM goal WHERE id = $1", [id])).rows[0] ?? null; },
+    async listGoals(personId) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, woop_ct, status, created_at FROM goal WHERE person_id = $1 AND status <> 'archived' ORDER BY status, created_at", [personId])).rows; },
+    async getGoal(id) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, woop_ct, status FROM goal WHERE id = $1", [id])).rows[0] ?? null; },
     async createGoal(g, actor) {
-      await q("INSERT INTO goal (id, person_id, sphere, visibility, wrapped_key, title_ct, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)", [g.id, g.person_id, g.sphere, g.visibility, g.wrapped_key, g.title_ct, actor]);
+      await q("INSERT INTO goal (id, person_id, sphere, visibility, wrapped_key, title_ct, woop_ct, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [g.id, g.person_id, g.sphere, g.visibility, g.wrapped_key, g.title_ct, g.woop_ct ?? null, actor]);
     },
-    async updateGoal(id, patch) { return (await q("UPDATE goal SET status = COALESCE($2, status), visibility = COALESCE($3, visibility), updated_at = now() WHERE id = $1", [id, patch.status ?? null, patch.visibility ?? null])).rowCount === 1; },
+    async updateGoal(id, patch) {
+      // woop_ct: undefined = unchanged, null = cleared
+      return (await q("UPDATE goal SET status = COALESCE($2, status), visibility = COALESCE($3, visibility), woop_ct = CASE WHEN $4::boolean THEN $5 ELSE woop_ct END, updated_at = now() WHERE id = $1",
+        [id, patch.status ?? null, patch.visibility ?? null, patch.woop_ct !== undefined, patch.woop_ct ?? null])).rowCount === 1;
+    },
+    // ---- Stage 3d: Кодекс, принцип недели, признание
+    async kodeksVersions() { return (await q("SELECT version, body, status, to_char(approved_on, 'YYYY-MM-DD') AS approved_on, created_by, created_at FROM kodeks_version ORDER BY version DESC")).rows; },
+    async addKodeksVersion(v, actor) {
+      await q("INSERT INTO kodeks_version (version, body, status, approved_on, created_by) VALUES ($1, $2, $3, $4, $5)", [v.version, JSON.stringify(v.body), v.status, v.approved_on, actor]);
+      await audit(actor, "kodeks.version", `kodeks:${v.version}`);
+    },
+    async principlePick(week) { return (await q("SELECT idx FROM principle_week WHERE week_start = $1", [week])).rows[0]?.idx ?? null; },
+    async setPrinciplePick(week, idx, actor) {
+      await q("INSERT INTO principle_week (week_start, idx, set_by) VALUES ($1, $2, $3) ON CONFLICT (week_start) DO UPDATE SET idx = $2, set_by = $3, set_at = now()", [week, idx, actor]);
+      await audit(actor, "principle.pick", `week:${week}`);
+    },
+    async recognitionsBetween(from, to) {
+      return (await q("SELECT id, from_id, to_id, idx, wrapped_key, text_ct, to_char(on_date, 'YYYY-MM-DD') AS on_date, created_at FROM recognition WHERE on_date BETWEEN $1 AND $2 ORDER BY created_at", [from, to])).rows;
+    },
+    async recognitionsSentOn(fromId, date) { return (await q("SELECT count(*)::int AS n FROM recognition WHERE from_id = $1 AND on_date = $2", [fromId, date])).rows[0].n; },
+    async addRecognition(r, actor) {
+      await q("INSERT INTO recognition (id, from_id, to_id, idx, wrapped_key, text_ct, on_date, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [r.id, r.from_id, r.to_id, r.idx, r.wrapped_key, r.text_ct, r.on_date, actor]);
+      await audit(actor, "recognition.create", `recognition:${r.id}`);
+    },
     async listCheckins(goalIds) {
       if (!goalIds.length) return [];
       return (await q("SELECT id, goal_id, to_char(week_start, 'YYYY-MM-DD') AS week_start, mood, note_ct FROM goal_checkin WHERE goal_id = ANY($1::uuid[]) ORDER BY week_start DESC", [goalIds])).rows;
@@ -273,6 +296,7 @@ export function pgStore(pool) {
 
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
+  const kodeks = [], picks = new Map(), recs = [];
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
   return {
@@ -329,7 +353,7 @@ export function memoryStore() {
     async setRule(id, patch) { const r = rules.get(id); if (!r) return false; if (patch.enabled !== undefined) r.enabled = patch.enabled; if (patch.dry_run !== undefined) r.dry_run = patch.dry_run; return true; },
     async ruleRunCounts() { return []; },
     async getPrefs(id) { return prefs.get(id) ?? null; },
-    async setPrefs(id, p) { prefs.set(id, { ...p }); },
+    async setPrefs(id, p) { prefs.set(id, { ...p, count_mode: p.count_mode ?? prefs.get(id)?.count_mode ?? "week" }); },
     async listPauses(id) { return [...pauses.values()].filter((p) => p.person_id === id && !p.cancelled_at); },
     async getPause(id) { return pauses.get(id) ?? null; },
     async createPause(p) { pauses.set(p.id, { ...p, cancelled_at: null }); },
@@ -360,7 +384,18 @@ export function memoryStore() {
     async listGoals(pid) { return [...goals.values()].filter((g) => g.person_id === pid && g.status !== "archived"); },
     async getGoal(id) { return goals.get(id) ?? null; },
     async createGoal(g) { goals.set(g.id, { ...g, status: "active" }); },
-    async updateGoal(id, patch) { const g = goals.get(id); if (!g) return false; if (patch.status) g.status = patch.status; if (patch.visibility) g.visibility = patch.visibility; return true; },
+    async updateGoal(id, patch) { const g = goals.get(id); if (!g) return false; if (patch.status) g.status = patch.status; if (patch.visibility) g.visibility = patch.visibility; if (patch.woop_ct !== undefined) g.woop_ct = patch.woop_ct; return true; },
+    // ---- Stage 3d
+    async kodeksVersions() { return [...kodeks].sort((a, b) => b.version - a.version).map((v) => ({ ...v, body: structuredClone(v.body) })); },
+    async addKodeksVersion(v, actor) {
+      if (kodeks.some((x) => x.version === v.version)) throw Object.assign(new Error("duplicate"), { code: "23505" });
+      kodeks.push({ ...v, body: structuredClone(v.body), created_by: actor, created_at: now() });
+    },
+    async principlePick(week) { return picks.get(week) ?? null; },
+    async setPrinciplePick(week, idx) { picks.set(week, idx); },
+    async recognitionsBetween(from, to) { return recs.filter((r) => r.on_date >= from && r.on_date <= to); },
+    async recognitionsSentOn(fromId, date) { return recs.filter((r) => r.from_id === fromId && r.on_date === date).length; },
+    async addRecognition(r, actor) { recs.push({ ...r, created_by: actor, created_at: now() }); },
     async listCheckins(ids) { return [...checkins.values()].filter((c) => ids.includes(c.goal_id)); },
     async saveCheckin(c) { const k = `${c.goal_id}|${c.week_start}`; const id = checkins.get(k)?.id ?? checkins.size + 1; checkins.set(k, { ...c, id }); return id; },
     async listEvents(from, to) { return [...events3.values()].filter((e) => !e.archived_at && e.on_date >= from && e.on_date <= to); },

@@ -24,3 +24,6 @@ GRANT SELECT, INSERT, UPDATE ON council_meeting, council_task, goal, goal_checki
 GRANT USAGE ON SEQUENCE goal_checkin_id_seq TO kfo_app;
 -- Stage 3c
 GRANT SELECT, INSERT, UPDATE ON task_template, sprint_goal, task, plan_approval TO kfo_app;
+-- Stage 3d: Кодекс versions are insert-only for kfo_app (append-only by privilege and by trigger).
+GRANT SELECT, INSERT ON kodeks_version, recognition TO kfo_app;
+GRANT SELECT, INSERT, UPDATE ON principle_week TO kfo_app;
