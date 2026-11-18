@@ -277,7 +277,7 @@ test("security notices: three fixed kinds, device kind + date only; the parents'
   const own = renderSecurityEmail(secBody());
   assert.equal(own.subject, "Добавлен новый ключ входа");
   assert.match(own.text, /Анна, к твоему входу в семейный раздел добавлен новый ключ: iPhone, 18 ноября 2026\./);
-  assert.match(own.text, /Если это не ты — войди по ссылке из письма и отзови его/);
+  assert.match(own.text, /Если это не ты — войди по ссылке из письма и отзови его: твоя страница → «Вход»\./);
   const parent = renderSecurityEmail(secBody({ about: "Миша" }));
   assert.match(parent.text, /Анна, в семейный раздел добавлен новый ключ входа\. Чей: Миша\. Устройство: iPhone, 18 ноября 2026\./, "the name stays in the nominative");
   assert.doesNotMatch(parent.text, /к входу Миша/);

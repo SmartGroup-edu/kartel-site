@@ -379,14 +379,14 @@ export function renderSecurityEmail({ kind, lang = "ru", firstName, about, devic
   const whom = about ? (ru ? ` Чей: ${about}.` : ` Whose: ${about}.`) : "";
   const c = ru ? {
     new_key: { subject: "Добавлен новый ключ входа", lines: [about ? `${hi}в семейный раздел добавлен новый ключ входа.${whom} Устройство: ${dev}, ${day}.` : `${hi}к твоему входу в семейный раздел добавлен новый ключ: ${dev}, ${day}.`,
-      about ? `Если это неожиданно — войди и отзови ключ: «Люди» → ${about} → «Вход».` : "Если это не ты — войди по ссылке из письма и отзови его: твоя страница → «Письма и паузы» → «Вход»."] },
+      about ? `Если это неожиданно — войди и отзови ключ: «Люди» → ${about} → «Вход».` : "Если это не ты — войди по ссылке из письма и отзови его: твоя страница → «Вход»."] },
     revoked: { subject: "Ключ входа отозван", lines: [`${hi}ключ входа отозван.${whom} Устройство: ${dev}.`, "Войти можно по ссылке из письма или другим ключом."] },
     flagged: { subject: "Ключ входа помечен как подозрительный", lines: [`${hi}ключ входа повёл себя необычно — возможно, его скопировали.${whom} Устройство: ${dev}. Вход с ним приостановлен.`,
       about ? "Владелец семейного раздела может вернуть или отозвать его." : "Войти можно по ссылке из письма. Ключ можно вернуть или отозвать на странице «Вход»."] },
     open: "Открыть семейный раздел",
   } : {
     new_key: { subject: "A new sign-in key was added", lines: [about ? `${hi}a new sign-in key was added to the family area.${whom} Device: ${dev}, ${day}.` : `${hi}a new key was added to your sign-in for the family area: ${dev}, ${day}.`,
-      about ? `If this is unexpected, sign in and revoke it: People → ${about} → Sign-in.` : "If this wasn't you, sign in with an email link and revoke it: your page → Emails and pauses → Sign-in."] },
+      about ? `If this is unexpected, sign in and revoke it: People → ${about} → Sign-in.` : "If this wasn't you, sign in with an email link and revoke it: your page → Sign-in."] },
     revoked: { subject: "A sign-in key was revoked", lines: [`${hi}a sign-in key was revoked.${whom} Device: ${dev}.`, "You can still sign in with an email link or another key."] },
     flagged: { subject: "A sign-in key was flagged", lines: [`${hi}a sign-in key behaved unusually — it may have been copied.${whom} Device: ${dev}. Signing in with it is paused.`, "You can sign in with an email link; the key can be restored or revoked on the Sign-in page."] },
     open: "Open the family area",
