@@ -44,7 +44,7 @@ const copy = {
     sent: (min: number) => `If that address may access this area, a sign-in link is on its way. Check your inbox and spam folder. The link works once, only in this browser, and expires in ${min} ${min === 1 ? "minute" : "minutes"}.`,
     again: "Use a different email",
     back: "Back to the coat of arms",
-    invalid: "That link didn’t work. A link works for 10 minutes, only in the browser where you asked for it, and only the latest one counts. Ask for a new one here, then open the email on this same device.",
+    invalid: (min: number) => `That link didn’t work. A link works for ${min} ${min === 1 ? "minute" : "minutes"}, only in the browser where you asked for it, and only the latest one counts. Ask for a new one here, then open the email on this same device.`,
   },
   ru: {
     eyebrow: "Семейное наследие",
@@ -59,7 +59,7 @@ const copy = {
     sent: (min: number) => `Если у этого адреса есть доступ, ссылка уже отправлена. Проверьте входящие и папку «Спам». Ссылка действует ${min} ${ruMinutes(min)}, срабатывает один раз и только в этом браузере.`,
     again: "Указать другой адрес",
     back: "К гербу",
-    invalid: "Ссылка не сработала. Она действует 10 минут, только в том браузере, где её запросили, и только самая последняя. Запросите новую здесь и откройте письмо на этом же устройстве.",
+    invalid: (min: number) => `Ссылка не сработала. Она действует ${min} ${ruMinutes(min)}, только в том браузере, где её запросили, и только самая последняя. Запросите новую здесь и откройте письмо на этом же устройстве.`,
   },
 } as const;
 
@@ -120,7 +120,7 @@ export function FamilyGateNotice({
               role="alert"
               className="mt-6 rounded-lg border border-[var(--destructive)] px-4 py-3 text-[15px] text-[var(--foreground)]"
             >
-              {c.invalid}
+              {c.invalid(ttlMinutes)}
             </p>
           )}
 
