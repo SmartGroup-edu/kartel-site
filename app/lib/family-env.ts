@@ -11,6 +11,8 @@
  * and no datastore is required. See docs/standalone-auth-design.md.
  */
 
+import { familySessionCookie } from "@/app/lib/family-cookie.mjs";
+
 function need(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`[family-gate] required env ${name} is not set`);
@@ -30,7 +32,8 @@ export const familyEnv = {
 
   // Local session (HS256 JWT cookie). Subject = lowercased email.
   sessionSecret: (): string => need("FAMILY_SESSION_SECRET"),
-  sessionCookie: (): string => process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session",
+  /** `__Secure-kartel_family_session` in production, `kartel_family_session` in dev (go-live bundle). */
+  sessionCookie: (): string => familySessionCookie(),
   sessionMaxAgeSeconds: (): number => Number(process.env.FAMILY_SESSION_MAX_AGE ?? 28800), // 8h
 
   // Sign-in link (short-lived, same-device bound via the nonce cookie).
