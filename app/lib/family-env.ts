@@ -55,6 +55,12 @@ export const familyEnv = {
   adminEmails: (): string[] => csvLower(process.env.FAMILY_ADMIN_EMAILS),
 
   /**
+   * Family editors (bus 87): may open the family editor, but every change is a proposal that waits
+   * for an owner's approval. Not admins: no access lists, no Family OS «Доступы», no publishing.
+   */
+  editorEmails: (): string[] => csvLower(process.env.FAMILY_EDITOR_EMAILS),
+
+  /**
    * Founder-seeded family allowlist (comma-separated, lowercased). This is the user list:
    * an address here may request a sign-in link. Runtime add/revoke lives in the Edge Config
    * `familyAccessEmails` item; this env is the static seed.

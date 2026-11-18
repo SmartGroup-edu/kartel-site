@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision, isFamilyAdmin } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { mediaEnabled } from "@/app/lib/family-media";
 import { getOsNav } from "@/app/lib/family-os";
 import { FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/content/family-private";
 import FamilyAdmin from "@/app/components/FamilyAdmin";
 
-// Gated (proxy.ts covers /family/*) and admin-only here; never prerendered, never indexed.
+// Gated (proxy.ts covers /family/*); the owner and editors only (bus 87); never prerendered, never indexed.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
@@ -20,11 +20,13 @@ export default async function FamilyAdminPage({ params }: { params: Promise<{ la
   if (lang !== "en" && lang !== "ru") notFound();
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
-  // Not an admin → the page does not exist for you (no hint that an editor is here).
-  if (decision !== "allow" || !session || !isFamilyAdmin(session.cpifSubjectId)) notFound();
+  // Neither owner nor editor → the page does not exist for you (no hint that an editor is here).
+  const role = session ? familyRole(session.cpifSubjectId) : "member";
+  if (decision !== "allow" || !session || role === "member") notFound();
   return (
     <FamilyAdmin
       lang={lang === "ru" ? "RU" : "EN"}
+      role={role}
       enabled={mediaEnabled()}
       os={(await getOsNav(session)).os}
       people={FAMILY_TREE_NODES.map((n) => ({ id: n.id, nameEN: n.nameEN, nameRU: n.nameRU }))}

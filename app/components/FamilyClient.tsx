@@ -27,7 +27,7 @@ export interface FamilyData {
   media: FamilyMediaContent;
 }
 
-export default function FamilyClient({ lang, data, nav = { admin: false, os: false, member: false } }: { lang: Lang; data: FamilyData; nav?: { admin: boolean; os: boolean; member: boolean } }) {
+export default function FamilyClient({ lang, data, nav = { admin: false, editor: false, os: false, member: false } }: { lang: Lang; data: FamilyData; nav?: { admin: boolean; editor?: boolean; os: boolean; member: boolean } }) {
   const toggleLang = useLangToggle(lang);
 
   const t = data.content;
@@ -39,7 +39,7 @@ export default function FamilyClient({ lang, data, nav = { admin: false, os: fal
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth={FAMILY_HEADER_MAX} />
 
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={nav.admin} os={nav.os} active="heritage" />
+        <FamilySubNav lang={lang} admin={nav.admin} editor={Boolean(nav.editor)} os={nav.os} active="heritage" />
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">
