@@ -18,6 +18,7 @@ import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./
 import { stripHeifMetadata } from "./heif.mjs";
 import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
+import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -50,7 +51,7 @@ function limiter() {
 const text = (v, max) => (typeof v === "string" && v.trim().length > 0 && v.length <= max ? v.trim() : null);
 
 /** @param {{ store: any, secret: string, masterKey: Buffer, filesDir?: string }} deps */
-export function createApp({ store, secret, masterKey, filesDir = "/data/docs", clock = () => new Date() }) {
+export function createApp({ store, secret, masterKey, filesDir = "/data/docs", clock = () => new Date(), passkeys = pkConfig() }) {
   if (!secret || secret.length < 32) throw new Error("FAMILY_OS_SECRET must be >= 32 chars");
   const kek = parseMasterKey(masterKey);
   const allow = limiter();
@@ -127,6 +128,19 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const person = await store.personByIcs(sha256(icsM[1]));
       if (!person) return reply(res, 404, { error: "not_found" });
       return serveIcs(res, person);
+    }
+    // Passkey sign-in happens before there is a session: the site signs these two calls as "auth:passkey".
+    // That actor is accepted on exactly these two routes and nowhere else (bus 100 (e)).
+    if (auth.actor === "auth:passkey") {
+      const pkPath = url.pathname;
+      if (req.method !== "POST" || (pkPath !== "/passkeys/auth/options" && pkPath !== "/passkeys/auth/verify")) return reply(res, 403, { error: "forbidden" });
+      if (!passkeys) return reply(res, 404, { error: "not_found" });
+      if (!allow("pk:auth", 3000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      if (pkPath === "/passkeys/auth/options") return reply(res, 200, await authOptions({ store, cfg: passkeys, now: clock() }));
+      const b = json(body) ?? {};
+      const r = await authVerify({ store, cfg: passkeys, challengeId: b.challenge_id, response: b.response, now: clock() });
+      console.log(`[os] passkey.auth ${r.email ? "ok" : "fail"}`);
+      return r.email ? reply(res, 200, { email: r.email }) : reply(res, 401, { error: "failed" });
     }
     const who = parseActor(auth.actor);
     if (!who) return reply(res, 403, { error: "actor_required" });
@@ -625,6 +639,63 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /rules (admin) — rules with on/off, dry-run and the last 7 days of outcomes (counts only)
     // PATCH /rules/:id (admin) — { enabled?, dry_run? }
+    // ================= Passkeys (bus 98/100) =================
+    // Registration: the actor's own address only. The site has already required an email-link session minted
+    // ≤ 15 minutes ago (bus 100 (a)); nobody registers for anyone else, a parent for a child included.
+    if (path.startsWith("/passkeys") || /^\/people\/[^/]+\/passkeys$/.test(path)) {
+      if (!passkeys) return reply(res, 404, { error: "not_found" });
+      if (!me && !admin) return reply(res, 403, { error: "not_a_member" });
+      if (path === "/passkeys/register/options" && req.method === "POST") {
+        const r = await registerOptions({ store, cfg: passkeys, email: who.email, displayName: me ? me.name_ru.split(/\s+/)[0] : "", now: clock() });
+        return r.error ? reply(res, r.status, { error: r.error }) : reply(res, 200, r);
+      }
+      if (path === "/passkeys/register/verify" && req.method === "POST") {
+        const b = json(body) ?? {};
+        const r = await registerVerify({ store, cfg: passkeys, email: who.email, challengeId: b.challenge_id, response: b.response, ua: typeof b.ua === "string" ? b.ua.slice(0, 300) : "", now: clock() });
+        console.log(`[os] passkey.register ${r.id ? "ok" : "fail"}`);
+        return r.error ? reply(res, r.status, { error: r.error }) : reply(res, 201, { id: r.id });
+      }
+      // GET /passkeys/mine — the actor's own keys (works for an owner who is not a person row too)
+      if (path === "/passkeys/mine" && req.method === "GET") return reply(res, 200, { keys: (await store.pkList(who.email)).map(keyView), can: { add: true, revoke: true, rename: true, clear: admin } });
+      // GET /people/:id/passkeys — the person, their parents (child only) and the owner. A parent's read is logged.
+      const ppm = path.match(/^\/people\/([^/]+)\/passkeys$/);
+      if (ppm && req.method === "GET") {
+        const subject = UUID_RE.test(ppm[1]) ? await store.getPerson(ppm[1]) : null;
+        if (!subject) return reply(res, 404, { error: "not_found" });
+        const self = me?.id === subject.id, parent = !self && pkParentOf(me, subject, await grantsNow());
+        if (!self && !parent && !admin) return reply(res, 403, { error: "forbidden" });
+        if (!self && !(await logged(res, { actor: who.email, subject: subject.id, entity: "passkeys:list", action: "read" }))) return;
+        return reply(res, 200, { keys: (await store.pkList(subject.email)).map(keyView), can: { add: self, revoke: true, rename: self, clear: admin } });
+      }
+      const pkm = path.match(/^\/passkeys\/([0-9a-f-]{36})(?:\/(revoke|clear-flag))?$/);
+      if (pkm) {
+        const key = await store.pkGet(pkm[1]);
+        if (!key || key.revoked_at) return reply(res, 404, { error: "not_found" });
+        const owner = await store.findPersonByEmail(key.email);
+        const self = key.email === who.email, parent = !self && owner && pkParentOf(me, owner, await grantsNow());
+        if (req.method === "PATCH" && !pkm[2]) {
+          if (!self) return reply(res, 403, { error: "forbidden" });
+          const label = cleanLabel(json(body)?.label);
+          if (!label) return reply(res, 400, { error: "bad_label" });
+          await store.pkRename(key.id, label);
+          return reply(res, 200, { ok: true });
+        }
+        if (req.method === "POST" && pkm[2] === "revoke") {
+          if (!self && !parent && !admin) return reply(res, 403, { error: "forbidden" });
+          if (!(await store.pkRevoke(key.id, who.email))) return reply(res, 404, { error: "not_found" });
+          await store.noticeAdd({ kind: "revoked", email: key.email, device_kind: key.device_kind, on_date: localDate(clock()) });
+          await emit("passkey.revoked", owner?.id ?? null, null);
+          console.log("[os] passkey.revoke");
+          return reply(res, 200, { ok: true });
+        }
+        if (req.method === "POST" && pkm[2] === "clear-flag") {
+          if (!self && !admin) return reply(res, 403, { error: "forbidden" });
+          return (await store.pkClearFlag(key.id, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+        }
+      }
+      return reply(res, 404, { error: "not_found" });
+    }
+
     // ================= Stage 3d-2 (bus 84/97 item 3): «Кто уже с нами» =================
     // POST /signins — the site reports a completed sign-in for THIS actor (date only). Any signed-in actor;
     // it can only ever record its own address.
@@ -641,7 +712,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const [seen, invites, routinesAll, checks, prefList] = await Promise.all([store.signIns(), store.lastInvites(), store.allRoutines(), store.allChecks(week),
         Promise.all(people.map(async (p) => [p.id, await store.getPrefs(p.id)]))]);
       return reply(res, 200, {
-        people: adoptionRows(people, seen, new Map(prefList.filter(([, v]) => v)), invites),
+        people: adoptionRows(people, seen, new Map(prefList.filter(([, v]) => v)), invites, passkeys ? new Set(await store.pkActiveEmails()) : null),
         family: { week_start: week, ...familyWeek(people, routinesAll, checks, week, today) },
         owner_signed_in: seen.find((x) => x.email === who.email) ?? null,
       });
@@ -1288,6 +1359,9 @@ async function stripImage(buf, mime) {
   return mime === "image/png" ? img.png().toBuffer() : img.jpeg({ quality: 92 }).toBuffer();
 }
 
+/** A parent (active parent grant) of a CHILD subject. Parents never manage an adult's keys. */
+const pkParentOf = (me, subject, grants) => Boolean(me) && subject?.kind === "child" && grants.some((g) => !g.revoked_at && g.relation === "parent" && g.guardian_id === me.id && g.child_id === subject.id);
+
 /** "/people/<uuid>/notes" → "/people/:id/notes" — logs never carry ids, emails or text. */
 export function routeClass(url = "") {
   const p = url.split("?")[0];
@@ -1299,6 +1373,9 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
   if (p === "/signins" || p === "/adoption") return p;
+  if (/^\/passkeys\/(register\/(options|verify)|auth\/(options|verify)|mine)$/.test(p)) return p;
+  if (/^\/passkeys\/[^/]+(\/(revoke|clear-flag))?$/.test(p)) return "/passkeys/:id" + (p.match(/\/(revoke|clear-flag)$/)?.[0] ?? "");
+  if (/^\/people\/[^/]+\/passkeys$/.test(p)) return "/people/:id/passkeys";
   if (/^\/tasks\/[^/]+\/photo$/.test(p)) return "/tasks/:id/photo";
   if (/^\/people\/[^/]+\/invite$/.test(p)) return "/people/:id/invite";
   if (p === "/rotations" || p === "/rules") return p;

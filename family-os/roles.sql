@@ -33,3 +33,11 @@ GRANT SELECT, INSERT, UPDATE (sent_at) ON invite_request TO kfo_app;
 GRANT USAGE ON SEQUENCE invite_request_id_seq TO kfo_app;
 -- 3d-2 review photo: rows are never deleted by the app; the file is removed and deleted_at set.
 GRANT SELECT, INSERT, UPDATE (deleted_at) ON task_photo TO kfo_app;
+-- Passkeys (bus 98/100): rows are never deleted by the app (revocation sets revoked_at); challenges are single-use
+-- and therefore deletable; attempts and notices are append-only for the app.
+GRANT SELECT, INSERT ON passkey_user TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (counter, last_used_at, backed_up, label, revoked_at, revoked_by, flagged_at) ON passkey TO kfo_app;
+GRANT SELECT, INSERT, DELETE ON passkey_challenge TO kfo_app;
+GRANT SELECT, INSERT ON passkey_attempt TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (sent_at) ON security_notice TO kfo_app;
+GRANT USAGE ON SEQUENCE passkey_attempt_id_seq, security_notice_id_seq TO kfo_app;

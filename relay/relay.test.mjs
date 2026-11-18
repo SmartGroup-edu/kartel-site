@@ -261,3 +261,36 @@ test("send-family invite (bus 97 item 3): first name + the fixed Today link; not
   assert.match(m.text, /https:\/\/kartel\.org\.uk\/ru\/family\/os/);
   assert.doesNotMatch(m.text, /token=|Вы |Ваш/);
 });
+
+// ── bus 100 C1: passkey security notices ──
+async function security(payload, { secret = SECRET } = {}) {
+  const body = JSON.stringify(payload), ts = String(Math.floor(Date.now() / 1000));
+  return fetch(base + "/send-security", { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": await signRelayRequest(secret, ts, body) }, body });
+}
+const secBody = (over = {}) => ({ to: "parent@example.test", kind: "new_key", lang: "ru", firstName: "Анна", device: "iphone", date: "2026-11-18", link: "https://kartel.org.uk/ru/family/os", ...over });
+test("security notices: three fixed kinds, device kind + date only; the parents' copy names the child", async () => {
+  const { checkSecurity, renderSecurityEmail } = await import("./server.mjs");
+  assert.equal(checkSecurity(secBody()), null);
+  for (const [over, err] of [[{ kind: "deleted" }, "bad_kind"], [{ device: "nokia" }, "bad_device"], [{ credential_id: "abc" }, "bad_field"], [{ label: "Мой телефон" }, "bad_field"],
+    [{ link: "https://kartel.org.uk/ru/family/os?x=1" }, "bad_link"], [{ about: "<b>" }, "bad_name"], [{ to: "nope" }, "bad_recipient"], [{ date: "18.11.2026" }, "bad_date"]])
+    assert.equal(checkSecurity(secBody(over)), err, JSON.stringify(over));
+  const own = renderSecurityEmail(secBody());
+  assert.equal(own.subject, "Добавлен новый ключ входа");
+  assert.match(own.text, /Анна, к твоему входу в семейный раздел добавлен новый ключ: iPhone, 18 ноября 2026\./);
+  assert.match(own.text, /Если это не ты — войди по ссылке из письма и отзови его/);
+  const parent = renderSecurityEmail(secBody({ about: "Миша" }));
+  assert.match(parent.text, /Анна, в семейный раздел добавлен новый ключ входа\. Чей: Миша\. Устройство: iPhone, 18 ноября 2026\./, "the name stays in the nominative");
+  assert.doesNotMatch(parent.text, /к входу Миша/);
+  assert.equal(renderSecurityEmail(secBody({ kind: "revoked" })).subject, "Ключ входа отозван");
+  assert.match(renderSecurityEmail(secBody({ kind: "flagged" })).text, /Вход с ним приостановлен/);
+  assert.match(renderSecurityEmail(secBody({ firstName: undefined })).text, /^Добавлен новый ключ входа\n\nК твоему входу/, "an owner with no person row gets no name");
+  assert.doesNotMatch(own.text + own.html, /Вы |Ваш|token|credential/i);
+});
+test("security notices: the route sends one letter; a bad signature is 401; an extra field is 400", async () => {
+  brevoCalls = [];
+  assert.equal((await security(secBody())).status, 202);
+  assert.equal(brevoCalls.length, 1);
+  assert.equal(brevoCalls[0].body.subject, "Добавлен новый ключ входа");
+  assert.equal((await security(secBody(), { secret: "wrong-secret-at-least-32-characters-long" })).status, 401);
+  const r = await security(secBody({ credential_id: "x" })); assert.equal(r.status, 400); assert.equal((await r.json()).error, "bad_field");
+});

@@ -228,6 +228,35 @@ export function pgStore(pool) {
     async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
     async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1", [since])).rows; },
     async markInviteSent(id) { await q("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [id]); },
+    // ---- Passkeys (bus 98/100)
+    async pkUser(email) { return (await q("SELECT email, user_handle FROM passkey_user WHERE email = $1", [email])).rows[0] ?? null; },
+    async pkAddUser(email, handle) { await q("INSERT INTO passkey_user (email, user_handle) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING", [email, handle]); return this.pkUser(email); },
+    async pkList(email) { return (await q("SELECT * FROM passkey WHERE email = $1 AND revoked_at IS NULL ORDER BY created_at", [email])).rows; },
+    async pkActiveEmails() { return (await q("SELECT DISTINCT email FROM passkey WHERE revoked_at IS NULL")).rows.map((r) => r.email); },
+    async pkGet(id) { return (await q("SELECT * FROM passkey WHERE id = $1", [id])).rows[0] ?? null; },
+    async pkByCredential(credId) { return (await q("SELECT * FROM passkey WHERE credential_id = $1", [credId])).rows[0] ?? null; },
+    async pkAdd(r, actor) {
+      await q(`INSERT INTO passkey (id, email, credential_id, public_key, counter, transports, aaguid, device_kind, device_type, backed_up, label)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`, [r.id, r.email, r.credential_id, r.public_key, r.counter, r.transports, r.aaguid, r.device_kind, r.device_type, r.backed_up, r.label]);
+      await audit(actor, "passkey.register", `passkey:${r.id}`);
+    },
+    async pkCreatedSince(email, since) { return (await q("SELECT count(*)::int AS n FROM passkey WHERE email = $1 AND created_at >= $2", [email, since])).rows[0].n; },
+    async pkTouch(id, counter, backedUp) { await q("UPDATE passkey SET counter = $2, backed_up = $3, last_used_at = now() WHERE id = $1 AND revoked_at IS NULL", [id, counter, backedUp]); },
+    async pkFlag(id) { return (await q("UPDATE passkey SET flagged_at = now() WHERE id = $1 AND flagged_at IS NULL AND revoked_at IS NULL RETURNING id", [id])).rowCount > 0; },
+    async pkClearFlag(id, actor) { const n = (await q("UPDATE passkey SET flagged_at = NULL WHERE id = $1 AND flagged_at IS NOT NULL AND revoked_at IS NULL RETURNING id", [id])).rowCount; if (n) await audit(actor, "passkey.unflag", `passkey:${id}`); return n > 0; },
+    async pkRevoke(id, actor) { const n = (await q("UPDATE passkey SET revoked_at = now(), revoked_by = $2 WHERE id = $1 AND revoked_at IS NULL RETURNING id", [id, actor])).rowCount; if (n) await audit(actor, "passkey.revoke", `passkey:${id}`); return n > 0; },
+    async pkRename(id, label) { return (await q("UPDATE passkey SET label = $2 WHERE id = $1 AND revoked_at IS NULL RETURNING id", [id, label])).rowCount > 0; },
+    async pkChallengeAdd(c) { await q("INSERT INTO passkey_challenge (id, purpose, email, challenge, expires_at) VALUES ($1, $2, $3, $4, $5)", [c.id, c.purpose, c.email, c.challenge, c.expires_at]); },
+    async pkChallengeTake(id, purpose, email, now) {
+      return (await q("DELETE FROM passkey_challenge WHERE id = $1 AND purpose = $2 AND email IS NOT DISTINCT FROM $3 RETURNING challenge, expires_at", [id, purpose, email])).rows.filter((r) => new Date(r.expires_at) > now)[0] ?? null;
+    },
+    async pkChallengePrune(now, keep) {
+      await q("DELETE FROM passkey_challenge WHERE expires_at <= $1", [now]);
+      await q("DELETE FROM passkey_challenge WHERE id IN (SELECT id FROM passkey_challenge ORDER BY expires_at DESC OFFSET $1)", [keep]);
+    },
+    async pkAttempt(key, kind, at = new Date()) { await q("INSERT INTO passkey_attempt (key, kind, at) VALUES ($1, $2, $3)", [key, kind, at]); },
+    async pkAttempts(key, kind, since) { return (await q("SELECT count(*)::int AS n FROM passkey_attempt WHERE key = $1 AND kind = $2 AND at >= $3", [key, kind, since])).rows[0].n; },
+    async noticeAdd(n) { await q("INSERT INTO security_notice (kind, email, device_kind, on_date) VALUES ($1, $2, $3, $4)", [n.kind, n.email, n.device_kind, n.on_date]); },
     // ---- 3d-2: review photo
     async activeTaskPhoto(taskId) { return (await q("SELECT id, task_id, mime, size, wrapped_key, uploaded_at, delete_after FROM task_photo WHERE task_id = $1 AND deleted_at IS NULL", [taskId])).rows[0] ?? null; },
     async addTaskPhoto(p, actor) {
@@ -319,6 +348,7 @@ export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
   const seen = new Map(), invites = [], photos = [];
+  const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
   return {
@@ -428,6 +458,26 @@ export function memoryStore() {
     async lastInvites() { const m = new Map(); for (const i of invites) if (!m.has(i.person_id) || m.get(i.person_id).on_date < i.on_date) m.set(i.person_id, i); return [...m.values()]; },
     async pendingInvites(since) { return invites.filter((i) => !i.sent_at && i.on_date >= since); },
     async markInviteSent(id) { const i = invites.find((x) => x.id === id); if (i && !i.sent_at) i.sent_at = now(); },
+    // ---- Passkeys
+    async pkUser(email) { return pk.users.get(email) ?? null; },
+    async pkAddUser(email, handle) { if (!pk.users.has(email)) pk.users.set(email, { email, user_handle: handle }); return pk.users.get(email); },
+    async pkList(email) { return pk.keys.filter((k) => k.email === email && !k.revoked_at); },
+    async pkActiveEmails() { return [...new Set(pk.keys.filter((k) => !k.revoked_at).map((k) => k.email))]; },
+    async pkGet(id) { return pk.keys.find((k) => k.id === id) ?? null; },
+    async pkByCredential(credId) { return pk.keys.find((k) => Buffer.compare(k.credential_id, credId) === 0) ?? null; },
+    async pkAdd(r) { if (pk.keys.some((k) => Buffer.compare(k.credential_id, r.credential_id) === 0)) throw Object.assign(new Error("duplicate"), { code: "23505" }); pk.keys.push({ ...r, created_at: new Date(), last_used_at: null, revoked_at: null, revoked_by: null, flagged_at: null }); },
+    async pkCreatedSince(email, since) { return pk.keys.filter((k) => k.email === email && k.created_at >= since).length; },
+    async pkTouch(id, counter, backedUp) { const k = pk.keys.find((x) => x.id === id && !x.revoked_at); if (k) Object.assign(k, { counter, backed_up: backedUp, last_used_at: new Date() }); },
+    async pkFlag(id) { const k = pk.keys.find((x) => x.id === id && !x.revoked_at && !x.flagged_at); if (!k) return false; k.flagged_at = new Date(); return true; },
+    async pkClearFlag(id) { const k = pk.keys.find((x) => x.id === id && !x.revoked_at && x.flagged_at); if (!k) return false; k.flagged_at = null; return true; },
+    async pkRevoke(id, actor) { const k = pk.keys.find((x) => x.id === id && !x.revoked_at); if (!k) return false; k.revoked_at = new Date(); k.revoked_by = actor; return true; },
+    async pkRename(id, label) { const k = pk.keys.find((x) => x.id === id && !x.revoked_at); if (!k) return false; k.label = label; return true; },
+    async pkChallengeAdd(c) { pk.challenges.set(c.id, { ...c }); },
+    async pkChallengeTake(id, purpose, email, now) { const c = pk.challenges.get(id); if (!c || c.purpose !== purpose || (c.email ?? null) !== (email ?? null)) return null; pk.challenges.delete(id); return c.expires_at > now ? c : null; },
+    async pkChallengePrune(now, keep) { for (const [id, c] of pk.challenges) if (c.expires_at <= now) pk.challenges.delete(id); const all = [...pk.challenges.values()].sort((a, b) => b.expires_at - a.expires_at); for (const c of all.slice(keep)) pk.challenges.delete(c.id); },
+    async pkAttempt(key, kind, at = new Date()) { pk.attempts.push({ key, kind, at }); },
+    async pkAttempts(key, kind, since) { return pk.attempts.filter((a) => a.key === key && a.kind === kind && a.at >= since).length; },
+    async noticeAdd(n) { pk.notices.push({ ...n, id: pk.notices.length + 1, sent_at: null }); },
     // ---- 3d-2: review photo
     async activeTaskPhoto(taskId) { return photos.find((p) => p.task_id === taskId && !p.deleted_at) ?? null; },
     async addTaskPhoto(p, actor) {
@@ -479,6 +529,6 @@ export function memoryStore() {
     async planApproval(date) { return approvals.get(date) ?? null; },
     async approvePlan(date, by, auto) { if (approvals.has(date)) return false; approvals.set(date, { approved_by: by, auto, at: now() }); return true; },
 
-    _raw: { photos: () => photos, notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
+    _raw: { pk, photos: () => photos, notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
   };
 }
