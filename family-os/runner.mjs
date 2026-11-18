@@ -7,6 +7,10 @@ import pg from "pg";
 import { readFile } from "node:fs/promises";
 import { planSends, localParts, DOC_DIGEST_DAYS } from "./engine.mjs";
 import { sign as relaySign } from "./relay-sign.mjs";
+import { pgStore } from "./store.mjs";
+import { parseMasterKey } from "./crypto.mjs";
+import { boardTick } from "./board-jobs.mjs";
+import { isParent } from "./board.mjs";
 
 const RELAY_URL = process.env.RELAY_URL ?? "https://mail-relay.kartel.org.uk";
 const SITE = process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk";
@@ -20,6 +24,13 @@ const now = process.env.RUNNER_NOW ? new Date(process.env.RUNNER_NOW) : new Date
 const { date } = localParts(now);
 const D = "'YYYY-MM-DD'";
 
+// Board (bus 82): 20:30 builds tomorrow's plan, 07:00 auto-approves today's template set if no parent did.
+const kek = parseMasterKey(await readFile(process.env.FAMILY_OS_MASTER_KEY_FILE ?? "/run/secrets/master_key"));
+const board = await boardTick(now, pgStore(pool), kek);
+const boardCounts = { tomorrow: (await q("SELECT count(*)::int AS n FROM task WHERE plan_date = $1::date + 1 AND state = 'proposed'", [date]))[0].n,
+  tomorrowApproved: (await q("SELECT 1 FROM plan_approval WHERE plan_date = $1::date + 1", [date])).length > 0,
+  declined: (await q("SELECT count(*)::int AS n FROM task WHERE plan_date >= $1 AND state = 'declined'", [date]))[0].n,
+  newByPerson: new Map((await q("SELECT assignee_id, count(*)::int AS n FROM task WHERE plan_date = $1 AND state = 'approved' GROUP BY assignee_id", [date])).map((r) => [r.assignee_id, r.n])) };
 const [people, grants, routines, rotations, pauses, checks, rotationChecks, documents, prefRows, ruleRows, ledgerRows, sentRows] = await Promise.all([
   q("SELECT id, email, name_en, name_ru, kind FROM person"),
   q("SELECT guardian_id, child_id, relation, scopes, revoked_at FROM guardian_grant WHERE revoked_at IS NULL"),
@@ -41,6 +52,7 @@ const plan = planSends(now, {
   rules: new Map(ruleRows.map((r) => [r.id, r])),
   ledger: new Set(ledgerRows.map((r) => r.k)),
   sentToday: new Map(sentRows.map((r) => [r.person_id, r.n])),
+  board: { ...boardCounts, isParent: (p) => isParent(p, grants) },
 });
 
 const out = { due: plan.length, sent: 0, dry_run: 0, skipped: 0, failed: 0 };
@@ -51,7 +63,8 @@ for (const s of plan) {
   if (outcome !== "sent") { s.skip ? out.skipped++ : out.dry_run++; await event(`notify.${outcome}`, s.person.id, s.rule); continue; }
   const lang = s.payload.lang === "en" ? "en" : "ru";
   const body = JSON.stringify({ to: s.person.email, kind: s.payload.kind, lang, firstName: s.payload.firstName, date: s.payload.date,
-    items: s.payload.items ?? [], docs: s.payload.docs ?? [], notes: s.payload.notes ?? [], link: `${SITE}/${lang}/family/os`,
+    items: s.payload.items ?? [], docs: s.payload.docs ?? [], notes: s.payload.notes ?? [], link: `${SITE}/${lang}/family/os${s.payload.kind === "plan" || s.payload.kind === "decision" ? "/board" : ""}`,
+    ...(s.payload.tasks_new ? { tasks_new: s.payload.tasks_new } : {}), ...(s.payload.count ? { count: s.payload.count } : {}),
     settingsLink: `${SITE}/${lang}/family/os/people/${s.person.id}#letters` }); // bus 78: straight to their «Письма и паузы»
   const ts = String(Math.floor(Date.now() / 1000));
   let ok = false;
@@ -66,4 +79,4 @@ async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
 }
 await pool.end();
-if (out.due || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, date })}`);
+if (out.due || Object.keys(board).length || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, date, board })}`);

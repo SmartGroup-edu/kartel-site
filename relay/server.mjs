@@ -209,14 +209,17 @@ function handleReminder(req, res) {
 // Fixed templates: a first name, item titles and times, document type + date + holder's first name,
 // and a fixed link to Today. Nothing else can be sent through this route (no free text, no numbers).
 const FAMILY_LIMITS = { recipient: { max: 6, windowMs: 24 * 3600_000 }, global: { max: 500, windowMs: 24 * 3600_000 } };
-const TODAY_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os$/;
+const TODAY_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os(\/board)?$/;
 const SETTINGS_LINK_RE = /^https:\/\/kartel\.org\.uk\/(en|ru)\/family\/os\/people\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}#letters$/;
 const NAME_RE = /^[\p{L}\p{M}' -]{1,40}$/u, HHMM_RE = /^([01]\d|2[0-3]):[0-5]\d$/, DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const fmtDay = (d, ru, year = false) => new Date(`${d}T12:00:00Z`).toLocaleDateString(ru ? "ru-RU" : "en-GB", { day: "numeric", month: "long", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" }).replace(/\s*г\.$/, "");
 
 /** Validate a /send-family body; returns null when valid, else an error code. */
 export function checkFamily(b) {
-  if (!["digest", "evening", "council"].includes(b?.kind)) return "bad_kind";
+  if (!["digest", "evening", "council", "plan", "decision"].includes(b?.kind)) return "bad_kind";
+  if (b.tasks_new !== undefined && (b.kind !== "digest" || !Number.isInteger(b.tasks_new) || b.tasks_new < 1 || b.tasks_new > 99)) return "bad_count";
+  if (["plan", "decision"].includes(b.kind) && (!Number.isInteger(b.count) || b.count < 1 || b.count > 99)) return "bad_count";
+  if (b.count !== undefined && !["plan", "decision"].includes(b.kind)) return "bad_count";
   if (typeof b.firstName !== "string" || !NAME_RE.test(b.firstName.trim())) return "bad_name";
   if (!DATE_ONLY_RE.test(b.date ?? "")) return "bad_date";
   if (typeof b.link !== "string" || !TODAY_LINK_RE.test(b.link)) return "bad_link";
@@ -225,7 +228,7 @@ export function checkFamily(b) {
   if (!Array.isArray(items) || items.length > 30 || items.some((i) => typeof i?.title !== "string" || !i.title.trim() || i.title.length > 120 || (i.time != null && !HHMM_RE.test(i.time)) || Object.keys(i).some((k) => !["title", "time"].includes(k)))) return "bad_items";
   if (!Array.isArray(docs) || docs.length > 10 || docs.some((d) => !Object.hasOwn(KINDS.en, d?.type) || !DATE_ONLY_RE.test(d.expiry ?? "") || !NAME_RE.test(String(d.who ?? "")) || Object.keys(d).some((k) => !["type", "expiry", "who"].includes(k)))) return "bad_docs";
   if (!Array.isArray(notes) || notes.length > 10 || notes.some((n) => !NAME_RE.test(String(n?.child ?? "")) || typeof n.title !== "string" || !n.title.trim() || n.title.length > 120 || Object.keys(n).some((k) => !["child", "title"].includes(k)))) return "bad_notes";
-  if (b.kind !== "council" && !items.length && !docs.length && !notes.length) return "empty";
+  if (["digest", "evening"].includes(b.kind) && !items.length && !docs.length && !notes.length && !b.tasks_new) return "empty";
   return null;
 }
 
@@ -235,7 +238,7 @@ export function checkFamily(b) {
  * reader's own «Письма и паузы»; light and dark both readable (color-scheme + prefers-color-scheme;
  * clients that ignore the media query keep the light palette, which is the safe default).
  */
-export function renderFamilyEmail({ kind, lang, firstName, date, items = [], docs = [], notes = [], link, settingsLink }) {
+export function renderFamilyEmail({ kind, lang, firstName, date, items = [], docs = [], notes = [], link, settingsLink, tasks_new = 0, count = 0 }) {
   const ru = lang !== "en";
   const dayShort = fmtDay(date, ru);
   const weekday = new Date(`${date}T12:00:00Z`).toLocaleDateString(ru ? "ru-RU" : "en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
@@ -244,6 +247,9 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
     digest: { subject: `Твой день — ${dayShort}`, hello: `Доброе утро, ${firstName}!`, lead: "На сегодня:" },
     evening: { subject: `Что ещё открыто — ${dayShort}`, hello: `Добрый вечер, ${firstName}!`, lead: "Ещё открыто сегодня:" },
     council: { subject: "Семейный совет сегодня в 19:00", hello: `${firstName}, сегодня семейный совет`, lead: "В 19:00 — семейный совет. Неделя уже собрана в разделе «Семья»." },
+    plan: { subject: "План на завтра готов — утвердить", hello: `${firstName}, план на завтра готов`, lead: `Задач в плане: ${count}. Утверди до утра — в 07:00 обычные дела утвердятся сами, новые — нет.` },
+    decision: { subject: `Нужно решение: ${count}`, hello: `${firstName}, нужно решение`, lead: `Задач, от которых отказались: ${count}. Передать, перенести или отменить — на доске.` },
+    tasksNew: (n) => `Новые задачи: ${n} — принять`,
     docs: "Документы:", until: "до", expired: "истёк", notes: "Для родителей:", note: (c, x) => `${c}: «${x}» — три раза подряд без отметки. Может, стоит спокойно поговорить.`,
     evening_tail: "Если уже сделано — отметь в разделе «Семья». Если нет — ничего страшного, завтра новый день.", open: "Открыть «Сегодня»",
     off: "Выключить письма или сменить время:", offLink: "твоя страница → «Письма и паузы»",
@@ -251,6 +257,9 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
     digest: { subject: `Your day — ${dayShort}`, hello: `Good morning, ${firstName}!`, lead: "Today:" },
     evening: { subject: `Still open — ${dayShort}`, hello: `Good evening, ${firstName}!`, lead: "Still open today:" },
     council: { subject: "Family council today at 19:00", hello: `${firstName}, family council today`, lead: "Family council at 19:00. The week is already gathered in the Family area." },
+    plan: { subject: "Tomorrow's plan is ready to approve", hello: `${firstName}, tomorrow's plan is ready`, lead: `Tasks in the plan: ${count}. Approve before morning — at 07:00 the usual chores approve themselves, new ones do not.` },
+    decision: { subject: `Needs a decision: ${count}`, hello: `${firstName}, a decision is needed`, lead: `Tasks someone could not take: ${count}. Hand over, carry over or cancel — on the board.` },
+    tasksNew: (n) => `New tasks: ${n} — accept`,
     docs: "Documents:", until: "until", expired: "expired", notes: "For parents:", note: (c, x) => `${c}: “${x}” — three times in a row without a tick. Maybe worth a calm chat.`,
     evening_tail: "If it is done, tick it in the Family area. If not, no matter — tomorrow is a new day.", open: "Open Today",
     off: "Turn these emails off or change the time:", offLink: "your page → “Emails and pauses”",
@@ -260,7 +269,8 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
   const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
   const docLines = docs.map((d) => `${cap(KINDS[ru ? "ru" : "en"][d.type])} (${d.who}) — ${d.expiry < date ? t.expired : t.until} ${fmtDay(d.expiry, ru, true)}`);
   const noteLines = notes.map((n) => t.note(n.child, n.title));
-  const text = [k.hello, dateLine, "", k.lead, ...lines.map((l) => `• ${l}`), ...(docLines.length ? ["", t.docs, ...docLines.map((l) => `• ${l}`)] : []), ...(noteLines.length ? ["", t.notes, ...noteLines] : []),
+  const newLine = tasks_new ? t.tasksNew(tasks_new) : "";
+  const text = [k.hello, dateLine, "", k.lead, ...(newLine ? [newLine] : []), ...lines.map((l) => `• ${l}`), ...(docLines.length ? ["", t.docs, ...docLines.map((l) => `• ${l}`)] : []), ...(noteLines.length ? ["", t.notes, ...noteLines] : []),
     ...(kind === "evening" ? ["", t.evening_tail] : []), "", `${t.open}: ${link}`, "", `${t.off} ${settingsLink}`].join("\n");
   const ul = (xs) => `<ul class="fg" style="margin:0 0 20px;padding-left:20px;font-size:16px;line-height:1.6;color:#2b2824;">${xs.map((x) => `<li style="margin:0 0 4px;">${esc(x)}</li>`).join("")}</ul>`;
   const label = (x) => `<p class="mut" style="margin:0 0 6px;font-size:15px;color:#5c564c;">${esc(x)}</p>`;
@@ -274,6 +284,7 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
   <h1 class="fg" style="margin:0 0 4px;font-size:24px;line-height:1.3;font-weight:600;color:#2b2824;">${esc(k.hello)}</h1>
   <p class="mut" style="margin:0 0 20px;font-size:15px;color:#5c564c;">${esc(dateLine)}</p>
   <p class="fg" style="margin:0 0 8px;font-size:16px;line-height:1.5;color:#2b2824;">${esc(k.lead)}</p>
+  ${newLine ? `<p class="acc" style="margin:0 0 12px;font-size:16px;font-weight:600;color:#7b1e2d;">${esc(newLine)}</p>` : ""}
   ${lines.length ? ul(lines) : ""}${docLines.length ? label(t.docs) + ul(docLines) : ""}${noteLines.length ? label(t.notes) + noteLines.map((l) => `<p class="fg" style="margin:0 0 12px;font-size:16px;line-height:1.55;color:#2b2824;">${esc(l)}</p>`).join("") : ""}
   ${kind === "evening" ? `<p class="mut" style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#5c564c;">${esc(t.evening_tail)}</p>` : ""}
   <p style="margin:8px 0 28px;"><a class="btn" href="${esc(link)}" style="display:inline-block;padding:14px 28px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(t.open)}</a></p>

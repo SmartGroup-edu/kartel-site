@@ -40,6 +40,16 @@
   --destructive: #b3261e;
   --destructive-foreground: #ffffff;
   --radius: 0.5rem;
+
+  /* Family board (bus 82): done / declined / sprint / rotation tags. Text on each soft fill ≥ 4.5:1. */
+  --ok: #2f6b4f;
+  --ok-soft: #eaf3ee;
+  --warn-soft: #fbf3e2;
+  --warn-border: #e7cf9c;
+  --accent-soft: #f6ecee;
+  --sprint: #3b4a7a;
+  --sprint-soft: #eef0f7;
+  --wait-border: #cdbfc2;
 }
 
 .dark {
@@ -67,6 +77,14 @@
   --band-bg: #2b2824;
   --band-accent: #c9964e;
   --band-text: rgba(255, 255, 255, 0.72);
+  --ok: #7fc3a0;
+  --ok-soft: #1f2e26;
+  --warn-soft: #2e2617;
+  --warn-border: #6b5528;
+  --accent-soft: #2e2519;
+  --sprint: #a9b6e6;
+  --sprint-soft: #22263a;
+  --wait-border: #5a5048;
 
   /* shadcn/ui — dark destructive (lighter red for the charcoal canvas). */
   --destructive: #e5645b;

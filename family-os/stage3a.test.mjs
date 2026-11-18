@@ -105,7 +105,7 @@ test("rules: admin only; on/off and dry-run switch; counts only", async () => {
     assert.equal((await call("PATCH", "/rules/council_reminder", { actor, body: { enabled: true } })).status, 403);
   }
   const r = await call("GET", "/rules");
-  assert.deepEqual(r.json.rules.map((x) => [x.id, x.enabled, x.dry_run]).sort(), [["council_reminder", false, true], ["digest", true, true], ["documents_in_digest", false, true], ["evening_checkin", true, true], ["missed_routine_parent_note", false, true]]);
+  assert.deepEqual(r.json.rules.map((x) => [x.id, x.enabled, x.dry_run]).sort(), [["board_new_tasks", false, true], ["council_reminder", false, true], ["digest", true, true], ["documents_in_digest", false, true], ["evening_checkin", true, true], ["missed_routine_parent_note", false, true], ["needs_decision", false, true], ["plan_ready", false, true]], "3c rules arrive off + dry-run");
   assert.equal((await call("PATCH", "/rules/council_reminder", { body: { enabled: true, dry_run: false } })).status, 200);
   assert.equal((await call("PATCH", "/rules/nope", { body: { enabled: true } })).status, 404);
   assert.equal((await call("PATCH", "/rules/digest", { body: { enabled: "on" } })).json.error, "bad_rule");

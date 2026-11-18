@@ -16,9 +16,10 @@ import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines } from "../lib/family-os";
+import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines, OsMyBoard, OsBoard } from "../lib/family-os";
 import { TodayChecklist } from "./FamilyRoutines";
 import { TodayCouncil } from "./FamilyCouncil";
+import { TodayBoard } from "./FamilyBoard";
 
 type Lang = "EN" | "RU";
 type View = "today" | "people";
@@ -59,7 +60,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [] }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[] }) {
+export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, tasks = [], myBoard = null, plan = null }: { lang: Lang; view: View; state: OsState; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; plan?: OsBoard["plan"] | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -79,11 +80,12 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
+            {myBoard && <TodayBoard lang={lang} data={myBoard} plan={plan} />}
             {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} paused={mine.paused_today} />}
             {state.me && <TodayCouncil lang={lang} tasks={tasks} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
             {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
-            {!mine?.paused_today && !(mine?.routines.some((r) => r.due_today)) && (
+            {!mine?.paused_today && !(mine?.routines.some((r) => r.due_today)) && !(myBoard?.new.length || myBoard?.mine.length) && (
               <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-8 text-center">
                 <p className="font-serif text-[20px] text-[var(--foreground)]">{mine && mine.routines.length > 0 ? t.noneScheduled : t.todayEmpty}</p>
                 {state.me && <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">

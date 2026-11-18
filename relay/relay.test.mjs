@@ -204,3 +204,18 @@ test("send-family: «ты», no shaming, HTML escaped, gentle parent note", asyn
   assert.equal(renderFamilyEmail(famBody({ lang: "en", kind: "council", items: [] })).subject, "Family council today at 19:00");
   assert.equal(renderFamilyEmail(famBody({ kind: "evening" })).subject, "Что ещё открыто — 18 ноября");
 });
+
+test("send-family (bus 82): plan / decision counts and the «Новые задачи» digest line; nothing else", async () => {
+  const { checkFamily, renderFamilyEmail } = await import("./server.mjs");
+  assert.equal(checkFamily(famBody({ kind: "plan", items: [], docs: [], notes: [], count: 5, link: "https://kartel.org.uk/ru/family/os/board" })), null);
+  assert.equal(checkFamily(famBody({ kind: "plan", items: [], docs: [], notes: [] })), "bad_count", "a plan email needs a count");
+  assert.equal(checkFamily(famBody({ kind: "decision", items: [], docs: [], notes: [], count: 0 })), "bad_count");
+  assert.equal(checkFamily(famBody({ tasks_new: 2 })), null);
+  assert.equal(checkFamily(famBody({ tasks_new: "2" })), "bad_count");
+  assert.equal(checkFamily(famBody({ kind: "evening", tasks_new: 2 })), "bad_count", "the new-tasks line belongs to the digest");
+  assert.equal(checkFamily(famBody({ items: [], docs: [], notes: [], tasks_new: 2 })), null, "a digest with only new tasks is not empty");
+  assert.match(renderFamilyEmail(famBody({ tasks_new: 2 })).text, /Новые задачи: 2 — принять/);
+  const p = renderFamilyEmail(famBody({ kind: "plan", count: 5, items: [], docs: [], notes: [] }));
+  assert.equal(p.subject, "План на завтра готов — утвердить"); assert.match(p.text, /Задач в плане: 5/);
+  assert.equal(renderFamilyEmail(famBody({ kind: "decision", count: 1, items: [], docs: [], notes: [] })).subject, "Нужно решение: 1");
+});

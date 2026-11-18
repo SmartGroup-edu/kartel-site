@@ -11,6 +11,8 @@ import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
   canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
 import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
+import { canMove, nextState, isParent, progress, sprintProgress, validMask, CARRY_TIME, PLAN_TIME } from "./board.mjs";
+import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
@@ -766,6 +768,210 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 200, { ok: true });
     }
 
+    // ================= Stage 3c: family board (bus 82) =================
+    const sealTitle = (scope, id, title) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `${scope}:${id}`) }; } finally { dek.fill(0); } };
+    const openWith = (scope, row, field, aad) => { if (!row[field]) return ""; const k = unwrapDataKey(kek, row.wrapped_key, scope, row.id); try { return open(k, row[field], aad).toString("utf8"); } finally { k.fill(0); } };
+    const ageOf = (p) => { const b = p?.birth_date ? String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date) : null; if (!b) return null;
+      const t = localDate(clock()); let a = Number(t.slice(0, 4)) - Number(b.slice(0, 4)); if (t.slice(5) < b.slice(5)) a--; return a; };
+    /** A task as the board shows it. Decline reasons and rework notes only to parents (and rework to the assignee). */
+    const taskView = (t, viewer, parent) => ({
+      id: t.id, plan_date: t.plan_date, title: openWith("task", t, "title_ct", `task:${t.id}`), kind: t.kind, origin: t.origin, assignee_id: t.assignee_id, state: t.state,
+      due_time: t.due_time, needs_review: t.needs_review, sprint_goal_id: t.sprint_goal_id, started_at: t.started_at ?? null, done_at: t.done_at ?? null,
+      ...(parent && t.decline_ct ? { decline_reason: openWith("task", t, "decline_ct", `decline:${t.id}`) } : {}),
+      ...((parent || viewer?.id === t.assignee_id) && t.rework_ct ? { rework_note: openWith("task", t, "rework_ct", `rework:${t.id}`) } : {}),
+    });
+    const ON_BOARD = ["approved", "accepted", "in_progress", "done", "reviewed", "declined"];
+
+    // GET /board?date= — every family task of the day (never routines, goals or notes), who is doing what,
+    // the day's progress; for parents also «Нужно решение», tomorrow's plan status and (from 21:00) carry-over.
+    if (req.method === "GET" && path === "/board") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const lp = localParts(clock()), today = lp.date, q = url.searchParams.get("date"), date = q && DATE_RE.test(q) ? q : today;
+      const grants = await grantsNow(), parent = isParent(me, grants), tomorrow = addDays(date, 1), week = weekStart(date);
+      const [people, rows, goals, weekRows, approval] = await Promise.all([store.listPeople(), store.boardTasks(date, tomorrow), store.sprintGoals(week), store.boardTasks(week, addDays(week, 6)), store.planApproval(tomorrow)]);
+      const day = rows.filter((t) => t.plan_date === date && ON_BOARD.includes(t.state)).map((t) => taskView(t, me, parent));
+      const members = people.map((p) => {
+        const mine = day.filter((t) => t.assignee_id === p.id), cur = mine.find((t) => t.state === "in_progress");
+        return { id: p.id, name_en: p.name_en, name_ru: p.name_ru, kind: p.kind, current: cur ? { id: cur.id, title: cur.title, started_at: cur.started_at, kind: cur.kind } : null,
+          waiting: mine.filter((t) => t.state === "approved").length, done: mine.filter((t) => t.state === "done" || t.state === "reviewed").length, total: mine.length };
+      });
+      const proposedTomorrow = rows.filter((t) => t.plan_date === tomorrow && t.state === "proposed").length;
+      return reply(res, 200, { date, today, now: lp.hhmm, members, tasks: day, progress: progress(day), can: { approve: parent, sprint: canWriteCouncil(me) },
+        sprint: { week_start: week, goals: sprintProgress(goals, weekRows) },
+        ...(parent ? {
+          needs_decision: rows.filter((t) => t.state === "declined").map((t) => taskView(t, me, true)),
+          plan: { date: tomorrow, proposed: proposedTomorrow, approved: Boolean(approval), auto: Boolean(approval?.auto), ready: lp.hhmm >= PLAN_TIME || proposedTomorrow > 0 },
+          carry_offer: date === today && lp.hhmm >= CARRY_TIME ? day.filter((t) => ["approved", "accepted", "in_progress"].includes(t.state)) : [],
+        } : {}) });
+    }
+
+    // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»
+    if (req.method === "GET" && path === "/my-tasks") {
+      if (!me) return reply(res, 200, { new: [], mine: [] });
+      const today = localDate(clock()), rows = (await store.boardTasks(today, today)).filter((t) => t.assignee_id === me.id);
+      const v = (t) => taskView(t, me, false);
+      return reply(res, 200, { today, new: rows.filter((t) => t.state === "approved").map(v), mine: rows.filter((t) => ["accepted", "in_progress", "done", "reviewed", "declined"].includes(t.state)).map(v) });
+    }
+    // POST /tasks/accept-all — every approved task of today assigned to me
+    if (req.method === "POST" && path === "/tasks/accept-all") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock()); let n = 0;
+      for (const t of (await store.boardTasks(today, today)).filter((x) => x.assignee_id === me.id && x.state === "approved"))
+        if (await store.moveTask(t.id, "approved", "accepted")) { n++; await emit("task.accepted", me.id, t.id); }
+      return reply(res, 200, { accepted: n });
+    }
+
+    // POST /tasks/:id/:action — accept · decline{reason} · start{pause_other} · done · review · rework{note} · reassign{assignee_id} · cancel · carry
+    const tam = path.match(/^\/tasks\/([^/]+)\/(accept|decline|start|done|review|rework|reassign|cancel|carry)$/);
+    if (tam && req.method === "POST") {
+      const t = UUID_RE.test(tam[1]) ? await store.boardTask(tam[1]) : null;
+      if (!t) return reply(res, 404, { error: "not_found" });
+      const action = tam[2], grants = await grantsNow(), assignee = await store.getPerson(t.assignee_id);
+      const why = canMove(action, me, t, assignee, grants, ageOf);
+      if (why) return reply(res, why === "bad_state" ? 409 : 403, { error: why === "bad_state" ? "bad_state" : "forbidden", reason: why });
+      const b = json(body) ?? {}, patch = {};
+      const sealNote = (field, aad, txt) => { const k = unwrapDataKey(kek, t.wrapped_key, "task", t.id); try { patch[field] = seal(k, Buffer.from(txt), aad); } finally { k.fill(0); } };
+      if (action === "decline") { const r = typeof b.reason === "string" ? b.reason.trim() : ""; if (!r || r.length > 140) return reply(res, 400, { error: "bad_reason" }); sealNote("decline_ct", `decline:${t.id}`, r); }
+      if (action === "rework") { const r = typeof b.note === "string" ? b.note.trim() : ""; if (r.length > 140) return reply(res, 400, { error: "bad_note" }); if (r) sealNote("rework_ct", `rework:${t.id}`, r); }
+      if (action === "reassign") {
+        const to = UUID_RE.test(b.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
+        if (!to) return reply(res, 400, { error: "bad_assignee" });
+        patch.assignee_id = to.id; patch.decline_ct = null;
+      }
+      if (action === "start") {
+        const cur = await store.inProgressOf(t.assignee_id);
+        if (cur && cur.id !== t.id) {
+          if (b.pause_other !== true) { const o = await store.boardTask(cur.id); return reply(res, 409, { error: "one_in_progress", task_id: cur.id, title: openWith("task", o, "title_ct", `task:${o.id}`) }); }
+          await store.moveTask(cur.id, "in_progress", "accepted"); await emit("task.paused", t.assignee_id, cur.id);
+        }
+      }
+      if (action === "carry") {
+        const id = randomUUID(), title = openWith("task", t, "title_ct", `task:${t.id}`);
+        await store.insertTask({ id, plan_date: addDays(t.plan_date, 1), kind: t.kind, origin: "carry", sprint_goal_id: t.sprint_goal_id, carried_from: t.id, assignee_id: t.assignee_id,
+          ...sealTitle("task", id, title), due_time: t.due_time, needs_review: t.needs_review, state: "proposed" }, who.email);
+      }
+      const to = nextState(action, t);
+      let moved;
+      try { moved = await store.moveTask(t.id, t.state, to, patch); }
+      catch (e) { if (e?.code === "23505") return reply(res, 409, { error: "one_in_progress" }); throw e; }
+      if (!moved) return reply(res, 409, { error: "bad_state", reason: "changed" });
+      await emit(`task.${to}`, t.assignee_id, t.id);
+      return reply(res, 200, { ok: true, state: to });
+    }
+
+    // GET /plan?date= (parents) — the proposed set for a day · POST /plan/:date/build · PUT /plan/:date (approve) · POST /plan/:date/tasks (add)
+    const pm2 = path.match(/^\/plan\/(\d{4}-\d{2}-\d{2})(\/build|\/tasks)?$/);
+    if ((req.method === "GET" && path === "/plan") || pm2) {
+      const grants = await grantsNow();
+      if (!isParent(me, grants)) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
+      const today = localDate(clock());
+      const date = pm2 ? pm2[1] : (DATE_RE.test(url.searchParams.get("date") ?? "") ? url.searchParams.get("date") : addDays(today, 1));
+      if (date < today) return reply(res, 400, { error: "past" });
+      if (req.method === "GET") {
+        const [rows, approval] = await Promise.all([store.boardTasks(date, date), store.planApproval(date)]);
+        return reply(res, 200, { date, approval: approval ? { auto: approval.auto } : null, tasks: rows.filter((t) => t.state === "proposed").map((t) => taskView(t, me, true)) });
+      }
+      if (req.method === "POST" && pm2[2] === "/build") return reply(res, 200, await buildDayPlan(store, kek, date, who.email));
+      if (req.method === "POST" && pm2[2] === "/tasks") {
+        const b = json(body), title = text(b?.title, 160), who2 = UUID_RE.test(b?.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
+        if (!title || !who2 || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_task" });
+        const id = randomUUID(), approved = Boolean(await store.planApproval(date));
+        await store.insertTask({ id, plan_date: date, kind: "oneoff", origin: "adhoc", assignee_id: who2.id, ...sealTitle("task", id, title), due_time: b.due_time || null, needs_review: Boolean(b.needs_review),
+          state: approved ? "approved" : "proposed", approved_by: approved ? who.email : null }, who.email);
+        await emit("task.created", who2.id, id);
+        return reply(res, 201, { id, state: approved ? "approved" : "proposed" });
+      }
+      if (req.method === "PUT" && !pm2[2]) {
+        const items = Array.isArray(json(body)?.items) ? json(body).items : null;
+        if (!items) return reply(res, 400, { error: "bad_plan" });
+        let approved = 0, skipped = 0;
+        for (const it of items) {
+          const t = UUID_RE.test(it?.id ?? "") ? await store.boardTask(it.id) : null;
+          if (!t || t.plan_date !== date || t.state !== "proposed") continue;
+          if (it.include === false) { if (await store.moveTask(t.id, "proposed", "cancelled")) skipped++; continue; }
+          const patch = { approved_by: who.email };
+          if (it.assignee_id && it.assignee_id !== t.assignee_id) { if (!UUID_RE.test(it.assignee_id) || !(await store.getPerson(it.assignee_id))) return reply(res, 400, { error: "bad_assignee" }); patch.assignee_id = it.assignee_id; }
+          if ("due_time" in (it ?? {})) { if (it.due_time && !TIME_RE.test(String(it.due_time))) return reply(res, 400, { error: "bad_time" }); patch.due_time = it.due_time || null; }
+          if (await store.moveTask(t.id, "proposed", "approved", patch)) { approved++; await emit("task.approved", patch.assignee_id ?? t.assignee_id, t.id); }
+        }
+        await store.approvePlan(date, who.email, false);
+        await emit("plan.approved", null, date);
+        return reply(res, 200, { approved, skipped });
+      }
+      return reply(res, 404, { error: "not_found" });
+    }
+
+    // Templates (parents): GET /templates · POST /templates · PATCH /templates/:id · POST /templates/activate { ids? }
+    const tpm = path.match(/^\/templates(?:\/([^/]+))?$/);
+    if (tpm) {
+      const grants = await grantsNow();
+      if (!isParent(me, grants)) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
+      if (req.method === "POST" && tpm[1] === "activate") {
+        const ids = Array.isArray(json(body)?.ids) ? json(body).ids.filter((x) => UUID_RE.test(x)) : null;
+        const n = await store.activateTemplates(ids, who.email); await emit("template.activated", null, String(n));
+        return reply(res, 200, { activated: n });
+      }
+      if (req.method === "GET" && !tpm[1]) return reply(res, 200, { templates: (await store.listTemplates()).map((t) => ({ id: t.id, title: openWith("template", t, "title_ct", `template:${t.id}`), mask: t.mask, dtstart: t.dtstart, assignee_id: t.assignee_id, members: t.members, due_time: t.due_time, needs_review: t.needs_review, active: t.active })) });
+      if (req.method === "POST" && !tpm[1]) {
+        const b = json(body), title = text(b?.title, 160), members = Array.isArray(b?.members) ? b.members : null;
+        const okWho = members ? members.length >= 2 && members.length <= 8 && new Set(members).size === members.length && members.every((m) => UUID_RE.test(m)) : UUID_RE.test(b?.assignee_id ?? "");
+        if (!title || !validMask(b?.mask) || !okWho || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_template" });
+        for (const pid of members ?? [b.assignee_id]) if (!(await store.getPerson(pid))) return reply(res, 400, { error: "bad_template" });
+        const id = randomUUID();
+        await store.insertTemplate({ id, ...sealTitle("template", id, title), mask: b.mask, dtstart: localDate(clock()), assignee_id: members ? null : b.assignee_id, members, due_time: b.due_time || null, needs_review: Boolean(b.needs_review), active: b.active !== false }, who.email);
+        await emit("template.created", null, id);
+        return reply(res, 201, { id });
+      }
+      if (req.method === "PATCH" && tpm[1] && UUID_RE.test(tpm[1])) {
+        const b = json(body) ?? {};
+        if ((b.mask !== undefined && !validMask(b.mask)) || (b.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_template" });
+        return (await store.updateTemplate(tpm[1], b, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+      }
+      return reply(res, 404, { error: "not_found" });
+    }
+
+    // Sprint: GET /sprint?week= · POST /sprint/goals { title, source_task_id? } · PATCH /sprint/goals/:id · POST /sprint/goals/:id/tasks
+    const spm = path.match(/^\/sprint(?:\/goals(?:\/([^/]+)(\/tasks)?)?)?$/);
+    if (spm) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock()), qw = url.searchParams.get("week");
+      const week = weekStart(qw && DATE_RE.test(qw) ? qw : today);
+      if (req.method === "GET" && path === "/sprint") {
+        const [goals, rows] = await Promise.all([store.sprintGoals(week), store.boardTasks(week, addDays(week, 6))]);
+        return reply(res, 200, { week_start: week, can: { write: canWriteCouncil(me) }, goals: sprintProgress(goals, rows) });
+      }
+      if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
+      if (req.method === "POST" && path === "/sprint/goals") {
+        const b = json(body), title = text(b?.title, 160);
+        const w = b?.week_start && DATE_RE.test(b.week_start) ? weekStart(b.week_start) : week;
+        if (!title || w < weekStart(today)) return reply(res, 400, { error: "bad_goal" });
+        if ((await store.sprintGoals(w)).length >= 3) return reply(res, 409, { error: "three_goals_max" });
+        const src = UUID_RE.test(b?.source_task_id ?? "") ? b.source_task_id : null;
+        const id = randomUUID(); await store.insertSprintGoal({ id, week_start: w, title, source_task_id: src }, who.email);
+        await emit("sprint.goal_created", null, id);
+        return reply(res, 201, { id, week_start: w });
+      }
+      const g = spm[1] && UUID_RE.test(spm[1]) ? await store.getSprintGoal(spm[1]) : null;
+      if (!g || g.archived_at) return reply(res, 404, { error: "not_found" });
+      if (req.method === "PATCH" && !spm[2]) {
+        const b = json(body) ?? {}, title = b.title !== undefined ? text(b.title, 160) : undefined;
+        if (title === null || (b.title === undefined && b.archived !== true)) return reply(res, 400, { error: "bad_goal" });
+        await store.updateSprintGoal(g.id, { title, archived: b.archived === true }); await emit("sprint.goal_updated", null, g.id);
+        return reply(res, 200, { ok: true });
+      }
+      if (req.method === "POST" && spm[2]) {
+        const b = json(body), title = text(b?.title, 160), who2 = UUID_RE.test(b?.assignee_id ?? "") ? await store.getPerson(b.assignee_id) : null;
+        const date = b?.plan_date;
+        if (!title || !who2 || !DATE_RE.test(date ?? "") || date < today || date > addDays(g.week_start, 6) || (b?.due_time && !TIME_RE.test(String(b.due_time)))) return reply(res, 400, { error: "bad_task" });
+        const id = randomUUID(), approved = Boolean(await store.planApproval(date));
+        await store.insertTask({ id, plan_date: date, kind: "sprint", origin: "sprint", sprint_goal_id: g.id, assignee_id: who2.id, ...sealTitle("task", id, title), due_time: b.due_time || null, needs_review: Boolean(b.needs_review),
+          state: approved ? "approved" : "proposed", approved_by: approved ? who.email : null }, who.email);
+        await emit("task.created", who2.id, id);
+        return reply(res, 201, { id });
+      }
+      return reply(res, 404, { error: "not_found" });
+    }
+
     // GET|POST|DELETE /people/:id/ics — the person's own calendar link (status · new link · switch off)
     const icm = path.match(/^\/people\/([^/]+)\/ics$/);
     if (icm && ["GET", "POST", "DELETE"].includes(req.method)) {
@@ -826,6 +1032,11 @@ export function routeClass(url = "") {
   if (/^\/goals\/[^/]+(\/checkins)?$/.test(p)) return p.endsWith("/checkins") ? "/goals/:id/checkins" : "/goals/:id";
   if (/^\/events\/[^/]+$/.test(p)) return "/events/:id";
   if (/^\/ics\/[^/]+$/.test(p)) return "/ics/:token";
+  if (p === "/board" || p === "/my-tasks" || p === "/plan" || p === "/templates" || p === "/sprint" || p === "/sprint/goals" || p === "/tasks/accept-all") return p;
+  if (/^\/tasks\/[^/]+\/[a-z_]+$/.test(p)) return "/tasks/:id/" + p.split("/").pop();
+  if (/^\/plan\/\d{4}-\d{2}-\d{2}(\/build|\/tasks)?$/.test(p)) return "/plan/:date" + (p.match(/\/(build|tasks)$/)?.[0] ?? "");
+  if (/^\/templates\/[^/]+$/.test(p)) return p.endsWith("/activate") ? "/templates/activate" : "/templates/:id";
+  if (/^\/sprint\/goals\/[^/]+(\/tasks)?$/.test(p)) return p.endsWith("/tasks") ? "/sprint/goals/:id/tasks" : "/sprint/goals/:id";
   if (/^\/documents\/[^/]+$/.test(p)) return "/documents/:id";
   if (/^\/people\/[^/]+\/notes$/.test(p)) return "/people/:id/notes";
   if (/^\/people\/[^/]+\/documents$/.test(p)) return "/people/:id/documents";

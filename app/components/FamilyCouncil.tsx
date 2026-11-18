@@ -19,7 +19,8 @@ import { Check } from "./FamilyRoutines";
 import { ruPlural } from "../lib/family-routines.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsCouncil, OsPerson, OsTask } from "../lib/family-os";
+import type { OsCouncil, OsPerson, OsTask, OsSprint } from "../lib/family-os";
+import { CouncilSprint } from "./FamilyBoard";
 
 type Lang = "EN" | "RU";
 const T = {
@@ -52,7 +53,7 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCouncil({ lang, council, people, me, admin }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean }) {
+export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
@@ -101,6 +102,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin }: { la
                 {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} /> : <p className={`${META} mt-2`}>{t.none}</p>}
                 {council.can.write && <AddDecision t={t} date={council.date} people={people} lang={lang} />}
               </section>
+              {sprint && <CouncilSprint key={sprint.week_start} lang={lang} sprint={sprint} />}
             </>
           )}
         </div>

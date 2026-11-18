@@ -16,6 +16,9 @@ const NAMES: Record<Lang, Record<string, [string, string]>> = {
     documents_in_digest: ["Документы в сводке", "Строка о документах, которые истекли или истекают в ближайшие 3 месяца. Только тем, кто видит эти документы."],
     missed_routine_parent_note: ["Заметка родителям", "Если пункт ребёнка трижды подряд не отмечен — спокойная строка родителям. Ребёнку — никогда."],
     council_reminder: ["Напоминание о совете", "Воскресенье, 18:00: в 19:00 семейный совет. Всем членам семьи."],
+    board_new_tasks: ["Новые задачи в сводке", "Строка «Новые задачи: N — принять» в утренней сводке. Только исполнителю."],
+    plan_ready: ["План на завтра готов", "20:30: план на завтра собран — утвердить. Только родителям, если план ещё не утверждён."],
+    needs_decision: ["Нужно решение", "19:00: есть задачи с «Не могу». Только родителям."],
   },
   EN: {
     digest: ["Morning summary", "At each person's time (usually 07:00): today's items. A child gets only their own."],
@@ -23,6 +26,9 @@ const NAMES: Record<Lang, Record<string, [string, string]>> = {
     documents_in_digest: ["Documents in the summary", "A line about documents expired or expiring within 3 months — only to people who may see them."],
     missed_routine_parent_note: ["Note to parents", "When a child's item goes unticked three times in a row: a calm line to the parents. Never to the child."],
     council_reminder: ["Council reminder", "Sunday 18:00: family council at 19:00. To every member."],
+    board_new_tasks: ["New tasks in the summary", "The line “New tasks: N — accept” in the morning summary. To the assignee only."],
+    plan_ready: ["Tomorrow's plan is ready", "20:30: tomorrow's plan is built — approve it. To parents only, if not yet approved."],
+    needs_decision: ["Needs a decision", "19:00: some tasks got “Can't”. To parents only."],
   },
 };
 const T = {
