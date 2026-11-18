@@ -32,6 +32,9 @@ export type FamilySession = {
   email: string;
   name: string | null;
   expiresAt: Date;
+  /** How this session was minted (bus 100 (a)): "link" = email link, "pk" = passkey. Older tokens: "link". */
+  amr: "link" | "pk";
+  issuedAt: Date;
 };
 
 // ── Session ────────────────────────────────────────────────────────────────
@@ -51,6 +54,8 @@ export async function getSession(): Promise<FamilySession | null> {
       email,
       name: (payload.name as string) ?? null,
       expiresAt,
+      amr: payload.amr === "pk" ? "pk" : "link",
+      issuedAt: new Date((payload.iat ?? 0) * 1000),
     };
   } catch {
     return null;
@@ -61,10 +66,12 @@ export async function getSession(): Promise<FamilySession | null> {
 export async function createSession(data: {
   email: string;
   name?: string | null;
+  /** "pk" for a passkey sign-in; the email link is the default. */
+  amr?: "link" | "pk";
 }): Promise<void> {
   const email = data.email.trim().toLowerCase();
   const expiresAt = new Date(Date.now() + familyEnv.sessionMaxAgeSeconds() * 1000);
-  const token = await new SignJWT({ email, name: data.name ?? null, typ: "session" })
+  const token = await new SignJWT({ email, name: data.name ?? null, typ: "session", amr: data.amr ?? "link" })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(email)
     .setIssuedAt()
