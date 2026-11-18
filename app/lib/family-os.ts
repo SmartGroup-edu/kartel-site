@@ -228,7 +228,7 @@ export type OsAdoptionRow = {
   signed_in: { first_on: string; last_on: string } | null;
   digest: { on: boolean; time: string };
   passkey: boolean | null;
-  invite: { on_date: string; sent: boolean } | null;
+  invite: { on_date: string; sent: boolean; sent_at: string | null } | null;
 };
 export type OsAdoption = { people: OsAdoptionRow[]; family: { week_start: string; active: number; of: number } };
 export async function getAdoption(session: { email?: string | null; cpifSubjectId: string }): Promise<OsAdoption | null> {

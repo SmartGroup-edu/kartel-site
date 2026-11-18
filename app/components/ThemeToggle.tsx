@@ -7,8 +7,8 @@ import { useTheme, type Theme } from "./useTheme";
 import { useUiLang } from "./useLang";
 
 const L = {
-  ru: { open: "Тема оформления", light: "Светлая", dark: "Тёмная", system: "Системная", hc: "Высокий контраст" },
-  en: { open: "Appearance", light: "Light", dark: "Dark", system: "System", hc: "High contrast" },
+  ru: { on: "включён высокий контраст", open: "Тема оформления", light: "Светлая", dark: "Тёмная", system: "Системная", hc: "Высокий контраст" },
+  en: { on: "high contrast on", open: "Appearance", light: "Light", dark: "Dark", system: "System", hc: "High contrast" },
 } as const;
 
 const item =
@@ -63,10 +63,11 @@ export default function ThemeToggle() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        aria-label={t.open}
+        aria-label={contrast === "high" ? `${t.open} · ${t.on}` : t.open}
+        data-hc={contrast === "high" ? "" : undefined}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); } }}
-        className="inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--accent)] transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--accent)] transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
       >
         {resolved === "light" ? (
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -76,6 +77,12 @@ export default function ThemeToggle() {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="5" />
             <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+          </svg>
+        )}
+        {/* bus 101: high contrast is visible with the menu closed — a small half-filled disc on the button */}
+        {contrast === "high" && (
+          <svg data-hc-mark="" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" className="absolute bottom-1.5 right-1.5">
+            <circle cx="5" cy="5" r="4" fill="var(--background)" stroke="currentColor" strokeWidth="1.5" /><path d="M5 1a4 4 0 0 1 0 8z" fill="currentColor" />
           </svg>
         )}
       </button>

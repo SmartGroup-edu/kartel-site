@@ -48,3 +48,10 @@ test("print beats high contrast: the print block also targets the .hc selectors 
   assert.ok(p > css.indexOf(":root.dark.hc {"), "print comes after the HC blocks");
   assert.match(css.slice(p), /:root\.hc:not\(\.dark\),\s*:root\.dark\.hc \{/);
 });
+
+test("bus 101: high contrast is visible with the menu closed (a mark on the button + its label) and checked in the menu", () => {
+  const m = readFileSync("app/components/ThemeToggle.tsx", "utf8");
+  assert.match(m, /\{contrast === "high" && \(\s*<svg data-hc-mark=""/);
+  assert.match(m, /aria-label=\{contrast === "high" \? `\$\{t\.open\} · \$\{t\.on\}` : t\.open\}/);
+  assert.match(m, /role="menuitemcheckbox" aria-checked=\{contrast === "high"\}/);
+});

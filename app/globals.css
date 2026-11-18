@@ -400,7 +400,8 @@ summary:focus-visible,
 @media print {
   @page {
     size: A4;
-    margin: 16mm 15mm;
+    /* bus 101: a fridge sheet needs real margins on every printer (was 16mm 15mm) */
+    margin: 14mm 14mm 16mm;
   }
   :root,
   .dark,

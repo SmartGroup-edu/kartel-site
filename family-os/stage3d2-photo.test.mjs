@@ -78,7 +78,7 @@ test("upload: EXIF gone, sealed on disk, 7-day date; parents read it (logged); t
   assert.equal((await store.accessLog()).length, logBefore + 1, "the read is logged");
   // drawer: the child may add, but never learns a photo exists; a parent sees the date
   const dc = (await call("GET", `/tasks/${id}`, { actor: as("c") })).json.photo;
-  assert.deepEqual(dc, { can_add: true });
+  assert.deepEqual(dc, { can_add: true, sent: true, delete_after: "2026-11-25" }, "the child knows it went to the parents and when it goes — not the image");
   const dp = (await call("GET", `/tasks/${id}`, { actor: as("p1") })).json.photo;
   assert.deepEqual(dp, { can_add: true, has: true, delete_after: "2026-11-25" });
   assert.deepEqual((await call("GET", `/tasks/${id}`, { actor: as("g") })).json?.photo ?? { can_add: false }, { can_add: false });

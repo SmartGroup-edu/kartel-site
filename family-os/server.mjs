@@ -999,7 +999,11 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const assignee = await store.getPerson(t.assignee_id);
       // bus 97 item 4: whether this viewer may add the optional photo; only a parent learns that one exists.
       const ph = t.needs_review ? await store.activeTaskPhoto(t.id) : null;
-      const photo = { can_add: canAddPhoto(me, t, assignee, grants), ...(canSeePhoto(me, grants) && ph ? { has: true, delete_after: new Date(ph.delete_after).toISOString().slice(0, 10) } : {}) };
+      // bus 101 decision: the person doing the task (a child too) learns that the photo went to the parents and
+      // when it goes — never the image itself (Children's Code: transparency).
+      const until = ph ? new Date(ph.delete_after).toISOString().slice(0, 10) : null;
+      const photo = { can_add: canAddPhoto(me, t, assignee, grants),
+        ...(canSeePhoto(me, grants) && ph ? { has: true, delete_after: until } : ph && participants(t).includes(me.id) ? { sent: true, delete_after: until } : {}) };
       return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), photo, history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
     }
 

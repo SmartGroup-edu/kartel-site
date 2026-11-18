@@ -14,19 +14,27 @@ const T = {
     head: "Who is with us", lead: "Who has signed in, and how their morning letter is set. Dates only — nothing about what anyone does.",
     week: (a: number, m: number) => `This week ${a} of ${m} tick their routine.`,
     last: "Last sign-in", first: "first", never: "Has not signed in yet", letter: (t: string) => `Morning letter at ${t}`, letterOff: "Letters off",
-    pk: { on: "Passkey: yes", off: "Passkey: no" }, resend: "Send the link again", queued: "Will go out shortly (not at night)", sent: (d: string) => `Invitation sent ${d}`,
+    pk: { on: "Passkey: yes", off: "Passkey: no" }, resend: "Send the link again", queued: "Goes out within 5 minutes", queuedQuiet: "Goes out after 07:00 (quiet hours)", sentToday: (t: string) => `Invitation sent today at ${t}`, sent: (d: string) => `Invitation sent ${d}`,
     already: "Already sent today.", error: "Could not send — please try again.", child: "child", adult: "adult",
   },
   RU: {
     head: "Кто уже с нами", lead: "Кто уже входил и как у кого настроено утреннее письмо. Только даты — ничего о том, кто что делает.",
     week: (a: number, m: number) => `На этой неделе распорядок отмечают ${a} из ${m}.`,
     last: "Последний вход", first: "впервые", never: "Входа ещё не было", letter: (t: string) => `Утреннее письмо в ${t}`, letterOff: "Письма выключены",
-    pk: { on: "Ключ доступа: есть", off: "Ключ доступа: нет" }, resend: "Отправить ссылку ещё раз", queued: "Уйдёт в ближайшие минуты (ночью — утром)", sent: (d: string) => `Приглашение отправлено ${d}`,
+    pk: { on: "Ключ доступа: есть", off: "Ключ доступа: нет" }, resend: "Отправить ссылку ещё раз", queued: "Уйдёт в ближайшие 5 минут", queuedQuiet: "Уйдёт утром после 07:00 (тихие часы)", sentToday: (t: string) => `Приглашение отправлено сегодня в ${t}`, sent: (d: string) => `Приглашение отправлено ${d}`,
     already: "Сегодня уже отправляли.", error: "Не удалось отправить — попробуй ещё раз.", child: "ребёнок", adult: "взрослый",
   },
 } as const;
 
 const fmt = (d: string, lang: Lang) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+
+const londonHM = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" });
+/** «Приглашение отправлено сегодня в 14:05» / «Уйдёт утром после 07:00 (тихие часы)» / «Уйдёт в ближайшие 5 минут». */
+function inviteText(t: (typeof T)[Lang], inv: NonNullable<OsAdoptionRow["invite"]>, today: string, lang: Lang) {
+  if (inv.sent && inv.sent_at) return inv.on_date === today ? t.sentToday(londonHM(inv.sent_at)) : t.sent(fmt(inv.on_date, lang));
+  const h = Number(londonHM(new Date().toISOString()).slice(0, 2));
+  return h >= 21 || h < 7 ? t.queuedQuiet : t.queued;
+}
 
 function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }) {
   const t = T[lang];
@@ -50,10 +58,11 @@ function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }
           {r.digest.on ? t.letter(r.digest.time) : t.letterOff}
           {r.passkey !== null && <> · {r.passkey ? t.pk.on : t.pk.off}</>}
         </p>
-        {r.invite && <p className="mt-0.5 text-[14px] text-[var(--text-secondary)]">{r.invite.sent ? t.sent(fmt(r.invite.on_date, lang)) : t.queued}</p>}
+        {r.invite && <p data-invite-state="" className="mt-0.5 text-[15px] text-[var(--text-secondary)]">{inviteText(t, r.invite, today, lang)}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-        <button type="button" data-resend="" onClick={resend} disabled={invitedToday} className="inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-60">{t.resend}</button>
+        {/* bus 101: once a day — after that the row says what happened instead of a greyed-out button */}
+        {!invitedToday && <button type="button" data-resend="" onClick={resend} className="inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{t.resend}</button>}
         <span role="status" aria-live="polite" className="text-[14px] text-[var(--text-secondary)]">{msg}</span>
       </div>
     </li>

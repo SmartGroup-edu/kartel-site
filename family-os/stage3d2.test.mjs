@@ -76,7 +76,7 @@ test("invite: owner only; one per person per day (409); 404 for an unknown perso
   assert.equal((await call("POST", `/people/${P.e}/invite`, { body: {} })).status, 202);
   assert.equal((await call("POST", `/people/${P.e}/invite`, { body: {} })).status, 409, "once a day");
   const row = (await call("GET", "/adoption")).json.people.find((x) => x.id === P.e);
-  assert.deepEqual(row.invite, { on_date: TODAY, sent: false });
+  assert.deepEqual(row.invite, { on_date: TODAY, sent: false, sent_at: null });
   assert.equal(routeClass(`/people/${P.e}/invite`), "/people/:id/invite");
   assert.equal(routeClass("/adoption"), "/adoption"); assert.equal(routeClass("/signins"), "/signins");
 });

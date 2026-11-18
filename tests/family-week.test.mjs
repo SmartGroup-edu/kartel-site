@@ -38,3 +38,12 @@ test("the sheet: no documents, health, notes or routines; recognitions only on o
   assert.match(readFileSync("app/globals.css", "utf8"), /@page \{\s*size: A4;/);
   assert.match(readFileSync("app/components/FamilyCouncil.tsx", "utf8"), /data-week-link=""/);
 });
+
+test("bus 101: a fridge object — margins, crest and family name, the week on the right, the motto in the footer; balanced grid", () => {
+  assert.match(readFileSync("app/globals.css", "utf8"), /@page \{\s*size: A4;[\s\S]{0,120}margin: 14mm 14mm 16mm;/);
+  const c = readFileSync("app/components/FamilyWeek.tsx", "utf8");
+  assert.match(c, /data-week-head=""/); assert.match(c, /src="\/crest\.webp"/); assert.match(c, /family: "Семья Картель"/);
+  assert.match(c, /data-week-range=""/); assert.match(c, /data-week-foot=""[\s\S]*\{t\.motto\}/); assert.match(c, /motto: "Virtus et Potestas"/);
+  assert.match(c, /wide = last && perPerson\.length % 2 === 1, widePrint = last && perPerson\.length % \(cols3 \? 3 : 2\) === 1/, "a last person alone in their row spans it, on screen and in print");
+  assert.match(c, /const cols3 = perPerson\.length >= 5;/, "three columns in print from five people");
+});
