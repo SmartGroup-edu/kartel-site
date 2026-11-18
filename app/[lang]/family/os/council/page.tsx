@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getCouncil, getSprint, getRecognitions, getKodeks } from "@/app/lib/family-os";
 import FamilyCouncil from "@/app/components/FamilyCouncil";
@@ -25,5 +25,5 @@ export default async function FamilyCouncilPage({ params, searchParams }: { para
   // bus 86: the council's week (Mon–Sun ending on its Sunday) — its recognitions, as one list; principle texts for the pick.
   const [sprint, recs, kodeks] = council && state.me ? await Promise.all([getSprint(session, council.date), getRecognitions(session, council.agenda.from), getKodeks(session)]) : [null, null, null];
   return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} sprint={sprint}
-    recognitions={recs?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null} />;
+    recognitions={recs?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

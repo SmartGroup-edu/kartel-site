@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getKodeks, getPrinciple } from "@/app/lib/family-os";
 import FamilyKodeks from "@/app/components/FamilyKodeks";
@@ -22,5 +22,5 @@ export default async function FamilyKodeksPage({ params }: { params: Promise<{ l
   const state = await getOsState(session);
   if (state.status !== "ok" || !state.me) notFound();
   const [kodeks, principle] = await Promise.all([getKodeks(session), getPrinciple(session)]);
-  return <FamilyKodeks lang={lang === "ru" ? "RU" : "EN"} kodeks={kodeks} admin={state.admin} principle={principle} />;
+  return <FamilyKodeks lang={lang === "ru" ? "RU" : "EN"} kodeks={kodeks} admin={state.admin} principle={principle} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

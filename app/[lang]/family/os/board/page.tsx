@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getBoard, getPlan, getTemplates } from "@/app/lib/family-os";
 import FamilyBoard from "@/app/components/FamilyBoard";
@@ -24,5 +24,5 @@ export default async function FamilyBoardPage({ params, searchParams }: { params
   if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
   const parent = Boolean(board?.can.approve);
   const [plan, templates] = parent ? await Promise.all([getPlan(session, board!.plan?.date), getTemplates(session)]) : [null, null];
-  return <FamilyBoard lang={lang === "ru" ? "RU" : "EN"} initial={board} plan={plan} templates={templates} me={state.me} admin={state.admin} />;
+  return <FamilyBoard lang={lang === "ru" ? "RU" : "EN"} initial={board} plan={plan} templates={templates} me={state.me} admin={state.admin} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getReminders, getMyRoutines, getMyBoard, getBoard, getPrinciple, getRecognitions, getKodeks } from "@/app/lib/family-os";
 import FamilyOs from "@/app/components/FamilyOs";
@@ -33,5 +33,5 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
     ok && state.me ? getKodeks(session) : Promise.resolve(null),
   ]);
   return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="today" state={state} reminders={reminders} familyReminders={family} mine={mine} tasks={tasks} myBoard={myBoard} board={board}
-    principle={principle} recognitions={recognitions?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null} />;
+    principle={principle} recognitions={recognitions?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

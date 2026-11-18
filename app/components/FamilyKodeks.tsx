@@ -90,7 +90,7 @@ export function CrestThumb({ element, size = 64 }: { element: string; size?: num
 }
 
 /** The Кодекс page (route /family/os/kodeks). */
-export default function FamilyKodeks({ lang, kodeks, admin, principle }: { lang: Lang; kodeks: OsKodeks | null; admin: boolean; principle: OsPrinciple | null }) {
+export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = false }: { lang: Lang; kodeks: OsKodeks | null; admin: boolean; principle: OsPrinciple | null; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const cur = kodeks?.current ?? null;
@@ -99,7 +99,7 @@ export default function FamilyKodeks({ lang, kodeks, admin, principle }: { lang:
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} os active="kodeks" />
+        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="kodeks" />
         <div className="max-w-3xl pb-8">
           {!cur ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.empty}</p> : (
             <>

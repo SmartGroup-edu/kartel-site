@@ -55,8 +55,8 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, recognitions = null, principles = null }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null;
-  recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null }) {
+export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, recognitions = null, principles = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null;
+  recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
@@ -66,7 +66,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} os active="council" />
+        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="council" />
         <div className="max-w-4xl pb-8">
           {!council ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
             <>

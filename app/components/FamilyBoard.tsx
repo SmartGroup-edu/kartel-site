@@ -142,7 +142,7 @@ function Tag({ task, t }: { task: { kind: string; origin?: string }; t: Dict }) 
 type Ctx = { t: Dict; lang: Lang; me: { id: string; kind: string } | null; people: Person[]; av: Avatars; parent: boolean; onChange: () => void; open: (id: string) => void };
 const withText = (task: OsBoardTask, lane: string | null, c: Ctx) => { const others = parts(task).filter((x) => x !== lane); return others.length ? `${c.t.with} ${others.map((x) => nameOfM(c.people.find((p) => p.id === x), c.lang)).join(", ")}` : ""; };
 
-export default function FamilyBoard({ lang, initial, plan, templates, me, admin }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null; admin: boolean }) {
+export default function FamilyBoard({ lang, initial, plan, templates, me, admin, editor = false }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null; admin: boolean; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const [board, setBoard] = useState(initial);
@@ -176,7 +176,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin 
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} os active="board" badge={parent ? decisions : 0} />
+        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="board" badge={parent ? decisions : 0} />
         {!board ? <p role="status" className="mt-10 max-w-4xl rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
           <div className="pb-8" data-board="">
             <div className="flex flex-wrap items-end justify-between gap-6">
