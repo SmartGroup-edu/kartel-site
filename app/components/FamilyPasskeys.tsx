@@ -102,7 +102,7 @@ function Row({ lang, k, can, onChange }: { lang: Lang; k: Key; can: Data["can"];
     <li data-passkey-row="" className="py-4">
       <p className="text-[17px] text-[var(--foreground)]">{k.label}</p>
       <p className="mt-0.5 text-[15px] text-[var(--text-secondary)]">
-        {[t.kind[k.kind] ?? t.kind.other, k.synced ? t.synced : "", t.added_on(day(k.created_on, lang)), k.last_used_on ? t.used_on(day(k.last_used_on, lang)) : ""].filter(Boolean).join(" · ")}
+        {[k.label.includes(t.kind[k.kind] ?? t.kind.other) ? "" : t.kind[k.kind] ?? t.kind.other, t.added_on(day(k.created_on, lang)), k.last_used_on ? t.used_on(day(k.last_used_on, lang)) : "", k.synced ? t.synced : ""].filter(Boolean).join(" · ")}
       </p>
       {k.flagged && <p data-passkey-flagged="" className="mt-1 text-[15px] font-medium text-[var(--destructive)]">{t.flagged}</p>}
       {mode === "rename" ? (
