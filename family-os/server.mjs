@@ -10,8 +10,8 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
   canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday } from "./policy.mjs";
-import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs } from "./council.mjs";
-import { rotationAssignee, pausedOn, DEFAULT_PREFS } from "./engine.mjs";
+import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
+import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
@@ -623,7 +623,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       let notes = "";
       if (m?.notes_ct) { const k = meetingKey(m); try { notes = open(k, m.notes_ct, `council:${m.id}`).toString("utf8"); } finally { k.fill(0); } }
       const view = (t) => ({ id: t.id, title: t.title, owner_id: t.owner_id, due_date: t.due_date, done: Boolean(t.done_at) });
-      return reply(res, 200, { date, today, held: Boolean(m?.held_at), notes, can: { write: canWriteCouncil(me) },
+      const st = councilStatus(date, today, localParts(clock()).hhmm, Boolean(m?.held_at));
+      return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld },
         tasks: tasks.map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.map(view) } : null,
         agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks }) });
     }
@@ -633,6 +634,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
       const b = json(body);
       if (councilDate(cm[1]) !== cm[1] || typeof b?.notes !== "string" || b.notes.length > 8000 || typeof b?.held !== "boolean") return reply(res, 400, { error: "bad_council" });
+      // «Совет прошёл» only from its start (19:00 local on that Sunday), never in advance (bus 80 #1)
+      if (b.held) { const lp = localParts(clock()); if (!councilStatus(cm[1], lp.date, lp.hhmm, false).canMarkHeld) return reply(res, 400, { error: "not_started" }); }
       const cur = await store.getMeeting(cm[1]);
       const id = cur?.id ?? randomUUID();
       let wrapped = cur?.wrapped_key, k;

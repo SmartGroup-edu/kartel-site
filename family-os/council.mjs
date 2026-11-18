@@ -5,6 +5,22 @@ import { rotationAssignee, pausedOn } from "./engine.mjs";
 
 const weekday = (d) => (new Date(`${d}T12:00:00Z`).getUTCDay() + 6) % 7; // 0 = Monday … 6 = Sunday
 export const COUNCIL_TIME = "19:00";
+export const COUNCIL_END = "21:00";
+
+/**
+ * Council state for the chip (bus 80 #1) at local date `today` and time `hhmm`:
+ *   "upcoming" (days > 0) → "today" (before 19:00) → "live" (19:00–21:00) → "held" | "missed".
+ * «Прошёл» can be set only from the start time: canMarkHeld is false before 19:00 on that Sunday.
+ */
+export function councilStatus(date, today, hhmm, held) {
+  const days = Math.round((Date.parse(`${date}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / 86400_000);
+  const started = days < 0 || (days === 0 && hhmm >= COUNCIL_TIME);
+  if (held) return { status: "held", days, canMarkHeld: true };
+  if (days > 0) return { status: "upcoming", days, canMarkHeld: false };
+  if (days === 0 && hhmm < COUNCIL_TIME) return { status: "today", days, canMarkHeld: false };
+  if (days === 0 && hhmm < COUNCIL_END) return { status: "live", days, canMarkHeld: true };
+  return { status: "missed", days, canMarkHeld: started };
+}
 
 /** The council date for a given day: that day if it is a Sunday, else the next Sunday. */
 export const councilDate = (today) => addDays(today, (6 - weekday(today) + 7) % 7);
@@ -42,9 +58,12 @@ export function buildAgenda(meetingDate, today, { routines, rotations = [], chec
  */
 export function calendarItems(from, to, { events, birthdayPeople, nameOf }) {
   const out = [];
+  // Only the next council is listed (bus 80 #3): the weekly rhythm is shown once, pinned, by the page.
+  const next = councilDate(from);
+  if (next <= to) out.push({ date: next, time: COUNCIL_TIME, kind: "council" });
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    if (weekday(d) === 6) out.push({ date: d, time: COUNCIL_TIME, kind: "council" });
-    for (const p of birthdayPeople) if (p.birth_date && p.birth_date.slice(5) === d.slice(5) && p.birth_date <= d) out.push({ date: d, time: null, kind: "birthday", person_id: p.id, name: nameOf(p) });
+    for (const p of birthdayPeople) if (p.birth_date && p.birth_date.slice(5) === d.slice(5) && p.birth_date <= d)
+      out.push({ date: d, time: null, kind: "birthday", person_id: p.id, name: nameOf(p), age: Number(d.slice(0, 4)) - Number(p.birth_date.slice(0, 4)) });
   }
   for (const e of events) if (e.on_date >= from && e.on_date <= to) out.push({ date: e.on_date, time: e.at_time ?? null, kind: "event", id: e.id, title: e.title });
   return out.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? "99").localeCompare(b.time ?? "99"));
@@ -54,6 +73,13 @@ export function calendarItems(from, to, { events, birthdayPeople, nameOf }) {
 const esc = (s) => String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 const ymd = (d) => d.replaceAll("-", "");
 const hm = (t) => `${t.replace(":", "")}00`;
+/** Europe/London with its standard rules (BST from the last Sunday of March 01:00 UTC to the last Sunday of October). */
+export const VTIMEZONE_LONDON = [
+  "BEGIN:VTIMEZONE", "TZID:Europe/London",
+  "BEGIN:DAYLIGHT", "TZOFFSETFROM:+0000", "TZOFFSETTO:+0100", "TZNAME:BST", "DTSTART:19810329T010000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", "END:DAYLIGHT",
+  "BEGIN:STANDARD", "TZOFFSETFROM:+0100", "TZOFFSETTO:+0000", "TZNAME:GMT", "DTSTART:19961027T020000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", "END:STANDARD",
+  "END:VTIMEZONE",
+];
 /** Fold lines at 75 octets (RFC 5545 §3.1), never splitting a UTF-8 character. */
 export function fold(line) {
   const out = []; let cur = "", n = 0;
@@ -71,7 +97,7 @@ export function fold(line) {
  * the weekly council, family events and the birthdays they may see. Times are Europe/London wall time.
  */
 export function buildIcs({ today, stamp, calName, routines, rotations, personId, events, birthdayPeople, nameOf, labels }) {
-  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//KARTEL//Family OS//RU", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${esc(calName)}`, "X-WR-TIMEZONE:Europe/London"];
+  const L = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//KARTEL//Family OS//RU", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${esc(calName)}`, "X-WR-TIMEZONE:Europe/London", ...VTIMEZONE_LONDON];
   const ev = (uid, start, time, summary, extra = []) => {
     L.push("BEGIN:VEVENT", `UID:${uid}@family.kartel.org.uk`, `DTSTAMP:${stamp}`);
     if (time) { L.push(`DTSTART;TZID=Europe/London:${ymd(start)}T${hm(time)}`, "DURATION:PT30M"); }

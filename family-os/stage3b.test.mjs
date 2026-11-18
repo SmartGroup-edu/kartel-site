@@ -5,7 +5,8 @@ import { createServer } from "node:http";
 import { randomBytes, createHash } from "node:crypto";
 import { createApp, routeClass } from "./server.mjs";
 import { memoryStore } from "./store.mjs";
-import { councilDate, weekStart, buildAgenda, fold } from "./council.mjs";
+import { councilDate, weekStart, buildAgenda, fold, councilStatus, calendarItems } from "./council.mjs";
+import ICAL from "ical.js";
 import { canReadGoal, canWriteGoal } from "./policy.mjs";
 import { signMediaRequest } from "../app/lib/media-signature.mjs";
 
@@ -68,7 +69,10 @@ test("council: members read, adults write, agenda aggregate only; tasks ticked b
   assert.ok(!JSON.stringify(v.json.agenda).match(/Brush|QA |[0-9a-f]{8}-[0-9a-f]{4}/), "agenda carries no titles, names or ids");
   assert.equal((await call("PUT", "/council/2026-11-22", { actor: as(E.c), body: { notes: "x", held: false } })).status, 403);
   assert.equal((await call("PUT", "/council/2026-11-21", { actor: as(E.p1), body: { notes: "x", held: false } })).json.error, "bad_council", "councils are on Sundays");
-  assert.equal((await call("PUT", "/council/2026-11-22", { actor: as(E.p1), body: { notes: "Synthetic agenda note", held: true } })).status, 200);
+  assert.equal((await call("PUT", "/council/2026-11-22", { actor: as(E.p1), body: { notes: "Synthetic agenda note", held: true } })).json.error, "not_started", "a future council cannot be marked as held (bus 80 #1)");
+  assert.equal((await call("PUT", "/council/2026-11-22", { actor: as(E.p1), body: { notes: "Synthetic agenda note", held: false } })).status, 200);
+  const st = (await call("GET", "/council", { actor: as(E.p1) })).json;
+  assert.equal(st.status, "upcoming"); assert.equal(st.days_until, 4); assert.equal(st.can.mark_held, false);
   assert.ok(![...store._raw.meetings.values()].some((m) => String(m.notes_ct).includes("Synthetic")), "notes are ciphertext at rest");
   assert.equal((await call("GET", "/council", { actor: as(E.c2) })).json.notes, "Synthetic agenda note");
   const t = await call("POST", "/council/2026-11-22/tasks", { actor: as(E.p2), body: { title: "Plan the trip", owner_id: P.c, due_date: "2026-11-29" } });
@@ -110,7 +114,8 @@ test("calendar: council Sundays, family events (adults add), birthdays only wher
   assert.equal((await call("POST", "/events", { actor: as(E.p1), body: { title: "x", on_date: "2026-11-01" } })).json.error, "bad_event", "not in the past");
   const kinds = async (actor) => (await call("GET", "/calendar?days=14", { actor })).json.items.map((i) => `${i.date}:${i.kind}${i.name_ru ? `:${i.name_ru}` : ""}`);
   const p1 = await kinds(as(E.p1));
-  assert.ok(p1.includes("2026-11-20:birthday:QA c") && p1.includes("2026-11-22:council") && p1.includes("2026-11-25:event") && p1.includes("2026-11-29:council"));
+  assert.ok(p1.includes("2026-11-20:birthday:QA c") && p1.includes("2026-11-22:council") && p1.includes("2026-11-25:event"));
+  assert.ok(!p1.includes("2026-11-29:council"), "only the next council is listed (bus 80 #3)");
   assert.ok(!p1.includes("2026-12-01:birthday:QA e"), "another adult's birthday: not visible to p1");
   assert.ok((await kinds(as(E.e))).every((x) => !x.includes("birthday:QA c")), "unrelated adult: no child's birthday");
   assert.ok((await kinds(as(E.c))).includes("2026-11-20:birthday:QA c"), "own birthday");
@@ -144,4 +149,38 @@ test("profile: capabilities for notes, goals and the ICS link", async () => {
   assert.deepEqual((await pr(as(E.c))).notes, []); assert.equal((await pr(as(E.c))).goals, true); assert.equal((await pr(as(E.c))).ics, true);
   assert.equal((await pr(as(E.p1))).goals, false); assert.equal((await pr(as(E.p1))).ics, false);
   assert.deepEqual((await pr(as(E.g))).notes, ["health"]);
+});
+
+
+test("council status chip: upcoming → today → live → held / missed; held only from 19:00 (bus 80 #1)", () => {
+  assert.deepEqual(councilStatus("2026-11-22", "2026-11-18", "10:00", false), { status: "upcoming", days: 4, canMarkHeld: false });
+  assert.deepEqual(councilStatus("2026-11-22", "2026-11-22", "18:59", false), { status: "today", days: 0, canMarkHeld: false });
+  assert.deepEqual(councilStatus("2026-11-22", "2026-11-22", "19:00", false), { status: "live", days: 0, canMarkHeld: true });
+  assert.deepEqual(councilStatus("2026-11-22", "2026-11-22", "21:00", false), { status: "missed", days: 0, canMarkHeld: true });
+  assert.deepEqual(councilStatus("2026-11-15", "2026-11-18", "10:00", false), { status: "missed", days: -3, canMarkHeld: true });
+  assert.equal(councilStatus("2026-11-15", "2026-11-18", "10:00", true).status, "held");
+});
+
+test("calendar: only the next council is listed; birthdays carry the age (bus 80 #3, #8)", () => {
+  const items = calendarItems("2026-11-18", "2027-01-16", { events: [], birthdayPeople: [{ id: "c", birth_date: "2015-11-20", name_ru: "Вера" }], nameOf: (p) => p.name_ru });
+  assert.deepEqual(items.filter((i) => i.kind === "council").map((i) => i.date), ["2026-11-22"]);
+  assert.deepEqual(items.filter((i) => i.kind === "birthday").map((i) => [i.date, i.age]), [["2026-11-20", 11]]);
+});
+
+test("ICS parses with a real parser (ical.js); VTIMEZONE Europe/London gives the right UTC across DST (bus 80 #9)", async () => {
+  const t = (await call("POST", `/people/${P.c}/ics`, { actor: as(E.c) })).json.token;
+  const feed = (await call("GET", `/ics/${t}`, { actor: "system:ics" })).text;
+  const cal = new ICAL.Component(ICAL.parse(feed));
+  const tz = cal.getFirstSubcomponent("vtimezone");
+  assert.ok(tz, "VTIMEZONE present"); assert.equal(tz.getFirstPropertyValue("tzid"), "Europe/London");
+  ICAL.TimezoneService.register(tz);
+  const council = cal.getAllSubcomponents("vevent").map((v) => new ICAL.Event(v)).find((e) => e.summary === "Семейный совет");
+  assert.ok(council.isRecurring());
+  const it = council.iterator(), utc = [];
+  for (let n = it.next(); n && utc.length < 40; n = it.next()) utc.push(n.convertToZone(ICAL.Timezone.utcTimezone).toString());
+  assert.ok(utc.includes("2026-11-22T19:00:00Z"), "November: 19:00 London = 19:00 UTC (GMT)");
+  assert.ok(utc.some((x) => /^2027-0[4-8]-\d\dT18:00:00Z$/.test(x)), "summer: 19:00 London = 18:00 UTC (BST)");
+  const events = cal.getAllSubcomponents("vevent").map((v) => new ICAL.Event(v));
+  assert.ok(events.every((e) => e.uid && e.summary && e.startDate), "every event has UID, SUMMARY, DTSTART");
+  await call("DELETE", `/people/${P.c}/ics`, { actor: as(E.c) });
 });

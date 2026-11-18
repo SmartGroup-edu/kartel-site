@@ -147,7 +147,7 @@ export async function getRules(session: { email?: string | null; cpifSubjectId: 
 // ---- Stage 3b: council, goals, calendar, notes, ICS -------------------------------------------
 export type OsTask = { id: string; title: string; owner_id: string; due_date: string; done: boolean };
 export type OsCouncil = {
-  date: string; today: string; held: boolean; notes: string; can: { write: boolean }; tasks: OsTask[];
+  date: string; today: string; held: boolean; status: "upcoming" | "today" | "live" | "held" | "missed"; days_until: number; notes: string; can: { write: boolean; mark_held: boolean }; tasks: OsTask[];
   previous: { date: string; tasks: OsTask[] } | null;
   agenda: { from: string; to: string; items: { scheduled: number; done: number }; tasks: { done: number; open: number } };
 };
@@ -155,7 +155,7 @@ export type OsGoal = { id: string; sphere: string; visibility: "owner" | "guardi
 export type OsGoals = { can: { write: boolean; visibilities: OsGoal["visibility"][] }; week: string; goals: OsGoal[] };
 export type OsNotes = { kinds: ("health" | "education")[]; notes: { id: string; kind: "health" | "education"; updated_at: string; title: string; body: string }[] };
 export type OsIcs = { active: boolean; created_at: string | null };
-export type OsCalItem = { date: string; time: string | null; kind: "council" | "event" | "birthday"; id?: string; title?: string; person_id?: string; name_ru?: string; name_en?: string };
+export type OsCalItem = { date: string; time: string | null; kind: "council" | "event" | "birthday"; id?: string; title?: string; person_id?: string; name_ru?: string; name_en?: string; age?: number };
 export type OsCalendar = { today: string; can: { write: boolean }; items: OsCalItem[] };
 
 type S = { email?: string | null; cpifSubjectId: string };

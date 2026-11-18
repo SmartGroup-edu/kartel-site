@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Disclosure from "./Disclosure";
-import { fmtDocDate } from "../lib/family-docs.mjs";
+import { fmtFamilyDate } from "../lib/family-docs.mjs";
 import type { OsGoals, OsGoal, OsNotes, OsIcs } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -19,7 +19,7 @@ const T = {
     goals: "Цели", noGoals: "Целей пока нет.", addGoal: "Добавить цель", goalTitle: "Цель", sphere: "Сфера", visibility: "Кто видит", add: "Добавить",
     spheres: { health: "Здоровье и спорт", learning: "Учёба и навыки", character: "Характер", finance: "Финансы", contribution: "Вклад в семью", joy: "Радость и хобби" } as Record<string, string>,
     vis: { owner: "Только я", guardians: "Я и родители", family: "Вся семья" } as Record<string, string>,
-    week: "Как идёт на этой неделе?", moods: { on_track: "Иду по плану", slow: "Медленно", paused: "На паузе" } as Record<string, string>, note: "Пара слов (необязательно)", checkin: "Отметить неделю",
+    week: "Как идёт на этой неделе?", confirmFamily: "Цель увидит вся семья?", yes: "Да, показать", no: "Отмена", moods: { on_track: "Иду по плану", slow: "Медленно", paused: "На паузе" } as Record<string, string>, note: "Пара слов (необязательно)", checkin: "Отметить неделю",
     checked: "На этой неделе отмечено", done: "Достигнуто", markDone: "Цель достигнута", reopen: "Вернуть в работу", archive: "Убрать", last: "Последние недели",
     notes: "Здоровье и учёба", noNotes: "Записей пока нет.", addNote: "Добавить запись", kind: "Раздел", kinds: { health: "Здоровье", education: "Учёба" } as Record<string, string>, title: "Заголовок", body: "Текст",
     notesHint: "Записи зашифрованы, каждое чтение записывается в журнал.",
@@ -31,7 +31,7 @@ const T = {
     goals: "Goals", noGoals: "No goals yet.", addGoal: "Add a goal", goalTitle: "Goal", sphere: "Area", visibility: "Who can see it", add: "Add",
     spheres: { health: "Health and sport", learning: "Learning and skills", character: "Character", finance: "Money", contribution: "Helping the family", joy: "Joy and hobbies" } as Record<string, string>,
     vis: { owner: "Only me", guardians: "Me and my parents", family: "The whole family" } as Record<string, string>,
-    week: "How is it going this week?", moods: { on_track: "On track", slow: "Slowly", paused: "Paused" } as Record<string, string>, note: "A few words (optional)", checkin: "Check in this week",
+    week: "How is it going this week?", confirmFamily: "The whole family will see this goal?", yes: "Yes, show it", no: "Cancel", moods: { on_track: "On track", slow: "Slowly", paused: "Paused" } as Record<string, string>, note: "A few words (optional)", checkin: "Check in this week",
     checked: "Checked in this week", done: "Reached", markDone: "Goal reached", reopen: "Back to in progress", archive: "Remove", last: "Recent weeks",
     notes: "Health and school", noNotes: "No notes yet.", addNote: "Add a note", kind: "Section", kinds: { health: "Health", education: "School" } as Record<string, string>, title: "Title", body: "Text",
     notesHint: "Notes are encrypted; every read is logged.",
@@ -87,6 +87,8 @@ export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: st
 function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: OsGoal; write: boolean; visibilities: string[] }) {
   const router = useRouter();
   const [mood, setMood] = useState<string>(g.checkins[0]?.mood ?? "on_track");
+  const [askFamily, setAskFamily] = useState(false);
+  const setVisibility = (v: string) => (v === "family" ? setAskFamily(true) : void act(send("PATCH", `goals/${g.id}`, { visibility: v })));
   const [msg, setMsg] = useState("");
   const act = async (p: Promise<Response | null>) => { const r = await p; setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh(); };
   const checkin = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); const f = new FormData(e.currentTarget); void act(send("POST", `goals/${g.id}/checkins`, { mood, note: String(f.get("note") ?? "") })); };
@@ -95,7 +97,7 @@ function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: 
       <p className="text-[17px] text-[var(--foreground)]">{g.title}</p>
       <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.spheres[g.sphere]} · {t.vis[g.visibility]}{g.status === "done" ? ` · ${t.done}` : ""}{g.checked_this_week ? ` · ${t.checked}` : ""}</p>
       {g.checkins.length > 0 && (
-        <p className="mt-1 text-[14px] text-[var(--text-secondary)]" suppressHydrationWarning>{t.last}: {g.checkins.slice(0, 3).map((c) => `${fmtDocDate(c.week_start, lang)} — ${t.moods[c.mood]}${c.note ? ` («${c.note}»)` : ""}`).join("; ")}</p>
+        <p className="mt-1 text-[14px] text-[var(--text-secondary)]" suppressHydrationWarning>{t.last}: {g.checkins.slice(0, 3).map((c) => `${fmtFamilyDate(c.week_start, lang)} — ${t.moods[c.mood]}${c.note ? ` («${c.note}»)` : ""}`).join("; ")}</p>
       )}
       {write && g.status === "active" && (
         <form onSubmit={checkin} className="mt-3 grid gap-3">
@@ -113,13 +115,27 @@ function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: 
           <div className="flex flex-wrap items-center gap-2">
             <button type="submit" className={primary}>{t.checkin}</button>
             <button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "done" }))}>{t.markDone}</button>
-            {visibilities.length > 1 && (
-              <select aria-label={t.visibility} className={`${field} mt-0 w-auto`} value={g.visibility} onChange={(e) => act(send("PATCH", `goals/${g.id}`, { visibility: e.target.value }))}>
-                {visibilities.map((v) => <option key={v} value={v}>{t.vis[v]}</option>)}
-              </select>
-            )}
           </div>
         </form>
+      )}
+      {/* bus 80 #4: «Кто видит» is a labelled setting of its own; showing to the whole family asks once */}
+      {write && g.status === "active" && visibilities.length > 1 && (
+        <div data-goal-settings="" className="mt-3 grid gap-2 sm:max-w-xs">
+          <label className={label}>{t.visibility}
+            <select className={field} value={g.visibility} disabled={askFamily} onChange={(e) => setVisibility(e.target.value)}>
+              {visibilities.map((v) => <option key={v} value={v}>{t.vis[v]}</option>)}
+            </select>
+          </label>
+          {askFamily && (
+            <div data-confirm-family="" role="alertdialog" aria-label={t.confirmFamily} className="rounded-md border border-[var(--accent)] p-3">
+              <p className="text-[15px] text-[var(--foreground)]">{t.confirmFamily}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <button type="button" className={primary} onClick={() => { setAskFamily(false); void act(send("PATCH", `goals/${g.id}`, { visibility: "family" })); }}>{t.yes}</button>
+                <button type="button" className={btn} onClick={() => setAskFamily(false)}>{t.no}</button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {write && g.status === "done" && <div className="mt-2 flex gap-2"><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "active" }))}>{t.reopen}</button><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "archived" }))}>{t.archive}</button></div>}
       {msg && <p role="status" aria-live="polite" className="mt-1 text-[14px] text-[var(--muted)]">{msg}</p>}
@@ -146,7 +162,7 @@ export function FamilyNotes({ lang, personId, data }: { lang: Lang; personId: st
           {data.notes.map((n) => (
             <li key={n.id} data-note={n.kind} className="py-3">
               <p className="text-[16px] font-medium text-[var(--foreground)]">{n.title}</p>
-              <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{t.kinds[n.kind]} · {fmtDocDate(String(n.updated_at).slice(0, 10), lang)}</p>
+              <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{t.kinds[n.kind]} · {fmtFamilyDate(String(n.updated_at).slice(0, 10), lang)}</p>
               {n.body && <p className="mt-1 whitespace-pre-line text-[16px] leading-[1.55] text-[var(--foreground)]">{n.body}</p>}
             </li>
           ))}
@@ -180,7 +196,7 @@ export function FamilyIcs({ lang, personId, data }: { lang: Lang; personId: stri
     <section id="phone-calendar" aria-labelledby="ics-h" data-ics="" className="mt-12 scroll-mt-24">
       <h2 id="ics-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.phone}</h2>
       <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.phoneHint}</p>
-      <p className="mt-2 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{data.active && data.created_at ? `${t.active} ${fmtDocDate(String(data.created_at).slice(0, 10), lang)}` : t.none}</p>
+      <p className="mt-2 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{data.active && data.created_at ? `${t.active} ${fmtFamilyDate(String(data.created_at).slice(0, 10), lang)}` : t.none}</p>
       {url && (
         <div data-ics-url="" className="mt-3 rounded-md border border-[var(--accent)] p-3">
           <p className="text-[15px] text-[var(--foreground)]">{t.once}</p>
