@@ -53,6 +53,19 @@ test("Кодекс page: crest thumbnails, motto at the end, the approved status
   assert.match(src("app/components/FamilyClient.tsx"), /data-kodeks-entry=""[\s\S]*family\/os\/kodeks|family\/os\/kodeks[\s\S]*data-kodeks-entry=""/);
   assert.doesNotMatch(src("app/content/siteNav.ts") + src("app/lib/family-nav.mjs"), /kodeks/, "no tab for the Кодекс (≤ 6 tabs, bus 84)");
   assert.doesNotMatch(k, /likes|leaderboard|рейтинг|лайк/i, "no likes or rankings");
+  assert.match(k, /fleurdelis: \{ y: 20, z: 5\.6 \}/, "lilies thumbnail cropped tighter via the table, not by moving the explorer marker");
+  assert.match(src("app/components/CrestExplorer.tsx"), /id: "fleurdelis",[\s\S]{0,800}?y: 19,/, "explorer marker unchanged");
+});
+
+test("Today (bus 95): recognition collapsed behind «Отметить хорошее», ≤ 3 items + «Все — на совете»; section order", () => {
+  const k = src("app/components/FamilyKodeks.tsx");
+  assert.match(k, /const \[open, setOpen\] = useState\(false\)/, "the form starts closed");
+  assert.match(k, /open: "Отметить хорошее"/); assert.match(k, /allAtCouncil: "Все — на совете"/);
+  assert.match(k, /TODAY_RECOGNITIONS = 3/); assert.match(k, /items\.slice\(-TODAY_RECOGNITIONS\)/);
+  const o = src("app/components/FamilyOs.tsx");
+  const at = (re) => { const i = o.search(re); assert.ok(i > 0, String(re)); return i; };
+  const order = [/<TodayPrinciple /, /<TodayBoard /, /<TodayChecklist /, /<TodayRecognition /, /id="remind-h"/].map(at);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "principle → tasks → routine → recognition → documents");
 });
 
 test("heraldic accents: pillar tokens in light, dark and print; used as rules/icons, never fills", () => {

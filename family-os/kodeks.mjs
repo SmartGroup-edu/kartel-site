@@ -48,14 +48,17 @@ export function principleOfWeek(weekStart, pick) {
 }
 
 /**
- * «N из M на этой неделе»: M = the days of this week (Mon–Sun) the routine is due and not paused, N = the
- * ones done. A missed day is never a "lost streak"; nothing here looks back beyond the week.
+ * «N из M на этой неделе»: M = the days from this Monday up to today (inclusive) on which the routine is
+ * due and not paused; N = the ones done. Days still ahead are not counted (bus 95: «0 из 7» on a Wednesday
+ * reads as failing), so on Sunday M is the whole week. A missed day is never a "lost streak"; nothing here
+ * looks back beyond the week.
  */
 export function weekCount(rule, dtstart, done, today, skip = () => false) {
   const mon = mondayOf(today);
   let n = 0, m = 0;
   for (let i = 0; i < 7; i++) {
     const d = addDays(mon, i);
+    if (d > today) break;
     if (d < dtstart || !occursOn(rule, dtstart, d) || skip(d)) continue;
     m++;
     if (done.has(d)) n++;

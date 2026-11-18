@@ -54,12 +54,19 @@ test("pure: principle of the week — round-robin from 16.11.2026, a parent's pi
   assert.deepEqual(principleOfWeek("2026-11-16", 5), { index: 5, picked: true });
 });
 
-test("pure: weekly count «N из M» — only this week, paused days out, a missed day is just not counted", () => {
-  const daily = parseRule("FREQ=DAILY"), wk = parseRule("FREQ=WEEKLY;BYDAY=MO,WE,FR");
-  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(["2026-11-16", "2026-11-18", "2026-11-09"]), TODAY), { done: 2, of: 7 });
-  assert.deepEqual(weekCount(wk, "2026-11-01", new Set(["2026-11-16"]), TODAY), { done: 1, of: 3 });
-  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(), TODAY, (d) => d === "2026-11-20"), { done: 0, of: 6 });
-  assert.deepEqual(weekCount(daily, "2026-11-19", new Set(), TODAY), { done: 0, of: 4 }, "starts Thursday");
+test("pure: weekly count «N из M» — M counts this week up to today only; paused days out; a missed day is just not counted", () => {
+  const daily = parseRule("FREQ=DAILY"), wk = parseRule("FREQ=WEEKLY;BYDAY=MO,WE,FR"), weekdays = parseRule("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR");
+  // TODAY is Wednesday 18.11.2026 (bus 95: «2 из 3 на этой неделе», not «2 из 7»).
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(["2026-11-16", "2026-11-18", "2026-11-09"]), TODAY), { done: 2, of: 3 }, "Wed, daily");
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(["2026-11-16"]), "2026-11-16"), { done: 1, of: 1 }, "Mon: only Monday counts");
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(), "2026-11-16"), { done: 0, of: 1 }, "Mon, nothing yet");
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(["2026-11-16", "2026-11-22"]), "2026-11-22"), { done: 2, of: 7 }, "Sun: the whole week");
+  assert.deepEqual(weekCount(weekdays, "2026-11-01", new Set(["2026-11-17"]), "2026-11-21"), { done: 1, of: 5 }, "weekday-only routine on Saturday: the week's M");
+  assert.deepEqual(weekCount(wk, "2026-11-01", new Set(["2026-11-16"]), TODAY), { done: 1, of: 2 }, "Mon + Wed so far; Friday not yet");
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(), TODAY, (d) => d === "2026-11-17"), { done: 0, of: 2 }, "a paused day is out");
+  assert.deepEqual(weekCount(daily, "2026-11-01", new Set(["2026-11-20"]), TODAY), { done: 0, of: 3 }, "a future tick is not counted");
+  assert.deepEqual(weekCount(daily, "2026-11-19", new Set(), TODAY), { done: 0, of: 0 }, "starts Thursday: nothing due yet");
+  assert.deepEqual(weekCount(daily, "2026-11-19", new Set(), "2026-11-22"), { done: 0, of: 4 }, "starts Thursday, seen on Sunday");
   assert.equal(countModeFor({ kind: "child" }, "streak"), "week", "a child never gets the streak");
   assert.equal(countModeFor({ kind: "adult" }, undefined), "week");
   assert.equal(countModeFor({ kind: "adult" }, "streak"), "streak");
@@ -159,7 +166,7 @@ test("бережный счёт: a child's routines carry «N из M», never a 
     const r = (await call("GET", `/people/${P.c}/routines`, { actor: as(k) })).json;
     assert.equal(r.count_mode, "week", k);
     const it = r.routines.find((x) => x.id === rc);
-    assert.deepEqual(it.week, { done: 2, of: 7 }, k);
+    assert.deepEqual(it.week, { done: 2, of: 3 }, k); // Wed 18.11: Mon–Wed due, Mon + Tue done
     assert.ok(!("streak" in it), `${k}: no streak field for a child`);
   }
   assert.equal((await call("PUT", `/people/${P.c}/prefs`, { actor: as("p1"), body: { email_on: true, digest_time: "07:00", evening_on: false, evening_time: "20:00", lang: "ru", count_mode: "streak" } })).status, 400, "never for a child");

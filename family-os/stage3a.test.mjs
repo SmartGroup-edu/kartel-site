@@ -70,7 +70,7 @@ test("pause («день без ритма»): hides today's items, skips streak 
   assert.equal(v.json.paused_today, true);
   assert.equal(v.json.routines.find((x) => x.id === r).due_today, false, "paused: nothing due");
   // bus 86: a child sees «N из M на этой неделе» (no streak); paused days drop out of M, nothing is "lost"
-  assert.deepEqual(v.json.routines.find((x) => x.id === r).week, { done: 2, of: 4 }, "the pause (18–20) leaves Mon, Tue, Sat, Sun");
+  assert.deepEqual(v.json.routines.find((x) => x.id === r).week, { done: 2, of: 2 }, "Wed 18.11 inside the pause (18–20): Mon + Tue so far; paused and future days are out (bus 95)");
   assert.ok(!("streak" in v.json.routines.find((x) => x.id === r)), "no streak for a child");
   assert.ok(!v.json.routines.find((x) => x.id === r).next.includes("2026-11-19"), "paused days not in the agenda");
   for (const bad of [{ from_date: "2026-11-17", to_date: "2026-11-18" }, { from_date: TODAY, to_date: "2027-02-01" }, { from_date: "2026-11-20", to_date: TODAY }])

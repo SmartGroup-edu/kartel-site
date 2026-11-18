@@ -32,7 +32,7 @@ const T = {
     save: "Save as a new version", saving: "Saving…", saved: "Saved as a new version.", error: "Could not save — please try again.",
     week: "Principle of the week", toKodeks: "The family code", empty: "The family code is not available right now.",
     rec: "Recognition", recLead: "Notice something good: who, which principle, a few words.", to: "To", which: "Principle", text: "What happened", send: "Send", sending: "Sending…",
-    sent: "Sent.", recError: "Could not send — please try again.", fiveADay: "That is enough for today — try again tomorrow.", recWeek: "This week", recNone: "No recognitions this week yet.",
+    sent: "Sent.", recError: "Could not send — please try again.", fiveADay: "That is enough for today — try again tomorrow.", recWeek: "This week", recNone: "No recognitions this week yet.", open: "Notice something good", cancel: "Cancel", allAtCouncil: "All of them — at the council",
     recCouncil: "Recognitions of the week", pick: "Next week's principle", pickSave: "Choose", picked: "Chosen.", thisWeek: "This week", nextWeek: "Next week", auto: "in turn", chosen: "chosen by a parent",
   },
   RU: {
@@ -43,7 +43,7 @@ const T = {
     save: "Сохранить новую редакцию", saving: "Сохраняется…", saved: "Сохранено как новая редакция.", error: "Не удалось сохранить — попробуй ещё раз.",
     week: "Принцип недели", toKodeks: "Кодекс семьи", empty: "Кодекс сейчас недоступен.",
     rec: "Признание", recLead: "Заметь хорошее: кто, какой принцип, пара слов.", to: "Кому", which: "Принцип", text: "Что было", send: "Отправить", sending: "Отправляется…",
-    sent: "Отправлено.", recError: "Не удалось отправить — попробуй ещё раз.", fiveADay: "На сегодня достаточно — попробуй завтра.", recWeek: "На этой неделе", recNone: "На этой неделе признаний пока нет.",
+    sent: "Отправлено.", recError: "Не удалось отправить — попробуй ещё раз.", fiveADay: "На сегодня достаточно — попробуй завтра.", recWeek: "На этой неделе", recNone: "На этой неделе признаний пока нет.", open: "Отметить хорошее", cancel: "Отмена", allAtCouncil: "Все — на совете",
     recCouncil: "Признания недели", pick: "Принцип следующей недели", pickSave: "Выбрать", picked: "Выбрано.", thisWeek: "Эта неделя", nextWeek: "Следующая неделя", auto: "по очереди", chosen: "выбран родителем",
   },
 } as const;
@@ -54,6 +54,7 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const councilHref = (lang: Lang) => `/${lang === "EN" ? "en" : "ru"}/family/os/council#council-rec-h`;
 const kodeksHref = (lang: Lang, idx?: number) => `/${lang === "EN" ? "en" : "ru"}/family/os/kodeks${idx === undefined ? "" : `#p-${idx + 1}`}`;
 
 /** The pillar icon for Кодекс (a plain shield outline), stroked in серебро. */
@@ -66,9 +67,19 @@ export function KodeksIcon({ size = 20 }: { size?: number }) {
 }
 
 /** A round crop of the crest centred on the element's explorer marker (mantling: the whole crest). */
+/**
+ * Per-element crop tweaks for the thumbnails only; the explorer markers stay where they are (bus 95).
+ * Лилии: the marker (y 19) sits 10 points above the crown's (y 29), so at the default zoom the lilies
+ * thumbnail also showed the crown rim — centre on the middle fleur-de-lis and zoom in.
+ */
+export const CREST_THUMB_CROP: Record<string, { x?: number; y?: number; z?: number }> = {
+  fleurdelis: { y: 20, z: 5.6 },
+};
+
 export function CrestThumb({ element, size = 64 }: { element: string; size?: number }) {
-  const m = CREST_MARKERS[element];
-  const Z = 3.2; // zoom; position so the marker lands in the centre of the circle
+  const mk = CREST_MARKERS[element], c = CREST_THUMB_CROP[element];
+  const m = mk && { x: c?.x ?? mk.x, y: c?.y ?? mk.y };
+  const Z = c?.z ?? 3.2; // zoom; position so the marker lands in the centre of the circle
   // crest.jpeg is 900×1000: at width Z×box the image is Z×10/9 boxes tall. Centre point p (%) of an image
   // k boxes long → background-position (p·k − ½)/(k − 1).
   const pos = (p: number, k: number) => Math.max(0, Math.min(100, ((p / 100) * k - 0.5) / (k - 1) * 100));
@@ -217,12 +228,16 @@ export function RecognitionList({ lang, items, headingId, heading }: { lang: Lan
   );
 }
 
-/** Today: send a recognition to another member + this week's list (what this viewer may see). */
+/** On Today, at most three of the week's recognitions; the full list is at the council. */
+export const TODAY_RECOGNITIONS = 3;
+
+/** Today: one button «Отметить хорошее» opens the form inline; the week as a short list (≤ 3) + a link to the council. */
 export function TodayRecognition({ lang, people, meId, principles, current, items }: {
   lang: Lang; people: OsPerson[]; meId: string; principles: { principle: string }[]; current: number; items: OsRecognition[];
 }) {
   const t = T[lang];
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
   const [len, setLen] = useState(0);
   const others = people.filter((p) => p.id !== meId);
@@ -233,35 +248,47 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
     const r = await send("POST", "recognitions", { to_id: f.get("to_id"), index: Number(f.get("index")), text: String(f.get("text") ?? "").trim() }).catch(() => null);
     if (r?.status === 429) return setStatus(t.fiveADay);
     if (!r?.ok) return setStatus(t.recError);
-    setStatus(t.sent); form.reset(); setLen(0); router.refresh();
+    setStatus(t.sent); form.reset(); setLen(0); setOpen(false); router.refresh();
   };
   if (others.length === 0) return null;
+  const shown = items.slice(-TODAY_RECOGNITIONS); // the service lists the week oldest first; Today shows the latest three
   return (
     <section aria-labelledby="rec-h" data-recognition="" className="mt-8 border-l-2 border-[var(--pillar-kodeks)] pl-4">
       <h2 id="rec-h" className="flex items-center gap-2 font-serif text-[22px] text-[var(--foreground)]"><KodeksIcon />{t.rec}</h2>
-      <p className="mt-1 text-[15px] text-[var(--text-secondary)]">{t.recLead}</p>
-      <form onSubmit={submit} className="mt-3 grid gap-3 sm:grid-cols-2">
-        <label className={label}>{t.to}
-          <select name="to_id" required className={field} defaultValue="">
-            <option value="" disabled>—</option>
-            {others.map((p) => <option key={p.id} value={p.id}>{lang === "EN" ? p.name_en : p.name_ru}</option>)}
-          </select>
-        </label>
-        <label className={label}>{t.which}
-          <select name="index" className={field} defaultValue={String(current)}>
-            {principles.map((p, i) => <option key={i} value={i}>{p.principle}</option>)}
-          </select>
-        </label>
-        <label className={`${label} sm:col-span-2`}>{t.text}
-          <textarea name="text" required maxLength={200} rows={2} onChange={(e) => setLen(e.target.value.length)} className={field} aria-describedby="rec-len" />
-          <span id="rec-len" className="mt-1 block text-right text-[14px] font-normal text-[var(--muted)]">{len}/200</span>
-        </label>
-        <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-          <button type="submit" className={primary}>{t.send}</button>
-          <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
+      {!open ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <button type="button" data-rec-open="" aria-expanded="false" aria-controls="rec-form" onClick={() => { setOpen(true); setStatus(""); }} className="inline-flex min-h-11 items-center rounded-md border border-[var(--pillar-kodeks)] px-4 text-[15px] font-medium text-[var(--foreground)] hover:bg-[var(--surface)]">{t.open}</button>
+          {status && <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>}
         </div>
-      </form>
-      <div className="mt-6"><RecognitionList lang={lang} items={items} headingId="rec-week-h" heading={t.recWeek} /></div>
+      ) : (
+        <form id="rec-form" onSubmit={submit} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <p className="text-[15px] text-[var(--text-secondary)] sm:col-span-2">{t.recLead}</p>
+          <label className={label}>{t.to}
+            <select name="to_id" required className={field} defaultValue="" autoFocus>
+              <option value="" disabled>—</option>
+              {others.map((p) => <option key={p.id} value={p.id}>{lang === "EN" ? p.name_en : p.name_ru}</option>)}
+            </select>
+          </label>
+          <label className={label}>{t.which}
+            <select name="index" className={field} defaultValue={String(current)}>
+              {principles.map((p, i) => <option key={i} value={i}>{p.principle}</option>)}
+            </select>
+          </label>
+          <label className={`${label} sm:col-span-2`}>{t.text}
+            <textarea name="text" required maxLength={200} rows={2} onChange={(e) => setLen(e.target.value.length)} className={field} aria-describedby="rec-len" />
+            <span id="rec-len" className="mt-1 block text-right text-[14px] font-normal text-[var(--muted)]">{len}/200</span>
+          </label>
+          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+            <button type="submit" className={primary}>{t.send}</button>
+            <button type="button" onClick={() => { setOpen(false); setStatus(""); }} className="inline-flex min-h-11 items-center rounded-md px-3 text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.cancel}</button>
+            <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
+          </div>
+        </form>
+      )}
+      <div className="mt-6" data-rec-today="">
+        <RecognitionList lang={lang} items={shown} headingId="rec-week-h" heading={t.recWeek} />
+        {items.length > 0 && <p className="mt-2"><Link href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
+      </div>
     </section>
   );
 }

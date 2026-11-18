@@ -145,10 +145,10 @@ test("service: ticking off — child and parents; history kept; only today and t
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.p1), body: { date: "2026-11-17", done: true } })).status, 200);
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.p2), body: { date: "2026-11-16", done: true } })).status, 200);
   let v = (await call("GET", `/people/${P.c}/routines`, { actor: as(E.c) })).json.routines.find((r) => r.id === R.child);
-  assert.equal(v.done_today, true); assert.deepEqual(v.week, { done: 3, of: 7 }); assert.ok(!("streak" in v), "a child: weekly count only (bus 86)");
+  assert.equal(v.done_today, true); assert.deepEqual(v.week, { done: 3, of: 3 }); // Wed: Mon–Wed so far (bus 95) assert.ok(!("streak" in v), "a child: weekly count only (bus 86)");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: TODAY, done: false } })).status, 200, "untick");
   v = (await call("GET", `/people/${P.c}/routines`, { actor: as(E.c) })).json.routines.find((r) => r.id === R.child);
-  assert.equal(v.done_today, false); assert.deepEqual(v.week, { done: 2, of: 7 }, "unticking today leaves the earlier days");
+  assert.equal(v.done_today, false); assert.deepEqual(v.week, { done: 2, of: 3 }, "unticking today leaves the earlier days");
   assert.equal(store._raw.checks.filter((c) => c.routine_id === R.child).length, 4, "untick is a new row; history kept");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: "2026-11-15", done: true } })).json.error, "bad_check", "three days back");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: "2026-11-19", done: true } })).json.error, "bad_check", "future");
