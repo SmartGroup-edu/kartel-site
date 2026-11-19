@@ -1,5 +1,5 @@
 /**
- * Family OS actions from the browser (Stage 2a documents; Stage 2 routines, retype, admin access). Every request: family gate + signed-in,
+ * Family OS actions from the browser (Stage 2a documents; Stage 2 routines, retype, admin access; Stage 3c board). Every request: family gate + signed-in,
  * approved session; writes also need the site's own Origin. The service decides who may read what
  * (and logs it) — this route only forwards with the signed actor. Never cached.
  */
@@ -35,7 +35,27 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   const g = await guard(req, false);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/documents/${ID}/files/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  // Board reads for the 30 s live refresh (bus 82): JSON, only these paths, only a date/week query.
+  if (new RegExp(`^/tasks/${ID}$`).test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
+  // Passkeys (bus 98/100): the person's own keys and a person's keys for a parent or the owner — JSON only.
+  if (new RegExp(`^/(passkeys/mine|people/${ID}/passkeys)$`).test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
+  // 3e-1 «Здоровье-лайт»: the family total + own ticks, and the viewer's own evening answers — JSON only.
+  // 3e-2: the person's own weight/calorie log (JSON) and its export (a download). The service checks 18+ and self.
+  if (path === "/body") { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
+  if (path === "/body/export") {
+    const r = await forward("GET", path, g.actor);
+    if (!r.ok) return json(r.status === 404 ? 404 : r.status, { error: "not_found" });
+    return new Response(await r.text(), { status: 200, headers: { ...headers, "content-type": "application/json; charset=utf-8", "content-disposition": r.headers.get("content-disposition") ?? "attachment" } });
+  }
+  if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
+  if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
+    const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
+    const key = q.has("week") ? "week" : "date";
+    const full = d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? `${path}?${key}=${d}` : path;
+    const r = await forward("GET", full, g.actor);
+    return json(r.status, await r.json().catch(() => ({})));
+  }
+  if (!new RegExp(`^/(documents/${ID}/files/${ID}|tasks/${ID}/photo)$`).test(path)) return json(404, { error: "not_found" }); // bus 97 item 4: the review photo (parents only — the service decides)
   const r = await forward("GET", path, g.actor);
   if (!r.ok || !r.body) return json(r.status === 403 ? 403 : 404, { error: "not_found" });
   const download = new URL(req.url).searchParams.get("download") === "1";
@@ -52,6 +72,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
+  // bus 97 item 4: the optional review photo — raw bytes, same limits as document files.
+  if (new RegExp(`^/tasks/${ID}/photo$`).test(path)) {
+    const buf = new Uint8Array(await req.arrayBuffer());
+    if (buf.length === 0 || buf.length > MAX_UPLOAD) return json(413, { error: "too_large" });
+    const r = await forward("POST", path, g.actor, buf);
+    return json(r.status, await r.json().catch(() => ({})));
+  }
   if (new RegExp(`^/documents/${ID}/files$`).test(path)) {
     const buf = new Uint8Array(await req.arrayBuffer());
     if (buf.length === 0 || buf.length > MAX_UPLOAD) return json(413, { error: "too_large" });
@@ -59,12 +86,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g.actor, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines)|documents/${ID}/(reveal|copied)|routines/${ID}/check|people|grants)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
   return json(404, { error: "not_found" });
 }
 
 /** JSON writes: small bodies only; the service authorises (admin-only routes refuse members there). */
-async function forwardJson(req: Request, method: "POST" | "PATCH" | "DELETE", path: string, actor: string) {
+async function forwardJson(req: Request, method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, actor: string) {
   const text = method === "DELETE" ? "" : await req.text();
   if (text.length > 16 * 1024) return json(413, { error: "too_large" });
   const r = await forward(method, path, actor, text, text ? { "content-type": "application/json" } : {});
@@ -75,14 +102,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ op: st
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(routines|documents|people|grants)/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations|goals|events|templates|sprint/goals|passkeys)/${ID}|plan/\\d{4}-\\d{2}-\\d{2}/tasks/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PATCH", path, g.actor);
+}
+
+export async function PUT(req: Request, { params }: { params: Promise<{ op: string[] }> }) {
+  const g = await guard(req, true);
+  if (g instanceof Response) return g;
+  const path = "/" + (await params).op.join("/");
+  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2}|plan/\\d{4}-\\d{2}-\\d{2}|principle/\\d{4}-\\d{2}-\\d{2}|health/prefs|evening/\\d{4}-\\d{2}-\\d{2}|body/prefs|body/goal|body/log/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
+  return forwardJson(req, "PUT", path, g.actor);
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ op: string[] }> }) {
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/grants/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(grants/${ID}|people/${ID}/ics|body)$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "DELETE", path, g.actor);
 }

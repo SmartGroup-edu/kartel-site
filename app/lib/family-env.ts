@@ -41,6 +41,8 @@ export const familyEnv = {
     return Number.isFinite(m) && m >= 1 ? m : 10;
   },
   linkNonceCookie: (): string => process.env.FAMILY_LINK_NONCE_COOKIE ?? "kartel_family_link",
+  /** Passkeys (bus 98/100): dormant unless "on". The service also needs its RP config, or it answers 404. */
+  passkeysOn: (): boolean => process.env.FAMILY_PASSKEYS === "on",
   siteOrigin: (): string => process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk",
 
   // Mail goes through kartel-mail-relay on Hetzner (Brevo blocks unlisted IPs; Vercel has none

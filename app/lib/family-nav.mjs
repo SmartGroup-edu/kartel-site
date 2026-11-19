@@ -1,23 +1,24 @@
 /**
  * The one family sub-navigation (bus 63): every family page shows the same row under the site
- * header — Heritage · Today · People (+ Access and Editor for admins). Family OS items appear only when the
+ * header — Heritage · Today · Board · People · Council · Calendar (+ Access and Editor for admins). Family OS items appear only when the
  * service is connected and the viewer is a member (or the admin). With a single item there is
  * nothing to navigate, so the row is hidden.
  */
 const L = {
-  EN: { heritage: "Heritage", today: "Today", people: "People", admin: "Editor", access: "Access", nav: "Family sections" },
-  RU: { heritage: "Наследие", today: "Сегодня", people: "Люди", admin: "Редактор", access: "Доступы", nav: "Разделы семьи" },
+  EN: { heritage: "Heritage", today: "Today", board: "Board", people: "People", admin: "Editor", access: "Access", council: "Council", calendar: "Calendar", nav: "Family sections" },
+  RU: { heritage: "Наследие", today: "Сегодня", board: "Доска", people: "Люди", admin: "Редактор", access: "Доступы", council: "Совет", calendar: "Календарь", nav: "Разделы семьи" },
 };
 
 /**
  * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean }} o
  * `editor` (bus 87): a family editor also sees «Редактор» — never «Доступы».
- * @returns {{ id: "heritage" | "today" | "people" | "access" | "admin", href: string, label: string }[]}
+ * @returns {{ id: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin", href: string, label: string }[]}
  */
 export function familySubNav({ lang, admin, os, editor = false }) {
   const base = `/${lang === "EN" ? "en" : "ru"}/family`, t = L[lang];
   const items = [{ id: "heritage", href: base, label: t.heritage }];
-  if (os) items.push({ id: "today", href: `${base}/os`, label: t.today }, { id: "people", href: `${base}/os/people`, label: t.people });
+  if (os) items.push({ id: "today", href: `${base}/os`, label: t.today }, { id: "board", href: `${base}/os/board`, label: t.board }, { id: "people", href: `${base}/os/people`, label: t.people },
+    { id: "council", href: `${base}/os/council`, label: t.council }, { id: "calendar", href: `${base}/os/calendar`, label: t.calendar });
   if (admin && os) items.push({ id: "access", href: `${base}/os/access`, label: t.access });
   if (admin || editor) items.push({ id: "admin", href: `${base}/admin`, label: t.admin });
   return items.length > 1 ? items : [];

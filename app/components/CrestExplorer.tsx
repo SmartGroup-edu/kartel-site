@@ -119,6 +119,9 @@ const ELEMENTS: HeraldicElement[] = [
   },
 ];
 
+/** Marker positions (% of crest.jpeg) for reuse as crops — the Кодекс page thumbnails (bus 86). */
+export const CREST_MARKERS: Record<string, { x: number; y: number; icon: string }> = Object.fromEntries(ELEMENTS.map((e) => [e.id, { x: e.x, y: e.y, icon: e.icon }]));
+
 interface CrestExplorerProps {
   lang: "EN" | "RU";
 }

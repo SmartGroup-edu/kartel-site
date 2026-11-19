@@ -35,5 +35,5 @@ export default async function FamilySignInPage({
   // revoked. It is deliberately one undifferentiated outcome.
   const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : undefined;
   // The same lifetime the link is signed with (FAMILY_LINK_TTL, default 600 s), shown as text.
-  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} />;
+  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} passkeys={familyEnv.passkeysOn()} />;
 }

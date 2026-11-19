@@ -93,3 +93,40 @@ export function canSeeGuardians(me, subject, grants, admin) {
 }
 
 export const ROUTINE_KINDS = ["routine", "chore"];
+
+// ---- Stage 3a: notification settings and pauses (bus 77) ----------------------------------------
+// A person's settings and «день без ритма»: the person themselves (a child too — it is their inbox),
+// and for a child, guardians with "routines". Admin is not implicit.
+export function canEditPrefs(me, subject, grants) {
+  if (!me || !subject) return false;
+  if (me.id === subject.id) return true;
+  return subject.kind === "child" && guardianOf(me, subject, grants, "routines");
+}
+
+// ---- Stage 3b: council, goals, calendar (bus 79; plan v3.8 §3.6, §4.1) ---------------------------
+// Council: every member reads the agenda, notes and decisions; adults write them. A decision's task is
+// ticked by its owner or by any adult. The agenda is aggregate only — no per-person counts.
+export const canReadCouncil = (me) => Boolean(me);
+export const canWriteCouncil = (me) => Boolean(me) && me.kind === "adult";
+export const canTickTask = (me, task) => Boolean(me) && (me.id === task.owner_id || me.kind === "adult");
+
+// Goals (Floor №8): only the owner creates or changes a goal — a child's goals are exactly what the
+// child entered; nobody writes goals for someone else. Visibility is the owner's choice:
+//   "owner" (default) · "guardians" (a child's goals to its guardians) · "family" (every member).
+export const GOAL_SPHERES = ["health", "learning", "character", "finance", "contribution", "joy"];
+export const goalVisibilities = (owner) => (owner.kind === "child" ? ["owner", "guardians", "family"] : ["owner", "family"]);
+export function canReadGoal(me, goal, owner, grants) {
+  if (!me || !owner) return false;
+  if (me.id === owner.id) return true;
+  if (goal.visibility === "family") return true;
+  return goal.visibility === "guardians" && owner.kind === "child" && guardianOf(me, owner, grants, null);
+}
+export const canWriteGoal = (me, owner) => Boolean(me && owner && me.id === owner.id);
+
+// Calendar: members see family events and the council; adults add family events. Birthdays only where
+// the birth date may be seen (canSeeBirth). The personal ICS link is the person's own, nobody else's.
+export const canWriteEvent = (me) => Boolean(me) && me.kind === "adult";
+export const canSeeBirthday = (me, person, grants) => canSeeBirth(me, person, grants, false);
+// R0 2026-11-18 (bus 81): every member sees every living person's birthday as day + month
+// (capability "birthday.daymonth"). The year — and so the age — stays under canSeeBirth.
+export const canSeeBirthdayDayMonth = (me) => Boolean(me);

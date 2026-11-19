@@ -1,5 +1,6 @@
 "use client";
 
+import { CrestThumb } from "./FamilyKodeks";
 import { useLangToggle, type Lang } from "./useLang";
 import { H1 } from "../lib/typeScale";
 import SiteHeader from "./SiteHeader";
@@ -58,6 +59,19 @@ export default function FamilyClient({ lang, data, nav = { admin: false, editor:
             <span>
               <span className="block font-serif text-[19px] text-[var(--foreground)]">{lang === "EN" ? "Today in the family" : "Сегодня в семье"}</span>
               <span className="mt-0.5 block text-[15px] text-[var(--text-secondary)]">{lang === "EN" ? "Your day, the people and the family council." : "Ваш день, люди и семейный совет."}</span>
+            </span>
+            <span aria-hidden="true" className="text-[22px] text-[var(--accent)]">→</span>
+          </Link>
+        )}
+
+        {/* bus 86 + kartel-agent 2026-11-18: the third way into the Кодекс — it grew out of the coat of arms */}
+        {nav.member && (
+          <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/kodeks`} data-kodeks-entry=""
+            className="mt-3 flex items-center gap-4 rounded-lg border border-[var(--border)] border-l-2 border-l-[var(--pillar-kodeks)] bg-[var(--surface)] px-5 py-4 transition-colors hover:border-[var(--accent)]">
+            <CrestThumb element="mantling" size={52} />
+            <span className="min-w-0 flex-1">
+              <span className="block font-serif text-[19px] text-[var(--foreground)]">{lang === "EN" ? "The family code" : "Кодекс семьи"}</span>
+              <span className="mt-0.5 block text-[15px] text-[var(--text-secondary)]">{lang === "EN" ? "Eight principles that grew out of the coat of arms." : "Восемь принципов, выросших из герба."}</span>
             </span>
             <span aria-hidden="true" className="text-[22px] text-[var(--accent)]">→</span>
           </Link>
