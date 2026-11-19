@@ -5,10 +5,13 @@
 // The actor header is "admin:<email>" or "member:<email>"; it is covered by the signature, so only the
 // site can say who is asking. Logs carry method, route class, status — never emails, names or text.
 import { createServer } from "node:http";
-import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
+import { createHmac, createHash, timingSafeEqual, randomUUID, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS } from "./policy.mjs";
+import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
+  canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
+import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
+import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
@@ -79,6 +82,28 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     try { await store.logAccess(entry); return true; } catch { console.error("[os] access log write failed"); reply(res, 503, { error: "log_unavailable" }); return false; }
   }
 
+  /**
+   * Birthdays a viewer may see (bus 81): every living member's day + month for any member; the year only
+   * where the full birth-date rule allows. `person` holds living family members only — the heritage
+   * (deceased) people live in the heritage store, never here.
+   */
+  const birthdayRows = (viewer, people, grants) => (canSeeBirthdayDayMonth(viewer) ? people : [])
+    .filter((p) => p && p.birth_date)
+    .map((p) => { const b = String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date);
+      return { id: p.id, name_ru: p.name_ru, name_en: p.name_en, md: b.slice(5), year: canSeeBirthday(viewer, p, grants) ? Number(b.slice(0, 4)) : null }; });
+
+  /** The person's own feed: their routines and turns, the council, family events, birthdays they may see. */
+  async function serveIcs(res, person) {
+    const today = localDate(clock());
+    const [routines, rotations, events, people, grants] = await Promise.all([store.listRoutines(person.id), store.listRotations(), store.listEvents(today, addDays(today, 365)), store.listPeople(), store.listGrants()]);
+    const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
+    const birthdayPeople = birthdayRows(person, full, grants).map((b) => ({ ...b, year: null })); // the feed never carries a year
+    const stamp = new Date(clock()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const ics = buildIcs({ today, stamp, calName: "KARTEL · Семья", routines, rotations: rotations.filter((x) => x.members.includes(person.id)), personId: person.id, events, birthdayPeople, nameOf: (p) => p.name_ru, labels: { council: "Семейный совет", birthday: "День рождения" } });
+    res.writeHead(200, { "content-type": "text/calendar; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    return res.end(ics);
+  }
+
   async function handle(req, res) {
     const url = new URL(req.url, "http://x");
     if (req.method === "GET" && url.pathname === "/healthz") return reply(res, 200, { ok: true });
@@ -87,6 +112,16 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const body = await readBody(req, isUpload ? MAX_FILE + 1024 : MAX_JSON);
     const auth = verify(req, body);
     if (!auth) { console.warn("[os] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    // GET /ics/:token — the personal calendar feed. Only the site may ask (actor "system:ics", signed);
+    // the token itself is the person's credential, stored here only as its SHA-256.
+    const icsM = req.method === "GET" && url.pathname.match(/^\/ics\/([A-Za-z0-9_-]{43})$/);
+    if (icsM) {
+      if (auth.actor !== "system:ics") return reply(res, 403, { error: "forbidden" });
+      if (!allow("ics", 600, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      const person = await store.personByIcs(sha256(icsM[1]));
+      if (!person) return reply(res, 404, { error: "not_found" });
+      return serveIcs(res, person);
+    }
     const who = parseActor(auth.actor);
     if (!who) return reply(res, 403, { error: "actor_required" });
     const writes = req.method !== "GET";
@@ -189,7 +224,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}) },
         guardians: canSeeGuardians(me, subject, grants, admin) ? grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation, scopes: g.scopes })) : [],
         can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin), retype_documents: canAddDocuments(me, subject, grants, admin),
-          routines: routineAccess(me, subject, grants) },
+          routines: routineAccess(me, subject, grants), prefs: canEditPrefs(me, subject, grants),
+          notes: noteKindsFor(me, subject, grants), goals: canWriteGoal(me, subject), ics: Boolean(me && me.id === subject.id) },
       });
     }
     // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind }
@@ -383,14 +419,24 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     // ================= Stage 2: routines and chores =================
     const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
     /** A routine as the screen needs it: due today? done today? gentle streak, next dates. */
-    const routineView = (r, checks, today, days) => {
+    const routineView = (r, checks, today, days, paused = () => false) => {
       const rule = parseRule(r.rrule);
       const done = new Set(checks.filter((c) => c.routine_id === r.id && c.done).map((c) => c.on_date));
       return { id: r.id, kind: r.kind, title: r.title, rrule: r.rrule, dtstart: r.dtstart, at_time: r.at_time,
-        due_today: occursOn(rule, r.dtstart, today), done_today: done.has(today),
+        due_today: occursOn(rule, r.dtstart, today) && !paused(today), done_today: done.has(today),
         done_recent: [...done].filter((d) => d >= addDays(today, -2)).sort(),
-        streak: streak(rule, r.dtstart, done, today), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10) };
+        streak: streak(rule, r.dtstart, done, today, 400, paused), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10).filter((d) => !paused(d)) };
     };
+    /** A rotation as seen by one member: their turns (today + next days). kind "rotation". */
+    const rotationView = (x, personId, rchecks, today, days, paused = () => false) => {
+      const mine = (d) => rotationAssignee(x, d) === personId && !paused(d);
+      const nextDays = Array.from({ length: days }, (_, i) => addDays(today, i + 1)).filter(mine);
+      const doneToday = rchecks.some((c) => c.rotation_id === x.id && c.on_date === today && c.done);
+      return { id: x.id, kind: "rotation", title: x.title, rrule: x.rrule, dtstart: x.dtstart, at_time: x.at_time, members: x.members.length,
+        due_today: mine(today), done_today: doneToday, done_recent: [], streak: 0, next: nextDays };
+    };
+    /** Best-effort event (the bus feeds Stage 3 rules); a write never fails because of it. */
+    const emit = async (type, subject, ref) => { try { await store.emit(type, who.email, subject, ref); } catch { console.error("[os] event emit failed"); } };
 
     // GET|POST /people/:id/routines — GET ?days=1..14 (upcoming window, default 7)
     const rtm = path.match(/^\/people\/([^/]+)\/routines$/);
@@ -405,9 +451,13 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         if (!can.read) return reply(res, 403, { error: "forbidden", reason: can.reason });
         const days = Math.min(14, Math.max(1, Number(url.searchParams.get("days") ?? 7) || 7));
         if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: "routines:list", action: "read" }))) return;
-        const rows = await store.listRoutines(subject.id);
+        const [rows, pauses, rots] = await Promise.all([store.listRoutines(subject.id), store.listPauses(subject.id), store.listRotations()]);
         const checks = await store.listChecks(rows.map((r) => r.id), addDays(today, -400));
-        return reply(res, 200, { today, can, routines: rows.map((r) => routineView(r, checks, today, days)) });
+        const myRots = rots.filter((x) => x.members.includes(subject.id));
+        const rchecks = await store.listRotationChecks(myRots.map((x) => x.id), addDays(today, -2));
+        const paused = (d) => pausedOn(pauses, subject.id, d);
+        return reply(res, 200, { today, can, paused_today: paused(today),
+          routines: [...rows.map((r) => routineView(r, checks, today, days, paused)), ...myRots.map((x) => rotationView(x, subject.id, rchecks, today, days, paused))] });
       }
       if (!can.manage) return reply(res, 403, { error: "forbidden", reason: can.reason ?? "child_cannot_manage" });
       const b = json(body);
@@ -416,6 +466,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!ROUTINE_KINDS.includes(r.kind) || !r.title || !parseRule(r.rrule) || !DATE_RE.test(r.dtstart) || (r.at_time && !TIME_RE.test(r.at_time))) return reply(res, 400, { error: "bad_routine" });
       if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: `routine:${r.kind}`, action: "write" }))) return;
       await store.createRoutine(r, who.email);
+      await emit("routine.created", subject.id, r.id);
       return reply(res, 201, { id: r.id });
     }
 
@@ -442,7 +493,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (b.archived === true) patch.archived = true;
       if (!Object.keys(patch).length) return reply(res, 400, { error: "bad_routine" });
       if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: patch.archived ? "routine:archive" : "routine:update", action: "write" }))) return;
-      return (await store.updateRoutine(x.r.id, patch, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+      if (!(await store.updateRoutine(x.r.id, patch, who.email))) return reply(res, 404, { error: "not_found" });
+      await emit(patch.archived ? "routine.archived" : "routine.updated", x.subject.id, x.r.id);
+      return reply(res, 200, { ok: true });
     }
 
     // POST /routines/:id/check — { date, done } for today or the two days before (late ticks happen)
@@ -457,8 +510,274 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!occursOn(parseRule(x.r.rrule), x.r.dtstart, date)) return reply(res, 400, { error: "not_scheduled" });
       if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: "routine:check", action: "write" }))) return;
       await store.addCheck(x.r.id, date, b.done, who.email);
+      await emit(b.done ? "routine.checked" : "routine.unchecked", x.subject.id, x.r.id);
       return reply(res, 200, { ok: true });
     }
+
+    // ================= Stage 3a: settings, pauses, rotations, rules =================
+    const personFor = async (id) => (UUID_RE.test(id) ? store.getPerson(id) : null);
+
+    // GET|PUT /people/:id/prefs — email on/off, digest time, evening check-in, language
+    const pfm = path.match(/^\/people\/([^/]+)\/prefs$/);
+    if (pfm && (req.method === "GET" || req.method === "PUT")) {
+      const subject = await personFor(pfm[1]);
+      if (!subject) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, subject, await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (req.method === "GET") return reply(res, 200, { prefs: { ...DEFAULT_PREFS, ...((await store.getPrefs(subject.id)) ?? {}) } });
+      const b = json(body) ?? {}, T = /^(0[7-9]|1\d|20):[0-5]\d$/;
+      const p = { email_on: b.email_on, digest_time: b.digest_time, evening_on: b.evening_on, evening_time: b.evening_time, lang: b.lang };
+      if (typeof p.email_on !== "boolean" || typeof p.evening_on !== "boolean" || !T.test(p.digest_time ?? "") || !T.test(p.evening_time ?? "") || !["ru", "en"].includes(p.lang)) return reply(res, 400, { error: "bad_prefs" });
+      await store.setPrefs(subject.id, p, who.email);
+      await emit("prefs.updated", subject.id, null);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST /people/:id/pauses — «день без ритма» (from–to, at most 61 days); PATCH /pauses/:id { cancel }
+    const pam = path.match(/^\/people\/([^/]+)\/pauses$/);
+    if (pam && (req.method === "GET" || req.method === "POST")) {
+      const subject = await personFor(pam[1]);
+      if (!subject) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, subject, await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (req.method === "GET") return reply(res, 200, { pauses: await store.listPauses(subject.id) });
+      const b = json(body), today = localDate(clock());
+      const from = b?.from_date, to = b?.to_date;
+      if (!DATE_RE.test(from ?? "") || !DATE_RE.test(to ?? "") || to < from || from < today || addDays(from, 60) < to) return reply(res, 400, { error: "bad_pause" });
+      const id = randomUUID();
+      await store.createPause({ id, person_id: subject.id, from_date: from, to_date: to }, who.email);
+      await emit("pause.created", subject.id, id);
+      return reply(res, 201, { id });
+    }
+    const pcm = path.match(/^\/pauses\/([^/]+)$/);
+    if (pcm && req.method === "PATCH") {
+      const p = UUID_RE.test(pcm[1]) ? await store.getPause(pcm[1]) : null;
+      if (!p || p.cancelled_at) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, await store.getPerson(p.person_id), await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (json(body)?.cancel !== true) return reply(res, 400, { error: "bad_request" });
+      await store.cancelPause(p.id);
+      await emit("pause.cancelled", p.person_id, p.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // POST /rotations — a chore that goes round 2–8 members. The caller must manage every member.
+    if (path === "/rotations" && req.method === "POST") {
+      const b = json(body), grants = await grantsNow(), today = localDate(clock());
+      const members = Array.isArray(b?.members) ? b.members : [];
+      const x = { id: randomUUID(), title: text(b?.title, 120), rrule: typeof b?.rrule === "string" ? b.rrule : "", dtstart: b?.dtstart ?? today, at_time: b?.at_time ? String(b.at_time) : null, members };
+      if (!x.title || !parseRule(x.rrule) || !DATE_RE.test(x.dtstart) || (x.at_time && !TIME_RE.test(x.at_time)) || members.length < 2 || members.length > 8
+        || new Set(members).size !== members.length || members.some((m) => !UUID_RE.test(m))) return reply(res, 400, { error: "bad_rotation" });
+      const people = await Promise.all(members.map((m) => store.getPerson(m)));
+      if (people.some((p) => !p)) return reply(res, 400, { error: "bad_rotation" });
+      if (people.some((p) => !routineAccess(me, p, grants).manage)) return reply(res, 403, { error: "forbidden", reason: "not_all_members" });
+      for (const p of people) if (me && me.id !== p.id && !(await logged(res, { actor: who.email, subject: p.id, entity: "rotation", action: "write" }))) return;
+      await store.createRotation(x, who.email);
+      await emit("rotation.created", null, x.id);
+      return reply(res, 201, { id: x.id });
+    }
+    const rom = path.match(/^\/rotations\/([^/]+)(\/check)?$/);
+    if (rom && (req.method === "PATCH" || (req.method === "POST" && rom[2]))) {
+      const x = UUID_RE.test(rom[1]) ? await store.getRotation(rom[1]) : null;
+      if (!x || x.archived_at) return reply(res, 404, { error: "not_found" });
+      const grants = await grantsNow();
+      if (req.method === "PATCH") {
+        const people = await Promise.all(x.members.map((m) => store.getPerson(m)));
+        if (people.some((p) => !p || !routineAccess(me, p, grants).manage)) return reply(res, 403, { error: "forbidden", reason: "not_all_members" });
+        if (json(body)?.archived !== true) return reply(res, 400, { error: "bad_request" });
+        await store.archiveRotation(x.id, who.email);
+        await emit("rotation.archived", null, x.id);
+        return reply(res, 200, { ok: true });
+      }
+      // POST /rotations/:id/check { date, done } — on the assignee's turn, by them or their guardian
+      const b = json(body), today = localDate(clock()), date = b?.date ?? today;
+      if (!DATE_RE.test(date) || date > today || date < addDays(today, -2) || typeof b?.done !== "boolean") return reply(res, 400, { error: "bad_check" });
+      const assignee = rotationAssignee(x, date);
+      if (!assignee) return reply(res, 400, { error: "not_scheduled" });
+      const subject = await store.getPerson(assignee);
+      const can = routineAccess(me, subject, grants);
+      if (!can.check) return reply(res, 403, { error: "forbidden", reason: can.reason });
+      if (me && me.id !== subject.id && !(await logged(res, { actor: who.email, subject: subject.id, entity: "rotation:check", action: "write" }))) return;
+      await store.addRotationCheck(x.id, date, subject.id, b.done, who.email);
+      await emit(b.done ? "rotation.checked" : "rotation.unchecked", subject.id, x.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET /rules (admin) — rules with on/off, dry-run and the last 7 days of outcomes (counts only)
+    // PATCH /rules/:id (admin) — { enabled?, dry_run? }
+    if (path === "/rules" && req.method === "GET") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const [rules, counts] = await Promise.all([store.listRules(), store.ruleRunCounts(addDays(localDate(clock()), -7))]);
+      return reply(res, 200, { rules: rules.map((r) => ({ id: r.id, enabled: r.enabled, dry_run: r.dry_run, last7: Object.fromEntries(counts.filter((c) => c.rule_id === r.id).map((c) => [c.outcome, c.n])) })) });
+    }
+    const rlm = path.match(/^\/rules\/([a-z_]+)$/);
+    if (rlm && req.method === "PATCH") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const b = json(body) ?? {};
+      if ((b.enabled !== undefined && typeof b.enabled !== "boolean") || (b.dry_run !== undefined && typeof b.dry_run !== "boolean") || (b.enabled === undefined && b.dry_run === undefined)) return reply(res, 400, { error: "bad_rule" });
+      if (!(await store.setRule(rlm[1], b, who.email))) return reply(res, 404, { error: "not_found" });
+      await emit("rule.updated", null, rlm[1]);
+      return reply(res, 200, { ok: true });
+    }
+
+    // ================= Stage 3b: council, goals, calendar, ICS =================
+    const nameOf = (p) => p.name_ru;
+    const meetingKey = (m) => unwrapDataKey(kek, m.wrapped_key, "council", m.id);
+
+    // GET /council?date= — the meeting for that Sunday (default: today if Sunday, else next Sunday),
+    // its notes and decisions, open tasks from the previous meeting, and the week's aggregate.
+    if (req.method === "GET" && path === "/council") {
+      if (!canReadCouncil(me)) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock());
+      const q = url.searchParams.get("date");
+      const date = q && DATE_RE.test(q) ? councilDate(q) : councilDate(today);
+      const [m, prev, routines, rotations, pauses] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses()]);
+      const [checks, rchecks, tasks, prevTasks] = await Promise.all([store.allChecks(addDays(date, -7)), store.allRotationChecks(addDays(date, -7)), m ? store.listTasks(m.id) : [], prev ? store.listTasks(prev.id) : []]);
+      let notes = "";
+      if (m?.notes_ct) { const k = meetingKey(m); try { notes = open(k, m.notes_ct, `council:${m.id}`).toString("utf8"); } finally { k.fill(0); } }
+      const view = (t) => ({ id: t.id, title: t.title, owner_id: t.owner_id, due_date: t.due_date, done: Boolean(t.done_at) });
+      const st = councilStatus(date, today, localParts(clock()).hhmm, Boolean(m?.held_at));
+      return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld },
+        tasks: tasks.map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.map(view) } : null,
+        agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks }) });
+    }
+    // PUT /council/:date { notes, held } — adults only
+    const cm = path.match(/^\/council\/(\d{4}-\d{2}-\d{2})$/);
+    if (cm && req.method === "PUT") {
+      if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body);
+      if (councilDate(cm[1]) !== cm[1] || typeof b?.notes !== "string" || b.notes.length > 8000 || typeof b?.held !== "boolean") return reply(res, 400, { error: "bad_council" });
+      // «Совет прошёл» only from its start (19:00 local on that Sunday), never in advance (bus 80 #1)
+      if (b.held) { const lp = localParts(clock()); if (!councilStatus(cm[1], lp.date, lp.hhmm, false).canMarkHeld) return reply(res, 400, { error: "not_started" }); }
+      const cur = await store.getMeeting(cm[1]);
+      const id = cur?.id ?? randomUUID();
+      let wrapped = cur?.wrapped_key, k;
+      if (cur) k = meetingKey(cur); else { const nk = newDataKey(kek, "council", id); k = nk.dek; wrapped = nk.wrapped; }
+      try { await store.saveMeeting({ id, on_date: cm[1], wrapped_key: wrapped, notes_ct: b.notes ? seal(k, Buffer.from(b.notes), `council:${id}`) : null, held: b.held }, who.email); }
+      finally { k.fill(0); }
+      await emit(b.held ? "council.held" : "council.saved", null, cm[1]);
+      return reply(res, 200, { ok: true });
+    }
+    // POST /council/:date/tasks { title, owner_id, due_date } — a decision with an owner and a date
+    const ctm = path.match(/^\/council\/(\d{4}-\d{2}-\d{2})\/tasks$/);
+    if (ctm && req.method === "POST") {
+      if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body), title = text(b?.title, 160);
+      const owner = UUID_RE.test(b?.owner_id ?? "") ? await store.getPerson(b.owner_id) : null;
+      if (councilDate(ctm[1]) !== ctm[1] || !title || !owner || !DATE_RE.test(b?.due_date ?? "") || b.due_date < ctm[1]) return reply(res, 400, { error: "bad_task" });
+      let m = await store.getMeeting(ctm[1]);
+      if (!m) { const id = randomUUID(), nk = newDataKey(kek, "council", id); nk.dek.fill(0); await store.saveMeeting({ id, on_date: ctm[1], wrapped_key: nk.wrapped, notes_ct: null, held: false }, who.email); m = await store.getMeeting(ctm[1]); }
+      const id = randomUUID();
+      await store.createTask({ id, meeting_id: m.id, title, owner_id: owner.id, due_date: b.due_date }, who.email);
+      await emit("council.task_created", owner.id, id);
+      return reply(res, 201, { id });
+    }
+    // GET /council-tasks — my open tasks · POST /council-tasks/:id/done { done }
+    if (req.method === "GET" && path === "/council-tasks") {
+      if (!me) return reply(res, 200, { tasks: [] });
+      return reply(res, 200, { tasks: (await store.openTasksOf(me.id)).map((t) => ({ id: t.id, title: t.title, due_date: t.due_date })) });
+    }
+    const tdm = path.match(/^\/council-tasks\/([^/]+)\/done$/);
+    if (tdm && req.method === "POST") {
+      const t = UUID_RE.test(tdm[1]) ? await store.getTask(tdm[1]) : null;
+      if (!t) return reply(res, 404, { error: "not_found" });
+      if (!canTickTask(me, t)) return reply(res, 403, { error: "forbidden" });
+      if (typeof json(body)?.done !== "boolean") return reply(res, 400, { error: "bad_request" });
+      await store.setTaskDone(t.id, json(body).done, who.email);
+      await emit(json(body).done ? "council.task_done" : "council.task_reopened", t.owner_id, t.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST /people/:id/goals — only goals the viewer may see; only the owner creates
+    const gom = path.match(/^\/people\/([^/]+)\/goals$/);
+    if (gom && (req.method === "GET" || req.method === "POST")) {
+      const owner = UUID_RE.test(gom[1]) ? await store.getPerson(gom[1]) : null;
+      if (!owner) return reply(res, 404, { error: "not_found" });
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const grants = await grantsNow(), other = me.id !== owner.id;
+      if (req.method === "GET") {
+        const visible = (await store.listGoals(owner.id)).filter((g) => canReadGoal(me, g, owner, grants));
+        if (other && visible.length && !(await logged(res, { actor: who.email, subject: owner.id, entity: "goals:list", action: "read" }))) return;
+        const checkins = await store.listCheckins(visible.map((g) => g.id));
+        const thisWeek = weekStart(localDate(clock()));
+        return reply(res, 200, { can: { write: canWriteGoal(me, owner), visibilities: goalVisibilities(owner) }, week: thisWeek, goals: visible.map((g) => {
+          const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id);
+          try {
+            const cs = checkins.filter((c) => c.goal_id === g.id).slice(0, 8).map((c) => ({ week_start: c.week_start, mood: c.mood, note: c.note_ct ? open(k, c.note_ct, `checkin:${g.id}:${c.week_start}`).toString("utf8") : "" }));
+            return { id: g.id, sphere: g.sphere, visibility: g.visibility, status: g.status, title: open(k, g.title_ct, `goal:${g.id}`).toString("utf8"), checkins: cs, checked_this_week: cs.some((c) => c.week_start === thisWeek) };
+          } finally { k.fill(0); }
+        }) });
+      }
+      if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
+      const b = json(body), title = text(b?.title, 160), vis = b?.visibility ?? "owner";
+      if (!title || !GOAL_SPHERES.includes(b?.sphere) || !goalVisibilities(owner).includes(vis)) return reply(res, 400, { error: "bad_goal" });
+      const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "goal", id);
+      try { await store.createGoal({ id, person_id: owner.id, sphere: b.sphere, visibility: vis, wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `goal:${id}`) }, who.email); }
+      finally { dek.fill(0); }
+      await emit("goal.created", owner.id, id);
+      return reply(res, 201, { id });
+    }
+    // PATCH /goals/:id { status?, visibility? } · POST /goals/:id/checkins { mood, note } — owner only
+    const glm = path.match(/^\/goals\/([^/]+)(\/checkins)?$/);
+    if (glm && (req.method === "PATCH" || (req.method === "POST" && glm[2]))) {
+      const g = UUID_RE.test(glm[1]) ? await store.getGoal(glm[1]) : null;
+      if (!g || g.status === "archived") return reply(res, 404, { error: "not_found" });
+      const owner = await store.getPerson(g.person_id);
+      if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
+      const b = json(body) ?? {};
+      if (req.method === "PATCH") {
+        if ((b.status !== undefined && !["active", "done", "archived"].includes(b.status)) || (b.visibility !== undefined && !goalVisibilities(owner).includes(b.visibility)) || (b.status === undefined && b.visibility === undefined)) return reply(res, 400, { error: "bad_goal" });
+        await store.updateGoal(g.id, { status: b.status, visibility: b.visibility });
+        await emit("goal.updated", owner.id, g.id);
+        return reply(res, 200, { ok: true });
+      }
+      const note = typeof b.note === "string" ? b.note.trim() : "";
+      if (!["on_track", "slow", "paused"].includes(b.mood) || note.length > 500) return reply(res, 400, { error: "bad_checkin" });
+      const week = weekStart(localDate(clock()));
+      const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id);
+      try { await store.saveCheckin({ goal_id: g.id, week_start: week, mood: b.mood, note_ct: note ? seal(k, Buffer.from(note), `checkin:${g.id}:${week}`) : null }, who.email); }
+      finally { k.fill(0); }
+      await emit("goal.checked_in", owner.id, g.id);
+      return reply(res, 200, { ok: true, week_start: week });
+    }
+
+    // GET /calendar?days=1..92 — council, family events, birthdays this viewer may see
+    if (req.method === "GET" && path === "/calendar") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock()), days = Math.min(92, Math.max(1, Number(url.searchParams.get("days") ?? 60) || 60)), to = addDays(today, days - 1);
+      const [people, grants, events] = await Promise.all([store.listPeople(), grantsNow(), store.listEvents(today, to)]);
+      const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
+      const birthdayPeople = birthdayRows(me, full, grants);
+      return reply(res, 200, { today, can: { write: canWriteEvent(me) }, items: calendarItems(today, to, { events, birthdayPeople, nameOf }).map(({ name, ...x }) => ({ ...x, ...(name ? { name_ru: name, name_en: birthdayPeople.find((p) => p.id === x.person_id)?.name_en } : {}) })) });
+    }
+    // POST /events { title, on_date, at_time } (adults) · PATCH /events/:id { archived } (adults)
+    if (req.method === "POST" && path === "/events") {
+      if (!canWriteEvent(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body), title = text(b?.title, 120), today = localDate(clock());
+      if (!title || !DATE_RE.test(b?.on_date ?? "") || b.on_date < today || (b.at_time && !TIME_RE.test(String(b.at_time)))) return reply(res, 400, { error: "bad_event" });
+      const id = randomUUID();
+      await store.createEvent({ id, title, on_date: b.on_date, at_time: b.at_time || null }, who.email);
+      await emit("event.created", null, id);
+      return reply(res, 201, { id });
+    }
+    const evm = path.match(/^\/events\/([^/]+)$/);
+    if (evm && req.method === "PATCH") {
+      if (!canWriteEvent(me)) return reply(res, 403, { error: "forbidden" });
+      if (json(body)?.archived !== true || !UUID_RE.test(evm[1])) return reply(res, 400, { error: "bad_request" });
+      if (!(await store.archiveEvent(evm[1]))) return reply(res, 404, { error: "not_found" });
+      await emit("event.archived", null, evm[1]);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST|DELETE /people/:id/ics — the person's own calendar link (status · new link · switch off)
+    const icm = path.match(/^\/people\/([^/]+)\/ics$/);
+    if (icm && ["GET", "POST", "DELETE"].includes(req.method)) {
+      if (!me || me.id !== icm[1]) return reply(res, 403, { error: "forbidden", reason: "own_link_only" });
+      if (req.method === "GET") { const t = await store.getIcs(me.id); return reply(res, 200, { active: Boolean(t), created_at: t?.created_at ?? null }); }
+      if (req.method === "DELETE") { const ok = await store.revokeIcs(me.id, who.email); if (ok) await emit("ics.revoked", me.id, null); return reply(res, 200, { ok }); }
+      const token = randomBytes(32).toString("base64url");
+      await store.setIcs(me.id, sha256(token), who.email);
+      await emit("ics.issued", me.id, null);
+      return reply(res, 201, { token }); // shown once; only its hash is kept
+    }
+
     return reply(res, 404, { error: "not_found" });
   }
 
@@ -494,6 +813,19 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/routines$/.test(p)) return "/people/:id/routines";
   if (/^\/routines\/[^/]+\/check$/.test(p)) return "/routines/:id/check";
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
+  if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
+  if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
+  if (p === "/rotations" || p === "/rules") return p;
+  if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";
+  if (/^\/rotations\/[^/]+$/.test(p)) return "/rotations/:id";
+  if (/^\/rules\/[a-z_]+$/.test(p)) return "/rules/:id";
+  if (p === "/council" || p === "/council-tasks" || p === "/calendar" || p === "/events") return p;
+  if (/^\/council\/\d{4}-\d{2}-\d{2}(\/tasks)?$/.test(p)) return p.endsWith("/tasks") ? "/council/:date/tasks" : "/council/:date";
+  if (/^\/council-tasks\/[^/]+\/done$/.test(p)) return "/council-tasks/:id/done";
+  if (/^\/people\/[^/]+\/(goals|ics)$/.test(p)) return "/people/:id/" + p.split("/").pop();
+  if (/^\/goals\/[^/]+(\/checkins)?$/.test(p)) return p.endsWith("/checkins") ? "/goals/:id/checkins" : "/goals/:id";
+  if (/^\/events\/[^/]+$/.test(p)) return "/events/:id";
+  if (/^\/ics\/[^/]+$/.test(p)) return "/ics/:token";
   if (/^\/documents\/[^/]+$/.test(p)) return "/documents/:id";
   if (/^\/people\/[^/]+\/notes$/.test(p)) return "/people/:id/notes";
   if (/^\/people\/[^/]+\/documents$/.test(p)) return "/people/:id/documents";
