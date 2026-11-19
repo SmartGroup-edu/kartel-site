@@ -7,6 +7,7 @@ import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { osEnabled, osActor, withSat } from "@/app/lib/family-os";
 import { destroySession } from "@/app/lib/family-auth";
+import { endedHref } from "@/app/lib/family-ended";
 import { signMediaRequest } from "@/app/lib/media-signature.mjs";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +53,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   }
   if (!new RegExp(`^/(documents/${ID}/files/${ID}|tasks/${ID}/photo)$`).test(path)) return json(404, { error: "not_found" }); // bus 97 item 4: the review photo (parents only — the service decides)
   const r = await forward("GET", path, g);
-  if (r.status === 401) return ended(401, await r.json().catch(() => ({})));
+  if (r.status === 401) {
+    // A document opened in its own tab: on session_ended go straight to sign-in with the calm message.
+    const res = await ended(401, await r.json().catch(() => ({})));
+    if ((await res.clone().json().catch(() => null))?.error !== "session_ended") return res;
+    const from = new URL(req.headers.get("referer") ?? "/ru/family", req.url).pathname;
+    return Response.redirect(new URL(endedHref(from.startsWith("/") ? from : "/ru/family"), req.url), 303);
+  }
   if (!r.ok || !r.body) return json(r.status === 403 ? 403 : 404, { error: "not_found" });
   const download = new URL(req.url).searchParams.get("download") === "1";
   return new Response(r.body, {

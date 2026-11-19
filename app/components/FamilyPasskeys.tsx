@@ -6,6 +6,7 @@
 //  - a parent of a child: the child's keys, revoke (no adding — a child adds their own);
 //  - the owner: anyone's keys, revoke, and «Вернуть» for a key paused as suspicious.
 // Dates only, never times; no credential ids anywhere in the page.
+import { checkEnded } from "../lib/family-ended";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { H2, META } from "../lib/typeScale";
@@ -50,7 +51,7 @@ const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--b
 const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)] disabled:opacity-60";
 const day = (d: string, lang: Lang) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
 const post = (path: string, body: unknown = {}, method: "POST" | "PATCH" = "POST") =>
-  fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
+  fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 
 export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHref }: { lang: Lang; personId: string | null; self: boolean; canAdd: boolean; signinHref: string }) {
   const t = T[lang];

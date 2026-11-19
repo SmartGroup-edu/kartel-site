@@ -6,6 +6,7 @@
  * «Копировать» go through the logged service path. Files open only through /api/family-os (no
  * thumbnails of ID pages anywhere).
  */
+import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -56,7 +57,7 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-const api = (path: string, body?: unknown) => fetch(`/api/family-os/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}), credentials: "same-origin", cache: "no-store" });
+const api = (path: string, body?: unknown) => fetch(`/api/family-os/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}), credentials: "same-origin", cache: "no-store" }).then(checkEnded);
 const fmtDate = (d: string | null | undefined, lang: Lang) => fmtDocDate(d, lang);
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";

@@ -32,7 +32,7 @@ test("R1: every Family OS call from the proxy carries the signed `sat`; the regi
   assert.match(proxy, /const path = withSat\(rawPath, who\.session\), actor = who\.actor;\s*const h = await signMediaRequest\(\{[^}]*path,/, "sat is inside the signed path");
   assert.doesNotMatch(proxy, /^let /m, "no module-level request state (concurrent requests share an instance)");
   assert.match(proxy, /if \(status === 401 && body\?\.error === "session_ended"\) \{ await destroySession\(\);/);
-  assert.match(proxy, /if \(r\.status === 401\) return ended\(401,/, "a document file read also ends the session");
+  assert.match(proxy, /if \(r\.status === 401\) \{[\s\S]{0,200}const res = await ended\(401,/, "a document file read also ends the session");
   assert.match(proxy, /people\/\$\{ID\}\/end-sessions\|sessions\/end-all\)\$/, "the owner's two actions are forwarded (the service checks the owner)");
   for (const step of ["options", "verify"]) {
     const r = src(`app/api/family-auth/passkey/register/${step}/route.ts`);
@@ -51,4 +51,17 @@ test("R1 UI: the owner's «Завершить все сеансы» on «Кто 
   assert.match(k, /`\/api\/family-os\/people\/\$\{personId\}\/end-sessions`/);
   assert.match(k, /ended: "Сеанс завершён владельцем\. Войди заново по ссылке из письма\."/);
   assert.doesNotMatch(a + k, /text-\[1[0-3]px\]/, "text ≥ 14 px");
+});
+
+test("session_ended in the browser: one calm status on sign-in; autofill never reports a failure on its own", () => {
+  const ended = src("app/lib/family-ended.ts");
+  assert.match(ended, /if \(b\?\.error === "session_ended"\) window\.location\.assign\(endedHref\(window\.location\.pathname\)\);/);
+  for (const f of ["app/components/FamilyOsPerson.tsx", "app/components/FamilyOsAccess.tsx", "app/components/FamilyPasskeys.tsx"]) assert.match(src(f), /\.then\(checkEnded\)/, `${f} sends an ended session to sign-in`);
+  const n = src("app/components/FamilyGateNotice.tsx");
+  assert.match(n, /\{state === "ended" && \(\s*<p data-session-ended="" role="status"/, "a status line, not an alert");
+  assert.match(n, /ended: "Сеанс завершён — /);
+  assert.match(n, /if \(!autofill\) setPkMsg\(c\.pkFail\);/, "only the button reports a failure");
+  assert.match(src("app/[lang]/family/signin/page.tsx"), /family_auth === "ended" \? "ended"/);
+  const proxy = src("app/api/family-os/[...op]/route.ts");
+  assert.match(proxy, /return Response\.redirect\(new URL\(endedHref\(/, "a document opened in its own tab goes to sign-in");
 });
