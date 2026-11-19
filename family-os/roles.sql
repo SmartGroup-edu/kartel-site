@@ -12,3 +12,10 @@ GRANT SELECT, INSERT, UPDATE ON person, guardian_grant, care_note, document, doc
 GRANT SELECT, INSERT ON access_log, audit, routine_check TO kfo_app;
 GRANT SELECT ON drill_canary, schema_migration TO kfo_app;
 GRANT USAGE ON SEQUENCE access_log_id_seq, audit_id_seq, routine_check_id_seq TO kfo_app;
+-- Stage 3a: the event bus is append-only for kfo_app too; rules are switched by the admin (UPDATE only);
+-- the send ledger is written by the runner (owner), read here for the admin's counts.
+GRANT SELECT, INSERT ON event, rotation_check TO kfo_app;
+GRANT SELECT, UPDATE ON rule TO kfo_app;
+GRANT SELECT ON rule_run TO kfo_app;
+GRANT SELECT, INSERT, UPDATE ON notification_pref, pause, rotation TO kfo_app;
+GRANT USAGE ON SEQUENCE event_id_seq, rotation_check_id_seq TO kfo_app;

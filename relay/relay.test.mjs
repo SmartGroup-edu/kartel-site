@@ -161,6 +161,50 @@ test("reminder kinds: RU Russian (Latin only in parentheses), EN without Cyrilli
   for (const v of Object.values(KINDS.en)) assert.doesNotMatch(v, /[А-Яа-яЁё]/, v);
 });
 
+// ── Family OS engine notifications (bus 77)
+const famBody = (over = {}) => ({ to: "parent@example.test", kind: "digest", lang: "ru", firstName: "Анна", date: "2026-11-18", link: "https://kartel.org.uk/ru/family/os",
+  settingsLink: "https://kartel.org.uk/ru/family/os/people/00000000-0000-4000-8000-000000000000#letters",
+  items: [{ title: "Пробежка", time: "07:00" }, { title: "Полить <цветы>", time: null }], docs: [{ type: "passport", expiry: "2027-01-31", who: "Вера" }], notes: [{ child: "Вера", title: "Почистить зубы" }], ...over });
+
+test("send-family: only the fixed shapes pass validation", async () => {
+  const { checkFamily } = await import("./server.mjs");
+  assert.equal(checkFamily(famBody()), null);
+  assert.equal(checkFamily(famBody({ kind: "promo" })), "bad_kind");
+  assert.equal(checkFamily(famBody({ link: "https://evil.example/ru/family/os" })), "bad_link");
+  assert.equal(checkFamily(famBody({ settingsLink: "https://kartel.org.uk/ru/family/os/people/00000000-0000-4000-8000-000000000000" })), "bad_link", "settings link must point at #letters");
+  assert.equal(checkFamily(famBody({ settingsLink: undefined })), "bad_link");
+  assert.equal(checkFamily(famBody({ firstName: "Анна <b>" })), "bad_name");
+  assert.equal(checkFamily(famBody({ items: [{ title: "x", time: "25:00" }] })), "bad_items");
+  assert.equal(checkFamily(famBody({ items: [{ title: "x", number: "QA7654321" }] })), "bad_items", "no extra fields (e.g. a document number)");
+  assert.equal(checkFamily(famBody({ docs: [{ type: "passport", expiry: "2027-01-31", who: "Вера", number: "123" }] })), "bad_docs");
+  assert.equal(checkFamily(famBody({ items: Array.from({ length: 31 }, () => ({ title: "x" })) })), "bad_items");
+  assert.equal(checkFamily(famBody({ items: [], docs: [], notes: [] })), "empty", "never an empty digest");
+  assert.equal(checkFamily(famBody({ kind: "council", items: [], docs: [], notes: [] })), null, "council carries no items");
+});
+
+test("send-family: «ты», no shaming, HTML escaped, gentle parent note", async () => {
+  const { renderFamilyEmail } = await import("./server.mjs");
+  const d = renderFamilyEmail(famBody());
+  assert.equal(d.subject, "Твой день — 18 ноября");
+  assert.match(d.text, /^Доброе утро, Анна!\nСреда, 18 ноября\n/, "greeting + weekday date lead the email");
+  assert.match(d.html, /<h1[^>]*>Доброе утро, Анна!<\/h1>/); assert.match(d.html, />Среда, 18 ноября</);
+  assert.match(d.html, /href="https:\/\/kartel\.org\.uk\/ru\/family\/os\/people\/[0-9a-f-]{36}#letters"[^>]*>твоя страница → «Письма и паузы»/, "footer links to own settings");
+  assert.ok(!/font-size:1[0-3]px/.test(d.html), "no text under 14 px");
+  assert.match(d.html, /prefers-color-scheme: dark/); assert.match(d.html, /name="color-scheme" content="light dark"/);
+  assert.match(d.text, /• 07:00 · Пробежка/); assert.match(d.text, /Паспорт \(Вера\) — до 31 января 2027/);
+  assert.match(d.text, /Вера: «Почистить зубы» — три раза подряд без отметки\. Может, стоит спокойно поговорить\./);
+  assert.match(renderFamilyEmail(famBody({ docs: [{ type: "passport", expiry: "2026-11-07", who: "Анна" }] })).text, /Паспорт \(Анна\) — истёк 7 ноября 2026/, "an expired document says «истёк»");
+  assert.ok(d.html.includes("Полить &lt;цветы&gt;") && !d.html.includes("<цветы>"), "titles are escaped");
+  const e = renderFamilyEmail(famBody({ kind: "evening", docs: [], notes: [] }));
+  assert.match(e.text, /ничего страшного/);
+  for (const m of [d, e]) {
+    assert.doesNotMatch(m.text + m.subject, /(^|[^а-яё])(вы|вас|ваш[а-яё]*)([^а-яё]|$)/i, "«ты» only");
+    assert.doesNotMatch(m.text, /пропущ|провал|не выполн|missed|failed/i, "no shaming words");
+  }
+  assert.equal(renderFamilyEmail(famBody({ lang: "en", kind: "council", items: [] })).subject, "Family council today at 19:00");
+  assert.equal(renderFamilyEmail(famBody({ kind: "evening" })).subject, "Что ещё открыто — 18 ноября");
+});
+
 // ── bus 87: review notices ──
 async function review(payload, { secret = SECRET } = {}) {
   const body = JSON.stringify(payload), ts = String(Math.floor(Date.now() / 1000));

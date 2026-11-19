@@ -30,5 +30,5 @@ export default async function FamilyOsPersonPage({ params }: { params: Promise<{
   if (decision !== "allow" || !session) notFound();
   const [state, page] = await Promise.all([getOsState(session), getPersonPage(session, id)]);
   if (state.status !== "ok" || !page) notFound();
-  return <FamilyOsPerson lang={lang === "ru" ? "RU" : "EN"} state={state} profile={page.profile} documents={page.documents} routines={page.routines} editor={familyRole(session.cpifSubjectId) === "editor"} />;
+  return <FamilyOsPerson lang={lang === "ru" ? "RU" : "EN"} state={state} profile={page.profile} documents={page.documents} routines={page.routines} prefs={page.prefs} pauses={page.pauses} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }
