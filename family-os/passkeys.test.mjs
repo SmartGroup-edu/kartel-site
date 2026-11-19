@@ -76,7 +76,9 @@ test("register + sign in: options carry UV required + discoverable; sign-in retu
   const mine = (await call("GET", "/passkeys/mine", { actor: as("e") })).json.keys;
   assert.equal(mine.length, 1);
   assert.deepEqual(Object.keys(mine[0]).sort(), ["created_on", "flagged", "id", "kind", "label", "last_used_on", "synced"], "no credential id, no public key");
-  assert.equal(mine[0].kind, "iphone"); assert.equal(mine[0].last_used_on, "2026-11-18");
+  assert.equal(mine[0].kind, "iphone");
+  // last_used_at is the database's now() (the memory store mirrors it with real time), not the test clock.
+  assert.equal(mine[0].last_used_on, new Date().toISOString().slice(0, 10));
 });
 
 test("refusals: no UV, wrong origin, reused challenge, forged signature, wrong user handle, revoked key — all one 401", async () => {
