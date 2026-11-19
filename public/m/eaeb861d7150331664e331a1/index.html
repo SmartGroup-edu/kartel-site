@@ -37,23 +37,25 @@ button{cursor:pointer}
 .sr{position:absolute;left:-9999px}
 /* L5: the mockup chrome is one button */
 .demo{position:fixed;right:12px;top:8px;z-index:40}
-.demo summary{list-style:none;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:14px;cursor:pointer}
+.demo summary{list-style:none;min-height:44px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:14px;cursor:pointer}
 .demo summary::-webkit-details-marker{display:none}
-.demo[open]>div{position:absolute;right:0;top:52px;display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--background);border:1px solid var(--border);border-radius:12px;width:220px}
-.chip{min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--background);text-align:left}
+.demo[open]>div{position:absolute;right:0;top:52px;display:flex;flex-direction:column;gap:8px;padding:12px;background:var(--background);border:1px solid var(--border);border-radius:6px;width:220px}
+.chip{min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:var(--background);text-align:left}
 .chip[aria-pressed=true]{border-color:var(--foreground);font-weight:600}
 .app{max-width:1120px;margin:0 auto;padding:16px 16px 96px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:112px}
 @media(min-width:960px){.top{padding-right:0}.demo{top:auto;bottom:12px}.demo[open]>div{top:auto;bottom:52px}}
 .mark{font-family:var(--font-serif);font-weight:600;font-optical-sizing:auto;letter-spacing:.12em;color:var(--accent);font-size:var(--fs-small);white-space:nowrap}
 @media(max-width:359px){.mark-tail{display:none}}
-.icon-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:12px;background:var(--background);display:grid;place-items:center;color:var(--foreground)}
+.icon-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:6px;background:var(--background);display:grid;place-items:center;color:var(--foreground)}
 .icon-btn svg{width:20px;height:20px}
-@media(max-width:479px){#today{display:none}}
+#today{display:none}@media(min-width:960px){#today{display:inline}#todayM{display:none}}
 h1{font-family:var(--font-serif);font-optical-sizing:auto;font-weight:600;letter-spacing:-.01em;font-size:var(--fs-h1);line-height:1.2;margin:0}
-h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-height:1.3;letter-spacing:-.01em;margin:0 0 8px}
-/* Variant B (for R0's comparison only): card titles in the serif too */
-:root.variant-b h2{font-family:var(--font-serif);letter-spacing:0}
+h2{font-family:var(--font-serif);font-weight:600;font-size:var(--fs-h2);line-height:1.3;margin:0 0 8px}
+/* bus 131 (formal): card titles in the serif with a hairline rule underneath */
+.card>h2,.card>.ttl{padding-bottom:8px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.ttl h2{margin:0}
+.label,.section-h,.wd h3{font-family:var(--font-sans);font-size:var(--fs-small);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .meta{color:var(--muted);font-size:var(--fs-small);line-height:var(--lh-small);margin:0}
 .hello{display:flex;align-items:center;gap:12px;margin:16px 0 2px}
 /* The real Source Serif 4 is wider than Georgia: on phones the greeting avatar is 40 so «Добрый вечер, Бабушка» stays on one line */
@@ -62,25 +64,25 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 .av img,.av svg{width:100%;height:100%;object-fit:cover;display:block}
 .av.s{width:32px;height:32px;font-size:var(--fs-small)}.av.l{width:48px;height:48px;font-size:var(--fs-body)}.av.xl{width:120px;height:120px;font-size:var(--fs-h1)}
 .qa{margin:14px 0 6px;display:flex;gap:8px}
-.qa input{flex:1;min-width:0;min-height:48px;border:1px solid var(--border);border-radius:10px;padding:0 14px;background:var(--background);font-size:var(--fs-body)}
-.qa button{min-height:48px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font-weight:600}
+.qa input{flex:1;min-width:0;min-height:48px;border:1px solid var(--border);border-radius:6px;padding:0 14px;background:var(--background);font-size:var(--fs-body)}
+.qa button{min-height:48px;padding:0 16px;border:0;border-radius:6px;background:var(--accent);color:var(--on-accent);font-weight:600}
 .hint{min-height:24px;font-size:var(--fs-small);line-height:var(--lh-small);color:var(--muted)}
-.hint button{min-height:44px;border:1px solid var(--border);background:var(--background);border-radius:8px;padding:0 10px;margin:4px 6px 0 0}
+.hint button{min-height:44px;border:1px solid var(--border);background:var(--background);border-radius:6px;padding:0 10px;margin:4px 6px 0 0}
 .grid{display:grid;gap:var(--gap);margin-top:12px}
 @media(min-width:960px){.grid{grid-template-columns:1.2fr 1fr}.col2{grid-column:2}.span{grid-column:1/-1}}
-.card{border:1px solid var(--border);border-radius:14px;padding:var(--pad);background:var(--background)}
+.card{border:1px solid var(--border);border-radius:8px;padding:var(--pad);background:var(--background)}
 .card.rule{border-left:3px solid var(--pillar-rhythm)}.card.kodeks{border-left:3px solid var(--pillar-kodeks)}.card.growth{border-left:3px solid var(--pillar-growth)}
 /* M1: one calm «подсказка» style in both modes — surface, a 2 px accent rule, an icon; no tinted fill */
-.card.tip{background:var(--surface);border-left:2px solid var(--accent)}
+.card.tip{background:var(--background);border-left:2px solid var(--accent)}
 .tip-h{display:flex;align-items:center;gap:8px}
-.tip-h svg{width:20px;height:20px;flex:none;color:var(--accent)}
+.tip-h svg{width:20px;height:20px;flex:none;color:var(--muted)}
 .task{display:flex;align-items:center;gap:12px;min-height:56px;border-top:1px solid var(--border)}
 .task:first-of-type{border-top:0}
-.tick{flex:none;width:44px;height:44px;border:1.5px solid var(--foreground);border-radius:10px;background:none;display:grid;place-items:center;font-size:var(--fs-body)}
+.tick{flex:none;width:44px;height:44px;border:1.5px solid var(--foreground);border-radius:6px;background:none;display:grid;place-items:center;font-size:var(--fs-body)}
 .task.done .tick{background:var(--foreground);color:var(--background)}
 .task.done .t{text-decoration:line-through;color:var(--muted)}
 .t{flex:1;min-width:0}.t small{display:block;color:var(--muted);font-size:var(--fs-small);line-height:var(--lh-small)}
-.btn{font-weight:500;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:var(--background);display:inline-flex;align-items:center;gap:8px}
+.btn{font-weight:500;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:var(--background);display:inline-flex;align-items:center;gap:8px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 .btn.link{border:0;padding:0;background:none;text-decoration:underline;text-underline-offset:4px;color:var(--muted)}
 .timeline{list-style:none;margin:0;padding:0}
@@ -89,14 +91,14 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 .who{font-weight:500}.timeline li.warn .who{font-weight:600}
 .nw{white-space:nowrap}
 .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--fs-small)}
-.drv{color:var(--muted);font-size:var(--fs-small);font-weight:400;white-space:nowrap}
+.drv{display:block;color:var(--muted);font-size:var(--fs-small);font-weight:400;white-space:nowrap}
 .drv.ask{color:var(--accent);font-weight:500}
 .memory{display:flex;gap:14px;align-items:center}
-.photo{flex:none;width:84px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.photo{flex:none;width:84px;height:84px;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .why{font-size:var(--fs-small);line-height:var(--lh-small);color:var(--muted);margin:8px 0 0}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;justify-content:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--background);border-top:1px solid var(--border)}
-.nav button{font-weight:500;flex:1;max-width:140px;min-height:56px;border:0;background:none;border-radius:10px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted)}
+.nav button{font-weight:500;flex:1;max-width:140px;min-height:56px;border:0;background:none;border-radius:6px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted)}
 .nav button[aria-current=page]{color:var(--foreground);font-weight:600;background:var(--surface)}
 .nav svg{width:22px;height:22px}
 @media(min-width:960px){.nav{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--border);padding:4px 8px}.nav button{flex-direction:row;gap:8px;min-height:48px}.app{padding-bottom:32px}}
@@ -104,14 +106,14 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 .feedback button{min-height:44px;border:0;background:none;text-decoration:underline;text-underline-offset:4px;color:var(--muted);font-size:var(--fs-small)}
 .sheet{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center}
 .sheet.open{display:flex}
-.sheet>div{width:100%;max-width:560px;background:var(--background);border-radius:16px 16px 0 0;padding:20px 16px 28px;max-height:90vh;overflow:auto}
-@media(min-width:960px){.sheet{align-items:flex-start;padding-top:10vh}.sheet>div{border-radius:16px}}
+.sheet>div{width:100%;max-width:560px;background:var(--background);border-radius:8px 8px 0 0;padding:20px 16px 28px;max-height:90vh;overflow:auto}
+@media(min-width:960px){.sheet{align-items:flex-start;padding-top:10vh}.sheet>div{border-radius:8px}}
 .field{position:relative;margin:10px 0}
-.field input{width:100%;min-height:48px;border:1px solid var(--border);border-radius:10px;padding:0 48px 0 12px;background:var(--background)}
-.field .clear{position:absolute;right:2px;top:2px;width:44px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;border-radius:8px}
+.field input{width:100%;min-height:48px;border:1px solid var(--border);border-radius:6px;padding:0 48px 0 12px;background:var(--background)}
+.field .clear{position:absolute;right:2px;top:2px;width:44px;height:44px;border:0;background:none;color:var(--muted);display:grid;place-items:center;border-radius:6px}
 .field .clear svg{width:18px;height:18px}
 /* H1: the toast text takes the room; under 360 px the action gets its own row */
-.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:35;width:min(92vw,520px);background:var(--foreground);color:var(--background);border-radius:12px;padding:10px 12px 10px 16px;display:none;align-items:center;gap:10px;font-size:var(--fs-small);line-height:var(--lh-small)}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:35;width:min(92vw,520px);background:var(--foreground);color:var(--background);border-radius:6px;padding:10px 12px 10px 16px;display:none;align-items:center;gap:10px;font-size:var(--fs-small);line-height:var(--lh-small)}
 .toast.show{display:flex}
 .toast #toastT{flex:1;min-width:0}
 .toast button{flex:none;min-height:44px;border:0;background:none;color:inherit;text-decoration:underline;font-weight:600;padding:0 6px}
@@ -119,12 +121,12 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 .section-h{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px}
 .item{display:flex;align-items:center;gap:12px;min-height:52px;border-top:1px solid var(--border)}
 .tabs{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
-.tabs button{min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:var(--background)}
+.tabs button{min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:6px;background:var(--background)}
 .tabs button[aria-selected=true]{border-color:var(--foreground);font-weight:600}
 .menu-day{display:grid;grid-template-columns:110px 1fr;gap:8px;padding:10px 0;border-top:1px solid var(--border)}
 .people{display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:1fr;gap:12px;margin-top:12px}
 @media(min-width:960px){.people{grid-template-columns:repeat(5,1fr)}}
-.person{border:1px solid var(--border);border-radius:14px;background:var(--background);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center}
+.person{border:1px solid var(--border);border-radius:8px;background:var(--background);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center}
 .person .meta{font-size:14px}
 .profile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-top:8px}
 @media(min-width:960px){.profile{flex-direction:row;text-align:left;gap:24px}}
@@ -133,9 +135,9 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 .week{display:grid;gap:8px}
 @media(min-width:960px){.week{grid-template-columns:repeat(7,1fr)}}
-.wd{border:1px solid var(--border);border-radius:12px;padding:10px;min-height:90px}
+.wd{border:1px solid var(--border);border-radius:6px;padding:10px;min-height:90px}
 .wd.today{border-color:var(--foreground)}
-.wd h3{margin:0 0 6px;font-size:var(--fs-small);font-weight:600}
+.wd h3{margin:0 0 6px}
 .ev{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:4px 0}
 .ev .av{margin-top:2px}
 .ev b{font-weight:500}.ev.warn b{font-weight:600}
@@ -144,12 +146,12 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 .result{display:flex;align-items:center;gap:12px;min-height:52px;width:100%;border:0;border-top:1px solid var(--border);background:none;text-align:left;padding:0 4px}
 .result small{color:var(--muted);font-size:14px;margin-left:auto}
 [hidden]{display:none!important}
-.child .tick{width:64px;height:64px;font-size:18px;border-radius:14px}
+.child .tick{width:64px;height:64px;font-size:18px;border-radius:8px}
 .child .task{min-height:76px;font-size:18px}
 .child h1{font-size:26px}
 .child #profileView .btn,.child .person{min-height:64px;font-size:var(--fs-body)}
 .kidgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.kidtile{min-height:96px;border:1px solid var(--border);border-radius:16px;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:var(--fs-body)}
+.kidtile{min-height:96px;border:1px solid var(--border);border-radius:8px;background:var(--background);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:var(--fs-body)}
 .kidtile svg{width:24px;height:24px}
 </style>
 </head>
@@ -175,25 +177,25 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
   </div>
 
   <section id="vToday" aria-labelledby="hToday">
-    <div class="hello"><span id="meAv"></span><div><h1 id="hToday">Доброе утро, <span id="who">Мама</span></h1><p class="meta" id="lead" style="margin-top:4px">Вот что важно сегодня.</p></div></div>
+    <div class="hello"><span id="meAv"></span><div><h1 id="hToday">Доброе утро, <span id="who">Мама</span></h1><p class="meta" id="todayM" style="margin-top:2px"></p><p class="meta" id="lead" style="margin-top:4px">Вот что важно сегодня.</p></div></div>
     <form class="qa" id="qa" autocomplete="off">
       <label for="qaIn" class="sr">Быстро добавить</label>
-      <input id="qaIn" placeholder="Быстро добавить…">
+      <input id="qaIn" placeholder="Добавить запись…">
       <button type="submit">Добавить</button>
     </form>
     <div class="hint" id="qaHint" aria-live="polite"></div>
-    <p class="meta" id="qaEx">Например: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span></p>
+    <p class="meta" id="qaEx">Примеры: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span></p>
 
     <div class="grid">
       <section class="card tip span" aria-labelledby="hSmart" id="smart">
-        <div class="tip-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><h2 id="hSmart" style="margin:0">В 17:00 нужно забрать двоих</h2></div>
+        <div class="tip-h ttl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><h2 id="hSmart">В 17:00 нужно забрать двоих</h2></div>
         <p style="margin:8px 0 10px">Сына — из школы (забирает Мама), Дочь — с музыки. Кто забирает Дочь?</p>
         <div class="row" id="smartBtns"></div>
-        <p class="why">Предлагаем Папу и Бабушку: в <span class="nw">16:30–17:30</span> у&nbsp;них нет дел.</p>
+        <p class="why">Свободны в <span class="nw">16:30–17:30</span>: Папа, Бабушка.</p>
       </section>
 
       <section class="card rule" aria-labelledby="hMine">
-        <h2 id="hMine">Мои ближайшие дела</h2>
+        <h2 id="hMine">Ближайшие дела</h2>
         <div id="mine"></div>
         <p class="meta" id="more" style="margin-top:6px">Ещё 2 дела позже — <button class="btn link" id="moreBtn">показать</button></p>
       </section>
@@ -213,17 +215,17 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
       <section class="card kodeks" aria-labelledby="hPr">
         <h2 id="hPr">Принцип недели</h2>
         <p style="margin:0 0 10px"><span class="serif" style="font-weight:600">Слово — дело.</span> Обещал — сделал или сказал заранее, что не успеваешь.</p>
-        <button class="btn" id="thanks">Сказать спасибо</button>
+        <button class="btn" id="thanks">Поблагодарить</button>
       </section>
 
       <section class="card growth col2" aria-labelledby="hMem" id="memCard">
-        <h2 id="hMem">Этот день</h2>
+        <h2 id="hMem">В этот день</h2>
         <div class="memory"><div class="photo" aria-hidden="true" id="memPhoto"></div>
           <p style="margin:0">19 ноября 1954 — прадед на открытии школы в родном городе. <span class="meta" style="display:block">Из семейного архива</span></p></div>
       </section>
 
       <section class="card span" aria-labelledby="hList" id="listPeek">
-        <div class="row" style="justify-content:space-between"><h2 id="hList" style="margin:0">Покупки</h2><button class="btn" data-go="lists">Открыть список</button></div>
+        <div class="row ttl" style="justify-content:space-between"><h2 id="hList">Покупки</h2><button class="btn" data-go="lists">Открыть список</button></div>
         <p class="meta" id="peek" style="margin-top:6px"></p>
       </section>
     </div>
@@ -238,7 +240,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
     <div id="pShop">
       <div class="card tip" id="habit" style="margin-bottom:12px">
         <div class="tip-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg><p style="margin:0">Обычно по пятницам: <b>кефир</b> и <b>сыр</b>.</p></div>
-        <div class="row" style="margin-top:8px"><button class="btn" id="habitYes">Добавить оба</button><button class="btn" id="habitNo">Не сейчас</button></div>
+        <div class="row" style="margin-top:8px"><button class="btn" id="habitYes">Добавить в список</button><button class="btn" id="habitNo">Позже</button></div>
         <p class="why">Их вычёркивали три пятницы подряд.</p></div>
       <div class="row"><button class="btn" id="going">Иду в магазин</button><span class="meta" id="goingNote"></span></div>
       <form class="qa" id="shopAdd" autocomplete="off"><label for="shopIn" class="sr">Добавить в покупки</label><input id="shopIn" placeholder="Что купить?"><button type="submit">Добавить</button></form>
@@ -257,7 +259,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
   <section id="vFamily" aria-labelledby="hFamily" hidden>
     <div id="peopleView">
       <h1 id="hFamily" style="margin-top:16px">Семья</h1>
-      <p class="meta" style="margin-top:4px">Нажми на человека, чтобы открыть его страницу.</p>
+      <p class="meta" style="margin-top:4px">Выберите члена семьи, чтобы открыть его страницу.</p>
       <div class="people" id="people"></div>
     </div>
     <div id="profileView" hidden>
@@ -280,15 +282,15 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
     </div>
   </section>
 
-  <div class="feedback"><button id="fb">Что неудобно?</button></div>
+  <div class="feedback"><button id="fb">Предложить улучшение</button></div>
 </main>
 
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastT"></span><button id="toastUndo">Отменить</button></div>
 
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetH">
-  <div><h2 id="sheetH">Что неудобно?</h2>
-    <p class="meta">Одна строка — её увидит владелец, а на совете раз в месяц обсудим, что поправить.</p>
-    <div class="field"><label for="fbIn" class="sr">Что неудобно</label><input id="fbIn" maxlength="200" placeholder="Например: долго искать список покупок"></div>
+  <div><h2 id="sheetH">Предложить улучшение</h2>
+    <p class="meta" id="fbLead">Одна строка — её увидит владелец; раз в месяц предложения обсуждаются на совете.</p>
+    <div class="field"><label for="fbIn" class="sr">Предложение</label><input id="fbIn" maxlength="200" placeholder="Например: долго искать список покупок"></div>
     <div class="row"><button class="btn primary" id="fbSend">Отправить</button><button class="btn" id="fbClose">Отмена</button></div></div>
 </div>
 
@@ -303,7 +305,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 
 <div class="sheet" id="cropSheet" role="dialog" aria-modal="true" aria-labelledby="cropH">
   <div><h2 id="cropH">Обрезать фото</h2>
-    <p class="meta">Сдвинь ползунок, чтобы приблизить. Геометка и данные камеры удаляются при сохранении.</p>
+    <p class="meta">Ползунок меняет приближение. Геометка и данные камеры удаляются при сохранении.</p>
     <div class="crop"><img id="cropImg" alt="Предпросмотр фото"></div>
     <label for="zoom" class="meta">Приблизить</label><input type="range" id="zoom" min="1" max="2.5" step="0.05" value="1">
     <div class="row"><button class="btn primary" id="cropSave">Сохранить</button><button class="btn" id="cropCancel">Отмена</button></div></div>
@@ -314,7 +316,7 @@ const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelect
 const TODAY = new Date("2026-11-19T08:00:00");
 const DOW = ["вс","пн","вт","ср","чт","пт","сб"], DOWL = ["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"];
 const MON = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
-$("#today").textContent = `${DOWL[TODAY.getDay()]}, ${TODAY.getDate()} ${MON[TODAY.getMonth()]}`;
+{ const d = `${DOWL[TODAY.getDay()][0].toUpperCase()}${DOWL[TODAY.getDay()].slice(1)}, ${TODAY.getDate()} ${MON[TODAY.getMonth()]} ${TODAY.getFullYear()}`; $("#today").textContent = d; $("#todayM").textContent = d; }
 let child = false, viewer = "mama";
 
 /* People — family roles (L2). Colours = family-avatars.mjs. «Фото» = drawn silhouettes. Дочь set a photo herself; it waits for a parent. */
@@ -342,7 +344,7 @@ let pickup = null;
 /* M3: the avatar is always the person the event is about, followed by their name; the driver comes after, muted. */
 const day = () => [["08:30","papa","работа до 16:30"],["17:00","son","из школы","mama"],["17:00","daughter","музыка", pickup, !pickup],["19:00","gran","ужин всей семьёй"]];
 const kidDay = [["17:00","son","из школы","mama"],["19:00","gran","ужин всей семьёй"]];
-const drv = (d, w) => (d ? ` <span class="drv">· забирает ${P[d].name}</span>` : w ? ` <span class="drv ask">· кто забирает?</span>` : "");
+const drv = (d, w) => (d ? `<span class="drv">Забирает ${P[d].name}</span>` : w ? `<span class="drv ask">Кто забирает?</span>` : "");
 let shop = [{ t: "Молоко", sec: "Молочное", by: "mama", d: false }, { t: "Йогурт", sec: "Молочное", by: "daughter", d: false }, { t: "Хлеб", sec: "Хлеб", by: "papa", d: false }, { t: "Яблоки", sec: "Овощи и фрукты", by: "gran", d: false }, { t: "Гречка", sec: "Бакалея", by: "mama", d: true }];
 const SEC = [["Молочное",/молок|кефир|йогурт|сыр|творог|сметан|масло/],["Хлеб",/хлеб|батон|булк|лаваш/],["Овощи и фрукты",/яблок|банан|картош|морков|лук|огур|помидор|лимон|свёкл|капуст/],["Бакалея",/греч|рис|макарон|мук|сахар|соль|чай|кофе/],["Мясо и рыба",/кур|мяс|рыб|фарш/]];
 const secOf = (t) => (SEC.find(([, r]) => r.test(t.toLowerCase())) ?? ["Другое"])[0];
@@ -356,19 +358,19 @@ function renderMine() {
 function renderDay() { $("#timeline").innerHTML = (child ? kidDay : day()).map(([a, id, what, d, w]) => `<li class="${w ? "warn" : ""}"><span class="time">${a}</span>${av(id)}<span><span class="who">${P[id].name}</span> · ${what}${drv(d, w)}</span></li>`).join(""); }
 function renderSmart() {
   $("#smart").hidden = child || Boolean(pickup);
-  $("#smartBtns").innerHTML = ["papa", "gran"].map((id) => `<button class="btn" data-pick="${id}">${av(id)} ${P[id].name}</button>`).join("") + `<button class="btn" id="later">Решу позже</button>`;
-  $$("[data-pick]").forEach((b) => b.onclick = () => { pickup = b.dataset.pick; renderAll(); toast(`${P[pickup].name} забирает Дочь в 17:00 — придёт уведомление`, () => { pickup = null; renderAll(); }); });
-  $("#later").onclick = () => toast("Напомним в 14:00", null);
+  $("#smartBtns").innerHTML = ["papa", "gran"].map((id) => `<button class="btn" data-pick="${id}">${av(id)} ${P[id].name}</button>`).join("") + `<button class="btn" id="later">Отложить</button>`;
+  $$("[data-pick]").forEach((b) => b.onclick = () => { pickup = b.dataset.pick; renderAll(); toast(`Дочь в 17:00 забирает ${P[pickup].name}. Уведомление отправлено.`, () => { pickup = null; renderAll(); }); });
+  $("#later").onclick = () => toast("Напоминание — в 14:00.", null);
 }
 const item = (x) => `<div class="item"><button class="tick" data-t="${x.t}" aria-label="Купил: ${x.t}"></button><span class="t">${x.t}</span>${child ? "" : `${av(x.by)}<span class="sr">добавил(а): ${P[x.by].name}</span>`}</div>`;
 function renderShop() {
   const secs = [...new Set(shop.filter((x) => !x.d).map((x) => x.sec))];
-  $("#shop").innerHTML = secs.map((s) => `<p class="section-h">${s}</p>` + shop.filter((x) => x.sec === s && !x.d).map(item).join("")).join("") || `<p class="meta">Список пуст. Напиши, что купить.</p>`;
+  $("#shop").innerHTML = secs.map((s) => `<p class="section-h">${s}</p>` + shop.filter((x) => x.sec === s && !x.d).map(item).join("")).join("") || `<p class="meta">${child ? "Список пуст. Напиши, что купить." : "Список пуст."}</p>`;
   const done = shop.filter((x) => x.d);
   /* L3: crossed-out items can come back */
-  $("#doneNote").innerHTML = done.length ? `<p class="meta">Вычеркнуто — уберётся через сутки:</p>` + done.map((x) => `<span class="row" style="gap:4px"><span class="meta">${x.t} ·</span><button class="btn link" data-back="${x.t}" style="min-height:44px" aria-label="Вернуть: ${x.t}">Вернуть</button></span>`).join("") : "";
+  $("#doneNote").innerHTML = done.length ? `<p class="meta">Вычеркнутое удаляется через сутки:</p>` + done.map((x) => `<span class="row" style="gap:4px"><span class="meta">${x.t} ·</span><button class="btn link" data-back="${x.t}" style="min-height:44px" aria-label="Вернуть: ${x.t}">Вернуть</button></span>`).join("") : "";
   $$("[data-back]").forEach((b) => b.onclick = () => { shop.find((y) => y.t === b.dataset.back).d = false; renderShop(); });
-  $$("#shop .tick").forEach((b) => b.onclick = () => { const x = shop.find((y) => y.t === b.dataset.t); x.d = true; renderShop(); toast(`«${x.t}» вычеркнуто`, () => { x.d = false; renderShop(); }); });
+  $$("#shop .tick").forEach((b) => b.onclick = () => { const x = shop.find((y) => y.t === b.dataset.t); x.d = true; renderShop(); toast(`«${x.t}» вычеркнуто.`, () => { x.d = false; renderShop(); }); });
   const open = shop.filter((x) => !x.d).reverse(); $("#peek").textContent = open.length ? open.slice(0, 4).map((x) => x.t).join(" · ") + (open.length > 4 ? " · …" : "") : "Список пуст.";
   $("#habit").hidden = child || habitDone;
 }
@@ -392,11 +394,11 @@ function openProfile(id) {
   $("#pNote").textContent = reviewing ? `Новое фото: ${p.name}. Показать его семье?`
     : p.pending && has && viewer === id ? (p.kid ? "Фото у мамы или папы на проверке." : "Фото у владельца на проверке.")
     : !has && p.kid ? "Фото пока нет — видна буква."
-    : id === viewer ? "Фото видит только семья. На открытых страницах сайта его нет. Без фото — буква в твоём цвете." : "";
+    : id === viewer ? "Фото видит только семья; на открытых страницах сайта его нет. Без фото показывается буква." : "";
 }
 $("#backPeople").onclick = () => { $("#profileView").hidden = true; $("#peopleView").hidden = false; renderPeople(); };
 $("#pChange").onclick = () => $("#file").click();
-$("#file").onchange = () => { const f = $("#file").files[0]; if (!f) return; if (!f.type.startsWith("image/") || f.size > 15e6) { toast("Нужна фотография до 15 МБ", null); return; }
+$("#file").onchange = () => { const f = $("#file").files[0]; if (!f) return; if (!f.type.startsWith("image/") || f.size > 15e6) { toast("Нужна фотография размером до 15 МБ.", null); return; }
   const r = new FileReader(); r.onload = () => { $("#cropImg").src = r.result; savePhoto(r.result); }; r.readAsDataURL(f); $("#file").value = ""; };
 function savePhoto(src) {
   own[cur] = src; P[cur].pending = cur !== OWNER; renderAll(); openProfile(cur);
@@ -408,11 +410,11 @@ function savePhoto(src) {
 }
 $("#zoom").oninput = () => $(".crop").style.setProperty("--z", $("#zoom").value);
 $("#cropCancel").onclick = () => $("#cropSheet").classList.remove("open");
-$("#cropSave").onclick = () => { $("#cropSheet").classList.remove("open"); toast("Фото обрезано", null); };
+$("#cropSave").onclick = () => { $("#cropSheet").classList.remove("open"); toast("Фото обрезано.", null); };
 $("#pRemove").onclick = () => { const was = { own: own[cur], photo: P[cur].photo }; delete own[cur]; P[cur].photo = false; renderAll(); openProfile(cur);
-  toast("Фото убрано — снова буква", () => { if (was.own) own[cur] = was.own; P[cur].photo = was.photo; renderAll(); openProfile(cur); }); };
-$("#pApprove").onclick = () => { P[cur].pending = false; renderAll(); openProfile(cur); toast("Фото показано семье", null); };
-$("#pReject").onclick = () => { delete own[cur]; P[cur].photo = false; P[cur].pending = false; renderAll(); openProfile(cur); toast(`${P[cur].name} увидит только «Выбери другое фото» — без причин`, null); };
+  toast("Фото удалено; показывается буква.", () => { if (was.own) own[cur] = was.own; P[cur].photo = was.photo; renderAll(); openProfile(cur); }); };
+$("#pApprove").onclick = () => { P[cur].pending = false; renderAll(); openProfile(cur); toast("Фото показано семье.", null); };
+$("#pReject").onclick = () => { delete own[cur]; P[cur].photo = false; P[cur].pending = false; renderAll(); openProfile(cur); toast(`${P[cur].name} увидит только «Выбери другое фото»; причина останется у вас.`, null); };
 
 const DOWS = { "пн":1,"вт":2,"ср":3,"чт":4,"пт":5,"сб":6,"вс":0 };
 function nextDow(d) { const x = new Date(TODAY); x.setDate(x.getDate() + ((d - x.getDay() + 7) % 7 || 7)); return x; }
@@ -424,16 +426,16 @@ function parse(s) {
   if ((m = t.match(/^(.+?)\s+(пн|вт|ср|чт|пт|сб|вс)\s+(?:в\s+)?(\d{1,2}):(\d{2})$/i))) return { kind: "event", label: `Событие «${m[1]}», ${fmt(nextDow(DOWS[m[2].toLowerCase()]))}, ${m[3].padStart(2, "0")}:${m[4]}`, dest: "Календарь" };
   if ((m = t.match(/^(.+?)\s+(сегодня|завтра)$/i))) { const x = new Date(TODAY); if (m[2].toLowerCase() === "завтра") x.setDate(x.getDate() + 1); return { kind: "task", label: `Дело «${m[1]}» на ${fmt(x)}, мне`, dest: "Дела" }; }
   if (t.split(/\s+/).length <= 3 && !/\d{1,2}:\d{2}/.test(t)) return { kind: "shop", label: `«${t}» → Покупки · ${secOf(t)}`, dest: "Покупки", text: t };
-  return { kind: "ask", label: "Не понял, куда это. Куда добавить?" };
+  return { kind: "ask", label: "Раздел не определён. Куда добавить?" };
 }
 $("#qaIn").oninput = () => { $("#qaEx").hidden = Boolean($("#qaIn").value.trim()); const p = parse($("#qaIn").value); $("#qaHint").innerHTML = p ? (p.kind === "ask" ? `${p.label}<br><button>Покупки</button><button>Дело</button><button>Событие</button>` : `→ ${p.label}`) : ""; };
 $("#qa").onsubmit = (e) => { e.preventDefault(); const p = parse($("#qaIn").value); if (!p || p.kind === "ask") return;
-  if (p.kind === "shop") { const x = { t: p.text[0].toUpperCase() + p.text.slice(1), sec: secOf(p.text), by: viewer, d: false }; shop.push(x); renderShop(); toast("Добавлено в Покупки", () => { shop = shop.filter((y) => y !== x); renderShop(); }); }
-  else toast(`Добавлено: ${p.dest}`, () => {});
+  if (p.kind === "shop") { const x = { t: p.text[0].toUpperCase() + p.text.slice(1), sec: secOf(p.text), by: viewer, d: false }; shop.push(x); renderShop(); toast("Добавлено в Покупки.", () => { shop = shop.filter((y) => y !== x); renderShop(); }); }
+  else toast(`Добавлено: ${p.dest}.`, () => {});
   $("#qaIn").value = ""; $("#qaHint").textContent = ""; $("#qaEx").hidden = false; };
 $("#shopAdd").onsubmit = (e) => { e.preventDefault(); const v = $("#shopIn").value.trim(); if (!v) return; shop.push({ t: v[0].toUpperCase() + v.slice(1), sec: secOf(v), by: viewer, d: false }); $("#shopIn").value = ""; renderShop(); };
-$("#toList").onclick = () => { ["Свёкла","Капуста","Творог"].forEach((t) => shop.push({ t, sec: secOf(t), by: viewer, d: false })); renderShop(); toast("Ингредиенты добавлены в Покупки", () => {}); };
-$("#habitYes").onclick = () => { ["Кефир","Сыр"].forEach((t) => shop.push({ t, sec: secOf(t), by: viewer, d: false })); habitDone = true; renderShop(); toast("Добавлено: кефир, сыр", null); };
+$("#toList").onclick = () => { ["Свёкла","Капуста","Творог"].forEach((t) => shop.push({ t, sec: secOf(t), by: viewer, d: false })); renderShop(); toast("Ингредиенты добавлены в Покупки.", () => {}); };
+$("#habitYes").onclick = () => { ["Кефир","Сыр"].forEach((t) => shop.push({ t, sec: secOf(t), by: viewer, d: false })); habitDone = true; renderShop(); toast("Добавлено: кефир, сыр.", null); };
 $("#habitNo").onclick = () => { habitDone = true; renderShop(); };
 $("#going").onclick = () => { $("#goingNote").textContent = "Семья получила одно уведомление: «Мама идёт в магазин — добавьте, что нужно»."; };
 
@@ -444,9 +446,9 @@ const canSeeDoc = (d) => !child && d.owner === viewer;
 const INDEX = () => [...Object.entries(P).map(([id, p]) => ({ t: p.name, k: "человек", a: id, go: () => { go("family"); openProfile(id); } })),
   ...(child ? kidMine : mine).map((m) => ({ t: m.t, k: "дело", go: () => go("today") })), ...shop.filter((x) => !x.d).map((x) => ({ t: x.t, k: "покупки", go: () => go("lists") })),
   { t: "Совет семьи — вс 22 ноября, 19:00", k: "событие", go: () => go("week") }, { t: "День рождения Бабушки — сб 21 ноября", k: "событие", go: () => go("week") },
-  ...DOCS.filter(canSeeDoc).map((d) => ({ t: d.t, k: "документ · только название", go: () => toast("Откроется страница документов", null) }))];
+  ...DOCS.filter(canSeeDoc).map((d) => ({ t: d.t, k: "документ · только название", go: () => toast("Откроется страница документов.", null) }))];
 function openSearch() { $("#searchSheet").classList.add("open"); $("#sIn").value = ""; $("#sRes").innerHTML = ""; $("#sClear").hidden = true;
-  $("#sNote").textContent = child ? "Ищет по твоим делам, спискам и семье." : "Ищет по людям, делам, событиям и спискам. Документы — только по названию и только твои; внутри документов, заметок о здоровье и учёбе, вечерних ответов и веса не ищет.";
+  $("#sNote").textContent = child ? "Ищет по твоим делам, спискам и семье." : "Ищет по людям, делам, событиям и спискам. Документы — только по названию и только собственные; внутри документов, заметок о здоровье и учёбе, вечерних ответов и веса не ищет.";
   $("#sIn").focus(); }
 function closeSheet(id, back) { $(id).classList.remove("open"); back?.focus(); }
 $("#searchBtn").onclick = openSearch;
@@ -471,11 +473,11 @@ function go(v) {
 $$("[data-go]").forEach((b) => b.onclick = () => { go(b.dataset.go); if (b.dataset.go === "family" && child) openProfile("son"); });
 $("#tShop").onclick = () => { $("#tShop").setAttribute("aria-selected", "true"); $("#tMenu").setAttribute("aria-selected", "false"); $("#pShop").hidden = false; $("#pMenu").hidden = true; };
 $("#tMenu").onclick = () => { $("#tMenu").setAttribute("aria-selected", "true"); $("#tShop").setAttribute("aria-selected", "false"); $("#pShop").hidden = true; $("#pMenu").hidden = false; };
-$("#thanks").onclick = () => toast("Спасибо отправлено: Папе — «Слово — дело»", () => {});
+$("#thanks").onclick = () => toast("Благодарность отправлена: Папе — «Слово — дело».", () => {});
 $$("[data-kid]").forEach((b) => b.onclick = () => toast(b.dataset.kid === "thanks" ? "Кому спасибо? (выбор человека с фото)" : "Откроется камера", null));
 $("#fb").onclick = () => { $("#sheet").classList.add("open"); $("#fbIn").focus(); };
 $("#fbClose").onclick = () => closeSheet("#sheet", $("#fb"));
-$("#fbSend").onclick = () => { closeSheet("#sheet", $("#fb")); toast("Спасибо — владелец увидит", null); };
+$("#fbSend").onclick = () => { closeSheet("#sheet", $("#fb")); toast(child ? "Спасибо — владелец увидит." : "Предложение отправлено владельцу.", null); };
 $("#moreBtn").onclick = () => { $("#more").textContent = "18:30 · Полить цветы · 21:00 · Проверить портфель Сына"; };
 $("#memPhoto").innerHTML = `<svg viewBox="0 0 84 84" aria-hidden="true"><rect width="84" height="84" fill="#d9d1c4"/><rect x="10" y="44" width="64" height="30" fill="#b9ae9c"/><path d="M10 44l32-20 32 20z" fill="#a39783"/><circle cx="42" cy="58" r="7" fill="#8f826d"/></svg>`;
 
@@ -483,10 +485,11 @@ function renderAll() { $("#meAv").innerHTML = av(viewer, "l"); renderMine(); ren
 let memory = true; // L6: «Этот день» is hidden when the archive has nothing with this day and month
 function setChild(on) {
   child = on; viewer = on ? "son" : "mama"; document.body.classList.toggle("child", on); $("#dChild").setAttribute("aria-pressed", on);
-  $("#who").textContent = on ? "Сын" : "Мама"; $("#lead").textContent = on ? "Твои дела на сегодня." : "Вот что важно сегодня.";
-  $("#kid").hidden = !on; $("#thanks").hidden = on; $("#memCard").hidden = on || !memory; $("#listPeek").hidden = on; $("#hMine").textContent = on ? "Мои дела" : "Мои ближайшие дела";
-  $("#qaIn").placeholder = on ? "Хочу купить…" : "Быстро добавить…";
-  $("#qaEx").innerHTML = on ? 'Например: <span class="nw">йогурт</span> · <span class="nw">карандаши</span>' : 'Например: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span>';
+  $("#who").textContent = on ? "Сын" : "Мама"; $("#lead").textContent = on ? "Твои дела на сегодня." : "Главное на сегодня.";
+  $("#kid").hidden = !on; $("#thanks").hidden = on; $("#memCard").hidden = on || !memory; $("#listPeek").hidden = on; $("#hMine").textContent = on ? "Мои дела" : "Ближайшие дела";
+  $("#qaIn").placeholder = on ? "Хочу купить…" : "Добавить запись…";
+  $("#fb").textContent = on ? "Что неудобно?" : "Предложить улучшение"; $("#sheetH").textContent = $("#fb").textContent; $("#fbLead").textContent = on ? "Одна строка — её увидит владелец, а на совете раз в месяц обсудим, что поправить." : "Одна строка — её увидит владелец; раз в месяц предложения обсуждаются на совете.";
+  $("#qaEx").innerHTML = on ? 'Например: <span class="nw">йогурт</span> · <span class="nw">карандаши</span>' : 'Примеры: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span>';
   renderAll();
 }
 $("#dTheme").onclick = () => { const on = !document.documentElement.classList.contains("dark"); document.documentElement.classList.toggle("dark", on); $("#dTheme").setAttribute("aria-pressed", on); };
