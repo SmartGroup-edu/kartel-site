@@ -95,7 +95,7 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
         <h3 className="text-[17px] font-medium text-[var(--foreground)]">{t.evening}</h3>
         {ev?.on ? (
           <form className="mt-2 flex flex-col gap-2 sm:max-w-[60ch]" onSubmit={(e) => { e.preventDefault(); save(); }}>
-            <label htmlFor="evening-q" className="text-[15px] text-[var(--text-secondary)]">{t.q} <span className="text-[14px]">· {t.only}</span></label>
+            <label htmlFor="evening-q" className="text-[15px] text-[var(--text-secondary)]">{t.q} <span className="whitespace-nowrap text-[14px]">· {t.only}</span></label>
             <input id="evening-q" data-evening-input="" value={draft} maxLength={200} onChange={(e) => setDraft(e.target.value)}
               className="block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]" />
             <div className="flex flex-wrap gap-3">
