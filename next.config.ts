@@ -82,6 +82,8 @@ const nextConfig: NextConfig = {
       { source: "/console", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       // Council mockup (bus 126): never indexed, never sends a referrer.
       { source: "/m/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
+      // Its self-hosted fonts (the site's own Inter + Source Serif 4, OFL): same-origin, cached for a year.
+      { source: "/m/:id/fonts/:file", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }, { key: "Content-Type", value: "font/woff2" }] },
       {
         source: "/crest.jpeg",
         headers: [
