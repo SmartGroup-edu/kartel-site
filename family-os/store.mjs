@@ -228,6 +228,21 @@ export function pgStore(pool) {
     async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
     async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1", [since])).rows; },
     async markInviteSent(id) { await q("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [id]); },
+    // ---- Stage 3e-1 «Здоровье-лайт»
+    async healthPrefs() { return (await q("SELECT person_id, ticks_on, evening_q_on FROM health_pref")).rows; },
+    async setHealthPref(personId, p) {
+      await q("INSERT INTO health_pref (person_id, ticks_on, evening_q_on) VALUES ($1, $2, $3) ON CONFLICT (person_id) DO UPDATE SET ticks_on = $2, evening_q_on = $3, updated_at = now()", [personId, p.ticks_on, p.evening_q_on]);
+    },
+    async healthTicks(from, to) { return (await q("SELECT person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, kind, done FROM health_tick WHERE on_date BETWEEN $1 AND $2", [from, to])).rows; },
+    async setHealthTick(personId, date, kind, done) {
+      await q("INSERT INTO health_tick (person_id, on_date, kind, done) VALUES ($1, $2, $3, $4) ON CONFLICT (person_id, on_date, kind) DO UPDATE SET done = $4", [personId, date, kind, done]);
+    },
+    async eveningFor(personId, from, to) { return (await q("SELECT id, to_char(on_date, 'YYYY-MM-DD') AS on_date, wrapped_key, text_ct FROM evening_answer WHERE person_id = $1 AND on_date BETWEEN $2 AND $3 ORDER BY on_date DESC", [personId, from, to])).rows; },
+    async eveningId(personId, date) { return (await q("SELECT id FROM evening_answer WHERE person_id = $1 AND on_date = $2", [personId, date])).rows[0]?.id ?? null; },
+    async setEvening(r) {
+      await q("INSERT INTO evening_answer (id, person_id, on_date, wrapped_key, text_ct) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (person_id, on_date) DO UPDATE SET wrapped_key = $4, text_ct = $5", [r.id, r.person_id, r.on_date, r.wrapped_key, r.text_ct]);
+    },
+    async deleteEvening(personId, date) { await q("DELETE FROM evening_answer WHERE person_id = $1 AND on_date = $2", [personId, date]); },
     // ---- Passkeys (bus 98/100)
     async pkUser(email) { return (await q("SELECT email, user_handle FROM passkey_user WHERE email = $1", [email])).rows[0] ?? null; },
     async pkAddUser(email, handle) { await q("INSERT INTO passkey_user (email, user_handle) VALUES ($1, $2) ON CONFLICT (email) DO NOTHING", [email, handle]); return this.pkUser(email); },
@@ -347,7 +362,7 @@ export function pgStore(pool) {
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
-  const seen = new Map(), invites = [], photos = [];
+  const seen = new Map(), invites = [], photos = [], hprefs = new Map(), hticks = new Map(), evenings = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
@@ -448,6 +463,15 @@ export function memoryStore() {
     async recognitionsBetween(from, to) { return recs.filter((r) => r.on_date >= from && r.on_date <= to); },
     async recognitionsSentOn(fromId, date) { return recs.filter((r) => r.from_id === fromId && r.on_date === date).length; },
     async addRecognition(r, actor) { recs.push({ ...r, created_by: actor, created_at: now() }); },
+    // ---- Stage 3e-1
+    async healthPrefs() { return [...hprefs.entries()].map(([person_id, p]) => ({ person_id, ...p })); },
+    async setHealthPref(personId, p) { hprefs.set(personId, { ticks_on: p.ticks_on, evening_q_on: p.evening_q_on }); },
+    async healthTicks(from, to) { return [...hticks.values()].filter((t) => t.on_date >= from && t.on_date <= to); },
+    async setHealthTick(personId, date, kind, done) { hticks.set(`${personId}|${date}|${kind}`, { person_id: personId, on_date: date, kind, done }); },
+    async eveningFor(personId, from, to) { return [...evenings.values()].filter((e) => e.person_id === personId && e.on_date >= from && e.on_date <= to).sort((a, b) => (a.on_date < b.on_date ? 1 : -1)); },
+    async eveningId(personId, date) { return evenings.get(`${personId}|${date}`)?.id ?? null; },
+    async setEvening(r) { evenings.set(`${r.person_id}|${r.on_date}`, { ...r }); },
+    async deleteEvening(personId, date) { evenings.delete(`${personId}|${date}`); },
     // ---- Stage 3d-2
     async noteSignIn(email, date) { const x = seen.get(email); seen.set(email, x ? { ...x, last_on: date > x.last_on ? date : x.last_on } : { email, first_on: date, last_on: date }); },
     async signIns() { return [...seen.values()]; },

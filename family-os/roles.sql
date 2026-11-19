@@ -41,3 +41,7 @@ GRANT SELECT, INSERT, DELETE ON passkey_challenge TO kfo_app;
 GRANT SELECT, INSERT ON passkey_attempt TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (sent_at) ON security_notice TO kfo_app;
 GRANT USAGE ON SEQUENCE passkey_attempt_id_seq, security_notice_id_seq TO kfo_app;
+-- 3e-1: settings and ticks are upserted; an evening answer is the author's — they may delete it.
+GRANT SELECT, INSERT, UPDATE (ticks_on, evening_q_on, updated_at) ON health_pref TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (done) ON health_tick TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (wrapped_key, text_ct), DELETE ON evening_answer TO kfo_app;
