@@ -19,7 +19,7 @@ test("one page under public/m/<24 hex>/ — noindex, no referrer, the «маке
     assert.ok(html.includes(`url(/m/${ids[0]}/fonts/${f}.woff2)`), f);
     assert.ok(readdirSync(new URL(`../public/m/${ids[0]}/fonts/`, import.meta.url)).includes(`${f}.woff2`), `${f} file`);
   }
-  assert.match(html, /h1\{font-family:var\(--font-serif\)/); assert.match(html, /h2\{font-family:var\(--font-sans\)/, "card titles in Inter (variant A)");
+  assert.match(html, /h1\{font-family:var\(--font-serif\)/); assert.match(html, /h2\{font-family:var\(--font-serif\)/, "card titles in the serif (bus 131, formal)");
   for (const role of ["Мама", "Папа", "Сын", "Дочь", "Бабушка"]) assert.ok(html.includes(role), "names are roles");
 });
 
