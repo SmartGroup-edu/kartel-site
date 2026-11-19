@@ -5,8 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
+<link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/sourceserif4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <title>Семья · макет для совета 22.11</title>
 <style>
+/* Typefaces (bus 128): the site's own Inter + Source Serif 4 (OFL), self-hosted, same-origin; variable, real 400–600.
+   Fallback metrics match next/font's (Arial / Times New Roman) so the swap doesn't move the layout. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(/m/eaeb861d7150331664e331a1/fonts/inter-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(/m/eaeb861d7150331664e331a1/fonts/inter-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Source Serif 4";font-style:normal;font-weight:200 900;font-display:swap;src:url(/m/eaeb861d7150331664e331a1/fonts/sourceserif4-latin.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Source Serif 4";font-style:normal;font-weight:200 900;font-display:swap;src:url(/m/eaeb861d7150331664e331a1/fonts/sourceserif4-cyrillic.woff2) format("woff2");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Inter Fallback";src:local("Arial");ascent-override:90.44%;descent-override:22.52%;line-gap-override:0%;size-adjust:107.12%}
+@font-face{font-family:"Source Serif 4 Fallback";src:local("Times New Roman");ascent-override:87.87%;descent-override:28.41%;line-gap-override:0%;size-adjust:117.91%}
+:root{--font-sans:"Inter","Inter Fallback",system-ui,sans-serif;--font-serif:"Source Serif 4","Source Serif 4 Fallback",Georgia,serif}
 /* Макет этапа 5 v3 (kartel-qa bus 121). Токены — app/globals.css kartel-site.
    Данные вымышленные; имена — роли; «фото» — нарисованные силуэты; своё фото — только в этом браузере. */
 :root{--fs-h1:24px;--fs-h2:17px;--fs-body:16px;--fs-small:14px;--lh-small:1.45;--pad:16px;--gap:12px}
@@ -15,8 +27,10 @@
 :root{--background:#fff;--foreground:#2b2824;--accent:#7b1e2d;--on-accent:#fff;--border:#e6e2dd;--surface:#f7f6f4;--muted:#5c564c;--pillar-rhythm:#2b2824;--pillar-growth:#8a6516;--pillar-kodeks:#5d6670;color-scheme:light}
 :root.dark{--background:#1a1816;--foreground:#e8e4dd;--accent:#c9964e;--on-accent:#1a1816;--border:#332e28;--surface:#231f1b;--muted:#b8b2a6;--pillar-rhythm:#d6d0c6;--pillar-growth:#d4a65a;--pillar-kodeks:#b4bcc6;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--background);color:var(--foreground);font:var(--fs-body)/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-.serif{font-family:Georgia,"Times New Roman",serif}
+body{margin:0;background:var(--background);color:var(--foreground);font:var(--fs-body)/1.5 var(--font-sans);font-feature-settings:"cv11","ss01";font-variant-numeric:tabular-nums}
+:root.dark body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+b,strong,h3{font-weight:600}
+.serif{font-weight:600}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -31,15 +45,19 @@ button{cursor:pointer}
 .app{max-width:1120px;margin:0 auto;padding:16px 16px 96px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:112px}
 @media(min-width:960px){.top{padding-right:0}.demo{top:auto;bottom:12px}.demo[open]>div{top:auto;bottom:52px}}
-.mark{font-family:Georgia,"Times New Roman",serif;letter-spacing:.14em;color:var(--accent);font-size:var(--fs-small);white-space:nowrap}
+.mark{font-family:var(--font-serif);font-weight:600;font-optical-sizing:auto;letter-spacing:.12em;color:var(--accent);font-size:var(--fs-small);white-space:nowrap}
 @media(max-width:359px){.mark-tail{display:none}}
 .icon-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:12px;background:var(--background);display:grid;place-items:center;color:var(--foreground)}
 .icon-btn svg{width:20px;height:20px}
 @media(max-width:479px){#today{display:none}}
-h1{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:var(--fs-h1);line-height:1.2;margin:0}
-h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:var(--fs-h2);line-height:1.3;margin:0 0 8px}
+h1{font-family:var(--font-serif);font-optical-sizing:auto;font-weight:600;letter-spacing:-.01em;font-size:var(--fs-h1);line-height:1.2;margin:0}
+h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-height:1.3;letter-spacing:-.01em;margin:0 0 8px}
+/* Variant B (for R0's comparison only): card titles in the serif too */
+:root.variant-b h2{font-family:var(--font-serif);letter-spacing:0}
 .meta{color:var(--muted);font-size:var(--fs-small);line-height:var(--lh-small);margin:0}
 .hello{display:flex;align-items:center;gap:12px;margin:16px 0 2px}
+/* The real Source Serif 4 is wider than Georgia: on phones the greeting avatar is 40 so «Добрый вечер, Бабушка» stays on one line */
+@media(max-width:399px){.hello{gap:10px}.hello .av.l{width:40px;height:40px}}
 .av{flex:none;display:inline-grid;place-items:center;border-radius:50%;overflow:hidden;color:#fff;font-weight:600;background:var(--c,#5d6670);border:2px solid var(--background);box-shadow:0 0 0 1px var(--border)}
 .av img,.av svg{width:100%;height:100%;object-fit:cover;display:block}
 .av.s{width:32px;height:32px;font-size:var(--fs-small)}.av.l{width:48px;height:48px;font-size:var(--fs-body)}.av.xl{width:120px;height:120px;font-size:var(--fs-h1)}
@@ -62,13 +80,13 @@ h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:var(--f
 .task.done .tick{background:var(--foreground);color:var(--background)}
 .task.done .t{text-decoration:line-through;color:var(--muted)}
 .t{flex:1;min-width:0}.t small{display:block;color:var(--muted);font-size:var(--fs-small);line-height:var(--lh-small)}
-.btn{min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:var(--background);display:inline-flex;align-items:center;gap:8px}
+.btn{font-weight:500;min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:10px;background:var(--background);display:inline-flex;align-items:center;gap:8px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 .btn.link{border:0;padding:0;background:none;text-decoration:underline;text-underline-offset:4px;color:var(--muted)}
 .timeline{list-style:none;margin:0;padding:0}
 .timeline li{display:grid;grid-template-columns:52px 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--border)}
 .timeline li:first-child{border-top:0}
-.timeline li.warn .who{font-weight:600}
+.who{font-weight:500}.timeline li.warn .who{font-weight:600}
 .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--fs-small)}
 .drv{color:var(--muted);font-size:var(--fs-small)}
 .memory{display:flex;gap:14px;align-items:center}
@@ -76,7 +94,7 @@ h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:var(--f
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .why{font-size:var(--fs-small);line-height:var(--lh-small);color:var(--muted);margin:8px 0 0}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;justify-content:center;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--background);border-top:1px solid var(--border)}
-.nav button{flex:1;max-width:140px;min-height:56px;border:0;background:none;border-radius:10px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted)}
+.nav button{font-weight:500;flex:1;max-width:140px;min-height:56px;border:0;background:none;border-radius:10px;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--muted)}
 .nav button[aria-current=page]{color:var(--foreground);font-weight:600;background:var(--surface)}
 .nav svg{width:22px;height:22px}
 @media(min-width:960px){.nav{position:sticky;top:0;bottom:auto;border-top:0;border-bottom:1px solid var(--border);padding:4px 8px}.nav button{flex-direction:row;gap:8px;min-height:48px}.app{padding-bottom:32px}}
@@ -118,7 +136,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 .wd h3{margin:0 0 6px;font-size:var(--fs-small);font-weight:600}
 .ev{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:4px 0}
 .ev .av{margin-top:2px}
-.ev.warn b{font-weight:700}
+.ev b{font-weight:500}.ev.warn b{font-weight:600}
 .wd .menu{margin-top:6px;font-size:14px;color:var(--muted)}
 .result{display:flex;align-items:center;gap:12px;min-height:52px;width:100%;border:0;border-top:1px solid var(--border);background:none;text-align:left;padding:0 4px}
 .result small{color:var(--muted);font-size:14px;margin-left:auto}
@@ -154,7 +172,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
   </div>
 
   <section id="vToday" aria-labelledby="hToday">
-    <div class="hello"><span id="meAv"></span><div><h1 id="hToday">Доброе утро, <span id="who">Мама</span></h1><p class="meta" id="lead">Вот что важно сегодня.</p></div></div>
+    <div class="hello"><span id="meAv"></span><div><h1 id="hToday">Доброе утро, <span id="who">Мама</span></h1><p class="meta" id="lead" style="margin-top:4px">Вот что важно сегодня.</p></div></div>
     <form class="qa" id="qa" autocomplete="off">
       <label for="qaIn" class="sr">Быстро добавить</label>
       <input id="qaIn" placeholder="Быстро добавить…">
@@ -472,6 +490,7 @@ $("#dTheme").onclick = () => { const on = !document.documentElement.classList.co
 $("#dChild").onclick = () => setChild(!child);
 const q = new URLSearchParams(location.search);
 if (q.get("nomemory") === "1") memory = false;
+if (q.get("variant") === "b") document.documentElement.classList.add("variant-b");
 if (q.get("theme") === "dark") $("#dTheme").click();
 setChild(q.get("child") === "1");
 if (q.get("as") === "papa" && !child) { viewer = "papa"; $("#who").textContent = "Папа"; renderAll(); }
