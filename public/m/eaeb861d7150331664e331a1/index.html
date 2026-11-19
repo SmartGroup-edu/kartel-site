@@ -44,7 +44,7 @@ button{cursor:pointer}
 .chip[aria-pressed=true]{border-color:var(--foreground);font-weight:600}
 .app{max-width:1120px;margin:0 auto;padding:16px 16px 96px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-right:112px}
-@media(min-width:960px){.top{padding-right:0}.demo{top:auto;bottom:12px}.demo[open]>div{top:auto;bottom:52px}}
+@media(min-width:960px){.top{padding-right:0}}
 .mark{font-family:var(--font-serif);font-weight:600;font-optical-sizing:auto;letter-spacing:.12em;color:var(--accent);font-size:var(--fs-small);white-space:nowrap}
 @media(max-width:359px){.mark-tail{display:none}}
 .icon-btn{width:44px;height:44px;border:1px solid var(--border);border-radius:6px;background:var(--background);display:grid;place-items:center;color:var(--foreground)}
@@ -189,7 +189,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
     <div class="grid">
       <section class="card tip span" aria-labelledby="hSmart" id="smart">
         <div class="tip-h ttl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><h2 id="hSmart">В 17:00 нужно забрать двоих</h2></div>
-        <p style="margin:8px 0 10px">Сына — из школы (забирает Мама), Дочь — с музыки. Кто забирает Дочь?</p>
+        <p style="margin:8px 0 10px">Сына из школы забирает Мама. Дочь заканчивает музыку в 17:00. Кто заберёт Дочь?</p>
         <div class="row" id="smartBtns"></div>
         <p class="why">Свободны в <span class="nw">16:30–17:30</span>: Папа, Бабушка.</p>
       </section>
@@ -241,7 +241,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
       <div class="card tip" id="habit" style="margin-bottom:12px">
         <div class="tip-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/></svg><p style="margin:0">Обычно по пятницам: <b>кефир</b> и <b>сыр</b>.</p></div>
         <div class="row" style="margin-top:8px"><button class="btn" id="habitYes">Добавить в список</button><button class="btn" id="habitNo">Позже</button></div>
-        <p class="why">Их вычёркивали три пятницы подряд.</p></div>
+        <p class="why">Покупались три пятницы подряд.</p></div>
       <div class="row"><button class="btn" id="going">Иду в магазин</button><span class="meta" id="goingNote"></span></div>
       <form class="qa" id="shopAdd" autocomplete="off"><label for="shopIn" class="sr">Добавить в покупки</label><input id="shopIn" placeholder="Что купить?"><button type="submit">Добавить</button></form>
       <div id="shop"></div>
