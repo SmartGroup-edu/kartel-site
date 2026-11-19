@@ -50,6 +50,8 @@ test("R1 UI: the owner's «Завершить все сеансы» on «Кто 
   assert.match(k, /\{!self && personId && data\?\.can\.clear && <EndSessions/, "owner only (can.clear is the owner's capability)");
   assert.match(k, /`\/api\/family-os\/people\/\$\{personId\}\/end-sessions`/);
   assert.match(k, /ended: "Сеанс завершён владельцем\. Войди заново по ссылке из письма\."/);
+  assert.match(k, /\{self \? t\.lead : data\?\.can\.clear \? t\.leadOwner : t\.leadOther\}/, "the owner's lead points to the button; a parent keeps the 8-hour sentence");
+  assert.match(k, /leadOwner: "[^"]*Открытые сеансы можно завершить кнопкой ниже\."/);
   assert.doesNotMatch(a + k, /text-\[1[0-3]px\]/, "text ≥ 14 px");
 });
 

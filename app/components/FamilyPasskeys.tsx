@@ -18,6 +18,7 @@ const T = {
   RU: {
     head: "Вход", lead: "Ключ доступа — вход по Face ID, Touch ID, отпечатку или ключу безопасности, без письма. Ссылка из письма продолжает работать всегда.",
     leadOther: "Ключи доступа этого человека. Отзыв сразу закрывает вход с этим ключом; уже открытые сеансы закончатся сами в течение 8 часов.",
+    leadOwner: "Ключи доступа этого человека. Отзыв сразу закрывает вход с этим ключом. Открытые сеансы можно завершить кнопкой ниже.",
     none: "Ключей пока нет.", add: "Добавить ключ на этом устройстве", adding: "Подтверди на устройстве…", added: "Ключ добавлен. На почту ушло письмо об этом.",
     reauth: "Чтобы добавить ключ, войди заново по ссылке из письма — так чужое устройство не сможет добавить свой ключ.", reauthLink: "Войти по ссылке",
     unsupported: "Этот браузер не умеет ключи доступа. Вход по ссылке из письма работает как прежде.",
@@ -33,6 +34,7 @@ const T = {
   EN: {
     head: "Sign-in", lead: "A passkey signs you in with Face ID, Touch ID, a fingerprint or a security key, without an email. The email link always keeps working.",
     leadOther: "This person's passkeys. Revoking closes sign-in with that key at once; sessions already open end by themselves within 8 hours.",
+    leadOwner: "This person's passkeys. Revoking closes sign-in with that key at once. Open sessions can be ended with the button below.",
     none: "No passkeys yet.", add: "Add a passkey on this device", adding: "Confirm on your device…", added: "Passkey added. An email about it is on its way.",
     reauth: "To add a passkey, sign in again with an email link — so a stranger's device cannot add its own key.", reauthLink: "Sign in with a link",
     unsupported: "This browser does not support passkeys. The email link works as before.",
@@ -85,7 +87,7 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
   return (
     <section id="signin-keys" aria-labelledby="signin-keys-h" data-passkeys={self ? "self" : "other"} className="mt-12 scroll-mt-24">
       <h2 id="signin-keys-h" className={H2}>{t.head}</h2>
-      <p className={`${META} mt-2 max-w-[60ch]`}>{self ? t.lead : t.leadOther}</p>
+      <p className={`${META} mt-2 max-w-[60ch]`}>{self ? t.lead : data?.can.clear ? t.leadOwner : t.leadOther}</p>
       {data && (data.keys.length ? (
         <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {data.keys.map((k) => <Row key={k.id} lang={lang} k={k} can={data.can} onChange={load} />)}
