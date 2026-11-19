@@ -45,6 +45,11 @@ const nextConfig: NextConfig = {
   // The coat of arms is the public home since R0's decision of 2026-11-14: the old gated
   // crest URL goes there (308), so there is one canonical page and no duplicate content.
   // Config redirects run before proxy.ts, so this never reaches the family gate.
+  // The council mockup (Stage 5, bus 126): an unlisted static page at /m/<24 hex>/ — served from public/m/<id>/index.html.
+  // proxy.ts skips /m/ (see its matcher); temporary, removal planned 29.11.2026.
+  async rewrites() {
+    return [{ source: "/m/:id([0-9a-f]{24})", destination: "/m/:id/index.html" }];
+  },
   async redirects() {
     return [{ source: "/:lang(en|ru)/family/crest", destination: "/:lang", permanent: true }];
   },
@@ -75,6 +80,8 @@ const nextConfig: NextConfig = {
       { source: "/:lang(en|ru)/family", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/:lang(en|ru)/family/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/console", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // Council mockup (bus 126): never indexed, never sends a referrer.
+      { source: "/m/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
       {
         source: "/crest.jpeg",
         headers: [
