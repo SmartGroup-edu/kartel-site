@@ -48,4 +48,7 @@ test("bus 117: chart has a visible neutral caption; RU date hint and decimal com
   assert.match(c, /Number\(s\.trim\(\)\.replace\(",", "\."\)\)/, "inputs accept «,» and «.»");
   assert.match(c, /\{hasGoal && !editGoal \? \(/); assert.match(c, /goalEdit: "Изменить цель"/);
   assert.match(c, /delConfirm: "Все записи о весе и калориях будут удалены без возможности восстановления\. Сначала можно скачать их\."/);
+  assert.match(c, /delYes: "Удалить всё"/); assert.match(c, /data-body-delete-no="" autoFocus/, "«Отмена» has the default focus (bus 120)");
+  assert.match(c, /\{!ask && <button type="button" data-body-off=""/, "«Выключить» hides while the confirm is open");
+  assert.match(c, /onClick=\{\(\) => \{ setMsg\(""\); setAsk\(true\); \}\}/, "the stale status clears when the confirm opens");
 });

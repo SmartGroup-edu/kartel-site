@@ -23,7 +23,7 @@ const T = {
     caption: (a: string, b: string, n: number) => `Средний вес по неделям: с ${a} до ${b} кг за ${n} ${n % 10 === 1 && n % 100 !== 11 ? "неделю" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "недели" : "недель"}`,
     trend: "Средний вес по неделям", trendNone: "Тренд появится, когда будут записи хотя бы за две недели. Пропуски ничего не значат.",
     recent: "Последние записи", gp: "Если хочется обсудить цель или темп, стоит поговорить с GP — это обычный шаг.",
-    export: "Скачать мои данные", del: "Удалить все записи", delConfirm: "Все записи о весе и калориях будут удалены без возможности восстановления. Сначала можно скачать их.", delYes: "Удалить", delNo: "Отмена",
+    export: "Скачать мои данные", del: "Удалить все записи", delConfirm: "Все записи о весе и калориях будут удалены без возможности восстановления. Сначала можно скачать их.", delYes: "Удалить всё", delNo: "Отмена",
     off: "Выключить", error: "Не получилось — проверь числа и попробуй ещё раз.", kg: "кг", kcalU: "ккал",
   },
   EN: {
@@ -36,7 +36,7 @@ const T = {
     caption: (a: string, b: string, n: number) => `Average weight by week: from ${a} to ${b} kg over ${n} ${n === 1 ? "week" : "weeks"}`,
     trend: "Average weight by week", trendNone: "The trend appears once there are entries for at least two weeks. Missed days mean nothing.",
     recent: "Recent entries", gp: "If you'd like to talk the goal or the pace through, a GP is a good person to ask — an ordinary step.",
-    export: "Download my data", del: "Delete all entries", delConfirm: "All weight and calorie entries will be deleted and can't be recovered. You can download them first.", delYes: "Delete", delNo: "Cancel",
+    export: "Download my data", del: "Delete all entries", delConfirm: "All weight and calorie entries will be deleted and can't be recovered. You can download them first.", delYes: "Delete all", delNo: "Cancel",
     off: "Turn off", error: "That didn't work — check the numbers and try again.", kg: "kg", kcalU: "kcal",
   },
 } as const;
@@ -158,10 +158,10 @@ export default function FamilyBody({ lang }: { lang: Lang }) {
               <>
                 <span className="text-[15px] text-[var(--foreground)]">{t.delConfirm}</span>
                 <button type="button" data-body-delete-yes="" onClick={wipe} className={btn}>{t.delYes}</button>
-                <button type="button" onClick={() => setAsk(false)} className={btn}>{t.delNo}</button>
+                <button type="button" data-body-delete-no="" autoFocus onClick={() => setAsk(false)} className={btn}>{t.delNo}</button>
               </>
-            ) : <button type="button" data-body-delete="" onClick={() => setAsk(true)} className={btn}>{t.del}</button>}
-            <button type="button" data-body-off="" onClick={() => toggle(false)} className="inline-flex min-h-11 items-center text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.off}</button>
+            ) : <button type="button" data-body-delete="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.del}</button>}
+            {!ask && <button type="button" data-body-off="" onClick={() => toggle(false)} className="inline-flex min-h-11 items-center text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.off}</button>}
           </div>
         </>
       )}
