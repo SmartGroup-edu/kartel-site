@@ -11,7 +11,8 @@ test("one page under public/m/<24 hex>/ — noindex, no referrer, the «маке
   const html = src(`public/m/${ids[0]}/index.html`);
   assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
   assert.match(html, /<meta name="referrer" content="no-referrer">/);
-  assert.match(html, /Макет для семейного совета · ничего не сохраняется/);
+  assert.match(html, /<p class="banner"[^>]*>Макет · ничего не сохраняется<\/p>/, "one-line banner (bus 130)");
+  assert.match(html, /<title>Макет для семейного совета · ничего не сохраняется<\/title>/);
   assert.equal((html.match(/https?:\/\//g) ?? []).length, 0, "loads nothing from anywhere else");
   // bus 128: the site's own fonts, same-origin, absolute paths (the page is served at /m/<id> without a trailing slash)
   for (const f of ["inter-latin", "inter-cyrillic", "sourceserif4-latin", "sourceserif4-cyrillic"]) {

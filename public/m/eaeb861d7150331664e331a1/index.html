@@ -8,7 +8,7 @@
 <link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/inter-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/m/eaeb861d7150331664e331a1/fonts/sourceserif4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
-<title>Семья · макет для совета 22.11</title>
+<title>Макет для семейного совета · ничего не сохраняется</title>
 <style>
 /* Typefaces (bus 128): the site's own Inter + Source Serif 4 (OFL), self-hosted, same-origin; variable, real 400–600.
    Fallback metrics match next/font's (Arial / Times New Roman) so the swap doesn't move the layout. */
@@ -87,8 +87,10 @@ h2{font-family:var(--font-sans);font-weight:600;font-size:var(--fs-h2);line-heig
 .timeline li{display:grid;grid-template-columns:52px 32px 1fr;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--border)}
 .timeline li:first-child{border-top:0}
 .who{font-weight:500}.timeline li.warn .who{font-weight:600}
+.nw{white-space:nowrap}
 .time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:var(--fs-small)}
-.drv{color:var(--muted);font-size:var(--fs-small)}
+.drv{color:var(--muted);font-size:var(--fs-small);font-weight:400;white-space:nowrap}
+.drv.ask{color:var(--accent);font-weight:500}
 .memory{display:flex;gap:14px;align-items:center}
 .photo{flex:none;width:84px;height:84px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -137,7 +139,8 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 .ev{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:4px 0}
 .ev .av{margin-top:2px}
 .ev b{font-weight:500}.ev.warn b{font-weight:600}
-.wd .menu{margin-top:6px;font-size:14px;color:var(--muted)}
+.wd .menu{margin-top:6px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.wd .menu svg{width:16px;height:16px;flex:none}
 .result{display:flex;align-items:center;gap:12px;min-height:52px;width:100%;border:0;border-top:1px solid var(--border);background:none;text-align:left;padding:0 4px}
 .result small{color:var(--muted);font-size:14px;margin-left:auto}
 [hidden]{display:none!important}
@@ -151,7 +154,7 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
 </style>
 </head>
 <body>
-<p style="margin:0;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:14px;color:var(--muted)">Макет для семейного совета · ничего не сохраняется</p>
+<p class="banner" style="margin:0;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:14px;color:var(--muted);white-space:nowrap;padding-right:112px">Макет · ничего не сохраняется</p>
 <details class="demo"><summary>Макет ▾</summary>
   <div><button class="chip" id="dTheme" aria-pressed="false">Тёмная тема</button><button class="chip" id="dChild" aria-pressed="false">Детский режим</button>
     <span class="meta" style="font-size:14px">Макет v3 · данные вымышленные · «фото» нарисованы</span></div>
@@ -179,14 +182,14 @@ input[type=range]{width:100%;min-height:44px;accent-color:var(--accent)}
       <button type="submit">Добавить</button>
     </form>
     <div class="hint" id="qaHint" aria-live="polite"></div>
-    <p class="meta" id="qaEx">Например: молоко · забрать Сына в 17:00 пт · ДР бабушки 12.03</p>
+    <p class="meta" id="qaEx">Например: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span></p>
 
     <div class="grid">
       <section class="card tip span" aria-labelledby="hSmart" id="smart">
         <div class="tip-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><h2 id="hSmart" style="margin:0">В 17:00 нужно забрать двоих</h2></div>
         <p style="margin:8px 0 10px">Сына — из школы (забирает Мама), Дочь — с музыки. Кто забирает Дочь?</p>
         <div class="row" id="smartBtns"></div>
-        <p class="why">Предлагаем Папу и Бабушку: в 16:30–17:30 у них нет дел.</p>
+        <p class="why">Предлагаем Папу и Бабушку: в <span class="nw">16:30–17:30</span> у&nbsp;них нет дел.</p>
       </section>
 
       <section class="card rule" aria-labelledby="hMine">
@@ -339,7 +342,7 @@ let pickup = null;
 /* M3: the avatar is always the person the event is about, followed by their name; the driver comes after, muted. */
 const day = () => [["08:30","papa","работа до 16:30"],["17:00","son","из школы","mama"],["17:00","daughter","музыка", pickup, !pickup],["19:00","gran","ужин всей семьёй"]];
 const kidDay = [["17:00","son","из школы","mama"],["19:00","gran","ужин всей семьёй"]];
-const drv = (d, w) => (d ? ` <span class="drv">· забирает ${P[d].name}</span>` : w ? ` <span class="drv">· кто забирает?</span>` : "");
+const drv = (d, w) => (d ? ` <span class="drv">· забирает ${P[d].name}</span>` : w ? ` <span class="drv ask">· кто забирает?</span>` : "");
 let shop = [{ t: "Молоко", sec: "Молочное", by: "mama", d: false }, { t: "Йогурт", sec: "Молочное", by: "daughter", d: false }, { t: "Хлеб", sec: "Хлеб", by: "papa", d: false }, { t: "Яблоки", sec: "Овощи и фрукты", by: "gran", d: false }, { t: "Гречка", sec: "Бакалея", by: "mama", d: true }];
 const SEC = [["Молочное",/молок|кефир|йогурт|сыр|творог|сметан|масло/],["Хлеб",/хлеб|батон|булк|лаваш/],["Овощи и фрукты",/яблок|банан|картош|морков|лук|огур|помидор|лимон|свёкл|капуст/],["Бакалея",/греч|рис|макарон|мук|сахар|соль|чай|кофе/],["Мясо и рыба",/кур|мяс|рыб|фарш/]];
 const secOf = (t) => (SEC.find(([, r]) => r.test(t.toLowerCase())) ?? ["Другое"])[0];
@@ -350,7 +353,7 @@ function renderMine() {
   $$("#mine .tick").forEach((b) => b.onclick = () => { const r = b.closest(".task"), on = !r.classList.contains("done"); r.classList.toggle("done", on); b.setAttribute("aria-checked", on); b.textContent = on ? "✓" : ""; });
   $("#more").hidden = child;
 }
-function renderDay() { $("#timeline").innerHTML = (child ? kidDay : day()).map(([a, id, what, d, w]) => `<li class="${w ? "warn" : ""}"><span class="time">${a}</span>${av(id)}<span><span class="who">${P[id].name} · ${what}</span>${drv(d, w)}</span></li>`).join(""); }
+function renderDay() { $("#timeline").innerHTML = (child ? kidDay : day()).map(([a, id, what, d, w]) => `<li class="${w ? "warn" : ""}"><span class="time">${a}</span>${av(id)}<span><span class="who">${P[id].name}</span> · ${what}${drv(d, w)}</span></li>`).join(""); }
 function renderSmart() {
   $("#smart").hidden = child || Boolean(pickup);
   $("#smartBtns").innerHTML = ["papa", "gran"].map((id) => `<button class="btn" data-pick="${id}">${av(id)} ${P[id].name}</button>`).join("") + `<button class="btn" id="later">Решу позже</button>`;
@@ -376,7 +379,7 @@ function renderWeek() {
   const days = [["Пн 16",[E("papa","08:30 работа")],"Борщ"],["Вт 17",[E("son","16:00 футбол"),E("son","17:00 из школы","mama")],"Курица с рисом"],["Ср 18",[E("daughter","17:00 музыка","papa")],"Сырники"],
     ["Чт 19",[E("son","17:00 из школы","mama"),E("daughter","17:00 музыка", pickup, !pickup),E("gran","19:00 ужин всей семьёй")],"Гречка с котлетами", true],
     ["Пт 20",[E("son","15:00 бассейн","papa")],"Пицца вместе"],["Сб 21",[E("gran","12:00 день рождения")],""],["Вс 22",[E("mama","19:00 Совет семьи")],""]];
-  $("#week").innerHTML = days.map(([d, evs, m, t]) => `<div class="wd ${t ? "today" : ""}"><h3>${d}${t ? " · сегодня" : ""}</h3>${evs.map((e) => `<div class="ev ${e.w ? "warn" : ""}" data-ev="">${av(e.who)}<span><b>${P[e.who].name}</b> · ${e.what}${drv(e.d, e.w)}</span></div>`).join("")}${m ? `<div class="menu">Ужин: ${m}</div>` : ""}</div>`).join("");
+  $("#week").innerHTML = days.map(([d, evs, m, t]) => `<div class="wd ${t ? "today" : ""}"><h3>${d}${t ? " · сегодня" : ""}</h3>${evs.map((e) => `<div class="ev ${e.w ? "warn" : ""}" data-ev="">${av(e.who)}<span><b>${P[e.who].name}</b> · ${e.what}${drv(e.d, e.w)}</span></div>`).join("")}${m ? `<div class="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="14" cy="12" r="6"/><path d="M5 4v6M3.5 4v4a1.5 1.5 0 0 0 3 0V4M5 10v10"/></svg>Ужин: ${m}</div>` : ""}</div>`).join("");
 }
 function renderPeople() { $("#people").innerHTML = Object.entries(P).map(([id, p]) => `<button class="person" data-person="${id}">${av(id, "l")}<span>${p.name}</span><span class="meta">${p.role}</span></button>`).join(""); $$("[data-person]").forEach((b) => b.onclick = () => openProfile(b.dataset.person)); }
 /* M4: the child and the parent see different screens for a photo on review */
@@ -483,7 +486,7 @@ function setChild(on) {
   $("#who").textContent = on ? "Сын" : "Мама"; $("#lead").textContent = on ? "Твои дела на сегодня." : "Вот что важно сегодня.";
   $("#kid").hidden = !on; $("#thanks").hidden = on; $("#memCard").hidden = on || !memory; $("#listPeek").hidden = on; $("#hMine").textContent = on ? "Мои дела" : "Мои ближайшие дела";
   $("#qaIn").placeholder = on ? "Хочу купить…" : "Быстро добавить…";
-  $("#qaEx").textContent = on ? "Например: йогурт · карандаши" : "Например: молоко · забрать Сына в 17:00 пт · ДР бабушки 12.03";
+  $("#qaEx").innerHTML = on ? 'Например: <span class="nw">йогурт</span> · <span class="nw">карандаши</span>' : 'Например: <span class="nw">молоко</span> · <span class="nw">забрать Сына в 17:00 пт</span> · <span class="nw">ДР бабушки 12.03</span>';
   renderAll();
 }
 $("#dTheme").onclick = () => { const on = !document.documentElement.classList.contains("dark"); document.documentElement.classList.toggle("dark", on); $("#dTheme").setAttribute("aria-pressed", on); };
