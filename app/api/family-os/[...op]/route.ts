@@ -40,6 +40,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   // Passkeys (bus 98/100): the person's own keys and a person's keys for a parent or the owner — JSON only.
   if (new RegExp(`^/(passkeys/mine|people/${ID}/passkeys)$`).test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
   // 3e-1 «Здоровье-лайт»: the family total + own ticks, and the viewer's own evening answers — JSON only.
+  // 3e-2: the person's own weight/calorie log (JSON) and its export (a download). The service checks 18+ and self.
+  if (path === "/body") { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
+  if (path === "/body/export") {
+    const r = await forward("GET", path, g.actor);
+    if (!r.ok) return json(r.status === 404 ? 404 : r.status, { error: "not_found" });
+    return new Response(await r.text(), { status: 200, headers: { ...headers, "content-type": "application/json; charset=utf-8", "content-disposition": r.headers.get("content-disposition") ?? "attachment" } });
+  }
   if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g.actor); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
     const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
@@ -103,7 +110,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ op: stri
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2}|plan/\\d{4}-\\d{2}-\\d{2}|principle/\\d{4}-\\d{2}-\\d{2}|health/prefs|evening/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2}|plan/\\d{4}-\\d{2}-\\d{2}|principle/\\d{4}-\\d{2}-\\d{2}|health/prefs|evening/\\d{4}-\\d{2}-\\d{2}|body/prefs|body/goal|body/log/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PUT", path, g.actor);
 }
 
@@ -111,6 +118,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ op: s
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(grants/${ID}|people/${ID}/ics)$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(grants/${ID}|people/${ID}/ics|body)$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "DELETE", path, g.actor);
 }
