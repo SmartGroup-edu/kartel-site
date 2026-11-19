@@ -3,6 +3,7 @@ import { jwtVerify } from "jose";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
 import { familyRoleOf } from "@/app/lib/family-roles.mjs";
+import { routeClass } from "@/app/lib/family-ref.mjs";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -45,7 +46,13 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
         const owners = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
         if (!owners.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
       }
-      return NextResponse.next();
+      // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
+      // (no ids) so it can render in the right language and log its reference code. Always overwritten,
+      // so a client cannot inject either header.
+      const forwarded = new Headers(request.headers);
+      forwarded.set("x-kartel-locale", lang);
+      forwarded.set("x-family-route", routeClass(pathname));
+      return NextResponse.next({ request: { headers: forwarded } });
     }
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {

@@ -40,9 +40,30 @@
   --destructive: #b3261e;
   --destructive-foreground: #ffffff;
   --radius: 0.5rem;
+
+  /* Family board (bus 82): done / declined / sprint / rotation tags. Text on each soft fill ≥ 4.5:1. */
+  --ok: #2f6b4f;
+  --ok-soft: #eaf3ee;
+  --warn-soft: #fbf3e2;
+  --warn-border: #e7cf9c;
+  --accent-soft: #f6ecee;
+  --sprint: #3b4a7a;
+  --sprint-soft: #eef0f7;
+  --wait-border: #cdbfc2;
+  /* Heraldic pillar accents (bus 86 §7; plan §3): thin rules and icons only, never fills or judgement
+     colours. Ритм = чернь, Здоровье = червлень, Рост = золото, Кодекс = серебро. ≥ 4.5:1 on background
+     and surface. PROPOSED — awaiting kartel-agent sign-off before wide use. */
+  --pillar-rhythm: #2b2824;
+  --pillar-health: #a3262a;
+  --pillar-growth: #8a6516;
+  --pillar-kodeks: #5d6670;
 }
 
 .dark {
+  --pillar-rhythm: #d6d0c6;
+  --pillar-health: #e8867a;
+  --pillar-growth: #d4a65a;
+  --pillar-kodeks: #b4bcc6;
   --background: #1a1816;
   --foreground: #e8e4dd;
   --accent: #c9964e;
@@ -67,10 +88,93 @@
   --band-bg: #2b2824;
   --band-accent: #c9964e;
   --band-text: rgba(255, 255, 255, 0.72);
+  --ok: #7fc3a0;
+  --ok-soft: #1f2e26;
+  --warn-soft: #2e2617;
+  --warn-border: #6b5528;
+  --accent-soft: #2e2519;
+  --sprint: #a9b6e6;
+  --sprint-soft: #22263a;
+  --wait-border: #5a5048;
 
   /* shadcn/ui — dark destructive (lighter red for the charcoal canvas). */
   --destructive: #e5645b;
   --destructive-foreground: #1a1816;
+}
+
+/* High contrast («Высокий контраст», bus 84/97): per device (localStorage kartel-contrast = "high"), set as
+   class .hc on <html> by the boot script. Text tokens ≥ 7:1 (WCAG AAA) on background and surface; UI borders
+   ≥ 3:1; pillar accents collapse to plain black / white. Guarded by tests/theme-contrast.test.mjs. */
+:root.hc:not(.dark) {
+  --background: #ffffff;
+  --foreground: #000000;
+  --accent: #7b1e2d;
+  --accent-hover: #5c1220;
+  --on-accent: #ffffff;
+  --muted: #3d3832;
+  --muted-light: #3d3832;
+  --border: #6b655c;
+  --surface: #f7f6f4;
+  --sable: #1a1816;
+  --text-body: #141210;
+  --text-secondary: #1f1c19;
+  --text-nav: #2b2824;
+  --drop-cap: #7b1e2d;
+  --band-bg: #2b2824;
+  --band-accent: #f3cdd3;
+  --destructive: #8f1a14;
+  --destructive-foreground: #ffffff;
+  --ok: #1d4a35;
+  --ok-soft: #eaf3ee;
+  --warn-soft: #fbf3e2;
+  --warn-border: #7a5a12;
+  --accent-soft: #f6ecee;
+  --sprint: #26315a;
+  --sprint-soft: #eef0f7;
+  --wait-border: #6b5f62;
+  --pillar-rhythm: #000000;
+  --pillar-health: #000000;
+  --pillar-growth: #000000;
+  --pillar-kodeks: #000000;
+  --selection-bg: rgba(123, 30, 45, 0.25);
+  --header-bg: #ffffff;
+  --band-text: #ffffff;
+}
+
+:root.dark.hc {
+  --background: #000000;
+  --foreground: #ffffff;
+  --accent: #f2c47e;
+  --accent-hover: #ffd699;
+  --on-accent: #000000;
+  --muted: #d9d4cc;
+  --muted-light: #d9d4cc;
+  --border: #8c857a;
+  --surface: #121110;
+  --sable: #2b2722;
+  --text-body: #f2efea;
+  --text-secondary: #ebe6de;
+  --text-nav: #e0dbd2;
+  --drop-cap: #f2c47e;
+  --band-bg: #121110;
+  --band-accent: #f2c47e;
+  --destructive: #ff9b93;
+  --destructive-foreground: #000000;
+  --ok: #a6e3c4;
+  --ok-soft: #0f1f17;
+  --warn-soft: #231a08;
+  --warn-border: #b48a3c;
+  --accent-soft: #1f170c;
+  --sprint: #c9d3ff;
+  --sprint-soft: #12162a;
+  --wait-border: #9a8f87;
+  --pillar-rhythm: #ffffff;
+  --pillar-health: #ffffff;
+  --pillar-growth: #ffffff;
+  --pillar-kodeks: #ffffff;
+  --selection-bg: rgba(242, 196, 126, 0.35);
+  --header-bg: #000000;
+  --band-text: #ffffff;
 }
 
 @theme inline {
@@ -296,10 +400,17 @@ summary:focus-visible,
 @media print {
   @page {
     size: A4;
-    margin: 16mm 15mm;
+    /* bus 101: a fridge sheet needs real margins on every printer (was 16mm 15mm) */
+    margin: 14mm 14mm 16mm;
   }
   :root,
-  .dark {
+  .dark,
+  :root.hc:not(.dark),
+  :root.dark.hc {
+    --pillar-rhythm: #000000;
+    --pillar-health: #000000;
+    --pillar-growth: #000000;
+    --pillar-kodeks: #000000;
     --background: #ffffff;
     --surface: #ffffff;
     --header-bg: #ffffff;

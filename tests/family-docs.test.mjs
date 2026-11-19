@@ -1,7 +1,7 @@
 // Family OS Stage 2a — profile/document helpers (synthetic values).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ageOn, expiryState, maskNumber, fmtDocDate } from "../app/lib/family-docs.mjs";
+import { ageOn, expiryState, maskNumber, fmtDocDate, fmtFamilyDate, fmtWeekRange } from "../app/lib/family-docs.mjs";
 
 const on = new Date("2026-11-17T10:00:00Z");
 test("age: whole years, birthday not yet reached this year counts one less", () => {
@@ -51,4 +51,15 @@ test("fmtDocDate: one style, no «г.»", () => {
   assert.equal(fmtDocDate("2027-01-31", "RU"), "31 января 2027");
   assert.equal(fmtDocDate("2027-01-31", "EN"), "31 January 2027");
   assert.equal(fmtDocDate(null, "RU"), "");
+});
+
+test("fmtFamilyDate / fmtWeekRange (bus 80 #6, #7): no year in the current year; compact week ranges", () => {
+  assert.equal(fmtFamilyDate("2026-11-29", "RU", "2026-11-18"), "29 ноября");
+  assert.equal(fmtFamilyDate("2027-01-03", "RU", "2026-11-18"), "3 января 2027");
+  assert.equal(fmtFamilyDate("2026-11-29", "EN", "2026-11-18"), "29 November");
+  assert.equal(fmtWeekRange("2026-11-16", "2026-11-18", "RU"), "16–18 ноября");
+  assert.equal(fmtWeekRange("2026-11-30", "2026-12-06", "RU"), "30 ноября – 6 декабря");
+  assert.equal(fmtWeekRange("2026-12-28", "2027-01-03", "RU"), "28 декабря 2026 – 3 января 2027");
+  assert.equal(fmtWeekRange("2026-11-16", "2026-11-22", "EN"), "16–22 November");
+  assert.equal(fmtDocDate("2026-11-29", "RU"), "29 ноября 2026", "documents keep the year");
 });

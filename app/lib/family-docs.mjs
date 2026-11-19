@@ -33,6 +33,26 @@ export function fmtDocDate(d, lang) {
   return new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).replace(/\s*г\.$/, "");
 }
 
+/**
+ * Family OS dates outside documents (bus 80 #7): no year when it is the current year («до 29 ноября»),
+ * the year otherwise. Documents keep fmtDocDate (always with the year).
+ */
+export function fmtFamilyDate(d, lang, today = new Date().toISOString().slice(0, 10)) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d ?? "")) return "";
+  if (d.slice(0, 4) !== String(today).slice(0, 4)) return fmtDocDate(d, lang);
+  return new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+}
+
+/** «16–18 ноября» · «30 ноября – 6 декабря» · «28 декабря 2026 – 3 января 2027» (bus 80 #6). */
+export function fmtWeekRange(from, to, lang) {
+  const loc = lang === "EN" ? "en-GB" : "ru-RU";
+  const f = (d, o) => new Date(`${d}T12:00:00Z`).toLocaleDateString(loc, { ...o, timeZone: "UTC" }).replace(/\s*г\.$/, "");
+  if (from.slice(0, 4) !== to.slice(0, 4)) return `${f(from, { day: "numeric", month: "long", year: "numeric" })} – ${f(to, { day: "numeric", month: "long", year: "numeric" })}`;
+  if (from.slice(0, 7) !== to.slice(0, 7)) return `${f(from, { day: "numeric", month: "long" })} – ${f(to, { day: "numeric", month: "long" })}`;
+  if (from === to) return f(from, { day: "numeric", month: "long" });
+  return lang === "EN" ? `${Number(from.slice(8))}–${f(to, { day: "numeric", month: "long" })}` : `${Number(from.slice(8))}–${f(to, { day: "numeric", month: "long" })}`;
+}
+
 export const DOC_LABELS = {
   EN: {
     passport: "Passport", national_id: "National ID / personal code", ni_number: "National Insurance number",

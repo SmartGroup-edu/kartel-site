@@ -56,7 +56,7 @@ test("scheduleSummary: the live line under the form", async () => {
 
 test("Family OS speaks «ты» in Russian: no formal address in any Family OS screen (bus 74 #3)", async () => {
   const { readFileSync } = await import("node:fs");
-  const files = ["app/components/FamilyOs.tsx", "app/components/FamilyOsPerson.tsx", "app/components/FamilyRoutines.tsx", "app/components/FamilyOsAccess.tsx", "app/lib/family-nav.mjs", "app/lib/family-docs.mjs"];
+  const files = ["app/components/FamilyOs.tsx", "app/components/FamilyOsPerson.tsx", "app/components/FamilyRoutines.tsx", "app/components/FamilyOsAccess.tsx", "app/components/FamilyPrefs.tsx", "app/components/FamilyRules.tsx", "app/components/FamilyCouncil.tsx", "app/components/FamilyCalendar.tsx", "app/components/FamilyPersonExtras.tsx", "app/components/FamilyBoard.tsx", "app/lib/family-nav.mjs", "app/lib/family-docs.mjs"];
   const formal = /(^|[^а-яё])(вы|вас|вам|вами|ваш[а-яё]*)(?=[^а-яё]|$)|(попробуйте|попросите|выберите|оставьте|проверьте|добавьте|нажмите|введите|укажите|сохраните|откройте)/i;
   const hits = [];
   for (const f of files) for (const lit of readFileSync(f, "utf8").match(/"[^"\n]*[А-Яа-яЁё][^"\n]*"|`[^`\n]*[А-Яа-яЁё][^`\n]*`/g) ?? []) if (formal.test(lit)) hits.push(`${f}: ${lit}`);
