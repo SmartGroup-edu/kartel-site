@@ -12,7 +12,8 @@ import { familySubNav, familySubNavLabel } from "../lib/family-nav.mjs";
  */
 const FADE = 32; // px of fade at an edge that has more tabs behind it
 
-export default function FamilySubNav({ lang, admin, os, active, editor = false }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "people" | "access" | "admin"; editor?: boolean }) {
+/** `badge`: parents' «Нужно решение» count on the «Доска» tab (bus 84) — shown where the page already has it. */
+export default function FamilySubNav({ lang, admin, os, active, badge = 0, editor = false }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin"; badge?: number; editor?: boolean }) {
   const items = familySubNav({ lang, admin, os, editor });
   const list = useRef<HTMLUListElement>(null);
   const [edge, setEdge] = useState({ left: false, right: false });
@@ -43,6 +44,7 @@ export default function FamilySubNav({ lang, admin, os, active, editor = false }
             <Link href={x.href} aria-current={x.id === active ? "page" : undefined}
               className={`inline-flex min-h-11 items-center border-b-2 focus-visible:outline-offset-[-3px] ${x.id === active ? "border-[var(--accent)] font-medium text-[var(--foreground)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`}>
               {x.label}
+              {x.id === "board" && badge > 0 && <span data-badge="" className="ml-1.5 inline-grid min-w-6 place-items-center rounded-full bg-[var(--warn-soft)] px-1.5 text-[14px] font-semibold text-[var(--foreground)] ring-1 ring-[var(--warn-border)]"><span className="sr-only">{lang === "EN" ? "needs a decision: " : "нужно решение: "}</span>{badge}</span>}
             </Link>
           </li>
         ))}

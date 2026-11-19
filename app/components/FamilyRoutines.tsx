@@ -17,9 +17,9 @@ import type { OsRoutine } from "../lib/family-os";
 type Lang = "EN" | "RU";
 const T = {
   EN: {
-    routine: "Routine", chore: "Chore", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
+    routine: "Routine", chore: "Chore", rotation: "Chore in turns", rotationShort: "In turns", members: "Who takes turns", needMembers: "Choose at least two people.", paused: "A day without rhythm — nothing is scheduled today.", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
     progress: (d: number, n: number) => `${d} of ${n} done`, nextOn: "Next", agenda: "Next 7 days", nothingAhead: "Nothing scheduled in the next 7 days.",
-    add: "Add a routine or chore", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
+    add: "Add a routine", choresMoved: "Chores and chores in turns are planned as tasks now.", toTemplates: "Plan templates on the board", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
     repeatOpt: { daily: "Every day", every_n: "Every N days", weekdays: "Weekdays", weekly: "On chosen days", monthly: "Once a month" },
     everyNDays: "Every how many days", everyNWeeks: "Every how many weeks", days: "Days", monthDay: "Day of the month",
     time: "Time (optional)", start: "Starts", save: "Add", saving: "Saving…", added: "Added.", needDays: "Choose at least one day.", needN: "Enter a number from 2 to 52.",
@@ -27,9 +27,9 @@ const T = {
     weekdayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   },
   RU: {
-    routine: "Распорядок", chore: "Дело", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
+    routine: "Распорядок", chore: "Дело", rotation: "Дело по очереди", rotationShort: "По очереди", members: "Кто делает по очереди", needMembers: "Выбери хотя бы двоих.", paused: "День без ритма — на сегодня ничего не запланировано.", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
     progress: (d: number, n: number) => `Сделано ${d} из ${n}`, nextOn: "Дальше", agenda: "Ближайшие 7 дней", nothingAhead: "На ближайшие 7 дней ничего не запланировано.",
-    add: "Добавить распорядок или дело", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
+    add: "Добавить распорядок", choresMoved: "Дела и дела по очереди теперь планируются как задачи.", toTemplates: "Шаблоны плана на доске", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
     repeatOpt: { daily: "Каждый день", every_n: "Раз в N дней", weekdays: "По будням", weekly: "По дням недели", monthly: "Раз в месяц" },
     everyNDays: "Раз в сколько дней", everyNWeeks: "Раз в сколько недель", days: "Дни", monthDay: "Число месяца",
     time: "Время (необязательно)", start: "Начать с", save: "Добавить", saving: "Сохраняется…", added: "Добавлено.", needDays: "Выбери хотя бы один день.", needN: "Введи число от 2 до 52.",
@@ -38,6 +38,7 @@ const T = {
   },
 } as const;
 
+const kindLabel = (t: (typeof T)[Lang], r: OsRoutine) => (r.kind === "rotation" ? `${t.rotationShort}${r.members ? ` (${r.members})` : ""}` : r.kind === "chore" ? t.chore : t.routine);
 const send = (method: "POST" | "PATCH", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" });
 const fmtDay = (d: string, lang: Lang) =>
@@ -46,7 +47,7 @@ const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--bo
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
 
-function Check({ checked }: { checked: boolean }) {
+export function Check({ checked }: { checked: boolean }) {
   return (
     <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border-strong,var(--border))]"}`}>
       {checked && <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.5 5.5 10.5 11.5 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -55,19 +56,25 @@ function Check({ checked }: { checked: boolean }) {
 }
 
 /** Today's due items with a tick each. `canCheck` false → read-only (e.g. someone without the scope). */
-export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading }: {
-  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string;
+export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading, paused = false }: {
+  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string; paused?: boolean;
 }) {
   const t = T[lang];
   const due = routines.filter((r) => r.due_today).sort((a, b) => (a.at_time ?? "99").localeCompare(b.at_time ?? "99"));
   const [done, setDone] = useState<Record<string, boolean>>(() => Object.fromEntries(due.map((r) => [r.id, r.done_today])));
   const [msg, setMsg] = useState("");
+  if (paused) return (
+    <section aria-labelledby={headingId} data-paused="" className="mt-8">
+      <h2 id={headingId} className="font-serif text-[22px] text-[var(--foreground)]">{heading}</h2>
+      <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] px-5 py-4 text-[16px] text-[var(--text-secondary)]">{T[lang].paused}</p>
+    </section>
+  );
   if (due.length === 0) return null;
   const count = due.filter((r) => done[r.id]).length;
   const toggle = async (r: OsRoutine) => {
     const next = !done[r.id];
     setDone((x) => ({ ...x, [r.id]: next })); setMsg("");
-    const res = await send("POST", `routines/${r.id}/check`, { date: today, done: next }).catch(() => null);
+    const res = await send("POST", `${r.kind === "rotation" ? "rotations" : "routines"}/${r.id}/check`, { date: today, done: next }).catch(() => null);
     if (!res?.ok) { setDone((x) => ({ ...x, [r.id]: !next })); setMsg(t.saveError); }
   };
   return (
@@ -82,13 +89,13 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
           return (
             <li key={r.id} data-routine={r.kind} data-done={done[r.id] ? "1" : "0"}>
               <button type="button" role="checkbox" aria-checked={done[r.id]} disabled={!canCheck} onClick={() => toggle(r)}
-                aria-label={[r.title, r.at_time, r.kind === "chore" ? t.chore : t.routine, s].filter(Boolean).join(", ")}
+                aria-label={[r.title, r.at_time, kindLabel(t, r), s].filter(Boolean).join(", ")}
                 className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
                 <Check checked={done[r.id]} />
                 <span className="min-w-0 flex-1">
                   <span className={`block text-[17px] ${done[r.id] ? "text-[var(--text-secondary)] line-through decoration-[var(--border)]" : "text-[var(--foreground)]"}`}>{r.title}</span>
                   <span className="mt-0.5 block text-[14px] text-[var(--muted)]">
-                    {[r.at_time, r.kind === "chore" ? t.chore : t.routine, s].filter(Boolean).join(" · ")}
+                    {[r.at_time, kindLabel(t, r), s].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -131,12 +138,13 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
   const [ask, setAsk] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const remove = async (id: string) => {
-    const r = await send("PATCH", `routines/${id}`, { archived: true }).catch(() => null);
+    const kind = routines.find((x) => x.id === id)?.kind;
+    const r = await send("PATCH", `${kind === "rotation" ? "rotations" : "routines"}/${id}`, { archived: true }).catch(() => null);
     setAsk(null); setMsg(r?.ok ? t.removed : t.saveError); if (r?.ok) router.refresh();
   };
   return (
-    <section aria-labelledby="all-h" className="mt-10">
-      <h3 id="all-h" className="font-serif text-[20px] text-[var(--foreground)]">{t.all}</h3>
+    // Folded by default (bus 78 #7): today's list and the agenda are what people read every day.
+    <Disclosure summary={`${t.all} (${routines.length})`} className="mt-10" variant="inline" summaryClassName="w-fit font-serif text-[20px] text-[var(--foreground)]">
       {routines.length === 0 ? <p className="mt-2 text-[14px] text-[var(--muted)]">{t.none}</p> : (
         <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {routines.map((r) => (
@@ -144,7 +152,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] text-[var(--foreground)]">{r.title}</p>
                 <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>
-                  {[r.kind === "chore" ? t.chore : t.routine, describeRule(r.rrule, lang), r.at_time, r.next[0] ? `${t.nextOn}: ${fmtDay(r.next[0], lang)}` : null].filter(Boolean).join(" · ")}
+                  {[kindLabel(t, r), describeRule(r.rrule, lang), r.at_time, r.next[0] ? `${t.nextOn}: ${fmtDay(r.next[0], lang)}` : null].filter(Boolean).join(" · ")}
                 </p>
               </div>
               {canManage && (ask === r.id ? (
@@ -158,11 +166,11 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
         </ul>
       )}
       <p role="status" aria-live="polite" className="mt-2 text-[14px] text-[var(--muted)]">{msg}</p>
-    </section>
+    </Disclosure>
   );
 }
 
-export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string }) {
+export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[] }) {
   const t = T[lang];
   const router = useRouter();
   const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
@@ -179,8 +187,8 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
     if (!rrule) return setStatus(repeat === "weekly" ? t.needDays : t.needN);
     const form = e.currentTarget, f = new FormData(form);
     setStatus(t.saving);
-    const body = { kind: f.get("kind"), title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
-    const r = await send("POST", `people/${personId}/routines`, body).catch(() => null);
+    const common = { title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
+    const r = await send("POST", `people/${personId}/routines`, { ...common, kind: "routine" }).catch(() => null);
     if (!r?.ok) return setStatus(t.saveError);
     setStatus(t.added); form.reset(); reset(); router.refresh();
   };
@@ -188,9 +196,8 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
     <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
-        <label className={label}>{t.kind}
-          <select name="kind" className={field} defaultValue="routine"><option value="routine">{t.routine}</option><option value="chore">{t.chore}</option></select>
-        </label>
+        {/* bus 85: one model — a routine is a personal habit; chores and turns are tasks (plan templates on the board) */}
+        <p data-chores-moved="" className="text-[15px] text-[var(--text-secondary)] sm:col-span-2">{t.choresMoved} <a href={`/${lang === "EN" ? "en" : "ru"}/family/os/board#tpl-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toTemplates}</a></p>
         <label className={label}>{t.repeat}
           <select name="repeat" className={field} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
             {(["daily", "every_n", "weekdays", "weekly", "monthly"] as const).map((k) => <option key={k} value={k}>{t.repeatOpt[k]}</option>)}

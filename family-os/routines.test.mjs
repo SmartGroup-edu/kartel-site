@@ -1,6 +1,7 @@
 // Family OS Stage 2 — routines and chores, guardians, admin edits, document retype, HEIC metadata
 // (synthetic people and files only).
 import { test, before, after } from "node:test";
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
@@ -110,8 +111,10 @@ test("service: who may create routines (parents for a child; an adult for themse
   const daily = { kind: "routine", title: "Brush teeth", rrule: "FREQ=DAILY", dtstart: "2026-11-01", at_time: "20:00" };
   let r = await call("POST", `/people/${P.c}/routines`, { actor: as(E.p1), body: daily });
   assert.equal(r.status, 201); R.child = r.json.id;
-  r = await call("POST", `/people/${P.c}/routines`, { actor: as(E.p2), body: { kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01" } });
-  assert.equal(r.status, 201); R.chore = r.json.id;
+  // bus 85: a chore is a task template now — the API refuses new ones; a legacy row (written straight to the
+  // store, as prod data from before 3c would be) is still read, ticked and archived as below.
+  assert.equal((await call("POST", `/people/${P.c}/routines`, { actor: as(E.p2), body: { kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01" } })).json.error, "use_templates");
+  R.chore = randomUUID(); await store.createRoutine({ id: R.chore, person_id: P.c, kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01", at_time: null }, E.p2);
   r = await call("POST", `/people/${P.e}/routines`, { actor: as(E.e), body: { kind: "routine", title: "Run", rrule: "FREQ=DAILY" } });
   assert.equal(r.status, 201); R.adult = r.json.id;
   const refused = [[E.c, P.c, "child_cannot_manage"], [E.g, P.c, "no_scope"], [E.e, P.c, "no_relation"], [E.p1, P.e, "adult_private"], [E.x, P.c, "not_a_member"]];
