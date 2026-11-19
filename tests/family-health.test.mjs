@@ -30,7 +30,7 @@ test("proxy: GET /health and /evening (JSON), POST /health/tick, PUT /health/pre
   const p = src("app/api/family-os/[...op]/route.ts");
   assert.match(p, /if \(\/\^\\\/\(health\|evening\)\$\/\.test\(path\)\)/);
   assert.match(p, /\|health\/tick\)\$`\)\.test\(path\)\) return forwardJson\(req, "POST"/);
-  assert.match(p, /\|health\/prefs\|evening\/\\\\d\{4\}-\\\\d\{2\}-\\\\d\{2\}\)\$`\)\.test\(path\)\) return json\(404/);
+  assert.match(p, /\|health\/prefs\|evening\/\\\\d\{4\}-\\\\d\{2\}-\\\\d\{2\}[|)]/, "PUT allowlist has /health/prefs and /evening/<date>");
   assert.doesNotMatch(p, /people\/\$\{ID\}\/(health|evening)/, "no route reads someone else's health");
 });
 
