@@ -13,7 +13,7 @@ test("copy: neutral — no BMI, no judgement words or colours, no comparisons, n
   assert.doesNotMatch(copy, /\bВы\b|\bВаш/, "«ты»");
   assert.doesNotMatch(c, /--destructive|text-red|text-green|bg-red|bg-green|#[0-9a-f]{6}/i, "no judgement colours");
   assert.doesNotMatch(c, /<img|<Image|photo|фото/i, "no body images");
-  assert.match(copy, /goalLine: \(g: Goal[^]*`цель: \$\{g\.weight_kg\} кг/, "«цель: N кг к дате»");
+  assert.match(copy, /goalLine: \(g: Goal[^]*`цель: \$\{dec\(g\.weight_kg\)\} кг/, "«цель: N кг к дате», with a Russian decimal comma");
   assert.match(copy, /`калории в день: \$\{g\.kcal_day\}`/);
   assert.match(copy, /gp: "Если хочется обсудить цель или темп, стоит поговорить с GP — это обычный шаг\."/);
   assert.match(c, /\{b\.gp && <p data-body-gp="" role="note"/, "a note, not an alert");
@@ -35,4 +35,17 @@ test("proxy: GET /body, GET /body/export (download), PUT prefs/goal/log/<date>, 
   assert.match(r, /\|body\/prefs\|body\/goal\|body\/log\/\\\\d\{4\}-\\\\d\{2\}-\\\\d\{2\}\)\$/);
   assert.match(r, /ics\|body\)\$`\)\.test\(path\)\) return json\(404/);
   assert.doesNotMatch(r, /people\/\$\{ID\}\/body/);
+});
+
+test("bus 117: chart has a visible neutral caption; RU date hint and decimal comma; goal behind «Изменить цель»; the delete confirm says what happens", () => {
+  const c = src("app/components/FamilyBody.tsx");
+  assert.match(c, /<svg data-body-trend="" role="img" aria-labelledby="body-trend-cap"/);
+  assert.match(c, /<figcaption id="body-trend-cap" data-body-trend-caption=""/);
+  assert.match(c, /caption: \(a: string, b: string, n: number\) => `Средний вес по неделям: с \$\{a\} до \$\{b\} кг за \$\{n\}/);
+  assert.doesNotMatch(c.slice(c.indexOf("caption:"), c.indexOf("caption:") + 300), /минус|↓|↑|−/, "no «минус», no arrows");
+  assert.match(c, /datePh: "дд\.мм\.гггг"/); assert.doesNotMatch(c, /type="date"/, "no native date field with an English placeholder");
+  assert.match(c, /const dec = \(v: number\) => \(lang === "RU" \? String\(v\)\.replace\("\.", ","\) : String\(v\)\);/);
+  assert.match(c, /Number\(s\.trim\(\)\.replace\(",", "\."\)\)/, "inputs accept «,» and «.»");
+  assert.match(c, /\{hasGoal && !editGoal \? \(/); assert.match(c, /goalEdit: "Изменить цель"/);
+  assert.match(c, /delConfirm: "Все записи о весе и калориях будут удалены без возможности восстановления\. Сначала можно скачать их\."/);
 });
