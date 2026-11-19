@@ -1,6 +1,7 @@
 // Family OS Stage 2 — routines and chores, guardians, admin edits, document retype, HEIC metadata
 // (synthetic people and files only).
 import { test, before, after } from "node:test";
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
@@ -110,8 +111,10 @@ test("service: who may create routines (parents for a child; an adult for themse
   const daily = { kind: "routine", title: "Brush teeth", rrule: "FREQ=DAILY", dtstart: "2026-11-01", at_time: "20:00" };
   let r = await call("POST", `/people/${P.c}/routines`, { actor: as(E.p1), body: daily });
   assert.equal(r.status, 201); R.child = r.json.id;
-  r = await call("POST", `/people/${P.c}/routines`, { actor: as(E.p2), body: { kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01" } });
-  assert.equal(r.status, 201); R.chore = r.json.id;
+  // bus 85: a chore is a task template now — the API refuses new ones; a legacy row (written straight to the
+  // store, as prod data from before 3c would be) is still read, ticked and archived as below.
+  assert.equal((await call("POST", `/people/${P.c}/routines`, { actor: as(E.p2), body: { kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01" } })).json.error, "use_templates");
+  R.chore = randomUUID(); await store.createRoutine({ id: R.chore, person_id: P.c, kind: "chore", title: "Feed the cat", rrule: "FREQ=WEEKLY;BYDAY=MO,TH", dtstart: "2026-11-01", at_time: null }, E.p2);
   r = await call("POST", `/people/${P.e}/routines`, { actor: as(E.e), body: { kind: "routine", title: "Run", rrule: "FREQ=DAILY" } });
   assert.equal(r.status, 201); R.adult = r.json.id;
   const refused = [[E.c, P.c, "child_cannot_manage"], [E.g, P.c, "no_scope"], [E.e, P.c, "no_relation"], [E.p1, P.e, "adult_private"], [E.x, P.c, "not_a_member"]];
@@ -142,10 +145,10 @@ test("service: ticking off — child and parents; history kept; only today and t
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.p1), body: { date: "2026-11-17", done: true } })).status, 200);
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.p2), body: { date: "2026-11-16", done: true } })).status, 200);
   let v = (await call("GET", `/people/${P.c}/routines`, { actor: as(E.c) })).json.routines.find((r) => r.id === R.child);
-  assert.equal(v.done_today, true); assert.equal(v.streak, 3);
+  assert.equal(v.done_today, true); assert.deepEqual(v.week, { done: 3, of: 3 }); // Wed: Mon–Wed so far (bus 95) assert.ok(!("streak" in v), "a child: weekly count only (bus 86)");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: TODAY, done: false } })).status, 200, "untick");
   v = (await call("GET", `/people/${P.c}/routines`, { actor: as(E.c) })).json.routines.find((r) => r.id === R.child);
-  assert.equal(v.done_today, false); assert.equal(v.streak, 2, "unticking today leaves the earlier run");
+  assert.equal(v.done_today, false); assert.deepEqual(v.week, { done: 2, of: 3 }, "unticking today leaves the earlier days");
   assert.equal(store._raw.checks.filter((c) => c.routine_id === R.child).length, 4, "untick is a new row; history kept");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: "2026-11-15", done: true } })).json.error, "bad_check", "three days back");
   assert.equal((await call("POST", `/routines/${R.child}/check`, { actor: as(E.c), body: { date: "2026-11-19", done: true } })).json.error, "bad_check", "future");
