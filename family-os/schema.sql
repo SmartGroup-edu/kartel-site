@@ -616,3 +616,6 @@ CREATE TABLE IF NOT EXISTS body_goal (
   wrapped_key  text NOT NULL,
   goal_ct      text NOT NULL
 );
+-- 3e-2: the person's own export and delete-all are logged too.
+ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;
+ALTER TABLE access_log ADD CONSTRAINT access_log_action_check CHECK (action IN ('read', 'write', 'reveal', 'copy', 'export', 'delete'));

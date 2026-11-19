@@ -369,6 +369,8 @@ export function pgStore(pool) {
   };
 }
 
+export const LOG_ACTIONS = ["read", "write", "reveal", "copy", "export", "delete"];
+
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
@@ -393,7 +395,8 @@ export function memoryStore() {
     async revokeGrant(id) { const g = grants.get(id); if (!g || g.revoked_at) return false; g.revoked_at = now(); return true; },
     async listNotes(personId, kinds) { return [...notes.values()].filter((n) => n.person_id === personId && kinds.includes(n.kind)); },
     async createNote(row, actor) { notes.set(row.id, { ...row, created_by: actor, created_at: now(), updated_at: now() }); },
-    async logAccess(entry) { if (this.failLog) throw new Error("log unavailable"); log.push({ id: log.length + 1, at: now(), ...entry }); },
+    // Same action enum as the access_log CHECK in schema.sql — so a new action fails here, not first in Postgres.
+    async logAccess(entry) { if (this.failLog) throw new Error("log unavailable"); if (!LOG_ACTIONS.includes(entry.action)) throw new Error(`access_log action ${entry.action} not allowed`); log.push({ id: log.length + 1, at: now(), ...entry }); },
     async accessLog() { return [...log].reverse(); },
     // ---- Stage 2a
     async setBirthDate(id, date) { const p = people.get(id); if (!p) return false; p.birth_date = date; return true; },
