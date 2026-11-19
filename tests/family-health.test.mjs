@@ -16,6 +16,8 @@ test("copy: no scores, no judgement, no medical advice, no weight or calories, n
   assert.doesNotMatch(c, /--destructive|text-red|text-green|bg-red|bg-green|#[0-9a-f]{6}/i, "no judgement colours; tokens only");
   assert.match(copy, /Общий итог появится, когда отмечать будут хотя бы трое/);
   assert.match(copy, /Видишь только ты/);
+  assert.match(c, /<span className="whitespace-nowrap text-\[14px\]">· \{t\.only\}<\/span>/, "«Видишь только ты» never breaks before «ты» (bus 113 L1)");
+  assert.match(c, /\{h\.family\.ready \? t\.total\(h\.family\.move, h\.family\.sleep, h\.family\.of\) : t\.notYet\}/, "under the floor the line explains, it never disappears (bus 113 L2)");
   assert.doesNotMatch(c, /text-\[1[0-3]px\]/, "text ≥ 14 px");
   assert.match(c, /border-l-2 border-\[var\(--pillar-health\)\]/, "Здоровье = червлень, a thin rule only");
 });
