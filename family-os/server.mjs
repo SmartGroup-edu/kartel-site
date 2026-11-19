@@ -20,6 +20,7 @@ import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
+import { bodyAllowed, cleanWeight, cleanKcal, cleanGoal, weightTrend, gpLine } from "./body.mjs";
 import { HEALTH_KINDS, healthPrefFor, familyTotals, tickDateOk, cleanEvening } from "./health.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -858,6 +859,66 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 200, await principleView(prm[1]));
     }
 
+    // ================= Stage 3e-2: an adult's own weight and calorie log (R0 18.11.2026) =================
+    // Only the person themself, 18+; for anyone else (a child, a parent, the owner, a spouse) these routes don't exist (404).
+    // GET /body · PUT /body/prefs {on} · PUT /body/goal {weight_kg?, by_date?, kcal_day?} · PUT /body/log/:date {weight_kg?, kcal?}
+    // GET /body/export · DELETE /body. Every read is logged. Nothing here feeds any other route or total.
+    const bdm = path.match(/^\/body(?:\/(prefs|goal|export)|\/log\/(\d{4}-\d{2}-\d{2}))?$/);
+    if (bdm) {
+      const today = localDate(clock());
+      const self = me ? await store.getPerson(me.id) : null;
+      if (!self || !bodyAllowed(self, today)) return reply(res, 404, { error: "not_found" });
+      const sealJ = (scope, id, obj) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped, ct: seal(dek, Buffer.from(JSON.stringify(obj)), `${scope}:${id}`) }; } finally { dek.fill(0); } };
+      const openJ = (scope, id, wrapped, ct) => { const k = unwrapDataKey(kek, wrapped, scope, id); try { return JSON.parse(open(k, ct, `${scope}:${id}`).toString("utf8")); } finally { k.fill(0); } };
+      const readAll = async () => {
+        const rows = await store.bodyLog(self.id), g = await store.bodyGoal(self.id);
+        return { entries: rows.map((r) => ({ on_date: r.on_date, ...openJ("body", r.id, r.wrapped_key, r.value_ct) })), goal: g ? openJ("body-goal", self.id, g.wrapped_key, g.goal_ct) : {} };
+      };
+      const on = await store.bodyOn(self.id);
+      if (!bdm[1] && !bdm[2] && req.method === "GET") {
+        if (!on) return reply(res, 200, { on: false, today });
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:own", action: "read" }))) return;
+        const { entries, goal } = await readAll(); const trend = weightTrend(entries);
+        return reply(res, 200, { on: true, today, goal, entries: entries.filter((e) => e.on_date >= addDays(today, -120)), trend, gp: gpLine(goal, trend.weekly) });
+      }
+      if (!bdm[1] && !bdm[2] && req.method === "DELETE") {
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:own", action: "delete" }))) return;
+        await store.deleteBody(self.id); return reply(res, 200, { ok: true });
+      }
+      if (bdm[1] === "prefs" && req.method === "PUT") {
+        const b = json(body); if (typeof b?.on !== "boolean" || Object.keys(b).length !== 1) return reply(res, 400, { error: "bad_prefs" });
+        await store.setBodyOn(self.id, b.on); return reply(res, 200, { ok: true, on: b.on });
+      }
+      if (bdm[1] === "export" && req.method === "GET") {
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:own", action: "export" }))) return;
+        const data = await readAll();
+        res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff", "content-disposition": `attachment; filename="kartel-body-${today}.json"` });
+        return res.end(JSON.stringify({ exported_on: today, goal: data.goal, entries: data.entries }, null, 2));
+      }
+      if (!on) return reply(res, 409, { error: "body_off" });
+      if (bdm[1] === "goal" && req.method === "PUT") {
+        const g = cleanGoal(json(body), today); if (g === undefined) return reply(res, 400, { error: "bad_goal" });
+        const x = sealJ("body-goal", self.id, g); await store.setBodyGoal(self.id, x.wrapped, x.ct); return reply(res, 200, { ok: true, goal: g });
+      }
+      if (bdm[2] && req.method === "PUT") {
+        const d = bdm[2], b = json(body);
+        if (d > today || d < addDays(today, -365)) return reply(res, 400, { error: "bad_date" });
+        if (!b || typeof b !== "object" || Object.keys(b).some((k) => !["weight_kg", "kcal"].includes(k))) return reply(res, 400, { error: "bad_entry" });
+        const w = b.weight_kg === undefined ? undefined : cleanWeight(b.weight_kg), k = b.kcal === undefined ? undefined : cleanKcal(b.kcal);
+        if ((b.weight_kg !== undefined && w === undefined) || (b.kcal !== undefined && k === undefined)) return reply(res, 400, { error: "bad_entry" });
+        const id0 = await store.bodyLogId(self.id, d);
+        const prev = id0 ? (await readAll()).entries.find((e) => e.on_date === d) ?? {} : {};
+        const next = { ...(prev.weight_kg !== undefined ? { weight_kg: prev.weight_kg } : {}), ...(prev.kcal !== undefined ? { kcal: prev.kcal } : {}) };
+        if (b.weight_kg !== undefined) { if (w === null) delete next.weight_kg; else next.weight_kg = w; }
+        if (b.kcal !== undefined) { if (k === null) delete next.kcal; else next.kcal = k; }
+        if (!Object.keys(next).length) { await store.deleteBodyLog(self.id, d); return reply(res, 200, { ok: true, deleted: true }); }
+        const id = id0 ?? randomUUID(), x = sealJ("body", id, next);
+        await store.setBodyLog({ id, person_id: self.id, on_date: d, wrapped_key: x.wrapped, value_ct: x.ct });
+        return reply(res, 200, { ok: true });
+      }
+      return reply(res, 405, { error: "method" });
+    }
+
     // ================= Stage 3e-1 «Здоровье-лайт» (bus 86/109) =================
     // GET /health?week= — the family's ONE weekly total (only once ≥ 3 people tick) + the viewer's own ticks.
     // PUT /health/prefs { ticks_on, evening_q_on } — the viewer's own settings only.
@@ -1429,6 +1490,8 @@ export function routeClass(url = "") {
   if (p === "/healthz" || p === "/me" || p === "/people" || p === "/grants") return p;
   if (/^\/grants\/[^/]+$/.test(p)) return "/grants/:id";
   if (p === "/health" || p === "/health/prefs" || p === "/health/tick" || p === "/evening") return p;
+  if (p === "/body" || p === "/body/prefs" || p === "/body/goal" || p === "/body/export") return p;
+  if (/^\/body\/log\/[^/]+$/.test(p)) return "/body/log/:date";
   if (/^\/evening\/[^/]+$/.test(p)) return "/evening/:date";
   if (/^\/people\/[^/]+\/routines$/.test(p)) return "/people/:id/routines";
   if (/^\/routines\/[^/]+\/check$/.test(p)) return "/routines/:id/check";

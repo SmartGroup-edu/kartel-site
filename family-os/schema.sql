@@ -596,3 +596,23 @@ CREATE TABLE IF NOT EXISTS evening_answer (
   text_ct      text NOT NULL,
   UNIQUE (person_id, on_date)
 );
+
+-- Stage 3e-2 (R0 18.11.2026): an ADULT's own weight/calorie log and goal. Sealed per row; only the person reads it
+-- (every read logged); never in an aggregate; never for anyone under 18 (the service refuses the routes).
+CREATE TABLE IF NOT EXISTS body_pref (
+  person_id  uuid PRIMARY KEY REFERENCES person(id),
+  body_on    boolean NOT NULL
+);
+CREATE TABLE IF NOT EXISTS body_log (
+  id           uuid PRIMARY KEY,
+  person_id    uuid NOT NULL REFERENCES person(id),
+  on_date      date NOT NULL,
+  wrapped_key  text NOT NULL,
+  value_ct     text NOT NULL,
+  UNIQUE (person_id, on_date)
+);
+CREATE TABLE IF NOT EXISTS body_goal (
+  person_id    uuid PRIMARY KEY REFERENCES person(id),
+  wrapped_key  text NOT NULL,
+  goal_ct      text NOT NULL
+);
