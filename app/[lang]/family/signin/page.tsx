@@ -33,7 +33,7 @@ export default async function FamilySignInPage({
   const dest = safeReturnTo(returnTo, `/${lang}/family`);
   // `invalid` comes from /api/family-auth/verify on any failure — expired, wrong browser, or
   // revoked. It is deliberately one undifferentiated outcome.
-  const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : undefined;
+  const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : family_auth === "ended" ? "ended" : undefined;
   // The same lifetime the link is signed with (FAMILY_LINK_TTL, default 600 s), shown as text.
-  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} />;
+  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} passkeys={familyEnv.passkeysOn()} />;
 }

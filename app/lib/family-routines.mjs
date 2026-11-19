@@ -39,6 +39,34 @@ export function describeRule(rrule, lang) {
  * Gentle streak text (plan §3.3): only a run of 2 or more is mentioned, never a miss.
  * "3 times in a row" / «3 раза подряд».
  */
+/**
+ * Бережный счёт (bus 86): «N из M на этой неделе». Never a "lost" run, never a miss — a week with nothing
+ * done yet simply reads «0 из 7». Empty when nothing is due this week.
+ */
+export function weekText(week, lang) {
+  if (!week || !Number.isInteger(week.done) || !Number.isInteger(week.of) || week.of < 1) return "";
+  const done = Math.max(0, Math.min(week.done, week.of));
+  return lang === "RU" ? `${done} из ${week.of} на этой неделе` : `${done} of ${week.of} this week`;
+}
+
+/** «После завтрака → Собрать портфель» (bus 86). The anchor is another routine's title or free text. */
+export function anchorLabel(r, lang) {
+  if (r?.anchor_title) return lang === "RU" ? `После «${r.anchor_title}»` : `After “${r.anchor_title}”`;
+  const a = typeof r?.anchor_text === "string" ? r.anchor_text.trim() : "";
+  if (!a) return "";
+  if (lang === "RU") return /^после\s/i.test(a) ? a.charAt(0).toUpperCase() + a.slice(1) : `После: ${a}`;
+  return /^after\s/i.test(a) ? a.charAt(0).toUpperCase() + a.slice(1) : `After: ${a}`;
+}
+
+/** The add form's helper line: «Если <якорь>, то я <действие>». */
+export function ifThenText(anchor, action, lang) {
+  const a = (anchor ?? "").trim(), b = (action ?? "").trim();
+  if (!a || !b) return "";
+  const low = (x) => x.charAt(0).toLowerCase() + x.slice(1);
+  if (lang === "RU") return `Если ${/^после\s/i.test(a) ? low(a) : `после: ${low(a)}`} — то я: ${low(b)}`;
+  return `If ${/^after\s/i.test(a) ? low(a) : `after: ${low(a)}`}, then I: ${low(b)}`;
+}
+
 export function streakText(n, lang) {
   if (!Number.isInteger(n) || n < 2) return "";
   return lang === "RU" ? `${n} ${ruPlural(n, ["раз", "раза", "раз"])} подряд` : `${n} times in a row`;

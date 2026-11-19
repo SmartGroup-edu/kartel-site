@@ -5,6 +5,7 @@
  * every write here from anyone else. The admin manages who is in the family and who may see what,
  * but this screen shows no one's notes, routines or documents.
  */
+import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,14 +16,17 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsPerson, OsGrant, OsScope } from "../lib/family-os";
+import type { OsPerson, OsGrant, OsScope, OsRule, OsAdoption } from "../lib/family-os";
+import FamilyRules from "./FamilyRules";
+import FamilyAdoption from "./FamilyAdoption";
+import FamilyPasskeys from "./FamilyPasskeys";
 import { addedSensitive, confirmGrantText } from "../lib/family-access.mjs";
 
 type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
 const T = {
   EN: {
-    title: "People and access", intro: "Who is in the family and who may see what.",
+    title: "People and access", jump: "On this page", rulesTab: "Rules", intro: "Who is in the family and who may see what.",
     people: "People", adult: "Adult", child: "Child", edit: "Edit", save: "Save", cancel: "Cancel", nameEn: "Name (English)", nameRu: "Name (Russian)", email: "Email", kind: "Role",
     addPerson: "Add a person", add: "Add", grants: "Guardians and access", noGrants: "No guardians yet.", guardian: "Guardian", relation: "Relation",
     rel: { parent: "Parent", relative: "Relative" }, scope: { routines: "Routines", health: "Health", education: "School", documents: "Documents" },
@@ -30,7 +34,7 @@ const T = {
     errors: { exists: "Already exists.", bad_person: "Check the name, email and role.", bad_scopes: "Choose at least one area.", guardian_not_adult: "A guardian must be an adult.", subject_not_child: "Access is given for a child." } as Record<string, string>,
   },
   RU: {
-    title: "Люди и доступы", intro: "Кто в семье и кто что видит.",
+    title: "Люди и доступы", jump: "На этой странице", rulesTab: "Правила", intro: "Кто в семье и кто что видит.",
     people: "Люди", adult: "Взрослый", child: "Ребёнок", edit: "Изменить", save: "Сохранить", cancel: "Отмена", nameEn: "Имя (латиницей)", nameRu: "Имя (кириллицей)", email: "Почта", kind: "Роль",
     addPerson: "Добавить человека", add: "Добавить", grants: "Опекуны и доступ", noGrants: "Опекунов пока нет.", guardian: "Опекун", relation: "Кем приходится",
     rel: { parent: "Родитель", relative: "Родственник" }, scope: { routines: "Распорядок", health: "Здоровье", education: "Учёба", documents: "Документы" },
@@ -41,7 +45,7 @@ const T = {
 type Dict = (typeof T)[Lang];
 
 const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
-  fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null);
+  fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
@@ -59,7 +63,7 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; people: OsPerson[]; grants: OsGrant[] }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -73,8 +77,18 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
         <div className="max-w-4xl pb-8">
           <h1 className={H1}>{t.title}</h1>
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
+          {/* bus 78 #5: one tap to each part of a long page */}
+          <nav aria-label={t.jump} data-access-jump="" className="mt-4 flex flex-wrap gap-2">
+            {([...(adoption ? [["#with-us", lang === "EN" ? "Who is with us" : "Кто уже с нами"]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab]] : [])] as const).map(([href, label]) => (
+              <a key={href} href={href} className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{label}</a>
+            ))}
+          </nav>
 
-          <section aria-labelledby="ppl-h" className="mt-10">
+          {adoption && <FamilyAdoption lang={lang} data={adoption} />}
+          {/* the owner who is not a person row: their own passkeys live here (bus 98/100) */}
+          {ownKeys && <FamilyPasskeys lang={lang} personId={null} self canAdd={ownKeys.canAdd} signinHref={`/${lang === "EN" ? "en" : "ru"}/family/signin?returnTo=${encodeURIComponent(`/${lang === "EN" ? "en" : "ru"}/family/os/access#signin-keys`)}`} />}
+
+          <section id="people" aria-labelledby="ppl-h" className="mt-10 scroll-mt-24">
             <h2 id="ppl-h" className={H2}>{t.people}</h2>
             {([[t.adults, adults], [t.children, children]] as const).filter(([, xs]) => xs.length).map(([head, xs]) => (
               <div key={head} className="mt-6">
@@ -87,7 +101,7 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
             <AddPerson t={t} />
           </section>
 
-          <section aria-labelledby="grants-h" className="mt-12">
+          <section id="grants" aria-labelledby="grants-h" className="mt-12 scroll-mt-24">
             <h2 id="grants-h" className={H2}>{t.grants}</h2>
             {children.map((c) => (
               <div key={c.id} data-child-grants="" className="mt-6">
@@ -103,6 +117,8 @@ export default function FamilyOsAccess({ lang, people, grants }: { lang: Lang; p
               </div>
             ))}
           </section>
+
+          {rules && <FamilyRules lang={lang} rules={rules} />}
         </div>
       </main>
       <SiteFooter copy="KARTEL" contactEmail={null} />

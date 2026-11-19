@@ -3,6 +3,8 @@ import { jwtVerify } from "jose";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
 import { familyRoleOf } from "@/app/lib/family-roles.mjs";
+import { routeClass } from "@/app/lib/family-ref.mjs";
+import { familySessionCookie } from "@/app/lib/family-cookie.mjs";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -22,7 +24,7 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     `/${lang}/family/signin?returnTo=${encodeURIComponent(pathname)}`,
     request.url,
   );
-  const cookieName = process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session";
+  const cookieName = familySessionCookie();
   const token = request.cookies.get(cookieName)?.value;
   if (!token) return NextResponse.redirect(signin);
   try {
@@ -45,7 +47,13 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
         const owners = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
         if (!owners.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
       }
-      return NextResponse.next();
+      // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
+      // (no ids) so it can render in the right language and log its reference code. Always overwritten,
+      // so a client cannot inject either header.
+      const forwarded = new Headers(request.headers);
+      forwarded.set("x-kartel-locale", lang);
+      forwarded.set("x-family-route", routeClass(pathname));
+      return NextResponse.next({ request: { headers: forwarded } });
     }
     return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
   } catch {
@@ -95,7 +103,7 @@ export async function proxy(request: NextRequest) {
   if (toConsoleHost) return NextResponse.redirect(toConsoleHost, 308);
   const onConsoleHost = host === CONSOLE_HOST;
   if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
-    const token = request.cookies.get(process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session")?.value;
+    const token = request.cookies.get(familySessionCookie())?.value;
     let admin = false;
     if (token) {
       try {
