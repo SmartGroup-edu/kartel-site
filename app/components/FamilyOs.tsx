@@ -21,6 +21,7 @@ import { TodayChecklist } from "./FamilyRoutines";
 import { TodayCouncil } from "./FamilyCouncil";
 import { TodayBoard } from "./FamilyBoard";
 import { TodayPrinciple, TodayRecognition } from "./FamilyKodeks";
+import FamilyHealth from "./FamilyHealth";
 import type { OsPrinciple, OsRecognition, OsKodeksPrinciple } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -83,11 +84,12 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
             <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
-            {/* Order (bus 95): principle → new tasks → my tasks → my routine → recognition → documents. */}
+            {/* Order (bus 95, 3e-1): principle → new tasks → my tasks → my routine → recognition → health → documents. */}
             {principle && <TodayPrinciple lang={lang} principle={principle} />}
             {myBoard && <TodayBoard lang={lang} data={myBoard} board={board} me={state.me} routines={mine ? { done: mine.routines.filter((r) => r.due_today && r.done_today).length, total: mine.paused_today ? 0 : mine.routines.filter((r) => r.due_today).length } : null} />}
             {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} paused={mine.paused_today} />}
             {state.me && principles && recognitions && <TodayRecognition lang={lang} people={state.people} meId={state.me.id} principles={principles} current={principle?.index ?? 0} items={recognitions} />}
+            {state.me && <FamilyHealth lang={lang} />}
             {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
             {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
             {state.me && <TodayCouncil lang={lang} tasks={[]} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
