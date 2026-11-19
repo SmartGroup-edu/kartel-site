@@ -4,7 +4,10 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 export type Theme = "light" | "dark" | "system";
 
+export type Contrast = "normal" | "high";
+
 const THEME_EVENT = "kartel-theme-change";
+const CONTRAST_KEY = "kartel-contrast";
 
 function applyTheme(resolved: "light" | "dark") {
   const root = document.documentElement;
@@ -29,11 +32,28 @@ function subscribeTheme(callback: () => void) {
 }
 
 function getThemeSnapshot(): Theme {
-  const stored = localStorage.getItem("kartel-theme") as Theme | null;
-  return stored || "system";
+  try {
+    const stored = localStorage.getItem("kartel-theme");
+    if (stored === "light" || stored === "dark" || stored === "system") return stored;
+  } catch {}
+  return "system";
 }
 
 const getThemeServerSnapshot = (): Theme => "system";
+
+/** «Высокий контраст» (bus 84/97): per device. Without a stored choice, follow the OS `prefers-contrast: more`. */
+function getContrastSnapshot(): Contrast {
+  try {
+    const stored = localStorage.getItem(CONTRAST_KEY);
+    if (stored === "high" || stored === "normal") return stored;
+  } catch {}
+  return window.matchMedia("(prefers-contrast: more)").matches ? "high" : "normal";
+}
+const getContrastServerSnapshot = (): Contrast => "normal";
+
+function applyContrast(c: Contrast) {
+  document.documentElement.classList.toggle("hc", c === "high");
+}
 
 function subscribeSystem(callback: () => void) {
   const mql = window.matchMedia("(prefers-color-scheme: dark)");
@@ -58,14 +78,23 @@ export function useTheme() {
     getSystemSnapshot,
     getSystemServerSnapshot
   );
+  const contrast = useSyncExternalStore(subscribeTheme, getContrastSnapshot, getContrastServerSnapshot);
   const resolved: "light" | "dark" = theme === "system" ? system : theme;
 
   useEffect(() => {
     applyTheme(resolved);
   }, [resolved]);
+  useEffect(() => {
+    applyContrast(contrast);
+  }, [contrast]);
 
   const setTheme = useCallback((t: Theme) => {
-    localStorage.setItem("kartel-theme", t);
+    try { localStorage.setItem("kartel-theme", t); } catch {}
+    window.dispatchEvent(new Event(THEME_EVENT));
+  }, []);
+
+  const setContrast = useCallback((c: Contrast) => {
+    try { localStorage.setItem(CONTRAST_KEY, c); } catch {}
     window.dispatchEvent(new Event(THEME_EVENT));
   }, []);
 
@@ -73,5 +102,5 @@ export function useTheme() {
     setTheme(resolved === "light" ? "dark" : "light");
   }, [resolved, setTheme]);
 
-  return { theme, resolved, setTheme, toggleTheme };
+  return { theme, resolved, setTheme, toggleTheme, contrast, setContrast };
 }
