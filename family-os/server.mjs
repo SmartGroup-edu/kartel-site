@@ -8,7 +8,8 @@ import { createServer } from "node:http";
 import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS } from "./policy.mjs";
+import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs } from "./policy.mjs";
+import { rotationAssignee, pausedOn, DEFAULT_PREFS } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
@@ -189,7 +190,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}) },
         guardians: canSeeGuardians(me, subject, grants, admin) ? grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation, scopes: g.scopes })) : [],
         can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin), retype_documents: canAddDocuments(me, subject, grants, admin),
-          routines: routineAccess(me, subject, grants) },
+          routines: routineAccess(me, subject, grants), prefs: canEditPrefs(me, subject, grants) },
       });
     }
     // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind }
@@ -383,14 +384,24 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     // ================= Stage 2: routines and chores =================
     const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
     /** A routine as the screen needs it: due today? done today? gentle streak, next dates. */
-    const routineView = (r, checks, today, days) => {
+    const routineView = (r, checks, today, days, paused = () => false) => {
       const rule = parseRule(r.rrule);
       const done = new Set(checks.filter((c) => c.routine_id === r.id && c.done).map((c) => c.on_date));
       return { id: r.id, kind: r.kind, title: r.title, rrule: r.rrule, dtstart: r.dtstart, at_time: r.at_time,
-        due_today: occursOn(rule, r.dtstart, today), done_today: done.has(today),
+        due_today: occursOn(rule, r.dtstart, today) && !paused(today), done_today: done.has(today),
         done_recent: [...done].filter((d) => d >= addDays(today, -2)).sort(),
-        streak: streak(rule, r.dtstart, done, today), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10) };
+        streak: streak(rule, r.dtstart, done, today, 400, paused), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10).filter((d) => !paused(d)) };
     };
+    /** A rotation as seen by one member: their turns (today + next days). kind "rotation". */
+    const rotationView = (x, personId, rchecks, today, days, paused = () => false) => {
+      const mine = (d) => rotationAssignee(x, d) === personId && !paused(d);
+      const nextDays = Array.from({ length: days }, (_, i) => addDays(today, i + 1)).filter(mine);
+      const doneToday = rchecks.some((c) => c.rotation_id === x.id && c.on_date === today && c.done);
+      return { id: x.id, kind: "rotation", title: x.title, rrule: x.rrule, dtstart: x.dtstart, at_time: x.at_time, members: x.members.length,
+        due_today: mine(today), done_today: doneToday, done_recent: [], streak: 0, next: nextDays };
+    };
+    /** Best-effort event (the bus feeds Stage 3 rules); a write never fails because of it. */
+    const emit = async (type, subject, ref) => { try { await store.emit(type, who.email, subject, ref); } catch { console.error("[os] event emit failed"); } };
 
     // GET|POST /people/:id/routines — GET ?days=1..14 (upcoming window, default 7)
     const rtm = path.match(/^\/people\/([^/]+)\/routines$/);
@@ -405,9 +416,13 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         if (!can.read) return reply(res, 403, { error: "forbidden", reason: can.reason });
         const days = Math.min(14, Math.max(1, Number(url.searchParams.get("days") ?? 7) || 7));
         if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: "routines:list", action: "read" }))) return;
-        const rows = await store.listRoutines(subject.id);
+        const [rows, pauses, rots] = await Promise.all([store.listRoutines(subject.id), store.listPauses(subject.id), store.listRotations()]);
         const checks = await store.listChecks(rows.map((r) => r.id), addDays(today, -400));
-        return reply(res, 200, { today, can, routines: rows.map((r) => routineView(r, checks, today, days)) });
+        const myRots = rots.filter((x) => x.members.includes(subject.id));
+        const rchecks = await store.listRotationChecks(myRots.map((x) => x.id), addDays(today, -2));
+        const paused = (d) => pausedOn(pauses, subject.id, d);
+        return reply(res, 200, { today, can, paused_today: paused(today),
+          routines: [...rows.map((r) => routineView(r, checks, today, days, paused)), ...myRots.map((x) => rotationView(x, subject.id, rchecks, today, days, paused))] });
       }
       if (!can.manage) return reply(res, 403, { error: "forbidden", reason: can.reason ?? "child_cannot_manage" });
       const b = json(body);
@@ -416,6 +431,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!ROUTINE_KINDS.includes(r.kind) || !r.title || !parseRule(r.rrule) || !DATE_RE.test(r.dtstart) || (r.at_time && !TIME_RE.test(r.at_time))) return reply(res, 400, { error: "bad_routine" });
       if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: `routine:${r.kind}`, action: "write" }))) return;
       await store.createRoutine(r, who.email);
+      await emit("routine.created", subject.id, r.id);
       return reply(res, 201, { id: r.id });
     }
 
@@ -442,7 +458,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (b.archived === true) patch.archived = true;
       if (!Object.keys(patch).length) return reply(res, 400, { error: "bad_routine" });
       if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: patch.archived ? "routine:archive" : "routine:update", action: "write" }))) return;
-      return (await store.updateRoutine(x.r.id, patch, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+      if (!(await store.updateRoutine(x.r.id, patch, who.email))) return reply(res, 404, { error: "not_found" });
+      await emit(patch.archived ? "routine.archived" : "routine.updated", x.subject.id, x.r.id);
+      return reply(res, 200, { ok: true });
     }
 
     // POST /routines/:id/check — { date, done } for today or the two days before (late ticks happen)
@@ -457,6 +475,110 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!occursOn(parseRule(x.r.rrule), x.r.dtstart, date)) return reply(res, 400, { error: "not_scheduled" });
       if (x.other && !(await logged(res, { actor: who.email, subject: x.subject.id, entity: "routine:check", action: "write" }))) return;
       await store.addCheck(x.r.id, date, b.done, who.email);
+      await emit(b.done ? "routine.checked" : "routine.unchecked", x.subject.id, x.r.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // ================= Stage 3a: settings, pauses, rotations, rules =================
+    const personFor = async (id) => (UUID_RE.test(id) ? store.getPerson(id) : null);
+
+    // GET|PUT /people/:id/prefs — email on/off, digest time, evening check-in, language
+    const pfm = path.match(/^\/people\/([^/]+)\/prefs$/);
+    if (pfm && (req.method === "GET" || req.method === "PUT")) {
+      const subject = await personFor(pfm[1]);
+      if (!subject) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, subject, await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (req.method === "GET") return reply(res, 200, { prefs: { ...DEFAULT_PREFS, ...((await store.getPrefs(subject.id)) ?? {}) } });
+      const b = json(body) ?? {}, T = /^(0[7-9]|1\d|20):[0-5]\d$/;
+      const p = { email_on: b.email_on, digest_time: b.digest_time, evening_on: b.evening_on, evening_time: b.evening_time, lang: b.lang };
+      if (typeof p.email_on !== "boolean" || typeof p.evening_on !== "boolean" || !T.test(p.digest_time ?? "") || !T.test(p.evening_time ?? "") || !["ru", "en"].includes(p.lang)) return reply(res, 400, { error: "bad_prefs" });
+      await store.setPrefs(subject.id, p, who.email);
+      await emit("prefs.updated", subject.id, null);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST /people/:id/pauses — «день без ритма» (from–to, at most 61 days); PATCH /pauses/:id { cancel }
+    const pam = path.match(/^\/people\/([^/]+)\/pauses$/);
+    if (pam && (req.method === "GET" || req.method === "POST")) {
+      const subject = await personFor(pam[1]);
+      if (!subject) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, subject, await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (req.method === "GET") return reply(res, 200, { pauses: await store.listPauses(subject.id) });
+      const b = json(body), today = localDate(clock());
+      const from = b?.from_date, to = b?.to_date;
+      if (!DATE_RE.test(from ?? "") || !DATE_RE.test(to ?? "") || to < from || from < today || addDays(from, 60) < to) return reply(res, 400, { error: "bad_pause" });
+      const id = randomUUID();
+      await store.createPause({ id, person_id: subject.id, from_date: from, to_date: to }, who.email);
+      await emit("pause.created", subject.id, id);
+      return reply(res, 201, { id });
+    }
+    const pcm = path.match(/^\/pauses\/([^/]+)$/);
+    if (pcm && req.method === "PATCH") {
+      const p = UUID_RE.test(pcm[1]) ? await store.getPause(pcm[1]) : null;
+      if (!p || p.cancelled_at) return reply(res, 404, { error: "not_found" });
+      if (!canEditPrefs(me, await store.getPerson(p.person_id), await grantsNow())) return reply(res, 403, { error: "forbidden" });
+      if (json(body)?.cancel !== true) return reply(res, 400, { error: "bad_request" });
+      await store.cancelPause(p.id);
+      await emit("pause.cancelled", p.person_id, p.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // POST /rotations — a chore that goes round 2–8 members. The caller must manage every member.
+    if (path === "/rotations" && req.method === "POST") {
+      const b = json(body), grants = await grantsNow(), today = localDate(clock());
+      const members = Array.isArray(b?.members) ? b.members : [];
+      const x = { id: randomUUID(), title: text(b?.title, 120), rrule: typeof b?.rrule === "string" ? b.rrule : "", dtstart: b?.dtstart ?? today, at_time: b?.at_time ? String(b.at_time) : null, members };
+      if (!x.title || !parseRule(x.rrule) || !DATE_RE.test(x.dtstart) || (x.at_time && !TIME_RE.test(x.at_time)) || members.length < 2 || members.length > 8
+        || new Set(members).size !== members.length || members.some((m) => !UUID_RE.test(m))) return reply(res, 400, { error: "bad_rotation" });
+      const people = await Promise.all(members.map((m) => store.getPerson(m)));
+      if (people.some((p) => !p)) return reply(res, 400, { error: "bad_rotation" });
+      if (people.some((p) => !routineAccess(me, p, grants).manage)) return reply(res, 403, { error: "forbidden", reason: "not_all_members" });
+      for (const p of people) if (me && me.id !== p.id && !(await logged(res, { actor: who.email, subject: p.id, entity: "rotation", action: "write" }))) return;
+      await store.createRotation(x, who.email);
+      await emit("rotation.created", null, x.id);
+      return reply(res, 201, { id: x.id });
+    }
+    const rom = path.match(/^\/rotations\/([^/]+)(\/check)?$/);
+    if (rom && (req.method === "PATCH" || (req.method === "POST" && rom[2]))) {
+      const x = UUID_RE.test(rom[1]) ? await store.getRotation(rom[1]) : null;
+      if (!x || x.archived_at) return reply(res, 404, { error: "not_found" });
+      const grants = await grantsNow();
+      if (req.method === "PATCH") {
+        const people = await Promise.all(x.members.map((m) => store.getPerson(m)));
+        if (people.some((p) => !p || !routineAccess(me, p, grants).manage)) return reply(res, 403, { error: "forbidden", reason: "not_all_members" });
+        if (json(body)?.archived !== true) return reply(res, 400, { error: "bad_request" });
+        await store.archiveRotation(x.id, who.email);
+        await emit("rotation.archived", null, x.id);
+        return reply(res, 200, { ok: true });
+      }
+      // POST /rotations/:id/check { date, done } — on the assignee's turn, by them or their guardian
+      const b = json(body), today = localDate(clock()), date = b?.date ?? today;
+      if (!DATE_RE.test(date) || date > today || date < addDays(today, -2) || typeof b?.done !== "boolean") return reply(res, 400, { error: "bad_check" });
+      const assignee = rotationAssignee(x, date);
+      if (!assignee) return reply(res, 400, { error: "not_scheduled" });
+      const subject = await store.getPerson(assignee);
+      const can = routineAccess(me, subject, grants);
+      if (!can.check) return reply(res, 403, { error: "forbidden", reason: can.reason });
+      if (me && me.id !== subject.id && !(await logged(res, { actor: who.email, subject: subject.id, entity: "rotation:check", action: "write" }))) return;
+      await store.addRotationCheck(x.id, date, subject.id, b.done, who.email);
+      await emit(b.done ? "rotation.checked" : "rotation.unchecked", subject.id, x.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET /rules (admin) — rules with on/off, dry-run and the last 7 days of outcomes (counts only)
+    // PATCH /rules/:id (admin) — { enabled?, dry_run? }
+    if (path === "/rules" && req.method === "GET") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const [rules, counts] = await Promise.all([store.listRules(), store.ruleRunCounts(addDays(localDate(clock()), -7))]);
+      return reply(res, 200, { rules: rules.map((r) => ({ id: r.id, enabled: r.enabled, dry_run: r.dry_run, last7: Object.fromEntries(counts.filter((c) => c.rule_id === r.id).map((c) => [c.outcome, c.n])) })) });
+    }
+    const rlm = path.match(/^\/rules\/([a-z_]+)$/);
+    if (rlm && req.method === "PATCH") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const b = json(body) ?? {};
+      if ((b.enabled !== undefined && typeof b.enabled !== "boolean") || (b.dry_run !== undefined && typeof b.dry_run !== "boolean") || (b.enabled === undefined && b.dry_run === undefined)) return reply(res, 400, { error: "bad_rule" });
+      if (!(await store.setRule(rlm[1], b, who.email))) return reply(res, 404, { error: "not_found" });
+      await emit("rule.updated", null, rlm[1]);
       return reply(res, 200, { ok: true });
     }
     return reply(res, 404, { error: "not_found" });
@@ -494,6 +616,12 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/routines$/.test(p)) return "/people/:id/routines";
   if (/^\/routines\/[^/]+\/check$/.test(p)) return "/routines/:id/check";
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
+  if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
+  if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
+  if (p === "/rotations" || p === "/rules") return p;
+  if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";
+  if (/^\/rotations\/[^/]+$/.test(p)) return "/rotations/:id";
+  if (/^\/rules\/[a-z_]+$/.test(p)) return "/rules/:id";
   if (/^\/documents\/[^/]+$/.test(p)) return "/documents/:id";
   if (/^\/people\/[^/]+\/notes$/.test(p)) return "/people/:id/notes";
   if (/^\/people\/[^/]+\/documents$/.test(p)) return "/people/:id/documents";

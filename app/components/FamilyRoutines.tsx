@@ -17,7 +17,7 @@ import type { OsRoutine } from "../lib/family-os";
 type Lang = "EN" | "RU";
 const T = {
   EN: {
-    routine: "Routine", chore: "Chore", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
+    routine: "Routine", chore: "Chore", rotation: "Chore in turns", rotationShort: "In turns", members: "Who takes turns", needMembers: "Choose at least two people.", paused: "A day without rhythm — nothing is scheduled today.", done: "Done", notDone: "Not done yet", saveError: "Could not save — please try again.",
     progress: (d: number, n: number) => `${d} of ${n} done`, nextOn: "Next", agenda: "Next 7 days", nothingAhead: "Nothing scheduled in the next 7 days.",
     add: "Add a routine or chore", kind: "Type", title: "What to do", titleHint: "e.g. Brush teeth", repeat: "Repeats",
     repeatOpt: { daily: "Every day", every_n: "Every N days", weekdays: "Weekdays", weekly: "On chosen days", monthly: "Once a month" },
@@ -27,7 +27,7 @@ const T = {
     weekdayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   },
   RU: {
-    routine: "Распорядок", chore: "Дело", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
+    routine: "Распорядок", chore: "Дело", rotation: "Дело по очереди", rotationShort: "По очереди", members: "Кто делает по очереди", needMembers: "Выбери хотя бы двоих.", paused: "День без ритма — на сегодня ничего не запланировано.", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
     progress: (d: number, n: number) => `Сделано ${d} из ${n}`, nextOn: "Дальше", agenda: "Ближайшие 7 дней", nothingAhead: "На ближайшие 7 дней ничего не запланировано.",
     add: "Добавить распорядок или дело", kind: "Тип", title: "Что сделать", titleHint: "Например, почистить зубы", repeat: "Повторять",
     repeatOpt: { daily: "Каждый день", every_n: "Раз в N дней", weekdays: "По будням", weekly: "По дням недели", monthly: "Раз в месяц" },
@@ -38,6 +38,7 @@ const T = {
   },
 } as const;
 
+const kindLabel = (t: (typeof T)[Lang], r: OsRoutine) => (r.kind === "rotation" ? `${t.rotationShort}${r.members ? ` (${r.members})` : ""}` : r.kind === "chore" ? t.chore : t.routine);
 const send = (method: "POST" | "PATCH", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" });
 const fmtDay = (d: string, lang: Lang) =>
@@ -55,19 +56,25 @@ function Check({ checked }: { checked: boolean }) {
 }
 
 /** Today's due items with a tick each. `canCheck` false → read-only (e.g. someone without the scope). */
-export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading }: {
-  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string;
+export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading, paused = false }: {
+  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string; paused?: boolean;
 }) {
   const t = T[lang];
   const due = routines.filter((r) => r.due_today).sort((a, b) => (a.at_time ?? "99").localeCompare(b.at_time ?? "99"));
   const [done, setDone] = useState<Record<string, boolean>>(() => Object.fromEntries(due.map((r) => [r.id, r.done_today])));
   const [msg, setMsg] = useState("");
+  if (paused) return (
+    <section aria-labelledby={headingId} data-paused="" className="mt-8">
+      <h2 id={headingId} className="font-serif text-[22px] text-[var(--foreground)]">{heading}</h2>
+      <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] px-5 py-4 text-[16px] text-[var(--text-secondary)]">{T[lang].paused}</p>
+    </section>
+  );
   if (due.length === 0) return null;
   const count = due.filter((r) => done[r.id]).length;
   const toggle = async (r: OsRoutine) => {
     const next = !done[r.id];
     setDone((x) => ({ ...x, [r.id]: next })); setMsg("");
-    const res = await send("POST", `routines/${r.id}/check`, { date: today, done: next }).catch(() => null);
+    const res = await send("POST", `${r.kind === "rotation" ? "rotations" : "routines"}/${r.id}/check`, { date: today, done: next }).catch(() => null);
     if (!res?.ok) { setDone((x) => ({ ...x, [r.id]: !next })); setMsg(t.saveError); }
   };
   return (
@@ -82,13 +89,13 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
           return (
             <li key={r.id} data-routine={r.kind} data-done={done[r.id] ? "1" : "0"}>
               <button type="button" role="checkbox" aria-checked={done[r.id]} disabled={!canCheck} onClick={() => toggle(r)}
-                aria-label={[r.title, r.at_time, r.kind === "chore" ? t.chore : t.routine, s].filter(Boolean).join(", ")}
+                aria-label={[r.title, r.at_time, kindLabel(t, r), s].filter(Boolean).join(", ")}
                 className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
                 <Check checked={done[r.id]} />
                 <span className="min-w-0 flex-1">
                   <span className={`block text-[17px] ${done[r.id] ? "text-[var(--text-secondary)] line-through decoration-[var(--border)]" : "text-[var(--foreground)]"}`}>{r.title}</span>
                   <span className="mt-0.5 block text-[14px] text-[var(--muted)]">
-                    {[r.at_time, r.kind === "chore" ? t.chore : t.routine, s].filter(Boolean).join(" · ")}
+                    {[r.at_time, kindLabel(t, r), s].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -131,12 +138,13 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
   const [ask, setAsk] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const remove = async (id: string) => {
-    const r = await send("PATCH", `routines/${id}`, { archived: true }).catch(() => null);
+    const kind = routines.find((x) => x.id === id)?.kind;
+    const r = await send("PATCH", `${kind === "rotation" ? "rotations" : "routines"}/${id}`, { archived: true }).catch(() => null);
     setAsk(null); setMsg(r?.ok ? t.removed : t.saveError); if (r?.ok) router.refresh();
   };
   return (
-    <section aria-labelledby="all-h" className="mt-10">
-      <h3 id="all-h" className="font-serif text-[20px] text-[var(--foreground)]">{t.all}</h3>
+    // Folded by default (bus 78 #7): today's list and the agenda are what people read every day.
+    <Disclosure summary={`${t.all} (${routines.length})`} className="mt-10" variant="inline" summaryClassName="w-fit font-serif text-[20px] text-[var(--foreground)]">
       {routines.length === 0 ? <p className="mt-2 text-[14px] text-[var(--muted)]">{t.none}</p> : (
         <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {routines.map((r) => (
@@ -144,7 +152,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] text-[var(--foreground)]">{r.title}</p>
                 <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>
-                  {[r.kind === "chore" ? t.chore : t.routine, describeRule(r.rrule, lang), r.at_time, r.next[0] ? `${t.nextOn}: ${fmtDay(r.next[0], lang)}` : null].filter(Boolean).join(" · ")}
+                  {[kindLabel(t, r), describeRule(r.rrule, lang), r.at_time, r.next[0] ? `${t.nextOn}: ${fmtDay(r.next[0], lang)}` : null].filter(Boolean).join(" · ")}
                 </p>
               </div>
               {canManage && (ask === r.id ? (
@@ -158,11 +166,11 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
         </ul>
       )}
       <p role="status" aria-live="polite" className="mt-2 text-[14px] text-[var(--muted)]">{msg}</p>
-    </section>
+    </Disclosure>
   );
 }
 
-export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string }) {
+export function AddRoutine({ lang, personId, today, candidates = [] }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[] }) {
   const t = T[lang];
   const router = useRouter();
   const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
@@ -172,6 +180,8 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
   const [monthDay, setMonthDay] = useState(String(Number(today.slice(8, 10))));
   const [dtstart, setDtstart] = useState(today);
   const [status, setStatus] = useState("");
+  const [kind, setKind] = useState<"routine" | "chore" | "rotation">("routine");
+  const [members, setMembers] = useState<string[]>([personId]);
   const rrule = buildRule({ repeat, days, interval: repeat === "every_n" ? n : weeks, monthDay });
   const reset = () => { setRepeat("daily"); setN("2"); setWeeks("1"); setDays([]); setDtstart(today); };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -179,18 +189,37 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
     if (!rrule) return setStatus(repeat === "weekly" ? t.needDays : t.needN);
     const form = e.currentTarget, f = new FormData(form);
     setStatus(t.saving);
-    const body = { kind: f.get("kind"), title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
-    const r = await send("POST", `people/${personId}/routines`, body).catch(() => null);
+    if (kind === "rotation" && members.length < 2) return setStatus(t.needMembers);
+    const common = { title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
+    // A rotation keeps the members in the order they appear in the list (the turn order).
+    const r = await (kind === "rotation" ? send("POST", "rotations", { ...common, members: candidates.map((c) => c.id).filter((id) => members.includes(id)) })
+      : send("POST", `people/${personId}/routines`, { ...common, kind })).catch(() => null);
     if (!r?.ok) return setStatus(t.saveError);
-    setStatus(t.added); form.reset(); reset(); router.refresh();
+    setStatus(t.added); form.reset(); reset(); setKind("routine"); setMembers([personId]); router.refresh();
   };
   return (
     <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
         <label className={label}>{t.kind}
-          <select name="kind" className={field} defaultValue="routine"><option value="routine">{t.routine}</option><option value="chore">{t.chore}</option></select>
+          <select name="kind" className={field} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+            <option value="routine">{t.routine}</option><option value="chore">{t.chore}</option>
+            {candidates.length >= 2 && <option value="rotation">{t.rotation}</option>}
+          </select>
         </label>
+        {kind === "rotation" && (
+          <fieldset data-rotation-members="" className="sm:col-span-2">
+            <legend className={label}>{t.members}</legend>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {candidates.map((c) => (
+                <label key={c.id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${members.includes(c.id) ? "border-[var(--accent)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
+                  <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" checked={members.includes(c.id)} onChange={() => setMembers((x) => (x.includes(c.id) ? x.filter((y) => y !== c.id) : [...x, c.id]))} />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         <label className={label}>{t.repeat}
           <select name="repeat" className={field} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
             {(["daily", "every_n", "weekdays", "weekly", "monthly"] as const).map((k) => <option key={k} value={k}>{t.repeatOpt[k]}</option>)}

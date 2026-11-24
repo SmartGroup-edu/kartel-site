@@ -169,3 +169,94 @@ CREATE TABLE IF NOT EXISTS routine_check (
   at          timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS routine_check_day ON routine_check (routine_id, on_date, id DESC);
+
+-- ---- Stage 3a: engine (bus 77; plan v3.8 §3.3–3.6) ------------------------------------------------
+CREATE OR REPLACE FUNCTION append_only() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION '% is append-only', TG_TABLE_NAME; END $$;
+
+-- The event bus: what happened, who, about whom, which object. Never titles, text, numbers or names.
+CREATE TABLE IF NOT EXISTS event (
+  id                 bigserial PRIMARY KEY,
+  at                 timestamptz NOT NULL DEFAULT now(),
+  type               text NOT NULL CHECK (type ~ '^[a-z_]+\.[a-z_]+$'),
+  actor              text NOT NULL,
+  subject_person_id  uuid,
+  ref                text CHECK (ref IS NULL OR length(ref) <= 80)
+);
+CREATE INDEX IF NOT EXISTS event_at ON event (at);
+DROP TRIGGER IF EXISTS event_no_update ON event;
+CREATE TRIGGER event_no_update BEFORE UPDATE OR DELETE ON event FOR EACH ROW EXECUTE FUNCTION append_only();
+DROP TRIGGER IF EXISTS event_no_truncate ON event;
+CREATE TRIGGER event_no_truncate BEFORE TRUNCATE ON event FOR EACH STATEMENT EXECUTE FUNCTION append_only();
+
+-- Rules are data: on/off and dry-run per rule. Dry-run records what would be sent, sends nothing.
+CREATE TABLE IF NOT EXISTS rule (
+  id          text PRIMARY KEY CHECK (id ~ '^[a-z_]+$'),
+  enabled     boolean NOT NULL,
+  dry_run     boolean NOT NULL DEFAULT true,
+  updated_by  text,
+  updated_at  timestamptz
+);
+INSERT INTO rule (id, enabled) VALUES ('digest', true), ('evening_checkin', true), ('documents_in_digest', false),
+  ('missed_routine_parent_note', false), ('council_reminder', false) ON CONFLICT DO NOTHING;
+
+-- One row per (rule, idempotency key, person): written BEFORE a send; a failed send removes it.
+CREATE TABLE IF NOT EXISTS rule_run (
+  rule_id      text NOT NULL REFERENCES rule(id),
+  key          text NOT NULL CHECK (length(key) <= 80),
+  person_id    uuid NOT NULL REFERENCES person(id),
+  family_date  date NOT NULL,
+  outcome      text NOT NULL CHECK (outcome IN ('sent', 'dry_run', 'opted_out', 'quiet_hours', 'daily_cap', 'no_email')),
+  at           timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (rule_id, key, person_id)
+);
+CREATE INDEX IF NOT EXISTS rule_run_day ON rule_run (family_date, person_id);
+
+-- Notification settings per person (defaults when no row): email on, digest 07:00, evening off.
+-- Digest and evening times must fall outside the family quiet hours (21:00–07:00).
+CREATE TABLE IF NOT EXISTS notification_pref (
+  person_id     uuid PRIMARY KEY REFERENCES person(id),
+  email_on      boolean NOT NULL DEFAULT true,
+  digest_time   text NOT NULL DEFAULT '07:00' CHECK (digest_time ~ '^(0[7-9]|1[0-9]|20):[0-5][0-9]$'),
+  evening_on    boolean NOT NULL DEFAULT false,
+  evening_time  text NOT NULL DEFAULT '20:00' CHECK (evening_time ~ '^(0[7-9]|1[0-9]|20):[0-5][0-9]$'),
+  lang          text NOT NULL DEFAULT 'ru' CHECK (lang IN ('ru', 'en')),
+  updated_by    text,
+  updated_at    timestamptz
+);
+
+-- «День без ритма»: no items, no reminders, streaks skip these days. Cancelled, never deleted.
+CREATE TABLE IF NOT EXISTS pause (
+  id            uuid PRIMARY KEY,
+  person_id     uuid NOT NULL REFERENCES person(id),
+  from_date     date NOT NULL,
+  to_date       date NOT NULL,
+  created_by    text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  cancelled_at  timestamptz,
+  CHECK (to_date >= from_date AND to_date - from_date <= 60)
+);
+CREATE INDEX IF NOT EXISTS pause_person ON pause (person_id) WHERE cancelled_at IS NULL;
+
+-- A chore that goes round the members in turn (round-robin by occurrence; engine.mjs rotationAssignee).
+CREATE TABLE IF NOT EXISTS rotation (
+  id           uuid PRIMARY KEY,
+  title        text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  rrule        text NOT NULL CHECK (length(rrule) BETWEEN 9 AND 120),
+  dtstart      date NOT NULL,
+  at_time      text CHECK (at_time IS NULL OR at_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  members      uuid[] NOT NULL CHECK (cardinality(members) BETWEEN 2 AND 8),
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz
+);
+CREATE TABLE IF NOT EXISTS rotation_check (
+  id           bigserial PRIMARY KEY,
+  rotation_id  uuid NOT NULL REFERENCES rotation(id),
+  on_date      date NOT NULL,
+  person_id    uuid NOT NULL REFERENCES person(id),
+  done         boolean NOT NULL,
+  by_actor     text NOT NULL,
+  at           timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rotation_check_day ON rotation_check (rotation_id, on_date, id DESC);

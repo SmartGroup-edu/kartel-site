@@ -59,12 +59,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g.actor, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines)|documents/${ID}/(reveal|copied)|routines/${ID}/check|people|grants)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
   return json(404, { error: "not_found" });
 }
 
 /** JSON writes: small bodies only; the service authorises (admin-only routes refuse members there). */
-async function forwardJson(req: Request, method: "POST" | "PATCH" | "DELETE", path: string, actor: string) {
+async function forwardJson(req: Request, method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, actor: string) {
   const text = method === "DELETE" ? "" : await req.text();
   if (text.length > 16 * 1024) return json(413, { error: "too_large" });
   const r = await forward(method, path, actor, text, text ? { "content-type": "application/json" } : {});
@@ -75,8 +75,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ op: st
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(routines|documents|people|grants)/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations)/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PATCH", path, g.actor);
+}
+
+export async function PUT(req: Request, { params }: { params: Promise<{ op: string[] }> }) {
+  const g = await guard(req, true);
+  if (g instanceof Response) return g;
+  const path = "/" + (await params).op.join("/");
+  if (!new RegExp(`^/people/${ID}/prefs$`).test(path)) return json(404, { error: "not_found" });
+  return forwardJson(req, "PUT", path, g.actor);
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ op: string[] }> }) {

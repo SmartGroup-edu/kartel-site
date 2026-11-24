@@ -75,13 +75,14 @@ export function occurrences(rule, dtstart, from, to, max = 60) {
  * back from today. Today counts if it is done; if today is scheduled but not done yet, it is simply not
  * counted (the day is not over). A miss ends the streak — it is never shown as a failure.
  * @param {Set<string>} done dates marked done
+ * @param {(d: string) => boolean} [skip] days that do not count (a pause)
  */
-export function streak(rule, dtstart, done, today, lookbackDays = 400) {
+export function streak(rule, dtstart, done, today, lookbackDays = 400, skip = () => false) {
   let n = 0;
   for (let i = 0; i <= lookbackDays; i++) {
     const d = addDays(today, -i);
     if (d < dtstart) break;
-    if (!occursOn(rule, dtstart, d)) continue;
+    if (!occursOn(rule, dtstart, d) || skip(d)) continue; // paused days («день без ритма») neither count nor break
     if (done.has(d)) n++;
     else if (i === 0) continue;
     else break;
