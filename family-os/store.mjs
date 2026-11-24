@@ -162,11 +162,61 @@ export function pgStore(pool) {
     async addRotationCheck(id, date, personId, done, actor) {
       await q("INSERT INTO rotation_check (rotation_id, on_date, person_id, done, by_actor) VALUES ($1, $2, $3, $4, $5)", [id, date, personId, done, actor]);
     },
+    // ---- Stage 3b: council, goals, calendar, ICS
+    async allRoutines() { return (await q("SELECT id, person_id, rrule, to_char(dtstart, 'YYYY-MM-DD') AS dtstart FROM routine WHERE archived_at IS NULL")).rows; },
+    async allChecks(from) { return (await q("SELECT DISTINCT ON (routine_id, on_date) routine_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, done FROM routine_check WHERE on_date >= $1 ORDER BY routine_id, on_date, id DESC", [from])).rows; },
+    async allRotationChecks(from) { return (await q("SELECT DISTINCT ON (rotation_id, on_date) rotation_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, done FROM rotation_check WHERE on_date >= $1 ORDER BY rotation_id, on_date, id DESC", [from])).rows; },
+    async allPauses() { return (await q("SELECT person_id, to_char(from_date, 'YYYY-MM-DD') AS from_date, to_char(to_date, 'YYYY-MM-DD') AS to_date, cancelled_at FROM pause WHERE cancelled_at IS NULL")).rows; },
+    async getMeeting(date) { return (await q("SELECT id, to_char(on_date, 'YYYY-MM-DD') AS on_date, wrapped_key, notes_ct, held_at FROM council_meeting WHERE on_date = $1", [date])).rows[0] ?? null; },
+    async prevMeeting(date) { return (await q("SELECT id, to_char(on_date, 'YYYY-MM-DD') AS on_date FROM council_meeting WHERE on_date < $1 ORDER BY on_date DESC LIMIT 1", [date])).rows[0] ?? null; },
+    async saveMeeting(m, actor) {
+      await q(`INSERT INTO council_meeting (id, on_date, wrapped_key, notes_ct, held_at, created_by) VALUES ($1, $2, $3, $4, CASE WHEN $5::boolean THEN now() END, $6)
+               ON CONFLICT (on_date) DO UPDATE SET notes_ct = $4, held_at = CASE WHEN $5::boolean THEN COALESCE(council_meeting.held_at, now()) ELSE NULL END`,
+        [m.id, m.on_date, m.wrapped_key, m.notes_ct, Boolean(m.held), actor]);
+      await audit(actor, "council.save", `council:${m.on_date}`);
+    },
+    async listTasks(meetingId) { return (await q("SELECT id, meeting_id, title, owner_id, to_char(due_date, 'YYYY-MM-DD') AS due_date, done_at FROM council_task WHERE meeting_id = $1 ORDER BY due_date, created_at", [meetingId])).rows; },
+    async openTasksOf(ownerId) { return (await q("SELECT id, meeting_id, title, owner_id, to_char(due_date, 'YYYY-MM-DD') AS due_date, done_at FROM council_task WHERE owner_id = $1 AND done_at IS NULL ORDER BY due_date", [ownerId])).rows; },
+    async getTask(id) { return (await q("SELECT id, meeting_id, title, owner_id, to_char(due_date, 'YYYY-MM-DD') AS due_date, done_at FROM council_task WHERE id = $1", [id])).rows[0] ?? null; },
+    async createTask(t, actor) {
+      await q("INSERT INTO council_task (id, meeting_id, title, owner_id, due_date, created_by) VALUES ($1, $2, $3, $4, $5, $6)", [t.id, t.meeting_id, t.title, t.owner_id, t.due_date, actor]);
+      await audit(actor, "council.task", `task:${t.id}`);
+    },
+    async setTaskDone(id, done, actor) { return (await q("UPDATE council_task SET done_at = CASE WHEN $2::boolean THEN now() END, done_by = CASE WHEN $2::boolean THEN $3 END WHERE id = $1", [id, done, actor])).rowCount === 1; },
+    async listGoals(personId) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, status, created_at FROM goal WHERE person_id = $1 AND status <> 'archived' ORDER BY status, created_at", [personId])).rows; },
+    async getGoal(id) { return (await q("SELECT id, person_id, sphere, visibility, wrapped_key, title_ct, status FROM goal WHERE id = $1", [id])).rows[0] ?? null; },
+    async createGoal(g, actor) {
+      await q("INSERT INTO goal (id, person_id, sphere, visibility, wrapped_key, title_ct, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)", [g.id, g.person_id, g.sphere, g.visibility, g.wrapped_key, g.title_ct, actor]);
+    },
+    async updateGoal(id, patch) { return (await q("UPDATE goal SET status = COALESCE($2, status), visibility = COALESCE($3, visibility), updated_at = now() WHERE id = $1", [id, patch.status ?? null, patch.visibility ?? null])).rowCount === 1; },
+    async listCheckins(goalIds) {
+      if (!goalIds.length) return [];
+      return (await q("SELECT id, goal_id, to_char(week_start, 'YYYY-MM-DD') AS week_start, mood, note_ct FROM goal_checkin WHERE goal_id = ANY($1::uuid[]) ORDER BY week_start DESC", [goalIds])).rows;
+    },
+    async saveCheckin(c, actor) {
+      return (await q(`INSERT INTO goal_checkin (goal_id, week_start, mood, note_ct, created_by) VALUES ($1, $2, $3, $4, $5)
+                       ON CONFLICT (goal_id, week_start) DO UPDATE SET mood = $3, note_ct = $4 RETURNING id`, [c.goal_id, c.week_start, c.mood, c.note_ct, actor])).rows[0].id;
+    },
+    async listEvents(from, to) { return (await q("SELECT id, title, to_char(on_date, 'YYYY-MM-DD') AS on_date, at_time, created_by FROM family_event WHERE archived_at IS NULL AND on_date BETWEEN $1 AND $2 ORDER BY on_date", [from, to])).rows; },
+    async getEvent(id) { return (await q("SELECT id, archived_at FROM family_event WHERE id = $1", [id])).rows[0] ?? null; },
+    async createEvent(e, actor) { await q("INSERT INTO family_event (id, title, on_date, at_time, created_by) VALUES ($1, $2, $3, $4, $5)", [e.id, e.title, e.on_date, e.at_time, actor]); },
+    async archiveEvent(id) { return (await q("UPDATE family_event SET archived_at = now() WHERE id = $1 AND archived_at IS NULL", [id])).rowCount === 1; },
+    async getIcs(personId) { return (await q("SELECT created_at FROM ics_token WHERE person_id = $1 AND revoked_at IS NULL", [personId])).rows[0] ?? null; },
+    async setIcs(personId, hash, actor) {
+      await q("INSERT INTO ics_token (person_id, token_hash) VALUES ($1, $2) ON CONFLICT (person_id) DO UPDATE SET token_hash = $2, created_at = now(), revoked_at = NULL", [personId, hash]);
+      await audit(actor, "ics.issue", `person:${personId}`);
+    },
+    async revokeIcs(personId, actor) {
+      const r = await q("UPDATE ics_token SET revoked_at = now() WHERE person_id = $1 AND revoked_at IS NULL", [personId]);
+      if (r.rowCount) await audit(actor, "ics.revoke", `person:${personId}`);
+      return r.rowCount === 1;
+    },
+    async personByIcs(hash) { return (await q("SELECT p.* FROM ics_token t JOIN person p ON p.id = t.person_id WHERE t.token_hash = $1 AND t.revoked_at IS NULL", [hash])).rows[0] ?? null; },
   };
 }
 
 export function memoryStore() {
-  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [];
+  const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map();
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
   return {
@@ -238,7 +288,34 @@ export function memoryStore() {
       return [...latest.values()].map(({ rotation_id, on_date, done }) => ({ rotation_id, on_date, done }));
     },
     async addRotationCheck(id, date, personId, done, actor) { rchecks.push({ rotation_id: id, on_date: date, person_id: personId, done, by_actor: actor }); },
+    // ---- Stage 3b
+    async allRoutines() { return [...routines.values()].filter((r) => !r.archived_at); },
+    async allChecks(from) { return this.listChecks([...routines.keys()], from); },
+    async allRotationChecks(from) { return this.listRotationChecks([...rotations.keys()], from); },
+    async allPauses() { return [...pauses.values()].filter((p) => !p.cancelled_at); },
+    async getMeeting(date) { return [...meetings.values()].find((m) => m.on_date === date) ?? null; },
+    async prevMeeting(date) { return [...meetings.values()].filter((m) => m.on_date < date).sort((a, b) => b.on_date.localeCompare(a.on_date))[0] ?? null; },
+    async saveMeeting(m) { const cur = [...meetings.values()].find((x) => x.on_date === m.on_date); if (cur) { cur.notes_ct = m.notes_ct; cur.held_at = m.held ? cur.held_at ?? now() : null; } else meetings.set(m.id, { ...m, held_at: m.held ? now() : null }); },
+    async listTasks(meetingId) { return [...tasks.values()].filter((t) => t.meeting_id === meetingId); },
+    async openTasksOf(ownerId) { return [...tasks.values()].filter((t) => t.owner_id === ownerId && !t.done_at); },
+    async getTask(id) { return tasks.get(id) ?? null; },
+    async createTask(t) { tasks.set(t.id, { ...t, done_at: null }); },
+    async setTaskDone(id, done) { const t = tasks.get(id); if (!t) return false; t.done_at = done ? now() : null; return true; },
+    async listGoals(pid) { return [...goals.values()].filter((g) => g.person_id === pid && g.status !== "archived"); },
+    async getGoal(id) { return goals.get(id) ?? null; },
+    async createGoal(g) { goals.set(g.id, { ...g, status: "active" }); },
+    async updateGoal(id, patch) { const g = goals.get(id); if (!g) return false; if (patch.status) g.status = patch.status; if (patch.visibility) g.visibility = patch.visibility; return true; },
+    async listCheckins(ids) { return [...checkins.values()].filter((c) => ids.includes(c.goal_id)); },
+    async saveCheckin(c) { const k = `${c.goal_id}|${c.week_start}`; const id = checkins.get(k)?.id ?? checkins.size + 1; checkins.set(k, { ...c, id }); return id; },
+    async listEvents(from, to) { return [...events3.values()].filter((e) => !e.archived_at && e.on_date >= from && e.on_date <= to); },
+    async getEvent(id) { return events3.get(id) ?? null; },
+    async createEvent(e) { events3.set(e.id, { ...e, archived_at: null }); },
+    async archiveEvent(id) { const e = events3.get(id); if (!e || e.archived_at) return false; e.archived_at = now(); return true; },
+    async getIcs(pid) { const t = ics.get(pid); return t && !t.revoked_at ? { created_at: t.created_at } : null; },
+    async setIcs(pid, hash) { ics.set(pid, { hash, created_at: now(), revoked_at: null }); },
+    async revokeIcs(pid) { const t = ics.get(pid); if (!t || t.revoked_at) return false; t.revoked_at = now(); return true; },
+    async personByIcs(hash) { for (const [pid, t] of ics) if (t.hash === hash && !t.revoked_at) return people.get(pid) ?? null; return null; },
 
-    _raw: { notes, log, docs: () => docs, files: () => files, checks, events, rchecks },
+    _raw: { notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics },
   };
 }

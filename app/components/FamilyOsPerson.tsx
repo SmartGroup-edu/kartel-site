@@ -20,8 +20,9 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS, fmtDocDate } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsState, OsProfile, OsDocument, OsRoutines, OsPrefs, OsPause } from "../lib/family-os";
+import type { OsState, OsProfile, OsDocument, OsRoutines, OsPrefs, OsPause, OsGoals, OsNotes, OsIcs } from "../lib/family-os";
 import FamilyPrefs from "./FamilyPrefs";
+import { FamilyGoals, FamilyNotes, FamilyIcs } from "./FamilyPersonExtras";
 
 type Lang = "EN" | "RU";
 const T = {
@@ -60,7 +61,7 @@ const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--b
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 
-export default function FamilyOsPerson({ lang, state, profile, documents, routines, prefs = null, pauses = null, editor = false }: { lang: Lang; state: OsState; editor?: boolean; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null; prefs?: OsPrefs | null; pauses?: OsPause[] | null }) {
+export default function FamilyOsPerson({ lang, state, profile, documents, routines, prefs = null, pauses = null, editor = false, goals = null, notes = null, ics = null }: { lang: Lang; state: OsState; editor?: boolean; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null; prefs?: OsPrefs | null; pauses?: OsPause[] | null; goals?: OsGoals | null; notes?: OsNotes | null; ics?: OsIcs | null }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const ok = state.status === "ok";
@@ -108,7 +109,11 @@ export default function FamilyOsPerson({ lang, state, profile, documents, routin
             )}
           </section>
 
+          {goals && <FamilyGoals lang={lang} personId={p.id} data={goals} />}
+
           {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} />}
+          {ics && <FamilyIcs lang={lang} personId={p.id} data={ics} />}
+          {notes && notes.kinds.length > 0 && <FamilyNotes lang={lang} personId={p.id} data={notes} />}
 
           <section aria-labelledby="docs-h" className="mt-12">
             <h2 id="docs-h" className={H2}>{t.documents}</h2>

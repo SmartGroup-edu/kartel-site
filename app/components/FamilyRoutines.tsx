@@ -47,7 +47,7 @@ const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--bo
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
 
-function Check({ checked }: { checked: boolean }) {
+export function Check({ checked }: { checked: boolean }) {
   return (
     <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border-strong,var(--border))]"}`}>
       {checked && <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.5 5.5 10.5 11.5 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}

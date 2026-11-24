@@ -5,11 +5,13 @@
 // The actor header is "admin:<email>" or "member:<email>"; it is covered by the signature, so only the
 // site can say who is asking. Logs carry method, route class, status — never emails, names or text.
 import { createServer } from "node:http";
-import { createHmac, createHash, timingSafeEqual, randomUUID } from "node:crypto";
+import { createHmac, createHash, timingSafeEqual, randomUUID, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs } from "./policy.mjs";
-import { rotationAssignee, pausedOn, DEFAULT_PREFS } from "./engine.mjs";
+import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
+  canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
+import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
+import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
@@ -80,6 +82,28 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     try { await store.logAccess(entry); return true; } catch { console.error("[os] access log write failed"); reply(res, 503, { error: "log_unavailable" }); return false; }
   }
 
+  /**
+   * Birthdays a viewer may see (bus 81): every living member's day + month for any member; the year only
+   * where the full birth-date rule allows. `person` holds living family members only — the heritage
+   * (deceased) people live in the heritage store, never here.
+   */
+  const birthdayRows = (viewer, people, grants) => (canSeeBirthdayDayMonth(viewer) ? people : [])
+    .filter((p) => p && p.birth_date)
+    .map((p) => { const b = String(p.birth_date instanceof Date ? p.birth_date.toISOString().slice(0, 10) : p.birth_date);
+      return { id: p.id, name_ru: p.name_ru, name_en: p.name_en, md: b.slice(5), year: canSeeBirthday(viewer, p, grants) ? Number(b.slice(0, 4)) : null }; });
+
+  /** The person's own feed: their routines and turns, the council, family events, birthdays they may see. */
+  async function serveIcs(res, person) {
+    const today = localDate(clock());
+    const [routines, rotations, events, people, grants] = await Promise.all([store.listRoutines(person.id), store.listRotations(), store.listEvents(today, addDays(today, 365)), store.listPeople(), store.listGrants()]);
+    const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
+    const birthdayPeople = birthdayRows(person, full, grants).map((b) => ({ ...b, year: null })); // the feed never carries a year
+    const stamp = new Date(clock()).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const ics = buildIcs({ today, stamp, calName: "KARTEL · Семья", routines, rotations: rotations.filter((x) => x.members.includes(person.id)), personId: person.id, events, birthdayPeople, nameOf: (p) => p.name_ru, labels: { council: "Семейный совет", birthday: "День рождения" } });
+    res.writeHead(200, { "content-type": "text/calendar; charset=utf-8", "cache-control": "no-store", "x-content-type-options": "nosniff" });
+    return res.end(ics);
+  }
+
   async function handle(req, res) {
     const url = new URL(req.url, "http://x");
     if (req.method === "GET" && url.pathname === "/healthz") return reply(res, 200, { ok: true });
@@ -88,6 +112,16 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const body = await readBody(req, isUpload ? MAX_FILE + 1024 : MAX_JSON);
     const auth = verify(req, body);
     if (!auth) { console.warn("[os] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    // GET /ics/:token — the personal calendar feed. Only the site may ask (actor "system:ics", signed);
+    // the token itself is the person's credential, stored here only as its SHA-256.
+    const icsM = req.method === "GET" && url.pathname.match(/^\/ics\/([A-Za-z0-9_-]{43})$/);
+    if (icsM) {
+      if (auth.actor !== "system:ics") return reply(res, 403, { error: "forbidden" });
+      if (!allow("ics", 600, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      const person = await store.personByIcs(sha256(icsM[1]));
+      if (!person) return reply(res, 404, { error: "not_found" });
+      return serveIcs(res, person);
+    }
     const who = parseActor(auth.actor);
     if (!who) return reply(res, 403, { error: "actor_required" });
     const writes = req.method !== "GET";
@@ -190,7 +224,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}) },
         guardians: canSeeGuardians(me, subject, grants, admin) ? grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation, scopes: g.scopes })) : [],
         can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin), retype_documents: canAddDocuments(me, subject, grants, admin),
-          routines: routineAccess(me, subject, grants), prefs: canEditPrefs(me, subject, grants) },
+          routines: routineAccess(me, subject, grants), prefs: canEditPrefs(me, subject, grants),
+          notes: noteKindsFor(me, subject, grants), goals: canWriteGoal(me, subject), ics: Boolean(me && me.id === subject.id) },
       });
     }
     // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind }
@@ -581,6 +616,168 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       await emit("rule.updated", null, rlm[1]);
       return reply(res, 200, { ok: true });
     }
+
+    // ================= Stage 3b: council, goals, calendar, ICS =================
+    const nameOf = (p) => p.name_ru;
+    const meetingKey = (m) => unwrapDataKey(kek, m.wrapped_key, "council", m.id);
+
+    // GET /council?date= — the meeting for that Sunday (default: today if Sunday, else next Sunday),
+    // its notes and decisions, open tasks from the previous meeting, and the week's aggregate.
+    if (req.method === "GET" && path === "/council") {
+      if (!canReadCouncil(me)) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock());
+      const q = url.searchParams.get("date");
+      const date = q && DATE_RE.test(q) ? councilDate(q) : councilDate(today);
+      const [m, prev, routines, rotations, pauses] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses()]);
+      const [checks, rchecks, tasks, prevTasks] = await Promise.all([store.allChecks(addDays(date, -7)), store.allRotationChecks(addDays(date, -7)), m ? store.listTasks(m.id) : [], prev ? store.listTasks(prev.id) : []]);
+      let notes = "";
+      if (m?.notes_ct) { const k = meetingKey(m); try { notes = open(k, m.notes_ct, `council:${m.id}`).toString("utf8"); } finally { k.fill(0); } }
+      const view = (t) => ({ id: t.id, title: t.title, owner_id: t.owner_id, due_date: t.due_date, done: Boolean(t.done_at) });
+      const st = councilStatus(date, today, localParts(clock()).hhmm, Boolean(m?.held_at));
+      return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld },
+        tasks: tasks.map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.map(view) } : null,
+        agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks }) });
+    }
+    // PUT /council/:date { notes, held } — adults only
+    const cm = path.match(/^\/council\/(\d{4}-\d{2}-\d{2})$/);
+    if (cm && req.method === "PUT") {
+      if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body);
+      if (councilDate(cm[1]) !== cm[1] || typeof b?.notes !== "string" || b.notes.length > 8000 || typeof b?.held !== "boolean") return reply(res, 400, { error: "bad_council" });
+      // «Совет прошёл» only from its start (19:00 local on that Sunday), never in advance (bus 80 #1)
+      if (b.held) { const lp = localParts(clock()); if (!councilStatus(cm[1], lp.date, lp.hhmm, false).canMarkHeld) return reply(res, 400, { error: "not_started" }); }
+      const cur = await store.getMeeting(cm[1]);
+      const id = cur?.id ?? randomUUID();
+      let wrapped = cur?.wrapped_key, k;
+      if (cur) k = meetingKey(cur); else { const nk = newDataKey(kek, "council", id); k = nk.dek; wrapped = nk.wrapped; }
+      try { await store.saveMeeting({ id, on_date: cm[1], wrapped_key: wrapped, notes_ct: b.notes ? seal(k, Buffer.from(b.notes), `council:${id}`) : null, held: b.held }, who.email); }
+      finally { k.fill(0); }
+      await emit(b.held ? "council.held" : "council.saved", null, cm[1]);
+      return reply(res, 200, { ok: true });
+    }
+    // POST /council/:date/tasks { title, owner_id, due_date } — a decision with an owner and a date
+    const ctm = path.match(/^\/council\/(\d{4}-\d{2}-\d{2})\/tasks$/);
+    if (ctm && req.method === "POST") {
+      if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body), title = text(b?.title, 160);
+      const owner = UUID_RE.test(b?.owner_id ?? "") ? await store.getPerson(b.owner_id) : null;
+      if (councilDate(ctm[1]) !== ctm[1] || !title || !owner || !DATE_RE.test(b?.due_date ?? "") || b.due_date < ctm[1]) return reply(res, 400, { error: "bad_task" });
+      let m = await store.getMeeting(ctm[1]);
+      if (!m) { const id = randomUUID(), nk = newDataKey(kek, "council", id); nk.dek.fill(0); await store.saveMeeting({ id, on_date: ctm[1], wrapped_key: nk.wrapped, notes_ct: null, held: false }, who.email); m = await store.getMeeting(ctm[1]); }
+      const id = randomUUID();
+      await store.createTask({ id, meeting_id: m.id, title, owner_id: owner.id, due_date: b.due_date }, who.email);
+      await emit("council.task_created", owner.id, id);
+      return reply(res, 201, { id });
+    }
+    // GET /council-tasks — my open tasks · POST /council-tasks/:id/done { done }
+    if (req.method === "GET" && path === "/council-tasks") {
+      if (!me) return reply(res, 200, { tasks: [] });
+      return reply(res, 200, { tasks: (await store.openTasksOf(me.id)).map((t) => ({ id: t.id, title: t.title, due_date: t.due_date })) });
+    }
+    const tdm = path.match(/^\/council-tasks\/([^/]+)\/done$/);
+    if (tdm && req.method === "POST") {
+      const t = UUID_RE.test(tdm[1]) ? await store.getTask(tdm[1]) : null;
+      if (!t) return reply(res, 404, { error: "not_found" });
+      if (!canTickTask(me, t)) return reply(res, 403, { error: "forbidden" });
+      if (typeof json(body)?.done !== "boolean") return reply(res, 400, { error: "bad_request" });
+      await store.setTaskDone(t.id, json(body).done, who.email);
+      await emit(json(body).done ? "council.task_done" : "council.task_reopened", t.owner_id, t.id);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST /people/:id/goals — only goals the viewer may see; only the owner creates
+    const gom = path.match(/^\/people\/([^/]+)\/goals$/);
+    if (gom && (req.method === "GET" || req.method === "POST")) {
+      const owner = UUID_RE.test(gom[1]) ? await store.getPerson(gom[1]) : null;
+      if (!owner) return reply(res, 404, { error: "not_found" });
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const grants = await grantsNow(), other = me.id !== owner.id;
+      if (req.method === "GET") {
+        const visible = (await store.listGoals(owner.id)).filter((g) => canReadGoal(me, g, owner, grants));
+        if (other && visible.length && !(await logged(res, { actor: who.email, subject: owner.id, entity: "goals:list", action: "read" }))) return;
+        const checkins = await store.listCheckins(visible.map((g) => g.id));
+        const thisWeek = weekStart(localDate(clock()));
+        return reply(res, 200, { can: { write: canWriteGoal(me, owner), visibilities: goalVisibilities(owner) }, week: thisWeek, goals: visible.map((g) => {
+          const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id);
+          try {
+            const cs = checkins.filter((c) => c.goal_id === g.id).slice(0, 8).map((c) => ({ week_start: c.week_start, mood: c.mood, note: c.note_ct ? open(k, c.note_ct, `checkin:${g.id}:${c.week_start}`).toString("utf8") : "" }));
+            return { id: g.id, sphere: g.sphere, visibility: g.visibility, status: g.status, title: open(k, g.title_ct, `goal:${g.id}`).toString("utf8"), checkins: cs, checked_this_week: cs.some((c) => c.week_start === thisWeek) };
+          } finally { k.fill(0); }
+        }) });
+      }
+      if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
+      const b = json(body), title = text(b?.title, 160), vis = b?.visibility ?? "owner";
+      if (!title || !GOAL_SPHERES.includes(b?.sphere) || !goalVisibilities(owner).includes(vis)) return reply(res, 400, { error: "bad_goal" });
+      const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "goal", id);
+      try { await store.createGoal({ id, person_id: owner.id, sphere: b.sphere, visibility: vis, wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `goal:${id}`) }, who.email); }
+      finally { dek.fill(0); }
+      await emit("goal.created", owner.id, id);
+      return reply(res, 201, { id });
+    }
+    // PATCH /goals/:id { status?, visibility? } · POST /goals/:id/checkins { mood, note } — owner only
+    const glm = path.match(/^\/goals\/([^/]+)(\/checkins)?$/);
+    if (glm && (req.method === "PATCH" || (req.method === "POST" && glm[2]))) {
+      const g = UUID_RE.test(glm[1]) ? await store.getGoal(glm[1]) : null;
+      if (!g || g.status === "archived") return reply(res, 404, { error: "not_found" });
+      const owner = await store.getPerson(g.person_id);
+      if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
+      const b = json(body) ?? {};
+      if (req.method === "PATCH") {
+        if ((b.status !== undefined && !["active", "done", "archived"].includes(b.status)) || (b.visibility !== undefined && !goalVisibilities(owner).includes(b.visibility)) || (b.status === undefined && b.visibility === undefined)) return reply(res, 400, { error: "bad_goal" });
+        await store.updateGoal(g.id, { status: b.status, visibility: b.visibility });
+        await emit("goal.updated", owner.id, g.id);
+        return reply(res, 200, { ok: true });
+      }
+      const note = typeof b.note === "string" ? b.note.trim() : "";
+      if (!["on_track", "slow", "paused"].includes(b.mood) || note.length > 500) return reply(res, 400, { error: "bad_checkin" });
+      const week = weekStart(localDate(clock()));
+      const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id);
+      try { await store.saveCheckin({ goal_id: g.id, week_start: week, mood: b.mood, note_ct: note ? seal(k, Buffer.from(note), `checkin:${g.id}:${week}`) : null }, who.email); }
+      finally { k.fill(0); }
+      await emit("goal.checked_in", owner.id, g.id);
+      return reply(res, 200, { ok: true, week_start: week });
+    }
+
+    // GET /calendar?days=1..92 — council, family events, birthdays this viewer may see
+    if (req.method === "GET" && path === "/calendar") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock()), days = Math.min(92, Math.max(1, Number(url.searchParams.get("days") ?? 60) || 60)), to = addDays(today, days - 1);
+      const [people, grants, events] = await Promise.all([store.listPeople(), grantsNow(), store.listEvents(today, to)]);
+      const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
+      const birthdayPeople = birthdayRows(me, full, grants);
+      return reply(res, 200, { today, can: { write: canWriteEvent(me) }, items: calendarItems(today, to, { events, birthdayPeople, nameOf }).map(({ name, ...x }) => ({ ...x, ...(name ? { name_ru: name, name_en: birthdayPeople.find((p) => p.id === x.person_id)?.name_en } : {}) })) });
+    }
+    // POST /events { title, on_date, at_time } (adults) · PATCH /events/:id { archived } (adults)
+    if (req.method === "POST" && path === "/events") {
+      if (!canWriteEvent(me)) return reply(res, 403, { error: "forbidden" });
+      const b = json(body), title = text(b?.title, 120), today = localDate(clock());
+      if (!title || !DATE_RE.test(b?.on_date ?? "") || b.on_date < today || (b.at_time && !TIME_RE.test(String(b.at_time)))) return reply(res, 400, { error: "bad_event" });
+      const id = randomUUID();
+      await store.createEvent({ id, title, on_date: b.on_date, at_time: b.at_time || null }, who.email);
+      await emit("event.created", null, id);
+      return reply(res, 201, { id });
+    }
+    const evm = path.match(/^\/events\/([^/]+)$/);
+    if (evm && req.method === "PATCH") {
+      if (!canWriteEvent(me)) return reply(res, 403, { error: "forbidden" });
+      if (json(body)?.archived !== true || !UUID_RE.test(evm[1])) return reply(res, 400, { error: "bad_request" });
+      if (!(await store.archiveEvent(evm[1]))) return reply(res, 404, { error: "not_found" });
+      await emit("event.archived", null, evm[1]);
+      return reply(res, 200, { ok: true });
+    }
+
+    // GET|POST|DELETE /people/:id/ics — the person's own calendar link (status · new link · switch off)
+    const icm = path.match(/^\/people\/([^/]+)\/ics$/);
+    if (icm && ["GET", "POST", "DELETE"].includes(req.method)) {
+      if (!me || me.id !== icm[1]) return reply(res, 403, { error: "forbidden", reason: "own_link_only" });
+      if (req.method === "GET") { const t = await store.getIcs(me.id); return reply(res, 200, { active: Boolean(t), created_at: t?.created_at ?? null }); }
+      if (req.method === "DELETE") { const ok = await store.revokeIcs(me.id, who.email); if (ok) await emit("ics.revoked", me.id, null); return reply(res, 200, { ok }); }
+      const token = randomBytes(32).toString("base64url");
+      await store.setIcs(me.id, sha256(token), who.email);
+      await emit("ics.issued", me.id, null);
+      return reply(res, 201, { token }); // shown once; only its hash is kept
+    }
+
     return reply(res, 404, { error: "not_found" });
   }
 
@@ -622,6 +819,13 @@ export function routeClass(url = "") {
   if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";
   if (/^\/rotations\/[^/]+$/.test(p)) return "/rotations/:id";
   if (/^\/rules\/[a-z_]+$/.test(p)) return "/rules/:id";
+  if (p === "/council" || p === "/council-tasks" || p === "/calendar" || p === "/events") return p;
+  if (/^\/council\/\d{4}-\d{2}-\d{2}(\/tasks)?$/.test(p)) return p.endsWith("/tasks") ? "/council/:date/tasks" : "/council/:date";
+  if (/^\/council-tasks\/[^/]+\/done$/.test(p)) return "/council-tasks/:id/done";
+  if (/^\/people\/[^/]+\/(goals|ics)$/.test(p)) return "/people/:id/" + p.split("/").pop();
+  if (/^\/goals\/[^/]+(\/checkins)?$/.test(p)) return p.endsWith("/checkins") ? "/goals/:id/checkins" : "/goals/:id";
+  if (/^\/events\/[^/]+$/.test(p)) return "/events/:id";
+  if (/^\/ics\/[^/]+$/.test(p)) return "/ics/:token";
   if (/^\/documents\/[^/]+$/.test(p)) return "/documents/:id";
   if (/^\/people\/[^/]+\/notes$/.test(p)) return "/people/:id/notes";
   if (/^\/people\/[^/]+\/documents$/.test(p)) return "/people/:id/documents";

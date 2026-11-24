@@ -8,7 +8,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Disclosure from "./Disclosure";
-import { fmtDocDate } from "../lib/family-docs.mjs";
+import { fmtFamilyDate } from "../lib/family-docs.mjs";
 import type { OsPrefs, OsPause } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -80,7 +80,7 @@ export default function FamilyPrefs({ lang, personId, prefs, pauses, today }: { 
         <ul data-pauses="" className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {pauses.map((x) => (
             <li key={x.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-              <span className="text-[16px] text-[var(--foreground)]" suppressHydrationWarning>{fmtDocDate(x.from_date, lang)} — {fmtDocDate(x.to_date, lang)}</span>
+              <span className="text-[16px] text-[var(--foreground)]" suppressHydrationWarning>{fmtFamilyDate(x.from_date, lang)} — {fmtFamilyDate(x.to_date, lang)}</span>
               <button type="button" className={btn} onClick={() => cancel(x.id)}>{t.cancel}</button>
             </li>
           ))}

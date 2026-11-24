@@ -59,7 +59,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g.actor, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|council-tasks/${ID}/done|goals/${ID}/checkins)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
   return json(404, { error: "not_found" });
 }
 
@@ -75,7 +75,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ op: st
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations)/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/((routines|documents|people|grants|pauses|rotations|goals|events)/${ID}|rules/[a-z_]{1,40})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PATCH", path, g.actor);
 }
 
@@ -83,7 +83,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ op: stri
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/people/${ID}/prefs$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PUT", path, g.actor);
 }
 
@@ -91,6 +91,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ op: s
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/grants/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(grants/${ID}|people/${ID}/ics)$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "DELETE", path, g.actor);
 }

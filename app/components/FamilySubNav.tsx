@@ -12,7 +12,7 @@ import { familySubNav, familySubNavLabel } from "../lib/family-nav.mjs";
  */
 const FADE = 32; // px of fade at an edge that has more tabs behind it
 
-export default function FamilySubNav({ lang, admin, os, active, editor = false }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "people" | "access" | "admin"; editor?: boolean }) {
+export default function FamilySubNav({ lang, admin, os, active, editor = false }: { lang: "EN" | "RU"; admin: boolean; os: boolean; active: "heritage" | "today" | "people" | "council" | "calendar" | "access" | "admin"; editor?: boolean }) {
   const items = familySubNav({ lang, admin, os, editor });
   const list = useRef<HTMLUListElement>(null);
   const [edge, setEdge] = useState({ left: false, right: false });
