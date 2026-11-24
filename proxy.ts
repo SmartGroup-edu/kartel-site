@@ -166,8 +166,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Skip Next internals, static assets, sitemap, robots, sw, llms files, and any
-  // path with a file extension (favicon, images, etc.).
+  // path with a file extension (favicon, images, etc.), and /m/ (the unlisted council mockup, bus 126).
   matcher: [
-    "/((?!_next|api|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|icon|apple-icon|.*\\.).*)",
+    "/((?!_next|api|m/|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|icon|apple-icon|.*\\.).*)",
   ],
 };
