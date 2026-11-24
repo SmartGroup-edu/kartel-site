@@ -52,7 +52,9 @@ test("migration: chores and rotations → DRAFT templates, council tasks → tas
   const tpl = [...store._raw.templates.values()];
   assert.equal(tpl.length, 2); assert.ok(tpl.every((t) => t.active === false), "drafts: nothing active until «Утвердить шаблоны»");
   assert.deepEqual(tpl.map((t) => [t.mask, t.assignee_id ?? "members", t.members?.length ?? 0]).sort(), [["0000010", P.c, 0], ["1111111", "members", 2]].sort());
-  assert.ok(tpl.every((t) => !String(t.title_ct).includes("QA")), "titles sealed");
+  // "QA " with the space: a sealed value is base64 joined by dots, so it never has a space, while a bare "QA"
+  // turns up in ~1.5% of random ciphertexts and made this test flaky (bus 154)
+  assert.ok(tpl.every((t) => !String(t.title_ct).includes("QA ")), "titles sealed");
   const left = await store.allRoutines();
   assert.equal(left.filter((r) => r.kind === "routine").length, 1, "the personal routine stays a routine");
   assert.equal(left.filter((r) => r.kind === "chore").length, 1, "the inexpressible one is left as it is (skipped)");
