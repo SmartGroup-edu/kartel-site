@@ -573,6 +573,15 @@ CREATE TABLE IF NOT EXISTS security_notice (
   sent_at      timestamptz
 );
 
+-- Go-live bundle R1 (bus 100/105): «Завершить сеансы». The owner sets a cut-off per address, or for everyone
+-- ('*'). A session issued before the cut-off is refused on the sensitive routes (document open/reveal, passkey
+-- register, «Доступы» writes). Upsert only; never deleted by the app.
+CREATE TABLE IF NOT EXISTS session_cutoff (
+  email   text PRIMARY KEY,
+  cut_at  timestamptz NOT NULL,
+  cut_by  text NOT NULL
+);
+
 -- Stage 3e-1 «Здоровье-лайт» (bus 86/109): movement + sleep ticks (only the family's weekly total is ever shown to
 -- others) and the evening question (sealed; only its author reads it). No weight or calorie columns here.
 CREATE TABLE IF NOT EXISTS health_pref (

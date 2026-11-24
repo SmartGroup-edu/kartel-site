@@ -228,6 +228,15 @@ export function pgStore(pool) {
     async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
     async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1", [since])).rows; },
     async markInviteSent(id) { await q("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [id]); },
+    // ---- Go-live R1: session cut-offs ('*' = everyone). The later of the person's and the family-wide one wins.
+    async sessionCutoff(email) {
+      const r = (await q("SELECT max(cut_at) AS at FROM session_cutoff WHERE email = $1 OR email = '*'", [email])).rows[0];
+      return r?.at ? new Date(r.at) : null;
+    },
+    async endSessions(email, actor) {
+      await q("INSERT INTO session_cutoff (email, cut_at, cut_by) VALUES ($1, now(), $2) ON CONFLICT (email) DO UPDATE SET cut_at = now(), cut_by = $2", [email, actor]);
+      await audit(actor, "sessions.end", email === "*" ? "family:*" : `email:${email}`);
+    },
     // ---- Stage 3e-2: an adult's own body log (sealed rows; the server decides who may call these)
     async bodyOn(personId) { return Boolean((await q("SELECT body_on FROM body_pref WHERE person_id = $1", [personId])).rows[0]?.body_on); },
     async setBodyOn(personId, on) { await q("INSERT INTO body_pref (person_id, body_on) VALUES ($1, $2) ON CONFLICT (person_id) DO UPDATE SET body_on = $2", [personId, on]); },
@@ -374,7 +383,7 @@ export const LOG_ACTIONS = ["read", "write", "reveal", "copy", "export", "delete
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
-  const seen = new Map(), invites = [], photos = [], hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map();
+  const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
@@ -476,6 +485,9 @@ export function memoryStore() {
     async recognitionsBetween(from, to) { return recs.filter((r) => r.on_date >= from && r.on_date <= to); },
     async recognitionsSentOn(fromId, date) { return recs.filter((r) => r.from_id === fromId && r.on_date === date).length; },
     async addRecognition(r, actor) { recs.push({ ...r, created_by: actor, created_at: now() }); },
+    // ---- Go-live R1
+    async sessionCutoff(email) { const xs = [cutoffs.get(email), cutoffs.get("*")].filter(Boolean); return xs.length ? new Date(Math.max(...xs.map((d) => d.getTime()))) : null; },
+    async endSessions(email, actor) { cutoffs.set(email, new Date(now())); auditLog.push({ actor, action: "sessions.end", entity: email === "*" ? "family:*" : `email:${email}` }); },
     // ---- Stage 3e-2
     async bodyOn(personId) { return Boolean(bprefs.get(personId)); },
     async setBodyOn(personId, on) { bprefs.set(personId, on); },

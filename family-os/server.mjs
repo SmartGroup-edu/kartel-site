@@ -153,6 +153,30 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const me = await store.findPersonByEmail(who.email);
     const path = url.pathname;
 
+    // Go-live R1 (bus 100/105): a session issued before the owner's «Завершить сеансы» cut-off is refused on the
+    // sensitive routes. The site signs `sat` (the session's issued-at, seconds) into every call; a missing `sat`
+    // counts as 0, so it is refused whenever a cut-off exists. The cut-off is rounded UP to the second (fail-closed).
+    if (sensitiveRoute(req.method, path)) {
+      const cut = await store.sessionCutoff(who.email);
+      const sat = Number(url.searchParams.get("sat"));
+      if (cut && !(Number.isInteger(sat) && sat >= Math.ceil(cut.getTime() / 1000))) {
+        console.warn("[os] session ended by the owner: refused " + routeClass(path));
+        return reply(res, 401, { error: "session_ended" });
+      }
+    }
+    // POST /people/:id/end-sessions (owner) — that person's sessions; POST /sessions/end-all (owner) — everyone's.
+    const esm = path.match(/^\/people\/([^/]+)\/end-sessions$/);
+    if (req.method === "POST" && (esm || path === "/sessions/end-all")) {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      if (esm) {
+        if (!UUID_RE.test(esm[1])) return reply(res, 400, { error: "bad_id" });
+        const p = await store.getPerson(esm[1]);
+        if (!p?.email) return reply(res, 404, { error: "not_found" });
+        await store.endSessions(p.email, who.email);
+      } else await store.endSessions("*", who.email);
+      return reply(res, 200, { ok: true });
+    }
+
     // GET /me — who am I in Family OS (null = signed in to /family but not a Family OS member yet)
     if (req.method === "GET" && path === "/me") {
       return reply(res, 200, { me: me ? { id: me.id, name_en: me.name_en, name_ru: me.name_ru, kind: me.kind } : null, admin });
@@ -1485,10 +1509,22 @@ async function stripImage(buf, mime) {
 const pkParentOf = (me, subject, grants) => Boolean(me) && subject?.kind === "child" && grants.some((g) => !g.revoked_at && g.relation === "parent" && g.guardian_id === me.id && g.child_id === subject.id);
 
 /** "/people/<uuid>/notes" → "/people/:id/notes" — logs never carry ids, emails or text. */
+/** Go-live R1: the routes a session cut-off guards — document open/reveal, passkey register, «Доступы» writes. */
+export function sensitiveRoute(method, p) {
+  if (method === "GET" && /^\/documents\/[^/]+\/files\/[^/]+$/.test(p)) return true;
+  if (method === "POST" && /^\/documents\/[^/]+\/(reveal|copied)$/.test(p)) return true;
+  if (method === "POST" && /^\/passkeys\/register\/(options|verify)$/.test(p)) return true;
+  if (method !== "GET" && /^\/grants(\/[^/]+)?$/.test(p)) return true;
+  if ((method === "POST" && p === "/people") || (method === "PATCH" && /^\/people\/[^/]+$/.test(p))) return true;
+  return false;
+}
+
 export function routeClass(url = "") {
   const p = url.split("?")[0];
   if (p === "/healthz" || p === "/me" || p === "/people" || p === "/grants") return p;
   if (/^\/grants\/[^/]+$/.test(p)) return "/grants/:id";
+  if (/^\/people\/[^/]+\/end-sessions$/.test(p)) return "/people/:id/end-sessions";
+  if (p === "/sessions/end-all") return p;
   if (p === "/health" || p === "/health/prefs" || p === "/health/tick" || p === "/evening") return p;
   if (p === "/body" || p === "/body/prefs" || p === "/body/goal" || p === "/body/export") return p;
   if (/^\/body\/log\/[^/]+$/.test(p)) return "/body/log/:date";
