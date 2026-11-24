@@ -73,15 +73,12 @@ export const layerNameLabels: Record<Lang, Record<string, string>> = {
  * Steward column overrides (registry.public.json.canonicalLayers[].steward), by
  * layer key. Only entries whose steward carries English prose are overridden;
  * everything else falls back to the JSON value (product names, "taxonomy API" — kept as-is).
- * identity: the JSON still says "RusJAz (Keycloak realm)"; Keycloak was retired 2026-11-14, so the
- * site overrides it until the vendored registry is re-synced.
+ * The interim identity override ("RusJAz (Keycloak realm)" → "RusJAz") was dropped at registry v11,
+ * which says "RusJAz" itself.
  */
 export const stewardLabels: Record<Lang, Record<string, string>> = {
-  EN: {
-    identity: "RusJAz",
-  },
+  EN: {},
   RU: {
-    identity: "RusJAz",
     membership: "платформы (данные остаются локально)",
   },
 };
@@ -114,7 +111,7 @@ export const gateNames: Record<Lang, Record<string, string>> = {
 export const gateDescriptions: Record<Lang, Record<string, string>> = {
   EN: {
     cpif_authentication:
-      "One federated identity (CPIF); each platform keeps only a local reference to the person.",
+      "The platform authenticates its own users and, where it federates, carries the ecosystem subject identifier. Sign-in through Keycloak is not required.",
     canonical_geography:
       "Store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions.",
     organisation_anchor:
@@ -128,7 +125,7 @@ export const gateDescriptions: Record<Lang, Record<string, string>> = {
   },
   RU: {
     cpif_authentication:
-      "Единая федеративная идентичность (CPIF); платформа хранит лишь локальную ссылку на человека.",
+      "Платформа сама выполняет вход своих пользователей и, если входит в федерацию, хранит идентификатор субъекта экосистемы. Вход через Keycloak не требуется.",
     canonical_geography:
       "Хранить CanonicalRegionCode (ITL1); потреблять taxonomy API; не создавать регионы самостоятельно.",
     organisation_anchor:

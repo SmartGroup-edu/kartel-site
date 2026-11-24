@@ -58,7 +58,12 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
                     <td className="px-4 py-4">
                       <span className="font-mono text-[14px] text-[var(--accent)]">{o.code}</span>
                     </td>
-                    <td className="px-4 py-4 font-serif text-base text-[var(--foreground)]">{o.name}</td>
+                    <td className="px-4 py-4">
+                      <span className="font-serif text-base text-[var(--foreground)]">
+                        {lang === "RU" && o.nameRu ? o.nameRu : o.name}
+                      </span>
+                      {o.note ? <p className={`mt-1 max-w-[60ch] ${META}`}>{noDashLineStart(o.note)}</p> : null}
+                    </td>
                     <td className="px-4 py-4">
                       <TierPill value={o.tier} label={tierLabel(lang, o.tier) ?? o.tier} />
                     </td>
@@ -77,6 +82,12 @@ export default function OrganisationsRegistry({ lang }: { lang: Lang }) {
               </tbody>
             </table>
           </div>
+          {reg.lifecycleNote ? (
+            <p className={`mt-4 max-w-[68ch] ${META}`}>
+              <span className="text-[var(--foreground)]">{c.lifecycleLabel}: </span>
+              {noDashLineStart(reg.lifecycleNote)}
+            </p>
+          ) : null}
         </FadeInSection>
 
         {/* Campus layer — now its own published canonical registry */}

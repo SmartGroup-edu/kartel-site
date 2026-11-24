@@ -64,6 +64,8 @@ export default function LayersDashboard({ lang }: { lang: Lang }) {
                   <Field label={c.fields.contract}>
                     <span className="font-mono text-sm text-[var(--text-body)]">{l.contract}</span>
                   </Field>
+                  {/* Versioned change note from the registry (e.g. v10 geography, v11 identity). */}
+                  {l.note ? <Field label={c.fields.note}>{l.note}</Field> : null}
                 </dl>
               </section>
             </FadeInSection>

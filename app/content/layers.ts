@@ -21,6 +21,7 @@ export const layersContent = {
       consumers: "Consumers",
       contract: "Contract",
       status: "Status",
+      note: "Change note",
     },
     publicNote:
       "Public registry — status and architecture only. Operational detail and any personal data live in the access-controlled internal surface, never here.",
@@ -43,6 +44,7 @@ export const layersContent = {
       consumers: "Потребители",
       contract: "Контракт",
       status: "Статус",
+      note: "Изменение",
     },
     publicNote:
       "Публичный реестр — только статус и архитектура. Операционные детали и любые персональные данные — во внутреннем контуре с контролем доступа, не здесь.",

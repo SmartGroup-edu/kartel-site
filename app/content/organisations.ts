@@ -9,7 +9,7 @@ export const organisationsContent = {
     copy: "KARTEL Core · public registry of the federation",
     metaTitle: "Organisations",
     metaDescription:
-      "Canonical institutions of the KARTEL ecosystem — CEA, RusJAz Foundation, Znaniye and Baltica — each with a readable organisation code.",
+      "Canonical institutions of the KARTEL ecosystem — CEA CIC, Znaniye, Baltica and Russian Online with EUREKA — each with a readable organisation code.",
     eyebrow: "Registry",
     title: "Organisations",
     intro:
@@ -21,6 +21,7 @@ export const organisationsContent = {
       parent: "Parent",
     },
     rootLabel: "— (root)",
+    lifecycleLabel: "Lifecycle",
     campusesTitle: "Campuses — a separate canonical layer",
     campusesNote:
       "Operating accredited centres are anchored separately, by campusCode. An institution (canonicalOrgCode) is brand identity; a campus (campusCode) is operating-centre identity. The two are orthogonal — not parent and child.",
@@ -34,7 +35,7 @@ export const organisationsContent = {
     copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Организации",
     metaDescription:
-      "Канонические учреждения экосистемы KARTEL — CEA, RusJAz Foundation, «Знание» и «Балтика» — у каждого свой читаемый код организации.",
+      "Канонические учреждения экосистемы KARTEL — CEA CIC, «Знание», «Балтика» и «Русский Онлайн с ЭВРИКОЙ» — у каждого свой читаемый код организации.",
     eyebrow: "Реестр",
     title: "Организации",
     intro:
@@ -46,6 +47,7 @@ export const organisationsContent = {
       parent: "Родитель",
     },
     rootLabel: "— (корень)",
+    lifecycleLabel: "Жизненный цикл",
     campusesTitle: "Кампусы — отдельный канонический слой",
     campusesNote:
       "Действующие аккредитованные центры закрепляются отдельно — ключом campusCode. Учреждение (canonicalOrgCode) — это идентичность бренда; кампус (campusCode) — идентичность действующего центра. Это ортогональные измерения, а не «родитель — потомок».",

@@ -4,9 +4,9 @@
 
 ## KARTEL Core
 
-Cultural and educational platforms share one identity, one map of UK regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. The registry observes; it is not a workflow, a database, or a runtime dependency.
+Cultural and educational platforms share one identity, one map of countries and regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. The registry observes; it is not a workflow, a database, or a runtime dependency.
 
-- **Canonical layers**: Identity (CPIF — one person, one identity across every platform), Geography (ITL1 — canonical UK region taxonomy), Organisations (CEA → Foundation → School → Venue), Federation (the integration gate).
+- **Canonical layers**: Identity (CPIF — one person, one identity across every platform), Geography (countries ISO 3166-1, and within them regions — ITL1 in the UK, ISO 3166-2 elsewhere), Organisations (CEA → Foundation → School → Venue), Federation (the integration gate).
 - **Federation Integration Gate**: eight requirements every project joining the federation passes before production (authentication, canonical geography, organisation anchor, membership contract, permission pattern, event geo-anchor, notification envelope, audit envelope). Each platform signs its users in by its own sound method; no shared sign-in service is required.
 - **Ecosystem projects**:
   - MoyPolk (moypolk.uk) — Immortal Regiment UK memorial platform; produces and serves the canonical geography taxonomy.
@@ -38,4 +38,4 @@ The Family Heritage area (/en/family) is members-only: family members sign in wi
 
 - Website: https://kartel.org.uk
 - Email: gor@kartel.org.uk
-- Last updated: 2026-11-14
+- Last updated: 2026-11-24

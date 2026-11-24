@@ -8,7 +8,7 @@ export const coreAboutContent = {
     copy: "KARTEL Core · public registry of the federation",
     metaTitle: "What is KARTEL Core?",
     metaDescription:
-      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity, one map of UK regions and one set of rules.",
+      "KARTEL Core in 60 seconds: a federation of cultural and educational platforms with one identity, one map of countries and regions and one set of rules.",
     eyebrow: "What is KARTEL?",
     title: "One ecosystem. One identity. One geography.",
     lede:
@@ -24,7 +24,7 @@ export const coreAboutContent = {
       },
       {
         h: "Canonical geography — one map",
-        p: "One canonical UK region taxonomy (ITL1 — the official statistical regions). Every platform tags its content with the same region codes and consumes them from one source of truth. No platform invents its own regions.",
+        p: "One canonical geography: countries (ISO 3166-1) and, within them, regions — ITL1, the official statistical regions, in the UK and ISO 3166-2 subdivisions elsewhere. Every platform tags its content with the same codes and consumes them from one source of truth. No platform invents its own regions.",
       },
       {
         h: "Why a federation?",
@@ -43,7 +43,7 @@ export const coreAboutContent = {
     copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Что такое Ядро KARTEL?",
     metaDescription:
-      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью, одной картой регионов UK и едиными правилами.",
+      "Ядро KARTEL за 60 секунд: федерация культурных и образовательных платформ с одной идентичностью, одной картой стран и регионов и едиными правилами.",
     eyebrow: "Что такое KARTEL?",
     title: "Одна экосистема. Одна идентичность. Одна география.",
     lede:
@@ -59,7 +59,7 @@ export const coreAboutContent = {
       },
       {
         h: "Каноническая география — одна карта",
-        p: "Одна каноническая таксономия регионов UK (ITL1 — официальные статистические регионы). Каждая платформа размечает контент одними кодами регионов и потребляет их из единого источника истины. Никто не изобретает свои регионы.",
+        p: "Одна каноническая география: страны (ISO 3166-1) и регионы внутри них — в UK это ITL1, официальные статистические регионы, в других странах подразделения ISO 3166-2. Каждая платформа размечает контент одними кодами и потребляет их из единого источника истины. Никто не изобретает свои регионы.",
       },
       {
         h: "Зачем федерация?",
