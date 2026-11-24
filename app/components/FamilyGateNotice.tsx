@@ -46,6 +46,7 @@ const copy = {
     sent: (min: number) => `If that address may access this area, a sign-in link is on its way. Check your inbox and spam folder. The link works once, only in this browser, and expires in ${min} ${min === 1 ? "minute" : "minutes"}.`,
     again: "Use a different email",
     back: "Back to the coat of arms",
+    ended: "Your session was ended — this happens when the family's owner closes open sessions, for example after a lost phone. Please sign in again with an email link or a passkey.",
     invalid: (min: number) => `That link didn’t work. A link works for ${min} ${min === 1 ? "minute" : "minutes"}, only in the browser where you asked for it, and only the latest one counts. Ask for a new one here, then open the email on this same device.`,
   },
   ru: {
@@ -62,6 +63,7 @@ const copy = {
     sent: (min: number) => `Если у этого адреса есть доступ, ссылка уже отправлена. Проверьте входящие и папку «Спам». Ссылка действует ${min} ${ruMinutes(min)}, срабатывает один раз и только в этом браузере.`,
     again: "Указать другой адрес",
     back: "К гербу",
+    ended: "Сеанс завершён — так бывает, когда владелец семейного раздела закрывает открытые сеансы, например после потери телефона. Войдите снова по ссылке из письма или с ключом доступа.",
     invalid: (min: number) => `Ссылка не сработала. Она действует ${min} ${ruMinutes(min)}, только в том браузере, где её запросили, и только самая последняя. Запросите новую здесь и откройте письмо на этом же устройстве.`,
   },
 } as const;
@@ -80,7 +82,7 @@ export function FamilyGateNotice({
   /** Sign-in link lifetime, from FAMILY_LINK_TTL on the server (cycle 6 #2). */
   ttlMinutes: number;
   /** "invalid" after a failed or expired link; "sent" after a request. */
-  state?: "invalid" | "sent";
+  state?: "invalid" | "sent" | "ended";
 }) {
   const c = copy[lang];
   const [pending, setPending] = useState(false);
@@ -107,9 +109,10 @@ export function FamilyGateNotice({
       if (!v.ok) throw new Error("verify");
       window.location.assign(((await v.json()) as { returnTo: string }).returnTo);
     } catch (e) {
-      // An autofill ceremony that was simply replaced by the button (or dismissed) says nothing.
-      const name = (e as Error)?.name;
-      if (!autofill || (name !== "AbortError" && name !== "NotAllowedError")) setPkMsg(c.pkFail);
+      // Autofill is a quiet offer: whatever ends it (replaced by the button, dismissed, or a browser with no
+      // usable key at all — bus 109) says nothing. Only a press of the button reports a failure.
+      void e;
+      if (!autofill) setPkMsg(c.pkFail);
     }
   };
   useEffect(() => {
@@ -150,6 +153,12 @@ export function FamilyGateNotice({
         <>
           <h1 className={`mt-2 ${H1}`}>{c.heading}</h1>
           <p className={`mt-4 ${PROSE}`}>{c.body}</p>
+
+          {state === "ended" && (
+            <p data-session-ended="" role="status" className="mt-6 rounded-lg border border-[var(--border)] px-4 py-3 text-[15px] text-[var(--foreground)]">
+              {c.ended}
+            </p>
+          )}
 
           {state === "invalid" && (
             <p

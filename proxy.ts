@@ -4,6 +4,7 @@ import { isViewerApproved } from "@/app/lib/family-access";
 import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
 import { familyRoleOf } from "@/app/lib/family-roles.mjs";
 import { routeClass } from "@/app/lib/family-ref.mjs";
+import { familySessionCookie } from "@/app/lib/family-cookie.mjs";
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -23,7 +24,7 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
     `/${lang}/family/signin?returnTo=${encodeURIComponent(pathname)}`,
     request.url,
   );
-  const cookieName = process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session";
+  const cookieName = familySessionCookie();
   const token = request.cookies.get(cookieName)?.value;
   if (!token) return NextResponse.redirect(signin);
   try {
@@ -102,7 +103,7 @@ export async function proxy(request: NextRequest) {
   if (toConsoleHost) return NextResponse.redirect(toConsoleHost, 308);
   const onConsoleHost = host === CONSOLE_HOST;
   if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
-    const token = request.cookies.get(process.env.FAMILY_SESSION_COOKIE ?? "kartel_family_session")?.value;
+    const token = request.cookies.get(familySessionCookie())?.value;
     let admin = false;
     if (token) {
       try {
@@ -166,8 +167,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Skip Next internals, static assets, sitemap, robots, sw, llms files, and any
-  // path with a file extension (favicon, images, etc.).
+  // path with a file extension (favicon, images, etc.), and /m/ (the unlisted council mockup, bus 126).
   matcher: [
-    "/((?!_next|api|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|icon|apple-icon|.*\\.).*)",
+    "/((?!_next|api|m/|sitemap\\.xml|robots\\.txt|sw\\.js|humans\\.txt|llms\\.txt|llms-full\\.txt|opengraph-image|icon|apple-icon|.*\\.).*)",
   ],
 };

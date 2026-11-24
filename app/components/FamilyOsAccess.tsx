@@ -5,6 +5,7 @@
  * every write here from anyone else. The admin manages who is in the family and who may see what,
  * but this screen shows no one's notes, routines or documents.
  */
+import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -44,7 +45,7 @@ const T = {
 type Dict = (typeof T)[Lang];
 
 const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
-  fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null);
+  fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
