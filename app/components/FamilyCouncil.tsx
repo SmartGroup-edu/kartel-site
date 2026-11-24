@@ -19,14 +19,15 @@ import { Check } from "./FamilyRoutines";
 import { ruPlural } from "../lib/family-routines.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
-import type { OsCouncil, OsPerson, OsTask } from "../lib/family-os";
+import type { OsCouncil, OsPerson, OsTask, OsSprint } from "../lib/family-os";
+import { CouncilSprint } from "./FamilyBoard";
 
 type Lang = "EN" | "RU";
 const T = {
   RU: {
     title: "Семейный совет", at: "в 19:00", week: "Неделя", prevAria: "Прошлый совет", nextAria: "Следующий совет", items: (d: number, n: number) => `Отмечено ${d} из ${n} пунктов распорядка и дел`, noItems: "На этой неделе пунктов распорядка не было.",
     prevTasks: "Задачи с прошлого совета", prevSummary: (d: number, o: number) => `Сделано: ${d} · в работе: ${o}`, noPrev: "Прошлых задач нет.",
-    notes: "Заметки совета", notesHint: "Что обсудили, что решили.", held: "Совет прошёл", save: "Сохранить", saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
+    notes: "Заметки совета", notesHint: "Что обсудили, что решили.", held: "Совет прошёл", save: "Сохранить", saveNotes: "Сохранить заметки", saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
     decisions: "Решения", none: "Решений пока нет.", add: "Добавить решение", what: "Что сделать", who: "Кто отвечает", due: "К какому дню", addBtn: "Добавить",
     done: "Сделано", inWork: "В работе", markDone: "Отметить сделанным", reopen: "Вернуть в работу", prev: "← Прошлый", next: "Следующий →", notMember: "Совет видят члены семьи.",
     readOnly: "Заметки и решения ведут взрослые.", heldLater: "Отметить можно с 19:00 в день совета.",
@@ -35,7 +36,7 @@ const T = {
   EN: {
     title: "Family council", at: "at 19:00", week: "Week", prevAria: "Previous council", nextAria: "Next council", items: (d: number, n: number) => `${d} of ${n} routine and chore items ticked`, noItems: "No routine items this week.",
     prevTasks: "Tasks from the last council", prevSummary: (d: number, o: number) => `Done: ${d} · in progress: ${o}`, noPrev: "No earlier tasks.",
-    notes: "Council notes", notesHint: "What was discussed and decided.", held: "The council took place", save: "Save", saved: "Saved.", error: "Could not save — please try again.",
+    notes: "Council notes", notesHint: "What was discussed and decided.", held: "The council took place", save: "Save", saveNotes: "Save the notes", saved: "Saved.", error: "Could not save — please try again.",
     decisions: "Decisions", none: "No decisions yet.", add: "Add a decision", what: "What to do", who: "Who is responsible", due: "By when", addBtn: "Add",
     done: "Done", inWork: "In progress", markDone: "Mark as done", reopen: "Back to in progress", prev: "← Previous", next: "Next →", notMember: "The council is for family members.",
     readOnly: "Adults keep the notes and decisions.", heldLater: "You can mark it from 19:00 on the council day.",
@@ -52,7 +53,7 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCouncil({ lang, council, people, me, admin, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; editor?: boolean }) {
+export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
@@ -88,7 +89,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, editor
                 {council.previous?.tasks.length ? (
                   <>
                     <p className={`${META} mt-2`}>{t.prevSummary(council.agenda.tasks.done, council.agenda.tasks.open)}</p>
-                    <TaskList lang={lang} tasks={council.previous.tasks} nameOf={nameOf} me={me} />
+                    <TaskList lang={lang} tasks={council.previous.tasks} nameOf={nameOf} me={me} people={people} />
                   </>
                 ) : <p className={`${META} mt-2`}>{t.noPrev}</p>}
               </section>
@@ -98,9 +99,10 @@ export default function FamilyCouncil({ lang, council, people, me, admin, editor
 
               <section aria-labelledby="dec-h" className="mt-10">
                 <h2 id="dec-h" className={H2}>{t.decisions}</h2>
-                {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} /> : <p className={`${META} mt-2`}>{t.none}</p>}
+                {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} people={people} /> : <p className={`${META} mt-2`}>{t.none}</p>}
                 {council.can.write && <AddDecision t={t} date={council.date} people={people} lang={lang} />}
               </section>
+              {sprint && <CouncilSprint key={sprint.week_start} lang={lang} sprint={sprint} />}
             </>
           )}
         </div>
@@ -114,14 +116,17 @@ export default function FamilyCouncil({ lang, council, people, me, admin, editor
 export function TaskTick({ lang, task, meta, canTick, onDone }: { lang: Lang; task: { id: string; title: string; done: boolean }; meta: string; canTick: boolean; onDone?: (done: boolean) => void }) {
   const [done, setDone] = useState(task.done);
   const [err, setErr] = useState(false);
+  // bus 85: a council decision is a task — ticking it is the task's «Готово» (the service checks who may);
+  // a finished one stays finished here (rework is a parent's move on the board).
   const toggle = async () => {
-    const next = !done; setDone(next); setErr(false);
-    const r = await send("POST", `council-tasks/${task.id}/done`, { done: next });
-    if (!r?.ok) { setDone(!next); setErr(true); } else onDone?.(next);
+    if (done) return;
+    setDone(true); setErr(false);
+    const r = await send("POST", `tasks/${task.id}/done`, {});
+    if (!r?.ok) { setDone(false); setErr(true); } else onDone?.(true);
   };
   return (
     <li data-task={done ? "done" : "open"} data-my-task="">
-      <button type="button" role="checkbox" aria-checked={done} disabled={!canTick} onClick={toggle} aria-label={`${task.title}, ${meta}`}
+      <button type="button" role="checkbox" aria-checked={done} disabled={!canTick || done} onClick={toggle} aria-label={`${task.title}, ${meta}`}
         className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
         <Check checked={done} />
         <span className="min-w-0 flex-1">
@@ -134,11 +139,13 @@ export function TaskTick({ lang, task, meta, canTick, onDone }: { lang: Lang; ta
   );
 }
 
-function TaskList({ lang, tasks, nameOf, me }: { lang: Lang; tasks: OsTask[]; nameOf: (id: string) => string; me: { id: string; kind: string } | null }) {
+function TaskList({ lang, tasks, nameOf, me, people }: { lang: Lang; tasks: OsTask[]; nameOf: (id: string) => string; me: { id: string; kind: string } | null; people: OsPerson[] }) {
+  // The task rules (bus 85): the person themselves, or an adult for a child (the service checks the parent grant).
+  const childOwner = (id: string) => people.find((p) => p.id === id)?.kind === "child";
   const by = lang === "EN" ? "by" : "до";
   return (
     <ul data-tasks="" className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-      {tasks.map((x) => <TaskTick key={x.id} lang={lang} task={x} canTick={Boolean(me && (me.id === x.owner_id || me.kind === "adult"))} meta={`${nameOf(x.owner_id)} · ${by} ${fmtFamilyDate(x.due_date, lang)}`} />)}
+      {tasks.map((x) => <TaskTick key={x.id} lang={lang} task={x} canTick={Boolean(me && (me.id === x.owner_id || (me.kind === "adult" && childOwner(x.owner_id))))} meta={`${nameOf(x.owner_id)} · ${by} ${fmtFamilyDate(x.due_date, lang)}`} />)}
     </ul>
   );
 }
@@ -146,25 +153,38 @@ function TaskList({ lang, tasks, nameOf, me }: { lang: Lang; tasks: OsTask[]; na
 function Notes({ t, date, notes, held, canWrite, canMarkHeld }: { t: Dict; date: string; notes: string; held: boolean; canWrite: boolean; canMarkHeld: boolean }) {
   const router = useRouter();
   const [text, setText] = useState(notes);
+  const [savedText, setSavedText] = useState(notes);
   const [isHeld, setHeld] = useState(held);
   const [msg, setMsg] = useState("");
+  const [heldMsg, setHeldMsg] = useState("");
+  // bus 83 L2: the notes button saves the notes only; «Совет прошёл» is its own row and saves itself.
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const r = await send("PUT", `council/${date}`, { notes: text, held: isHeld });
-    setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh();
+    setMsg(r?.ok ? t.saved : t.error); if (r?.ok) { setSavedText(text); router.refresh(); }
+  };
+  const toggleHeld = async (next: boolean) => {
+    setHeld(next); setHeldMsg("");
+    const r = await send("PUT", `council/${date}`, { notes: savedText, held: next });
+    if (!r?.ok) { setHeld(!next); setHeldMsg(t.error); } else { setHeldMsg(t.saved); router.refresh(); }
   };
   return (
     <section aria-labelledby="notes-h" className="mt-10">
       <h2 id="notes-h" className="font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">{t.notes}</h2>
       {canWrite ? (
-        <form onSubmit={save} className="mt-3 grid gap-3">
-          <label className={label}>{t.notesHint}
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={8000} rows={6} className={`${field} min-h-32`} />
-          </label>
-          <label className={`flex min-h-11 items-center gap-3 text-[16px] ${canMarkHeld ? "cursor-pointer text-[var(--foreground)]" : "text-[var(--muted)]"}`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={isHeld} disabled={!canMarkHeld} onChange={(e) => setHeld(e.target.checked)} />{t.held}</label>
-          {!canMarkHeld && <p className="-mt-2 text-[14px] text-[var(--muted)]">{t.heldLater}</p>}
-          <div className="flex items-center gap-3"><button type="submit" className={primary}>{t.save}</button><span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span></div>
-        </form>
+        <>
+          <form onSubmit={save} className="mt-3 grid gap-3">
+            <label className={label}>{t.notesHint}
+              <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={8000} rows={6} className={`${field} min-h-32`} />
+            </label>
+            <div className="flex items-center gap-3"><button type="submit" className={primary}>{t.saveNotes}</button><span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span></div>
+          </form>
+          <div data-held-row="" className="mt-5 border-t border-[var(--border)] pt-4">
+            <label className={`flex min-h-11 items-center gap-3 text-[16px] ${canMarkHeld ? "cursor-pointer text-[var(--foreground)]" : "text-[var(--muted)]"}`}><input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={isHeld} disabled={!canMarkHeld} onChange={(e) => toggleHeld(e.target.checked)} />{t.held}</label>
+            {!canMarkHeld && <p className="text-[14px] text-[var(--muted)]">{t.heldLater}</p>}
+            <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{heldMsg}</span>
+          </div>
+        </>
       ) : (
         <>
           {notes ? <p className="mt-3 whitespace-pre-line text-[16px] leading-[1.6] text-[var(--foreground)]">{notes}</p> : null}

@@ -22,6 +22,9 @@ export const BUILTIN_RULES = [
   { id: "documents_in_digest", enabled: false },
   { id: "missed_routine_parent_note", enabled: false },
   { id: "council_reminder", enabled: false },
+  { id: "board_new_tasks", enabled: false },
+  { id: "plan_ready", enabled: false },
+  { id: "needs_decision", enabled: false },
 ];
 
 const DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
@@ -123,14 +126,21 @@ export function planSends(now, ctx) {
         .filter((d) => d.expiry_date && Math.round((Date.parse(`${d.expiry_date}T00:00:00Z`) - Date.parse(`${date}T00:00:00Z`)) / 86400_000) <= DOC_DIGEST_DAYS)
         .map((d) => ({ type: d.type, expiry: d.expiry_date, who: firstName(ctx.people.find((p) => p.id === d.person_id) ?? {}, prefs.lang) }));
       const notes = !on("missed_routine_parent_note") ? [] : parentNotes(person, date, ctx, prefs.lang);
-      if (items.length || docs.length || notes.length)
-        push("digest", date, person, { kind: "digest", items: items.map(({ title, time }) => ({ title, time })), docs, notes });
+      const tasksNew = on("board_new_tasks") ? (ctx.board?.newByPerson?.get(person.id) ?? 0) : 0;
+      if (items.length || docs.length || notes.length || tasksNew)
+        push("digest", date, person, { kind: "digest", items: items.map(({ title, time }) => ({ title, time })), docs, notes, ...(tasksNew ? { tasks_new: tasksNew } : {}) });
     }
     // Evening check-in (opt-in): only what is still open today
     if (on("evening_checkin") && prefs.evening_on && isDue(prefs.evening_time, hhmm)) {
       const open = items.filter((i) => !doneOn(i.id, date));
       if (open.length) push("evening_checkin", date, person, { kind: "evening", items: open.map(({ title, time }) => ({ title, time })) });
     }
+    // Board (bus 82), parents only: 20:30 «План на завтра готов — утвердить»; 19:00 «Нужно решение: N»
+    const parent = ctx.board?.isParent?.(person);
+    if (parent && on("plan_ready") && isDue("20:30", hhmm) && ctx.board.tomorrow > 0 && !ctx.board.tomorrowApproved)
+      push("plan_ready", date, person, { kind: "plan", items: [], count: ctx.board.tomorrow });
+    if (parent && on("needs_decision") && isDue("19:00", hhmm) && ctx.board.declined > 0)
+      push("needs_decision", date, person, { kind: "decision", items: [], count: ctx.board.declined });
     // Council reminder: Sunday 18:00
     if (on("council_reminder") && weekday === DAYS.indexOf("SU") && isDue("18:00", hhmm))
       push("council_reminder", date, person, { kind: "council", items: [] });

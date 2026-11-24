@@ -330,3 +330,106 @@ CREATE TABLE IF NOT EXISTS ics_token (
   created_at   timestamptz NOT NULL DEFAULT now(),
   revoked_at   timestamptz
 );
+
+-- ---- Stage 3c: family board (bus 82) ----------------------------------------------------------------
+-- Templates for the daily plan. Titles are ciphertext. Imported templates arrive inactive (drafts);
+-- nothing becomes active until a parent presses «Утвердить шаблоны».
+CREATE TABLE IF NOT EXISTS task_template (
+  id            uuid PRIMARY KEY,
+  wrapped_key   text NOT NULL,
+  title_ct      text NOT NULL,
+  mask          text NOT NULL CHECK (mask ~ '^[01]{7}$' AND mask LIKE '%1%'),
+  dtstart       date NOT NULL,
+  assignee_id   uuid REFERENCES person(id),
+  members       uuid[] CHECK (members IS NULL OR cardinality(members) BETWEEN 2 AND 8),
+  due_time      text CHECK (due_time IS NULL OR due_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  when_slot     text CHECK (when_slot IS NULL OR when_slot IN ('morning', 'after_school', 'after_dinner', 'evening')),
+  estimate_min  integer CHECK (estimate_min IS NULL OR estimate_min BETWEEN 1 AND 600),
+  needs_review  boolean NOT NULL DEFAULT false,
+  active        boolean NOT NULL DEFAULT false,
+  created_by    text NOT NULL,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  archived_at   timestamptz,
+  CHECK ((assignee_id IS NOT NULL) <> (members IS NOT NULL))
+);
+
+-- Sprint of the week (Mon–Sun, tied to the council): 1–3 goals; their tasks are ordinary tasks.
+CREATE TABLE IF NOT EXISTS sprint_goal (
+  id              uuid PRIMARY KEY,
+  week_start      date NOT NULL,
+  title           text NOT NULL CHECK (length(title) BETWEEN 1 AND 160),
+  source_task_id  uuid REFERENCES council_task(id),
+  created_by      text NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  archived_at     timestamptz
+);
+CREATE INDEX IF NOT EXISTS sprint_goal_week ON sprint_goal (week_start) WHERE archived_at IS NULL;
+
+-- A task for one day. Title, decline reason and rework note are ciphertext under the task's own key.
+CREATE TABLE IF NOT EXISTS task (
+  id              uuid PRIMARY KEY,
+  plan_date       date NOT NULL,
+  kind            text NOT NULL CHECK (kind IN ('chore', 'rotation', 'sprint', 'oneoff')),
+  origin          text NOT NULL CHECK (origin IN ('template', 'rotation', 'sprint', 'carry', 'adhoc', 'council')),
+  council_date    date,                                      -- a council decision (bus 85: one model — decisions are tasks)
+  template_id     uuid REFERENCES task_template(id),
+  sprint_goal_id  uuid REFERENCES sprint_goal(id),
+  carried_from    uuid REFERENCES task(id),
+  assignee_id     uuid NOT NULL REFERENCES person(id),
+  co_ids          uuid[] NOT NULL DEFAULT '{}' CHECK (cardinality(co_ids) <= 3 AND NOT (assignee_id = ANY (co_ids))),  -- joint task (bus 83 §4)
+  accountable_id  uuid REFERENCES person(id),                -- reviews needs_review tasks (bus 84); default: the approving parent
+  wrapped_key     text NOT NULL,
+  title_ct        text NOT NULL,
+  due_time        text CHECK (due_time IS NULL OR due_time ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'),
+  when_slot       text CHECK (when_slot IS NULL OR when_slot IN ('morning', 'after_school', 'after_dinner', 'evening')),
+  estimate_min    integer CHECK (estimate_min IS NULL OR estimate_min BETWEEN 1 AND 600),
+  needs_review    boolean NOT NULL DEFAULT false,
+  state           text NOT NULL DEFAULT 'proposed' CHECK (state IN ('proposed', 'approved', 'accepted', 'in_progress', 'done', 'reviewed', 'declined', 'declined_by_adult', 'carried_over', 'cancelled')),
+  decline_code    text CHECK (decline_code IS NULL OR decline_code IN ('lessons', 'away', 'unwell', 'other')),
+  decline_ct      text,
+  rework_ct       text,
+  approved_by     text,
+  approved_at     timestamptz,
+  accepted_at     timestamptz,
+  started_at      timestamptz,
+  done_at         timestamptz,
+  reviewed_at     timestamptz,
+  reviewed_by     text,
+  declined_at     timestamptz,
+  continued_at    timestamptz,                               -- «Продолжаю» on the quiet nudge
+  created_by      text NOT NULL,
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS task_day ON task (plan_date, assignee_id);
+CREATE INDEX IF NOT EXISTS task_council ON task (council_date) WHERE council_date IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS task_template_day ON task (template_id, plan_date) WHERE template_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS task_carried_once ON task (carried_from) WHERE carried_from IS NOT NULL;
+-- At most one task in progress per person (bus 82 §4) — enforced by the database too.
+CREATE UNIQUE INDEX IF NOT EXISTS task_one_in_progress ON task (assignee_id) WHERE state = 'in_progress';
+-- …and for joint tasks: no participant may be in two in-progress tasks (serialised, so two starts cannot race).
+CREATE OR REPLACE FUNCTION task_one_in_progress_joint() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF NEW.state = 'in_progress' THEN
+    PERFORM pg_advisory_xact_lock(hashtext('task_in_progress'));
+    IF EXISTS (SELECT 1 FROM task t WHERE t.id <> NEW.id AND t.state = 'in_progress'
+               AND (ARRAY[t.assignee_id] || t.co_ids) && (ARRAY[NEW.assignee_id] || NEW.co_ids)) THEN
+      RAISE EXCEPTION 'one task in progress per person' USING ERRCODE = 'unique_violation';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS task_one_in_progress_joint ON task;
+CREATE TRIGGER task_one_in_progress_joint BEFORE INSERT OR UPDATE OF state, assignee_id, co_ids ON task FOR EACH ROW EXECUTE FUNCTION task_one_in_progress_joint();
+
+-- A task's history (drawer timeline, bus 84) reads its events by ref.
+CREATE INDEX IF NOT EXISTS event_ref ON event (ref) WHERE ref IS NOT NULL;
+
+-- The plan of a day was approved: by a parent, or automatically at 07:00 (template set only).
+CREATE TABLE IF NOT EXISTS plan_approval (
+  plan_date    date PRIMARY KEY,
+  approved_by  text NOT NULL,
+  auto         boolean NOT NULL,
+  at           timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO rule (id, enabled) VALUES ('board_new_tasks', false), ('plan_ready', false), ('needs_decision', false) ON CONFLICT DO NOTHING;

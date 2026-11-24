@@ -162,4 +162,41 @@ type S = { email?: string | null; cpifSubjectId: string };
 const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, osActor(session)); } catch { return null; } };
 export const getCouncil = (session: S, date?: string) => safe<OsCouncil>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/council?date=${date}` : "/council", session);
 export const getCalendar = (session: S) => safe<OsCalendar>("/calendar?days=62", session);
-export const getMyTasks = async (session: S) => (await safe<{ tasks: Omit<OsTask, "owner_id" | "done">[] }>("/council-tasks", session))?.tasks ?? [];
+
+// ---- Stage 3c: the family board (bus 82, amended by 83/84) ------------------------------------
+export type OsTaskState = "proposed" | "approved" | "accepted" | "in_progress" | "done" | "reviewed" | "declined" | "declined_by_adult" | "carried_over" | "cancelled";
+export type OsWhenSlot = "morning" | "after_school" | "after_dinner" | "evening";
+export type OsDeclineCode = "lessons" | "away" | "unwell" | "other";
+export type OsBoardTask = {
+  id: string; plan_date: string; title: string; kind: "chore" | "rotation" | "sprint" | "oneoff"; origin: "template" | "rotation" | "sprint" | "carry" | "adhoc";
+  assignee_id: string; co_ids: string[]; accountable_id: string | null; state: OsTaskState; due_time: string | null; when_slot: OsWhenSlot | null; estimate_min: number | null;
+  needs_review: boolean; sprint_goal_id: string | null; started_at: string | null; done_at: string | null; reviewed_by: string | null;
+  decline_code?: OsDeclineCode; decline_reason?: string; rework_note?: string; why?: "declined" | "not_accepted"; nudge?: true;
+};
+export type OsBoardMember = {
+  id: string; name_en: string; name_ru: string; kind: "adult" | "child";
+  current: { id: string; title: string; started_at: string | null; kind: OsBoardTask["kind"]; co_ids: string[] } | null;
+  waiting: number; done: number; total: number;
+  routines?: { done: number; total: number };
+  next?: { date: string; title: string; due_time: string | null; when_slot: OsWhenSlot | null };
+};
+export type OsProgress = { done: number; in_progress: number; accepted: number; waiting: number; total: number };
+export type OsSprintGoal = { id: string; title: string; done: number; total: number };
+/** by: a member id, "auto", "system" or "admin". */
+export type OsApprovalStamp = { auto: boolean; by: string | null; at: string | null };
+export type OsBoard = {
+  date: string; today: string; now: string; members: OsBoardMember[]; tasks: OsBoardTask[]; progress: OsProgress; approval: OsApprovalStamp | null; can: { approve: boolean; sprint: boolean };
+  sprint: { week_start: string; goals: OsSprintGoal[] };
+  needs_decision?: OsBoardTask[]; plan?: { date: string; proposed: number; approved: boolean; auto: boolean; ready: boolean }; carry_offer?: OsBoardTask[];
+};
+export type OsMyBoard = { today: string; new: OsBoardTask[]; mine: OsBoardTask[] };
+export type OsPlan = { date: string; approval: OsApprovalStamp | null; tasks: OsBoardTask[] };
+export type OsTemplate = { id: string; title: string; mask: string; dtstart: string; assignee_id: string | null; members: string[] | null; due_time: string | null; when_slot: OsWhenSlot | null; estimate_min: number | null; needs_review: boolean; active: boolean };
+export type OsSprint = { week_start: string; can: { write: boolean }; goals: OsSprintGoal[] };
+export type OsTaskHistory = { step: string; origin?: OsBoardTask["origin"]; at: string; by: string | null }[];
+
+export const getBoard = (session: S, date?: string) => safe<OsBoard>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/board?date=${date}` : "/board", session);
+export const getMyBoard = (session: S) => safe<OsMyBoard>("/my-tasks", session);
+export const getPlan = (session: S, date?: string) => safe<OsPlan>(date ? `/plan?date=${date}` : "/plan", session);
+export const getTemplates = async (session: S) => (await safe<{ templates: OsTemplate[] }>("/templates", session))?.templates ?? null;
+export const getSprint = (session: S, week?: string) => safe<OsSprint>(week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? `/sprint?week=${week}` : "/sprint", session);

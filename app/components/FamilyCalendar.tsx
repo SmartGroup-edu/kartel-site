@@ -22,8 +22,8 @@ import { fmtFamilyDate } from "../lib/family-docs.mjs";
 
 type Lang = "EN" | "RU";
 const T = {
-  RU: { weekly: "Каждое воскресенье, 19:00 — семейный совет", nextOn: "ближайший", title: "Календарь", intro: "Два месяца вперёд: события семьи и дни рождения.", council: "Семейный совет", birthday: "День рождения", add: "Добавить событие", what: "Что", when: "Дата", time: "Время (необязательно)", save: "Добавить", saved: "Добавлено.", error: "Не удалось сохранить — попробуй ещё раз.", remove: "Убрать", confirm: "Убрать событие?", keep: "Оставить", removed: "Убрано.", empty: "Ничего не запланировано.", phone: "Хочешь видеть это в календаре телефона? Ссылка — на твоей странице.", phoneLink: "Моя страница", notMember: "Календарь видят члены семьи." },
-  EN: { weekly: "Every Sunday, 19:00 — family council", nextOn: "next", title: "Calendar", intro: "The next two months: family events and birthdays.", council: "Family council", birthday: "Birthday", add: "Add an event", what: "What", when: "Date", time: "Time (optional)", save: "Add", saved: "Added.", error: "Could not save — please try again.", remove: "Remove", confirm: "Remove the event?", keep: "Keep", removed: "Removed.", empty: "Nothing planned.", phone: "Want this in your phone's calendar? The link is on your page.", phoneLink: "My page", notMember: "The calendar is for family members." },
+  RU: { weekly: "Каждое воскресенье, 19:00 — семейный совет", nextOn: "Ближайший", title: "Календарь", intro: "Два месяца вперёд: события семьи и дни рождения.", council: "Семейный совет", birthday: "День рождения", add: "Добавить событие", what: "Что", when: "Дата", time: "Время (необязательно)", save: "Добавить", saved: "Добавлено.", error: "Не удалось сохранить — попробуй ещё раз.", remove: "Убрать", confirm: "Убрать событие?", keep: "Оставить", removed: "Убрано.", empty: "Ничего не запланировано.", phone: "Хочешь видеть это в календаре телефона? Ссылка — на твоей странице.", phoneLink: "Моя страница", notMember: "Календарь видят члены семьи." },
+  EN: { weekly: "Every Sunday, 19:00 — family council", nextOn: "Next", title: "Calendar", intro: "The next two months: family events and birthdays.", council: "Family council", birthday: "Birthday", add: "Add an event", what: "What", when: "Date", time: "Time (optional)", save: "Add", saved: "Added.", error: "Could not save — please try again.", remove: "Remove", confirm: "Remove the event?", keep: "Keep", removed: "Removed.", empty: "Nothing planned.", phone: "Want this in your phone's calendar? The link is on your page.", phoneLink: "My page", notMember: "The calendar is for family members." },
 } as const;
 type Dict = (typeof T)[Lang];
 
@@ -50,10 +50,11 @@ export default function FamilyCalendar({ lang, cal, meId, admin, editor = false 
               <h1 className={H1}>{t.title}</h1>
               <p className={`${META} mt-3`}>{t.intro}</p>
               {/* bus 80 #3: the weekly rhythm once, pinned; only the next council sits in the list */}
-              <p data-council-pinned="" className="mt-4 flex flex-wrap items-center gap-x-2 rounded-lg border border-[var(--border)] px-4 py-2 text-[16px] text-[var(--foreground)]">
-                <Link href={`${base}/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.weekly}</Link>
-                {cal.items.find((i) => i.kind === "council") && <span className="text-[15px] text-[var(--text-secondary)]" suppressHydrationWarning>· {t.nextOn} {fmtFamilyDate(cal.items.find((i) => i.kind === "council")!.date, lang, cal.today)}</span>}
-              </p>
+              {/* bus 83 L1: two plain lines — the rhythm, then the next date (muted); not a link */}
+              <div data-council-pinned="" className="mt-4 rounded-lg border border-[var(--border)] px-4 py-3">
+                <p className="text-[16px] text-[var(--foreground)]">{t.weekly}</p>
+                {cal.items.find((i) => i.kind === "council") && <p className="mt-0.5 text-[15px] text-[var(--muted)]" suppressHydrationWarning>{t.nextOn} — {fmtFamilyDate(cal.items.find((i) => i.kind === "council")!.date, lang, cal.today)}</p>}
+              </div>
               {meId && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.phone} <Link href={`${base}/people/${meId}#phone-calendar`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.phoneLink}</Link></p>}
               {cal.can.write && <AddEvent t={t} today={cal.today} />}
               {days.size === 0 ? <p className={`${META} mt-8`}>{t.empty}</p> : (

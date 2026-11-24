@@ -1,5 +1,6 @@
 // Family OS Stage 3a — settings, pauses, rotations, rules, events (synthetic people only).
 import { test, before, after } from "node:test";
+import { randomUUID } from "node:crypto";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { randomBytes } from "node:crypto";
@@ -81,11 +82,9 @@ test("pause («день без ритма»): hides today's items, skips streak 
 
 const ROT = { title: "Take out the bins", rrule: "FREQ=DAILY", dtstart: "2026-11-17" };
 test("rotation: the creator must manage every member; turns go round; ticks by the assignee or a guardian", async () => {
-  assert.equal((await call("POST", "/rotations", { actor: as(E.c), body: { ...ROT, members: [P.c, P.c2] } })).json.reason, "not_all_members", "a child cannot set rotations");
-  assert.equal((await call("POST", "/rotations", { actor: as(E.p1), body: { ...ROT, members: [P.c, P.e] } })).json.reason, "not_all_members", "another adult is not the parent's to assign");
-  for (const bad of [{ ...ROT, members: [P.c] }, { ...ROT, members: [P.c, P.c] }, { ...ROT, rrule: "FREQ=HOURLY", members: [P.c, P.c2] }])
-    assert.equal((await call("POST", "/rotations", { actor: as(E.p1), body: bad })).json.error, "bad_rotation");
-  const id = (await call("POST", "/rotations", { actor: as(E.p1), body: { ...ROT, members: [P.c, P.c2, P.p1] } })).json.id;
+  // bus 85: chores in turns are task templates now — no new rotations; a legacy one (straight to the store) still turns, ticks and archives
+  assert.equal((await call("POST", "/rotations", { actor: as(E.p1), body: { ...ROT, members: [P.c, P.c2, P.p1] } })).json.error, "use_templates");
+  const id = randomUUID(); await store.createRotation({ id, ...ROT, at_time: null, members: [P.c, P.c2, P.p1] }, E.p1); await store.emit("rotation.created", E.p1, null, id);
   const turn = async (who, pid) => (await call("GET", `/people/${pid}/routines`, { actor: as(who) })).json.routines.find((x) => x.id === id);
   assert.equal((await turn(E.c2, P.c2)).due_today, true, "17th → c, 18th → c2");
   assert.equal((await turn(E.c, P.c)).due_today, false);
@@ -105,7 +104,7 @@ test("rules: admin only; on/off and dry-run switch; counts only", async () => {
     assert.equal((await call("PATCH", "/rules/council_reminder", { actor, body: { enabled: true } })).status, 403);
   }
   const r = await call("GET", "/rules");
-  assert.deepEqual(r.json.rules.map((x) => [x.id, x.enabled, x.dry_run]).sort(), [["council_reminder", false, true], ["digest", true, true], ["documents_in_digest", false, true], ["evening_checkin", true, true], ["missed_routine_parent_note", false, true]]);
+  assert.deepEqual(r.json.rules.map((x) => [x.id, x.enabled, x.dry_run]).sort(), [["board_new_tasks", false, true], ["council_reminder", false, true], ["digest", true, true], ["documents_in_digest", false, true], ["evening_checkin", true, true], ["missed_routine_parent_note", false, true], ["needs_decision", false, true], ["plan_ready", false, true]], "3c rules arrive off + dry-run");
   assert.equal((await call("PATCH", "/rules/council_reminder", { body: { enabled: true, dry_run: false } })).status, 200);
   assert.equal((await call("PATCH", "/rules/nope", { body: { enabled: true } })).status, 404);
   assert.equal((await call("PATCH", "/rules/digest", { body: { enabled: "on" } })).json.error, "bad_rule");
