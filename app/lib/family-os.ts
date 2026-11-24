@@ -27,6 +27,15 @@ export function osActor(session: { email?: string | null; cpifSubjectId: string 
   return `${isFamilyAdmin(session.cpifSubjectId) ? "admin" : "member"}:${email}`;
 }
 
+/**
+ * Go-live R1: every call carries the session's issued-at (`sat`, seconds) inside the signed path, so the service
+ * can refuse a session older than the owner's «Завершить сеансы» cut-off on its sensitive routes.
+ */
+export function withSat(path: string, session: { issuedAt?: Date | null }): string {
+  const sat = session.issuedAt ? Math.floor(session.issuedAt.getTime() / 1000) : 0;
+  return `${path}${path.includes("?") ? "&" : "?"}sat=${sat}`;
+}
+
 function accessHeaders(): Record<string, string> {
   const id = process.env.FAMILY_OS_ACCESS_CLIENT_ID, secret = process.env.FAMILY_OS_ACCESS_CLIENT_SECRET;
   return id && secret ? { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret } : {};

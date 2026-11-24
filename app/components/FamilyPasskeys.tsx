@@ -6,6 +6,7 @@
 //  - a parent of a child: the child's keys, revoke (no adding — a child adds their own);
 //  - the owner: anyone's keys, revoke, and «Вернуть» for a key paused as suspicious.
 // Dates only, never times; no credential ids anywhere in the page.
+import { checkEnded } from "../lib/family-ended";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { H2, META } from "../lib/typeScale";
@@ -17,6 +18,7 @@ const T = {
   RU: {
     head: "Вход", lead: "Ключ доступа — вход по Face ID, Touch ID, отпечатку или ключу безопасности, без письма. Ссылка из письма продолжает работать всегда.",
     leadOther: "Ключи доступа этого человека. Отзыв сразу закрывает вход с этим ключом; уже открытые сеансы закончатся сами в течение 8 часов.",
+    leadOwner: "Ключи доступа этого человека. Отзыв сразу закрывает вход с этим ключом. Открытые сеансы можно завершить кнопкой ниже.",
     none: "Ключей пока нет.", add: "Добавить ключ на этом устройстве", adding: "Подтверди на устройстве…", added: "Ключ добавлен. На почту ушло письмо об этом.",
     reauth: "Чтобы добавить ключ, войди заново по ссылке из письма — так чужое устройство не сможет добавить свой ключ.", reauthLink: "Войти по ссылке",
     unsupported: "Этот браузер не умеет ключи доступа. Вход по ссылке из письма работает как прежде.",
@@ -24,11 +26,15 @@ const T = {
     added_on: (d: string) => `добавлен ${d}`, used_on: (d: string) => `последний вход ${d}`, synced: "синхронизируется", flagged: "Приостановлен: ключ повёл себя необычно",
     rename: "Переименовать", save: "Сохранить", cancel: "Отмена", name: "Название", revoke: "Отозвать", confirm: "Отозвать этот ключ? Войти с ним больше не получится.", yes: "Отозвать", no: "Оставить",
     restore: "Вернуть", error: "Не получилось — попробуй ещё раз.",
+    ended: "Сеанс завершён владельцем. Войди заново по ссылке из письма.",
+    endOne: "Завершить сеансы", endOneLead: "Все открытые сеансы этого человека: документы, ключи и доступы потребуют нового входа по ссылке из письма.",
+    endOneConfirm: "Завершить открытые сеансы этого человека?", endOneYes: "Завершить", endOneNo: "Отмена", endOneDone: "Готово. Нужен новый вход.",
     kind: { iphone: "iPhone", ipad: "iPad", mac: "Mac", android: "Android", windows: "Windows", linux: "Linux", key: "Ключ безопасности", other: "Устройство" } as Record<string, string>,
   },
   EN: {
     head: "Sign-in", lead: "A passkey signs you in with Face ID, Touch ID, a fingerprint or a security key, without an email. The email link always keeps working.",
     leadOther: "This person's passkeys. Revoking closes sign-in with that key at once; sessions already open end by themselves within 8 hours.",
+    leadOwner: "This person's passkeys. Revoking closes sign-in with that key at once. Open sessions can be ended with the button below.",
     none: "No passkeys yet.", add: "Add a passkey on this device", adding: "Confirm on your device…", added: "Passkey added. An email about it is on its way.",
     reauth: "To add a passkey, sign in again with an email link — so a stranger's device cannot add its own key.", reauthLink: "Sign in with a link",
     unsupported: "This browser does not support passkeys. The email link works as before.",
@@ -36,6 +42,9 @@ const T = {
     added_on: (d: string) => `added ${d}`, used_on: (d: string) => `last sign-in ${d}`, synced: "synced", flagged: "Paused: the key behaved unusually",
     rename: "Rename", save: "Save", cancel: "Cancel", name: "Name", revoke: "Revoke", confirm: "Revoke this passkey? It will no longer sign in.", yes: "Revoke", no: "Keep",
     restore: "Restore", error: "Could not do that — please try again.",
+    ended: "The owner ended this session. Please sign in again with an email link.",
+    endOne: "End sessions", endOneLead: "Every open session of this person: documents, keys and access will need a fresh sign-in with an email link.",
+    endOneConfirm: "End this person's open sessions?", endOneYes: "End sessions", endOneNo: "Cancel", endOneDone: "Done. A fresh sign-in is needed.",
     kind: { iphone: "iPhone", ipad: "iPad", mac: "Mac", android: "Android", windows: "Windows", linux: "Linux", key: "Security key", other: "Device" } as Record<string, string>,
   },
 } as const;
@@ -44,7 +53,7 @@ const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--b
 const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)] disabled:opacity-60";
 const day = (d: string, lang: Lang) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
 const post = (path: string, body: unknown = {}, method: "POST" | "PATCH" = "POST") =>
-  fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
+  fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 
 export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHref }: { lang: Lang; personId: string | null; self: boolean; canAdd: boolean; signinHref: string }) {
   const t = T[lang];
@@ -66,11 +75,11 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
     setBusy(true); setMsg(t.adding);
     try {
       const o = await post("/api/family-auth/passkey/register/options");
-      if (!o?.ok) { setMsg(o?.status === 403 ? t.reauth : o?.status === 409 ? t.tooMany : o?.status === 429 ? t.later : t.failed); return; }
+      if (!o?.ok) { setMsg(o?.status === 401 ? t.ended : o?.status === 403 ? t.reauth : o?.status === 409 ? t.tooMany : o?.status === 429 ? t.later : t.failed); return; }
       const { options } = await o.json();
       const response = await startRegistration({ optionsJSON: options });
       const v = await post("/api/family-auth/passkey/register/verify", { response });
-      setMsg(v?.status === 201 ? t.added : v?.status === 429 ? t.later : t.failed);
+      setMsg(v?.status === 201 ? t.added : v?.status === 401 ? t.ended : v?.status === 429 ? t.later : t.failed);
       load();
     } catch { setMsg(t.failed); } finally { setBusy(false); }
   };
@@ -78,7 +87,7 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
   return (
     <section id="signin-keys" aria-labelledby="signin-keys-h" data-passkeys={self ? "self" : "other"} className="mt-12 scroll-mt-24">
       <h2 id="signin-keys-h" className={H2}>{t.head}</h2>
-      <p className={`${META} mt-2 max-w-[60ch]`}>{self ? t.lead : t.leadOther}</p>
+      <p className={`${META} mt-2 max-w-[60ch]`}>{self ? t.lead : data?.can.clear ? t.leadOwner : t.leadOther}</p>
       {data && (data.keys.length ? (
         <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {data.keys.map((k) => <Row key={k.id} lang={lang} k={k} can={data.can} onChange={load} />)}
@@ -88,7 +97,32 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
         : canAdd ? <p className="mt-4"><button type="button" data-passkey-add="" onClick={add} disabled={busy} className={primary}>{t.add}</button></p>
         : <p data-passkey-reauth="" className="mt-4 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.reauth} <a href={signinHref} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.reauthLink}</a></p>)}
       <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
+      {!self && personId && data?.can.clear && <EndSessions lang={lang} personId={personId} />}
     </section>
+  );
+}
+
+/** Go-live R1: the owner ends one person's open sessions (a cut-off on documents, keys and access). */
+function EndSessions({ lang, personId }: { lang: Lang; personId: string }) {
+  const t = T[lang];
+  const [ask, setAsk] = useState(false);
+  const [msg, setMsg] = useState("");
+  const go = async () => {
+    const r = await post(`/api/family-os/people/${personId}/end-sessions`);
+    setAsk(false); setMsg(r?.ok ? t.endOneDone : t.error);
+  };
+  return (
+    <div data-end-sessions="" className="mt-6 border-t border-[var(--border)] pt-4">
+      <p className="max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.endOneLead}</p>
+      {ask ? (
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className="text-[15px] text-[var(--foreground)]">{t.endOneConfirm}</span>
+          <button type="button" data-end-sessions-yes="" onClick={go} className={btn}>{t.endOneYes}</button>
+          <button type="button" onClick={() => setAsk(false)} className={btn}>{t.endOneNo}</button>
+        </div>
+      ) : <p className="mt-3"><button type="button" data-end-sessions-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.endOne}</button></p>}
+      <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
+    </div>
   );
 }
 

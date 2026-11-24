@@ -41,3 +41,5 @@ GRANT SELECT, INSERT, DELETE ON passkey_challenge TO kfo_app;
 GRANT SELECT, INSERT ON passkey_attempt TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (sent_at) ON security_notice TO kfo_app;
 GRANT USAGE ON SEQUENCE passkey_attempt_id_seq, security_notice_id_seq TO kfo_app;
+-- Go-live R1: session cut-offs are upserted, never deleted by the app.
+GRANT SELECT, INSERT, UPDATE (cut_at, cut_by) ON session_cutoff TO kfo_app;
