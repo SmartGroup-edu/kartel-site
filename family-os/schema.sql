@@ -482,3 +482,40 @@ ALTER TABLE routine ADD CONSTRAINT routine_one_anchor CHECK (anchor_text IS NULL
 ALTER TABLE goal ADD COLUMN IF NOT EXISTS woop_ct text;
 -- Бережный счёт: an adult may choose the streak; a child always sees the weekly count (enforced in code).
 ALTER TABLE notification_pref ADD COLUMN IF NOT EXISTS count_mode text NOT NULL DEFAULT 'week' CHECK (count_mode IN ('week', 'streak'));
+
+-- ================= Stage 3d-2 (bus 84/97) =================
+-- «Кто уже с нами» (owner): the first and last sign-in DATE per address — no times, no IPs, no devices.
+-- Keyed by the lowercased email (the session subject), so the owner, who may not be a person row, counts too.
+CREATE TABLE IF NOT EXISTS signin_seen (
+  email     text PRIMARY KEY CHECK (email = lower(email) AND length(email) BETWEEN 3 AND 254),
+  first_on  date NOT NULL,
+  last_on   date NOT NULL
+);
+-- «Отправить ссылку ещё раз»: an owner's request, sent by the runner through the relay (the service holds no
+-- relay secret). One per person per day; the row records when it went out.
+CREATE TABLE IF NOT EXISTS invite_request (
+  id            bigserial PRIMARY KEY,
+  person_id     uuid NOT NULL REFERENCES person(id),
+  on_date       date NOT NULL,
+  requested_by  text NOT NULL,
+  requested_at  timestamptz NOT NULL DEFAULT now(),
+  sent_at       timestamptz,
+  UNIQUE (person_id, on_date)
+);
+-- Optional review photo (bus 84/97 item 4): bytes live sealed in the files dir as photo-<id>; this row has
+-- no image data. One active photo per task. delete_after = upload + 7 days; the runner deletes the file and
+-- sets deleted_at. Parents only (enforced in code).
+CREATE TABLE IF NOT EXISTS task_photo (
+  id            uuid PRIMARY KEY,
+  task_id       uuid NOT NULL REFERENCES task(id),
+  mime          text NOT NULL CHECK (mime IN ('image/jpeg', 'image/png', 'image/heic')),
+  size          integer NOT NULL CHECK (size > 0),
+  wrapped_key   text NOT NULL,
+  uploaded_by   text NOT NULL,
+  uploaded_at   timestamptz NOT NULL DEFAULT now(),
+  delete_after  timestamptz NOT NULL,
+  deleted_at    timestamptz,
+  CHECK (delete_after <= uploaded_at + interval '7 days')
+);
+CREATE UNIQUE INDEX IF NOT EXISTS task_photo_one_active ON task_photo (task_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS task_photo_due ON task_photo (delete_after) WHERE deleted_at IS NULL;

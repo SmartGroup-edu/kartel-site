@@ -166,3 +166,23 @@ export function parentNotes(parent, date, ctx, lang) {
   }
   return notes;
 }
+
+/**
+ * «Отправить ссылку ещё раз» (bus 84/97 item 3): the owner's queued invites → sends. Same quiet hours as every
+ * other mail (a request at 22:00 goes at 07:00); a request older than two days is dropped, not sent late.
+ * The mail carries the first name and the fixed Today link only — the gate sends a stranger to sign-in.
+ */
+export function planInvites(invites, people, prefsById, now) {
+  const { date, hhmm } = localParts(now);
+  const out = [];
+  for (const i of invites) {
+    if (i.sent_at || i.on_date < addDaysIso(date, -2) || i.on_date > date) continue;
+    const person = people.find((p) => p.id === i.person_id);
+    if (!person?.email) continue;
+    const prefs = { ...DEFAULT_PREFS, ...(prefsById.get(person.id) ?? {}) };
+    if (inQuiet(hhmm, prefs.quiet_start, prefs.quiet_end)) continue;
+    out.push({ id: i.id, person, lang: prefs.lang === "en" ? "en" : "ru", firstName: firstName(person, prefs.lang), date });
+  }
+  return out;
+}
+const addDaysIso = (d, n) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);

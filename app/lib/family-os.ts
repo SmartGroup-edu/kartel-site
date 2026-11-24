@@ -221,3 +221,22 @@ export const getMyBoard = (session: S) => safe<OsMyBoard>("/my-tasks", session);
 export const getPlan = (session: S, date?: string) => safe<OsPlan>(date ? `/plan?date=${date}` : "/plan", session);
 export const getTemplates = async (session: S) => (await safe<{ templates: OsTemplate[] }>("/templates", session))?.templates ?? null;
 export const getSprint = (session: S, week?: string) => safe<OsSprint>(week && /^\d{4}-\d{2}-\d{2}$/.test(week) ? `/sprint?week=${week}` : "/sprint", session);
+
+// ---- Stage 3d-2 (bus 84/97 item 3): «Кто уже с нами» -----------------------------------------------
+export type OsAdoptionRow = {
+  id: string; name_en: string; name_ru: string; kind: "adult" | "child";
+  signed_in: { first_on: string; last_on: string } | null;
+  digest: { on: boolean; time: string };
+  passkey: boolean | null;
+  invite: { on_date: string; sent: boolean; sent_at: string | null } | null;
+};
+export type OsAdoption = { people: OsAdoptionRow[]; family: { week_start: string; active: number; of: number } };
+export async function getAdoption(session: { email?: string | null; cpifSubjectId: string }): Promise<OsAdoption | null> {
+  if (!osEnabled()) return null;
+  try { return await getJson<OsAdoption>("/adoption", osActor(session)); } catch { return null; }
+}
+/** After a completed sign-in: record the DATE (first/last) for «Кто уже с нами». Never blocks sign-in. */
+export async function noteSignIn(email: string): Promise<void> {
+  if (!osEnabled()) return;
+  try { await osCall("POST", "/signins", osActor({ email, cpifSubjectId: email })); } catch { console.warn("[family-os] signin note failed"); }
+}

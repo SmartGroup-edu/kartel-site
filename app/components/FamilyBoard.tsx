@@ -57,7 +57,8 @@ const T = {
     tplDraft: "черновик", tplActive: "в плане", tplApprove: (n: number) => `Утвердить шаблоны (${n})`, tplAdd: "Добавить шаблон", days: "Дни", rotation: "По очереди (2+ человека)", review: "С проверкой родителя",
     dayNames: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"], everyDay: "каждый день", saved: "Сохранено.",
     notMember: "Доску видят члены семьи.", lanesAria: "Задачи по людям", stateSr: { approved: "ждёт принятия", declined: "не может — решают родители", accepted: "принято", in_progress: "в работе", done: "готово", reviewed: "проверено" } as Record<string, string>,
-    drawer: { close: "Закрыть", assignee: "Исполнитель", accountable: "Ответственный", due: "Срок · оценка", history: "История", reviewNote: "Проверяет ответственный, а не исполнитель.", none: "—" },
+    drawer: { close: "Закрыть", assignee: "Исполнитель", accountable: "Ответственный", due: "Срок · оценка", history: "История", reviewNote: "Проверяет ответственный, а не исполнитель.", none: "—",
+      photo: "Фото к проверке", photoHint: "По желанию. Его увидят только родители; через 7 дней оно удалится само.", photoAdd: "Добавить фото", photoReplace: "Заменить фото", photoAdded: (d: string) => `Фото добавлено. Удалится ${d}.`, photoErr: "Не удалось отправить фото — попробуй ещё раз.", photoBig: "Фото больше 4 МБ — выбери поменьше.", photoKind: "Подойдёт JPEG, PNG или HEIC.", photoSeen: (d: string) => `Удалится ${d}.`, photoAlt: "Фото к задаче", photoSent: (d: string) => `Фото отправлено родителям · удалится ${d}.` },
     step: { proposed: "Предложено", approved: "Утверждено", accepted: "Принято", started: "Начато", paused: "Пауза", continued: "Продолжено", done: "Готово", reviewed: "Проверено", declined: "Не может", edited: "Изменено", carried_over: "Перенесено на завтра", cancelled: "Снято" } as Record<string, string>,
     origin: { template: "из шаблона", rotation: "по очереди", sprint: "из спринта", carry: "перенесено", adhoc: "добавлено" } as Record<string, string>,
     actor: { auto: "автоматически", system: "система", admin: "администратор" } as Record<string, string>, todayW: "сегодня", yesterday: "вчера",
@@ -92,7 +93,8 @@ const T = {
     tplDraft: "draft", tplActive: "in the plan", tplApprove: (n: number) => `Approve templates (${n})`, tplAdd: "Add a template", days: "Days", rotation: "Take turns (2+ people)", review: "A parent checks it",
     dayNames: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], everyDay: "every day", saved: "Saved.",
     notMember: "The board is for family members.", lanesAria: "Tasks by person", stateSr: { approved: "waiting to accept", declined: "can't — parents decide", accepted: "accepted", in_progress: "in progress", done: "done", reviewed: "checked" } as Record<string, string>,
-    drawer: { close: "Close", assignee: "Assignee", accountable: "Accountable", due: "When · estimate", history: "History", reviewNote: "The accountable person checks it, not the assignee.", none: "—" },
+    drawer: { close: "Close", assignee: "Assignee", accountable: "Accountable", due: "When · estimate", history: "History", reviewNote: "The accountable person checks it, not the assignee.", none: "—",
+      photo: "Photo for the check", photoHint: "Optional. Only parents will see it; it deletes itself after 7 days.", photoAdd: "Add a photo", photoReplace: "Replace the photo", photoAdded: (d: string) => `Photo added. It will be deleted on ${d}.`, photoErr: "Could not send the photo — please try again.", photoBig: "The photo is over 4 MB — choose a smaller one.", photoKind: "JPEG, PNG or HEIC.", photoSeen: (d: string) => `Deleted on ${d}.`, photoAlt: "Photo for the task", photoSent: (d: string) => `Photo sent to the parents · deleted on ${d}.` },
     step: { proposed: "Proposed", approved: "Approved", accepted: "Accepted", started: "Started", paused: "Paused", continued: "Still going", done: "Done", reviewed: "Checked", declined: "Can't", edited: "Changed", carried_over: "Moved to tomorrow", cancelled: "Removed" } as Record<string, string>,
     origin: { template: "from a template", rotation: "from the rota", sprint: "from the sprint", carry: "carried over", adhoc: "added" } as Record<string, string>,
     actor: { auto: "automatically", system: "system", admin: "admin" } as Record<string, string>, todayW: "today", yesterday: "yesterday",
@@ -524,7 +526,7 @@ function ListView({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
 /** The task drawer: facts, actions, history. Side panel on wide screens, a full sheet on a phone. */
 function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void }) {
   const { t, lang } = c;
-  const [data, setData] = useState<{ task: OsBoardTask; can: string[]; history: OsTaskHistory } | null>(null);
+  const [data, setData] = useState<{ task: OsBoardTask; can: string[]; history: OsTaskHistory; photo?: OsTaskPhoto } | null>(null);
   const [declining, setDeclining] = useState(false);
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -568,6 +570,7 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
             {declining ? <Decline c={inner} task={x} onCancel={() => setDeclining(false)} /> : <DrawerActions c={inner} task={x} can={can} onDecline={() => setDeclining(true)} />}
             {(can.has("review") || can.has("rework")) && <Review c={inner} task={x} />}
             {x.needs_review && <p className={`${META} mt-3`}>{t.drawer.reviewNote}</p>}
+            {x.needs_review && data?.photo && (data.photo.can_add || data.photo.has || data.photo.sent) && <TaskPhoto c={inner} task={x} photo={data.photo} onDone={load} />}
             <h3 className="mt-6 font-serif text-[20px] text-[var(--foreground)]">{t.drawer.history}</h3>
             <ol data-history="" className="mt-2 grid gap-2 border-l border-[var(--border)] pl-4">
               {[...(data?.history ?? [])].reverse().map((h, i) => (
@@ -581,6 +584,51 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
         )}
       </div>
     </div>
+  );
+}
+
+type OsTaskPhoto = { can_add: boolean; has?: boolean; sent?: boolean; delete_after?: string };
+
+/** bus 97 item 4: the optional photo for a task on review. Never required. Parents see it (with the date it
+ *  deletes itself); the person doing the task may add or replace it but is not shown it back. */
+function TaskPhoto({ c, task, photo, onDone }: { c: Ctx; task: OsBoardTask; photo: OsTaskPhoto; onDone: () => void }) {
+  const { t, lang } = c;
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [v, setV] = useState(0); // bumps the image URL after a replace
+  const day = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+  const pick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) return setMsg(t.drawer.photoBig);
+    setBusy(true); setMsg("");
+    const r = await fetch(`/api/family-os/tasks/${task.id}/photo`, { method: "POST", body: f, credentials: "same-origin", cache: "no-store" }).catch(() => null);
+    setBusy(false);
+    if (r?.status === 201) { const d = ((await r.json().catch(() => ({}))) as { delete_after?: string }).delete_after; setMsg(d ? t.drawer.photoAdded(day(d)) : ""); setV((n) => n + 1); onDone(); }
+    else setMsg(r?.status === 413 ? t.drawer.photoBig : r?.status === 415 ? t.drawer.photoKind : t.drawer.photoErr);
+  };
+  return (
+    <section aria-labelledby={`photo-${task.id}`} data-task-photo="" className="mt-4 rounded-lg border border-[var(--border)] px-4 py-3">
+      <h3 id={`photo-${task.id}`} className="text-[16px] font-semibold text-[var(--foreground)]">{t.drawer.photo}</h3>
+      {photo.has && photo.delete_after && (
+        <figure className="mt-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- a private, per-request image behind the family gate; never optimised or cached */}
+          <img src={`/api/family-os/tasks/${task.id}/photo?v=${v}`} alt={t.drawer.photoAlt} className="max-h-72 w-auto rounded-md border border-[var(--border)]" />
+          <figcaption className="mt-1 text-[14px] text-[var(--text-secondary)]">{t.drawer.photoSeen(day(photo.delete_after))}</figcaption>
+        </figure>
+      )}
+      {photo.sent && photo.delete_after && <p data-photo-sent="" className="mt-1 text-[15px] text-[var(--foreground)]">{t.drawer.photoSent(day(photo.delete_after))}</p>}
+      {photo.can_add && (
+        <>
+          <p className="mt-1 text-[15px] text-[var(--text-secondary)]">{t.drawer.photoHint}</p>
+          <label className={`${btn} mt-3 cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)] ${busy ? "opacity-60" : ""}`}>
+            {photo.has || photo.sent ? t.drawer.photoReplace : t.drawer.photoAdd}
+            <input type="file" accept="image/jpeg,image/png,image/heic,.heic" onChange={pick} disabled={busy} className="sr-only" data-photo-input="" />
+          </label>
+        </>
+      )}
+      <p role="status" aria-live="polite" className="mt-2 text-[14px] text-[var(--text-secondary)]">{msg}</p>
+    </section>
   );
 }
 

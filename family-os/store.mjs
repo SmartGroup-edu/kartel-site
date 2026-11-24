@@ -215,6 +215,27 @@ export function pgStore(pool) {
       await q("INSERT INTO recognition (id, from_id, to_id, idx, wrapped_key, text_ct, on_date, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [r.id, r.from_id, r.to_id, r.idx, r.wrapped_key, r.text_ct, r.on_date, actor]);
       await audit(actor, "recognition.create", `recognition:${r.id}`);
     },
+    // ---- Stage 3d-2 (bus 84/97): «Кто уже с нами»
+    async noteSignIn(email, date) {
+      await q("INSERT INTO signin_seen (email, first_on, last_on) VALUES ($1, $2, $2) ON CONFLICT (email) DO UPDATE SET last_on = GREATEST(signin_seen.last_on, $2)", [email, date]);
+    },
+    async signIns() { return (await q("SELECT email, to_char(first_on, 'YYYY-MM-DD') AS first_on, to_char(last_on, 'YYYY-MM-DD') AS last_on FROM signin_seen")).rows; },
+    async requestInvite(personId, date, actor) {
+      const r = await q("INSERT INTO invite_request (person_id, on_date, requested_by) VALUES ($1, $2, $3) ON CONFLICT (person_id, on_date) DO NOTHING RETURNING id", [personId, date, actor]);
+      if (r.rows.length) await audit(actor, "invite.request", `person:${personId}`);
+      return r.rows.length > 0;
+    },
+    async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
+    async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1", [since])).rows; },
+    async markInviteSent(id) { await q("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [id]); },
+    // ---- 3d-2: review photo
+    async activeTaskPhoto(taskId) { return (await q("SELECT id, task_id, mime, size, wrapped_key, uploaded_at, delete_after FROM task_photo WHERE task_id = $1 AND deleted_at IS NULL", [taskId])).rows[0] ?? null; },
+    async addTaskPhoto(p, actor) {
+      await q("INSERT INTO task_photo (id, task_id, mime, size, wrapped_key, uploaded_by, uploaded_at, delete_after) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", [p.id, p.task_id, p.mime, p.size, p.wrapped_key, actor, p.uploaded_at, p.delete_after]);
+      await audit(actor, "task.photo", `task:${p.task_id}`);
+    },
+    async duePhotos(now) { return (await q("SELECT id FROM task_photo WHERE deleted_at IS NULL AND delete_after <= $1", [now])).rows; },
+    async markPhotoDeleted(id) { await q("UPDATE task_photo SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL", [id]); },
     async listCheckins(goalIds) {
       if (!goalIds.length) return [];
       return (await q("SELECT id, goal_id, to_char(week_start, 'YYYY-MM-DD') AS week_start, mood, note_ct FROM goal_checkin WHERE goal_id = ANY($1::uuid[]) ORDER BY week_start DESC", [goalIds])).rows;
@@ -297,6 +318,7 @@ export function pgStore(pool) {
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
+  const seen = new Map(), invites = [], photos = [];
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
   return {
@@ -396,6 +418,24 @@ export function memoryStore() {
     async recognitionsBetween(from, to) { return recs.filter((r) => r.on_date >= from && r.on_date <= to); },
     async recognitionsSentOn(fromId, date) { return recs.filter((r) => r.from_id === fromId && r.on_date === date).length; },
     async addRecognition(r, actor) { recs.push({ ...r, created_by: actor, created_at: now() }); },
+    // ---- Stage 3d-2
+    async noteSignIn(email, date) { const x = seen.get(email); seen.set(email, x ? { ...x, last_on: date > x.last_on ? date : x.last_on } : { email, first_on: date, last_on: date }); },
+    async signIns() { return [...seen.values()]; },
+    async requestInvite(personId, date, actor) {
+      if (invites.some((i) => i.person_id === personId && i.on_date === date)) return false;
+      invites.push({ id: invites.length + 1, person_id: personId, on_date: date, requested_by: actor, sent_at: null }); return true;
+    },
+    async lastInvites() { const m = new Map(); for (const i of invites) if (!m.has(i.person_id) || m.get(i.person_id).on_date < i.on_date) m.set(i.person_id, i); return [...m.values()]; },
+    async pendingInvites(since) { return invites.filter((i) => !i.sent_at && i.on_date >= since); },
+    async markInviteSent(id) { const i = invites.find((x) => x.id === id); if (i && !i.sent_at) i.sent_at = now(); },
+    // ---- 3d-2: review photo
+    async activeTaskPhoto(taskId) { return photos.find((p) => p.task_id === taskId && !p.deleted_at) ?? null; },
+    async addTaskPhoto(p, actor) {
+      if (photos.some((x) => x.task_id === p.task_id && !x.deleted_at)) throw Object.assign(new Error("duplicate"), { code: "23505" });
+      photos.push({ ...p, uploaded_by: actor, deleted_at: null });
+    },
+    async duePhotos(now) { return photos.filter((p) => !p.deleted_at && p.delete_after <= now); },
+    async markPhotoDeleted(id) { const p = photos.find((x) => x.id === id); if (p && !p.deleted_at) p.deleted_at = new Date(); },
     async listCheckins(ids) { return [...checkins.values()].filter((c) => ids.includes(c.goal_id)); },
     async saveCheckin(c) { const k = `${c.goal_id}|${c.week_start}`; const id = checkins.get(k)?.id ?? checkins.size + 1; checkins.set(k, { ...c, id }); return id; },
     async listEvents(from, to) { return [...events3.values()].filter((e) => !e.archived_at && e.on_date >= from && e.on_date <= to); },
@@ -439,6 +479,6 @@ export function memoryStore() {
     async planApproval(date) { return approvals.get(date) ?? null; },
     async approvePlan(date, by, auto) { if (approvals.has(date)) return false; approvals.set(date, { approved_by: by, auto, at: now() }); return true; },
 
-    _raw: { notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
+    _raw: { photos: () => photos, notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
   };
 }

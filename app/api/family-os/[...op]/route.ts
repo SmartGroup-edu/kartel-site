@@ -44,7 +44,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
     const r = await forward("GET", full, g.actor);
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (!new RegExp(`^/documents/${ID}/files/${ID}$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(documents/${ID}/files/${ID}|tasks/${ID}/photo)$`).test(path)) return json(404, { error: "not_found" }); // bus 97 item 4: the review photo (parents only — the service decides)
   const r = await forward("GET", path, g.actor);
   if (!r.ok || !r.body) return json(r.status === 403 ? 403 : 404, { error: "not_found" });
   const download = new URL(req.url).searchParams.get("download") === "1";
@@ -61,6 +61,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
+  // bus 97 item 4: the optional review photo — raw bytes, same limits as document files.
+  if (new RegExp(`^/tasks/${ID}/photo$`).test(path)) {
+    const buf = new Uint8Array(await req.arrayBuffer());
+    if (buf.length === 0 || buf.length > MAX_UPLOAD) return json(413, { error: "too_large" });
+    const r = await forward("POST", path, g.actor, buf);
+    return json(r.status, await r.json().catch(() => ({})));
+  }
   if (new RegExp(`^/documents/${ID}/files$`).test(path)) {
     const buf = new Uint8Array(await req.arrayBuffer());
     if (buf.length === 0 || buf.length > MAX_UPLOAD) return json(413, { error: "too_large" });
@@ -68,7 +75,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g.actor, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite)$`).test(path)) return forwardJson(req, "POST", path, g.actor);
   return json(404, { error: "not_found" });
 }
 

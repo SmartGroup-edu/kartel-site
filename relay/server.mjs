@@ -272,7 +272,7 @@ const fmtDay = (d, ru, year = false) => new Date(`${d}T12:00:00Z`).toLocaleDateS
 
 /** Validate a /send-family body; returns null when valid, else an error code. */
 export function checkFamily(b) {
-  if (!["digest", "evening", "council", "plan", "decision"].includes(b?.kind)) return "bad_kind";
+  if (!["digest", "evening", "council", "plan", "decision", "invite"].includes(b?.kind)) return "bad_kind";
   if (b.tasks_new !== undefined && (b.kind !== "digest" || !Number.isInteger(b.tasks_new) || b.tasks_new < 1 || b.tasks_new > 99)) return "bad_count";
   if (["plan", "decision"].includes(b.kind) && (!Number.isInteger(b.count) || b.count < 1 || b.count > 99)) return "bad_count";
   if (b.count !== undefined && !["plan", "decision"].includes(b.kind)) return "bad_count";
@@ -285,6 +285,8 @@ export function checkFamily(b) {
   if (!Array.isArray(docs) || docs.length > 10 || docs.some((d) => !Object.hasOwn(KINDS.en, d?.type) || !DATE_ONLY_RE.test(d.expiry ?? "") || !NAME_RE.test(String(d.who ?? "")) || Object.keys(d).some((k) => !["type", "expiry", "who"].includes(k)))) return "bad_docs";
   if (!Array.isArray(notes) || notes.length > 10 || notes.some((n) => !NAME_RE.test(String(n?.child ?? "")) || typeof n.title !== "string" || !n.title.trim() || n.title.length > 120 || Object.keys(n).some((k) => !["child", "title"].includes(k)))) return "bad_notes";
   if (["digest", "evening"].includes(b.kind) && !items.length && !docs.length && !notes.length && !b.tasks_new) return "empty";
+  // bus 97 item 3: the owner's «Отправить ссылку ещё раз» — a first name and the fixed Today link, nothing else.
+  if (b.kind === "invite" && (items.length || docs.length || notes.length)) return "bad_items";
   return null;
 }
 
@@ -305,6 +307,7 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
     council: { subject: "Семейный совет сегодня в 19:00", hello: `${firstName}, сегодня семейный совет`, lead: "В 19:00 — семейный совет. Неделя уже собрана в разделе «Семья»." },
     plan: { subject: "План на завтра готов — утвердить", hello: `${firstName}, план на завтра готов`, lead: `Задач в плане: ${count}. Утверди до утра — в 07:00 обычные дела утвердятся сами, новые — нет.` },
     decision: { subject: `Нужно решение: ${count}`, hello: `${firstName}, нужно решение`, lead: `Задач, от которых отказались: ${count}. Передать, перенести или отменить — на доске.` },
+    invite: { subject: "Тебя ждут в семейном разделе KARTEL", hello: `${firstName}, тебя ждут в семейном разделе`, lead: "Открой ссылку ниже и введи свой адрес почты: придёт письмо со ссылкой для входа. Она действует 10 минут и открывается в том же браузере." },
     tasksNew: (n) => `Новые задачи: ${n} — принять`,
     docs: "Документы:", until: "до", expired: "истёк", notes: "Для родителей:", note: (c, x) => `${c}: «${x}» — три раза подряд без отметки. Может, стоит спокойно поговорить.`,
     evening_tail: "Если уже сделано — отметь в разделе «Семья». Если нет — ничего страшного, завтра новый день.", open: "Открыть «Сегодня»",
@@ -315,6 +318,7 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
     council: { subject: "Family council today at 19:00", hello: `${firstName}, family council today`, lead: "Family council at 19:00. The week is already gathered in the Family area." },
     plan: { subject: "Tomorrow's plan is ready to approve", hello: `${firstName}, tomorrow's plan is ready`, lead: `Tasks in the plan: ${count}. Approve before morning — at 07:00 the usual chores approve themselves, new ones do not.` },
     decision: { subject: `Needs a decision: ${count}`, hello: `${firstName}, a decision is needed`, lead: `Tasks someone could not take: ${count}. Hand over, carry over or cancel — on the board.` },
+    invite: { subject: "You are invited to the KARTEL family area", hello: `${firstName}, the family area is waiting for you`, lead: "Open the link below and enter your email address: a sign-in link will arrive. It works for 10 minutes, in the same browser." },
     tasksNew: (n) => `New tasks: ${n} — accept`,
     docs: "Documents:", until: "until", expired: "expired", notes: "For parents:", note: (c, x) => `${c}: “${x}” — three times in a row without a tick. Maybe worth a calm chat.`,
     evening_tail: "If it is done, tick it in the Family area. If not, no matter — tomorrow is a new day.", open: "Open Today",

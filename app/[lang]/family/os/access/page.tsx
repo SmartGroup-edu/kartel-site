@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
-import { getOsState, getRules } from "@/app/lib/family-os";
+import { getOsState, getRules, getAdoption } from "@/app/lib/family-os";
 import FamilyOsAccess from "@/app/components/FamilyOsAccess";
 
 // Admin only: people and guardian grants. Members get a 404 (the service also refuses their writes).
@@ -21,6 +21,6 @@ export default async function FamilyOsAccessPage({ params }: { params: Promise<{
   if (decision !== "allow" || !session) notFound();
   const state = await getOsState(session);
   if (state.status !== "ok" || !state.admin) notFound();
-  const rules = await getRules(session);
-  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} />;
+  const [rules, adoption] = await Promise.all([getRules(session), getAdoption(session)]);
+  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} adoption={adoption} />;
 }

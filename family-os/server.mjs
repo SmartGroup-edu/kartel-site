@@ -16,6 +16,8 @@ import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
+import { familyWeek, adoptionRows } from "./adoption.mjs";
+import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -111,7 +113,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const url = new URL(req.url, "http://x");
     if (req.method === "GET" && url.pathname === "/healthz") return reply(res, 200, { ok: true });
 
-    const isUpload = req.method === "POST" && /^\/documents\/[^/]+\/files$/.test(url.pathname);
+    // Raw-byte uploads: document files and (bus 97 item 4) the review photo. Everything else is small JSON.
+    const isUpload = req.method === "POST" && /^\/(documents\/[^/]+\/files|tasks\/[^/]+\/photo)$/.test(url.pathname);
     const body = await readBody(req, isUpload ? MAX_FILE + 1024 : MAX_JSON);
     const auth = verify(req, body);
     if (!auth) { console.warn("[os] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
@@ -622,6 +625,37 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /rules (admin) — rules with on/off, dry-run and the last 7 days of outcomes (counts only)
     // PATCH /rules/:id (admin) — { enabled?, dry_run? }
+    // ================= Stage 3d-2 (bus 84/97 item 3): «Кто уже с нами» =================
+    // POST /signins — the site reports a completed sign-in for THIS actor (date only). Any signed-in actor;
+    // it can only ever record its own address.
+    if (path === "/signins" && req.method === "POST") {
+      await store.noteSignIn(who.email, localDate(clock()));
+      return reply(res, 200, { ok: true });
+    }
+    // GET /adoption — owner only: per person sign-in dates, digest time, passkey state, last invite; and one
+    // family line «N из M отмечают распорядок на этой неделе». No per-person activity numbers anywhere.
+    if (path === "/adoption" && req.method === "GET") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const today = localDate(clock()), week = mondayOf(today);
+      const people = await store.listPeople();
+      const [seen, invites, routinesAll, checks, prefList] = await Promise.all([store.signIns(), store.lastInvites(), store.allRoutines(), store.allChecks(week),
+        Promise.all(people.map(async (p) => [p.id, await store.getPrefs(p.id)]))]);
+      return reply(res, 200, {
+        people: adoptionRows(people, seen, new Map(prefList.filter(([, v]) => v)), invites),
+        family: { week_start: week, ...familyWeek(people, routinesAll, checks, week, today) },
+        owner_signed_in: seen.find((x) => x.email === who.email) ?? null,
+      });
+    }
+    // POST /people/:id/invite — owner only: queue «Отправить ссылку ещё раз» (the runner sends it). One a day.
+    const invm = path.match(/^\/people\/([0-9a-f-]{36})\/invite$/);
+    if (invm && req.method === "POST") {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      if (!(await store.getPerson(invm[1]))) return reply(res, 404, { error: "not_found" });
+      if (!(await store.requestInvite(invm[1], localDate(clock()), who.email))) return reply(res, 409, { error: "already_today" });
+      await emit("invite.requested", invm[1], null);
+      return reply(res, 202, { ok: true });
+    }
+
     if (path === "/rules" && req.method === "GET") {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       const [rules, counts] = await Promise.all([store.listRules(), store.ruleRunCounts(addDays(localDate(clock()), -7))]);
@@ -964,7 +998,55 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       for (const e of evs) if (STEP[e.type] && !(e.type === "task.approved" && t.approved_by === "auto")) history.push({ step: STEP[e.type], at: e.at, by: actorRef(people, e.actor) });
       history.sort((a, b) => String(a.at).localeCompare(String(b.at)));
       const assignee = await store.getPerson(t.assignee_id);
-      return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+      // bus 97 item 4: whether this viewer may add the optional photo; only a parent learns that one exists.
+      const ph = t.needs_review ? await store.activeTaskPhoto(t.id) : null;
+      // bus 101 decision: the person doing the task (a child too) learns that the photo went to the parents and
+      // when it goes — never the image itself (Children's Code: transparency).
+      const until = ph ? new Date(ph.delete_after).toISOString().slice(0, 10) : null;
+      const photo = { can_add: canAddPhoto(me, t, assignee, grants),
+        ...(canSeePhoto(me, grants) && ph ? { has: true, delete_after: until } : ph && participants(t).includes(me.id) ? { sent: true, delete_after: until } : {}) };
+      return reply(res, 200, { task: taskView(t, me, parent, people), can: allowedActions(me, t, assignee, grants, ageOf), photo, history: history.map((h) => ({ ...h, at: h.at instanceof Date ? h.at.toISOString() : h.at })) });
+    }
+
+    // ================= bus 97 item 4: optional review photo =================
+    // POST /tasks/:id/photo — raw bytes (JPEG/PNG/HEIC ≤ 10 MB); metadata stripped, sealed, deleted after 7 days.
+    // A new photo replaces the previous one. GET /tasks/:id/photo — parents only, through the logged read path.
+    const photoM = path.match(/^\/tasks\/([^/]+)\/photo$/);
+    if (photoM && (req.method === "POST" || req.method === "GET")) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const t = UUID_RE.test(photoM[1]) ? await store.boardTask(photoM[1]) : null;
+      if (!t) return reply(res, 404, { error: "not_found" });
+      const grants = await grantsNow(), assignee = await store.getPerson(t.assignee_id);
+      if (req.method === "GET") {
+        if (!canSeePhoto(me, grants)) return reply(res, 403, { error: "parent_only" });
+        const ph = await store.activeTaskPhoto(t.id);
+        if (!ph) return reply(res, 404, { error: "not_found" });
+        if (!(await logged(res, { actor: who.email, subject: t.assignee_id, entity: "task:photo", action: "read" }))) return;
+        const k = unwrapDataKey(kek, ph.wrapped_key, "photo", ph.id);
+        try {
+          const plain = openBytes(k, await readFile(join(filesDir, photoFile(ph.id))), `photo:${ph.id}`);
+          res.writeHead(200, { "content-type": ph.mime, "cache-control": "private, no-store", "x-content-type-options": "nosniff" });
+          return res.end(plain);
+        } catch { return reply(res, 404, { error: "not_found" }); } finally { k.fill(0); }
+      }
+      if (!canAddPhoto(me, t, assignee, grants)) return reply(res, 403, { error: t.needs_review ? "forbidden" : "no_review" });
+      let bytes = body;
+      if (bytes.length === 0 || bytes.length > MAX_FILE) return reply(res, 413, { error: "too_large" });
+      const mime = sniffDoc(bytes);
+      if (!["image/jpeg", "image/png", "image/heic"].includes(mime)) return reply(res, 415, { error: "unsupported_type" });
+      if (mime === "image/heic") { try { bytes = stripHeifMetadata(bytes).bytes; } catch { return reply(res, 415, { error: "unsupported_type" }); } }
+      else bytes = await stripImage(bytes, mime); // no EXIF/GPS survives
+      if (!(await logged(res, { actor: who.email, subject: t.assignee_id, entity: "task:photo", action: "write" }))) return;
+      const old = await store.activeTaskPhoto(t.id);
+      if (old) { const { unlink } = await import("node:fs/promises"); await unlink(join(filesDir, photoFile(old.id))).catch(() => {}); await store.markPhotoDeleted(old.id); }
+      const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "photo", id), at = clock();
+      try {
+        await mkdir(filesDir, { recursive: true });
+        await writeFile(join(filesDir, photoFile(id)), sealBytes(dek, bytes, `photo:${id}`), { mode: 0o600 });
+        await store.addTaskPhoto({ id, task_id: t.id, mime, size: bytes.length, wrapped_key: wrapped, uploaded_at: at, delete_after: deleteAfter(at) }, who.email);
+      } finally { dek.fill(0); }
+      await emit("task.photo", t.assignee_id, null);
+      return reply(res, 201, { ok: true, delete_after: deleteAfter(at).toISOString().slice(0, 10) });
     }
 
     // GET /my-tasks — today: «Новые задачи» (approved, waiting for me) and «Мои задачи»; the quiet nudge only here, only to participants
@@ -1216,6 +1298,9 @@ export function routeClass(url = "") {
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
+  if (p === "/signins" || p === "/adoption") return p;
+  if (/^\/tasks\/[^/]+\/photo$/.test(p)) return "/tasks/:id/photo";
+  if (/^\/people\/[^/]+\/invite$/.test(p)) return "/people/:id/invite";
   if (p === "/rotations" || p === "/rules") return p;
   if (/^\/rotations\/[^/]+\/check$/.test(p)) return "/rotations/:id/check";
   if (/^\/rotations\/[^/]+$/.test(p)) return "/rotations/:id";
