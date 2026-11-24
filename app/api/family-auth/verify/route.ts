@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { decodeJwt } from "jose";
 import { verifySignInLink, clearSignInNonce, createSession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
@@ -21,18 +22,21 @@ export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const token = url.searchParams.get("token");
 
-  /** Keep the viewer in the language they started in; fall back to en. */
-  const fail = async (lang: "en" | "ru" = "en") => {
-    await clearSignInNonce();
-    return NextResponse.redirect(
-      new URL(`/${lang}/family/signin?family_auth=invalid`, url.origin),
-    );
-  };
+  /**
+   * Keep the viewer in the language they started in; fall back to en.
+   *
+   * A failure does NOT clear the nonce cookie. Clearing it broke the newest, valid link: tap an
+   * older letter (or the same link twice) and the cookie for the latest request was wiped, so
+   * «request a new one» looped. The nonce is random and useless without a matching token, so
+   * keeping it until it expires (10 min) or a link succeeds costs nothing.
+   */
+  const fail = (lang: "en" | "ru" = "en") =>
+    NextResponse.redirect(new URL(`/${lang}/family/signin?family_auth=invalid`, url.origin));
 
   if (!token) return fail();
 
   const claims = await verifySignInLink(token);
-  if (!claims) return fail();
+  if (!claims) return fail(langHint(token));
   const lang = claims.returnTo.startsWith("/ru") ? "ru" : "en";
 
   // Re-check at consumption time, not only at issue time.
@@ -42,4 +46,14 @@ export async function GET(request: Request): Promise<Response> {
   await clearSignInNonce();
 
   return NextResponse.redirect(new URL(safeReturnTo(claims.returnTo), url.origin));
+}
+
+/** Language of the failure page only — read from the (unverified) token; never used for anything else. */
+function langHint(token: string): "en" | "ru" {
+  try {
+    const rt = decodeJwt(token).rt;
+    return typeof rt === "string" && rt.startsWith("/ru") ? "ru" : "en";
+  } catch {
+    return "en";
+  }
 }
