@@ -1,7 +1,7 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 6,
-  "updated": "2026-06-19",
+  "version": 11,
+  "updated": "2026-11-24",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
     {
@@ -9,7 +9,7 @@
       "name": "Identity (CPIF)",
       "kind": "service",
       "owner": "KARTEL Core",
-      "steward": "RusJAz (Keycloak realm)",
+      "steward": "RusJAz",
       "status": "live"
     },
     {
@@ -17,7 +17,7 @@
       "name": "Geography (ITL1)",
       "kind": "service",
       "owner": "KARTEL Core",
-      "steward": "MoyPolk (taxonomy API)",
+      "steward": "community.group (taxonomy API)",
       "status": "live"
     },
     {
@@ -81,17 +81,17 @@
   "coreServices": [
     {
       "key": "identity",
-      "name": "Keycloak (CPIF)",
+      "name": "Identity provider (Keycloak, being retired)",
       "endpoint": "https://auth.kartel.org.uk/realms/kartel-ecosystem",
       "status": "live"
     },
     {
       "key": "geography",
       "name": "Taxonomy API",
-      "endpoint": "https://moypolk.uk/api/public/taxonomy/regions/v1",
-      "servedBy": "MoyPolk",
+      "endpoint": "https://community.group/api/public/taxonomy/regions/v1",
+      "servedBy": "community.group",
       "owner": "KARTEL Core",
-      "content": "UK ITL1 canonical",
+      "content": "UK ITL1 canonical; ISO 3166-1 countries (/api/public/taxonomy/countries/v1)",
       "version": "1.1.0",
       "status": "live"
     }
@@ -103,29 +103,31 @@
       "purpose": "One federated identity across every platform — a single person is the same subject everywhere.",
       "canonicalKey": "CPIF Subject ID (cpifSubjectId)",
       "authority": "KARTEL Core",
-      "steward": "Keycloak realm kartel-ecosystem",
+      "steward": "KARTEL Core (identity provider under replacement)",
       "consumers": [
         "MoyPolk",
         "RusJAz",
         "Community Group"
       ],
       "contract": "IdentityContract",
-      "status": "active"
+      "status": "active",
+      "note": "v11 (2026-11-24): Keycloak retired as an ecosystem requirement, R0 act 2026-11-14."
     },
     {
       "key": "geography",
       "name": "Geography Registry",
-      "purpose": "One canonical UK region taxonomy. Platforms consume; they never self-author regions.",
-      "canonicalKey": "CanonicalRegionCode (ITL1, e.g. TLI)",
+      "purpose": "One canonical geography: countries (ISO 3166-1 alpha-2) and, within them, regions — ITL1 for the UK, ISO 3166-2 subdivisions elsewhere. Platforms consume; they never self-author codes.",
+      "canonicalKey": "CountryCode (ISO 3166-1 alpha-2, e.g. GB, LV) + CanonicalRegionCode (ITL1 in GB, e.g. TLI; ISO 3166-2 elsewhere, e.g. LV-RIX)",
       "authority": "KARTEL Core",
-      "steward": "MoyPolk (taxonomy API)",
+      "steward": "community.group (taxonomy API)",
       "consumers": [
         "MoyPolk",
         "RusJAz",
         "Community Group"
       ],
       "contract": "GeographyContract",
-      "status": "active"
+      "status": "active",
+      "note": "v10 (2026-11-15, R0 order «Исправить всё» on the RusJAz engine audit H4): geography generalised from UK-only to country → region. Geography stays a coordination overlay, never authority (ADR 01). Countries are served by the existing taxonomy API (/api/public/taxonomy/countries/v1). RusJAz consumes them in country_settings + org_nodes.countryCode."
     },
     {
       "key": "organisation",
@@ -235,27 +237,31 @@
         "code": "CEA",
         "name": "Cultural Educational Association CIC",
         "tier": "AUTHORITY",
-        "parent": null
-      },
-      {
-        "code": "RUSJAZ-FDN",
-        "name": "RusJAz Foundation",
-        "tier": "FOUNDATION",
-        "parent": "CEA"
+        "parent": null,
+        "note": "One entity, one code. Since 2026-11-14 (R0) the RusJAz node formerly anchored as RUSJAZ-FDN is named \"CEA CIC\" and anchors here; RUSJAZ-FDN is retired (lineage only)."
       },
       {
         "code": "ZNANIYE",
         "name": "Znaniye School",
         "tier": "SCHOOL",
-        "parent": "RUSJAZ-FDN"
+        "parent": "CEA"
       },
       {
         "code": "BALTICA",
         "name": "Baltica School",
         "tier": "SCHOOL",
-        "parent": "RUSJAZ-FDN"
+        "parent": "CEA"
+      },
+      {
+        "code": "RU-ONLINE-EUREKA",
+        "name": "Russian Online with EUREKA",
+        "nameRu": "Русский Онлайн с ЭВРИКОЙ",
+        "tier": "SCHOOL",
+        "parent": "CEA",
+        "note": "R0-owned online school (no region, no campus). Created on RusJAz 2026-07-06 as BRILL ONE (never registered here — gap closed 2026-09-10 as KARTEL-EDU, DR-RUSJAZ-2026-09-10-01); final brand RU-ONLINE-EUREKA the same day (DR-RUSJAZ-2026-09-10-02). Retired codes BRILL-ONE and KARTEL-EDU are lineage only. Not to be confused with Brill One = the Kitchen Garden product on brill.one."
       }
     ],
+    "lifecycleNote": "2026-11-14 (R0, v9): RUSJAZ-FDN retired — there is one CEA CIC, code CEA. The RusJAz node that carried RUSJAZ-FDN is the CEA CIC node and now anchors to CEA; ZNANIYE and BALTICA re-parented to CEA. RUSJAZ-FDN is lineage only and is no longer a valid anchor. Earlier (2026-07-06) the ZNANIYE and BALTICA codes were noted as archived on RusJAz; their nodes are active again on RusJAz.",
     "supersedes": "The earlier campusesFuture stub is now realised as the top-level campusRegistry."
   },
   "campusRegistry": {
@@ -296,7 +302,7 @@
       {
         "key": "cpif_authentication",
         "name": "CPIF authentication",
-        "description": "Federated identity via the shared Keycloak realm; local mirror of the subject."
+        "description": "The platform authenticates its own users and, where it federates, carries the ecosystem subject identifier. Sign-in through Keycloak is not required."
       },
       {
         "key": "canonical_geography",
@@ -341,7 +347,7 @@
     "keys": [
       {
         "name": "CpifSubjectId",
-        "description": "One identity — the mirrored Keycloak subject."
+        "description": "One identity — the ecosystem subject identifier, an opaque value."
       },
       {
         "name": "CanonicalRegionCode",
@@ -351,7 +357,7 @@
     "interfaces": [
       {
         "name": "IdentityContract",
-        "description": "Keycloak/OIDC identity."
+        "description": "Identity service contract. v1 is OIDC-shaped; a provider-neutral v2 is owed."
       },
       {
         "name": "GeographyContract",

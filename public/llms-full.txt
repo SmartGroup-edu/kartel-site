@@ -6,12 +6,12 @@
 
 # KARTEL CORE — The public registry of the KARTEL federation
 
-Cultural and educational platforms share one identity, one map of UK regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. It is the official public registry, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
+Cultural and educational platforms share one identity, one map of countries and regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. It is the official public registry, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
 
 ## Four canonical layers
 
 - **Identity (CPIF)** — One person, one identity across every platform. Status: live.
-- **Geography (ITL1)** — One canonical UK region taxonomy (ITL1). Platforms consume it; they never self-author regions. Status: live.
+- **Geography (ITL1)** — One canonical geography: countries (ISO 3166-1) and, within them, regions — ITL1 in the UK, ISO 3166-2 elsewhere. Platforms consume it; they never self-author codes. Status: live.
 - **Organisation Anchor** — One canonical organisation hierarchy: CEA → Foundation → School → Venue. Status: active.
 - **Campus Anchor** — Canonical accredited operating centres, identified by a readable `campusCode`, orthogonal to organisation identity. Status: active.
 
@@ -140,4 +140,4 @@ The Kartel family is based in London, United Kingdom. Their website is kartel.or
 
 Source: https://kartel.org.uk
 Contact: gor@kartel.org.uk
-Last updated: 2026-11-14
+Last updated: 2026-11-24

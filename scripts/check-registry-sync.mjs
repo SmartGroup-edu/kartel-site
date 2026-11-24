@@ -15,18 +15,26 @@
 //
 // Resolve the source with, in order:
 //   1. env KARTEL_CORE_DIR = path to the kartel-core repo root
-//   2. default: ../../Documents/Claude/Projects/KARTEL/kartel-core (rel. to repo root)
+//   2. ../kartel-core — a sibling of this repo (or of a worktree beside it), e.g. ~/Sites/kartel-core
+//   3. ../../Documents/Claude/Projects/KARTEL/kartel-core (the old location)
+// Bus 155: kartel-core had moved to ~/Sites, only the old default was tried, and every
+// push SKIPPED with a warning while the site copy fell from v10 back to v6.
+//
+// It also checks app/content/registry.source.json (the sync record that the CI test
+// tests/registry-source.test.mjs holds the vendored copy to) against the source version.
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const VENDORED = join(repoRoot, "app/content/registry.public.json");
+const RECORD = join(repoRoot, "app/content/registry.source.json");
 const REL_IN_CORE = "registry/registry.public.json";
 
-const coreDir =
-  process.env.KARTEL_CORE_DIR ??
-  resolve(repoRoot, "../../Documents/Claude/Projects/KARTEL/kartel-core");
+const candidates = process.env.KARTEL_CORE_DIR
+  ? [process.env.KARTEL_CORE_DIR]
+  : [resolve(repoRoot, "../kartel-core"), resolve(repoRoot, "../../Documents/Claude/Projects/KARTEL/kartel-core")];
+const coreDir = candidates.find((d) => existsSync(join(d, REL_IN_CORE))) ?? candidates[0];
 const SOURCE = join(coreDir, REL_IN_CORE);
 
 const warn = (m) => console.warn(`\x1b[33m⚠ registry-sync: ${m}\x1b[0m`);
@@ -53,10 +61,19 @@ const parse = (p) => {
 
 const vend = parse(VENDORED);
 const src = parse(SOURCE);
+const record = existsSync(RECORD) ? parse(RECORD) : null;
 
 // Content comparison (deep, formatting-insensitive).
 const norm = (o) => JSON.stringify(o);
 if (norm(vend) === norm(src)) {
+  if (!record || record.sourceVersion !== src.version || record.sourceUpdated !== src.updated) {
+    fail(
+      `app/content/registry.source.json does not record the source version ` +
+        `(record: ${record?.sourceVersion} / ${record?.sourceUpdated}; source: ${src.version} / ${src.updated}). ` +
+        "Update the record (commit, version, updated, sha256) with the re-vendor.",
+    );
+    process.exit(1);
+  }
   ok(`in sync (version ${src.version}, updated ${src.updated})`);
   process.exit(0);
 }

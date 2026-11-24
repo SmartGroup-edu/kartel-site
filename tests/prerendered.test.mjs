@@ -325,9 +325,9 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
       assert.doesNotMatch(c, /rounded-full border px-2\.5/, f);
     }
   });
-  test("#4 snapshot label wording EN/RU (registry v6 and federation)", () => {
-    assert.ok(read("en/registry.html").includes("Snapshot v6 · data as of 19 June 2026"));
-    assert.ok(read("ru/registry.html").includes("Снимок v6 · данные на 19 июня 2026"));
+  test("#4 snapshot label wording EN/RU (registry v11 and federation)", () => {
+    assert.ok(read("en/registry.html").includes("Snapshot v11 · data as of 24 November 2026"));
+    assert.ok(read("ru/registry.html").includes("Снимок v11 · данные на 24 ноября 2026"));
     assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 18 June 2026"));
     assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 18 июня 2026"));
     assert.doesNotMatch(read("en/registry.html"), /Updated: 2026/);
@@ -336,6 +336,41 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
     const d = src("app/components/RegistryDashboard.tsx");
     assert.match(d, /<dl className="mt-4 grid grid-cols-\[auto_minmax\(0,1fr\)\] items-center gap-x-4 gap-y-2">/);
     assert.match(d, /<dt className="text-\[14px\] text-\[var\(--muted\)\]">/);
+  });
+});
+
+describe("registry v11 rendered (bus 155: v9 one CEA CIC, v10 country → region, v11 Keycloak retired)", () => {
+  const text = (f) => read(f).replace(/<[^>]+>/g, " ");
+  const PAGES = ["core", "registry", "registry/layers", "registry/projects", "registry/organisations", "registry/campuses", "registry/federation"];
+  test("no page presents Keycloak as required or as the identity steward", () => {
+    for (const l of ["en", "ru"]) for (const p of PAGES) {
+      const t = text(`${l}/${p}.html`);
+      assert.doesNotMatch(t, /Keycloak realm|shared Keycloak|Keycloak\/OIDC identity|mirrored Keycloak/, `${l}/${p}`);
+    }
+  });
+  test("the gate says sign-in through Keycloak is not required (EN + RU)", () => {
+    assert.ok(text("en/registry.html").includes("Sign-in through Keycloak is not required."));
+    assert.ok(text("ru/registry.html").includes("Вход через Keycloak не требуется."));
+  });
+  test("layers: geography is countries → regions, with the v10 and v11 change notes", () => {
+    const t = text("en/registry/layers.html");
+    assert.ok(t.includes("CountryCode (ISO 3166-1 alpha-2, e.g. GB, LV)"));
+    assert.ok(t.includes("ISO 3166-2 elsewhere"));
+    assert.ok(t.includes("v10 (2026-11-15"));
+    assert.ok(t.includes("v11 (2026-11-24): Keycloak retired as an ecosystem requirement"));
+    assert.ok(t.includes("KARTEL Core (identity provider under replacement)"));
+  });
+  test("organisations: one CEA CIC, RUSJAZ-FDN only as lineage, ZNANIYE and BALTICA under CEA", () => {
+    const en = read("en/registry/organisations.html"), ru = read("ru/registry/organisations.html");
+    assert.doesNotMatch(en, />RUSJAZ-FDN</);
+    assert.ok(text("en/registry/organisations.html").includes("RUSJAZ-FDN retired"));
+    assert.ok(en.includes(">RU-ONLINE-EUREKA<"));
+    assert.ok(ru.includes("Русский Онлайн с ЭВРИКОЙ"));
+    assert.doesNotMatch(en + ru, /RusJAz Foundation/);
+  });
+  test("core: geography is countries and regions (EN + RU)", () => {
+    assert.ok(text("en/core.html").includes("countries (ISO 3166-1) and, within them, regions"));
+    assert.ok(text("ru/core.html").includes("страны (ISO 3166-1) и регионы внутри них"));
   });
 });
 
