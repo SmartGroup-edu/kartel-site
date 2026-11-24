@@ -12,6 +12,7 @@ import { parseMasterKey } from "./crypto.mjs";
 import { boardTick } from "./board-jobs.mjs";
 import { isParent } from "./board.mjs";
 import { purgePhotos } from "./photo.mjs";
+import { planSecurityNotices } from "./security-notices.mjs";
 
 const RELAY_URL = process.env.RELAY_URL ?? "https://mail-relay.kartel.org.uk";
 const SITE = process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk";
@@ -94,8 +95,28 @@ for (const i of invitesDue) {
   if (ok) { await pool.query("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [i.id]); out.invites++; await event("invite.sent", i.person.id, null); }
   else out.failed++;
 }
+// Passkey security notices (bus 100 C1). Marked sent only when every copy got a 202; a partial failure is retried
+// (a recipient may then get the same notice twice — preferred over a missed security letter).
+const secDue = planSecurityNotices(await q("SELECT id, kind, email, device_kind, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM security_notice WHERE sent_at IS NULL AND created_at > now() - interval '3 days'"),
+  people, grants, new Map(prefRows.map((p) => [p.person_id, p])), now);
+out.security = 0;
+for (const n of secDue) {
+  let all = true;
+  for (const m of n.sends) {
+    const lang = m.lang === "en" ? "en" : "ru";
+    const body = JSON.stringify({ ...m, link: `${SITE}/${lang}/family/os` });
+    const ts = String(Math.floor(Date.now() / 1000));
+    try { all = (await fetch(`${RELAY_URL}/send-security`, { method: "POST", headers: { "content-type": "application/json", "x-kartel-ts": ts, "x-kartel-sig": relaySign(secret, ts, body) }, body, signal: AbortSignal.timeout(15000) })).status === 202 && all; } catch { all = false; }
+  }
+  if (all) { await pool.query("UPDATE security_notice SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [n.id]); out.security += n.sends.length; }
+  else out.failed++;
+}
+// Passkey housekeeping: expired challenges, old rate counters, revoked keys after 90 days (owner connection).
+await pool.query("DELETE FROM passkey_challenge WHERE expires_at <= now()");
+await pool.query("DELETE FROM passkey_attempt WHERE at < now() - interval '2 days'");
+await pool.query("DELETE FROM passkey WHERE revoked_at < now() - interval '90 days'");
 async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
 }
 await pool.end();
-if (out.due || out.invites || photosDeleted || Object.keys(board).length || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, photos_deleted: photosDeleted, date, board })}`);
+if (out.due || out.invites || out.security || photosDeleted || Object.keys(board).length || process.env.RUNNER_VERBOSE) console.log(`[runner] ${JSON.stringify({ ...out, photos_deleted: photosDeleted, date, board })}`);

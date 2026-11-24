@@ -519,3 +519,56 @@ CREATE TABLE IF NOT EXISTS task_photo (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS task_photo_one_active ON task_photo (task_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS task_photo_due ON task_photo (delete_after) WHERE deleted_at IS NULL;
+
+-- ================= Passkeys (bus 98 design; bus 100 security review: approved with C1–C4) =================
+-- Public keys only. The email is the identity (the session subject), so rows are keyed by the lowercased email;
+-- user_handle is random, never derived from it.
+CREATE TABLE IF NOT EXISTS passkey_user (
+  email        text PRIMARY KEY CHECK (email = lower(email)),
+  user_handle  bytea NOT NULL UNIQUE CHECK (length(user_handle) = 32)
+);
+CREATE TABLE IF NOT EXISTS passkey (
+  id             uuid PRIMARY KEY,
+  email          text NOT NULL REFERENCES passkey_user(email),
+  credential_id  bytea NOT NULL UNIQUE,
+  public_key     bytea NOT NULL,
+  counter        bigint NOT NULL DEFAULT 0 CHECK (counter >= 0),
+  transports     text[] NOT NULL DEFAULT '{}',
+  aaguid         text,
+  device_kind    text NOT NULL CHECK (device_kind IN ('iphone', 'ipad', 'mac', 'android', 'windows', 'linux', 'key', 'other')),
+  device_type    text NOT NULL CHECK (device_type IN ('singleDevice', 'multiDevice')),
+  backed_up      boolean NOT NULL DEFAULT false,
+  label          text NOT NULL CHECK (length(label) BETWEEN 1 AND 40),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  last_used_at   timestamptz,
+  revoked_at     timestamptz,
+  revoked_by     text,
+  flagged_at     timestamptz
+);
+CREATE INDEX IF NOT EXISTS passkey_by_email ON passkey (email) WHERE revoked_at IS NULL;
+-- Single-use challenges: taken with DELETE … RETURNING; expired ones purged.
+CREATE TABLE IF NOT EXISTS passkey_challenge (
+  id          uuid PRIMARY KEY,
+  purpose     text NOT NULL CHECK (purpose IN ('register', 'auth')),
+  email       text CHECK ((purpose = 'register') = (email IS NOT NULL)),
+  challenge   text NOT NULL,
+  expires_at  timestamptz NOT NULL
+);
+-- Rate counters (C3): register options and failures per person, failures per credential. Kept 2 days.
+CREATE TABLE IF NOT EXISTS passkey_attempt (
+  id    bigserial PRIMARY KEY,
+  key   text NOT NULL,
+  kind  text NOT NULL CHECK (kind IN ('reg_options', 'reg_fail', 'auth_fail')),
+  at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS passkey_attempt_recent ON passkey_attempt (key, kind, at);
+-- Security notices (C1): written in the request, sent by the runner through the relay. No credential ids.
+CREATE TABLE IF NOT EXISTS security_notice (
+  id           bigserial PRIMARY KEY,
+  kind         text NOT NULL CHECK (kind IN ('new_key', 'revoked', 'flagged')),
+  email        text NOT NULL,
+  device_kind  text NOT NULL,
+  on_date      date NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  sent_at      timestamptz
+);

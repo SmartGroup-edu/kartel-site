@@ -68,6 +68,18 @@ function sigOk(ts, raw, sig) {
 
 const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// bus 105 M1: every name field in a family letter keeps single inner spaces. Runs of whitespace (incl. NBSP and
+// other Unicode spaces) collapse to one ASCII space and the ends are trimmed — before validation, so a name with
+// a non-breaking space is neither refused nor glued together.
+const oneSpace = (v) => (typeof v === "string" ? v.replace(/\s+/gu, " ").trim() : v);
+export function normNames(b) {
+  if (!b || typeof b !== "object" || Array.isArray(b)) return b;
+  const o = { ...b };
+  for (const k of ["firstName", "about"]) if (k in o) o[k] = oneSpace(o[k]);
+  if (Array.isArray(o.docs)) o.docs = o.docs.map((d) => (d && typeof d === "object" && "who" in d ? { ...d, who: oneSpace(d.who) } : d));
+  if (Array.isArray(o.notes)) o.notes = o.notes.map((n) => (n && typeof n === "object" && "child" in n ? { ...n, child: oneSpace(n.child) } : n));
+  return o;
+}
 
 /** 1 минуту · 2 минуты · 5 минут · 21 минуту — accusative after «действует». */
 function ruMinutes(n) {
@@ -188,7 +200,7 @@ function handleReminder(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     if (typeof b.link !== "string" || !PERSON_LINK_RE.test(b.link)) return reply(res, 400, { error: "bad_link" });
@@ -247,7 +259,7 @@ function handleReview(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const err = checkReview(b);
     if (err) return reply(res, 400, { error: err });
     const to = b.to.trim().toLowerCase();
@@ -353,6 +365,79 @@ export function renderFamilyEmail({ kind, lang, firstName, date, items = [], doc
   return { subject: k.subject, text, html };
 }
 
+// ── Security notices for passkeys (bus 100 C1): fixed templates, no identifiers ────────────────────────────
+// Three events: a key was added, revoked, or flagged. The letter names the device KIND and a date — never a
+// credential id, a label someone typed, an IP or a time. Sent to the person, and for a child also to the parents
+// (`about` = the child's first name in the parents' copy).
+const SECURITY_LIMITS = { recipient: { max: 12, windowMs: 24 * 3600_000 }, global: { max: 300, windowMs: 24 * 3600_000 } };
+export const SECURITY_DEVICES = { iphone: ["iPhone", "iPhone"], ipad: ["iPad", "iPad"], mac: ["Mac", "Mac"], android: ["Android", "Android"], windows: ["Windows", "Windows"], linux: ["Linux", "Linux"], key: ["ключ безопасности", "security key"], other: ["устройство", "device"] };
+export function checkSecurity(b) {
+  const to = typeof b?.to === "string" ? b.to.trim().toLowerCase() : "";
+  if (!EMAIL_RE.test(to) || to.length > 254) return "bad_recipient";
+  if (!["new_key", "revoked", "flagged"].includes(b.kind)) return "bad_kind";
+  if (b.lang !== undefined && !["ru", "en"].includes(b.lang)) return "bad_lang";
+  if (b.firstName !== undefined && (typeof b.firstName !== "string" || !NAME_RE.test(b.firstName.trim()))) return "bad_name";
+  if (b.about !== undefined && (typeof b.about !== "string" || !NAME_RE.test(b.about.trim()))) return "bad_name";
+  if (!Object.hasOwn(SECURITY_DEVICES, b.device)) return "bad_device";
+  if (!DATE_ONLY_RE.test(b.date ?? "")) return "bad_date";
+  if (typeof b.link !== "string" || !TODAY_LINK_RE.test(b.link)) return "bad_link";
+  if (Object.keys(b).some((k) => !["to", "kind", "lang", "firstName", "about", "device", "date", "link"].includes(k))) return "bad_field";
+  return null;
+}
+export function renderSecurityEmail({ kind, lang = "ru", firstName, about, device, date, link }) {
+  const ru = lang !== "en", dev = SECURITY_DEVICES[device][ru ? 0 : 1], day = fmtDay(date, ru, true);
+  const hi = firstName ? (ru ? `${firstName}, ` : `${firstName}, `) : "";
+  // Names are never declined (we can't do Russian cases safely): the parents' copy uses «Чей: <имя>».
+  const whom = about ? (ru ? ` Чей: ${about}.` : ` Whose: ${about}.`) : "";
+  const c = ru ? {
+    new_key: { subject: "Добавлен новый ключ входа", lines: [about ? `${hi}в семейный раздел добавлен новый ключ входа.${whom} Устройство: ${dev}, ${day}.` : `${hi}к твоему входу в семейный раздел добавлен новый ключ: ${dev}, ${day}.`,
+      about ? `Если это неожиданно — войди и отзови ключ: «Люди» → ${about} → «Вход».` : "Если это не ты — войди по ссылке из письма и отзови его: твоя страница → «Вход»."] },
+    revoked: { subject: "Ключ входа отозван", lines: [`${hi}ключ входа отозван.${whom} Устройство: ${dev}.`, "Войти можно по ссылке из письма или другим ключом."] },
+    flagged: { subject: "Ключ входа помечен как подозрительный", lines: [`${hi}ключ входа повёл себя необычно — возможно, его скопировали.${whom} Устройство: ${dev}. Вход с ним приостановлен.`,
+      about ? "Владелец семейного раздела может вернуть или отозвать его." : "Войти можно по ссылке из письма. Ключ можно вернуть или отозвать на странице «Вход»."] },
+    open: "Открыть семейный раздел",
+  } : {
+    new_key: { subject: "A new sign-in key was added", lines: [about ? `${hi}a new sign-in key was added to the family area.${whom} Device: ${dev}, ${day}.` : `${hi}a new key was added to your sign-in for the family area: ${dev}, ${day}.`,
+      about ? `If this is unexpected, sign in and revoke it: People → ${about} → Sign-in.` : "If this wasn't you, sign in with an email link and revoke it: your page → Sign-in."] },
+    revoked: { subject: "A sign-in key was revoked", lines: [`${hi}a sign-in key was revoked.${whom} Device: ${dev}.`, "You can still sign in with an email link or another key."] },
+    flagged: { subject: "A sign-in key was flagged", lines: [`${hi}a sign-in key behaved unusually — it may have been copied.${whom} Device: ${dev}. Signing in with it is paused.`, "You can sign in with an email link; the key can be restored or revoked on the Sign-in page."] },
+    open: "Open the family area",
+  };
+  const k0 = c[kind], k = { ...k0, lines: [hi ? k0.lines[0] : k0.lines[0].charAt(0).toUpperCase() + k0.lines[0].slice(1), ...k0.lines.slice(1)] };
+  const text = [k.subject, "", ...k.lines, "", `${c.open}: ${link}`].join("\n");
+  const html = `<!doctype html><html lang="${ru ? "ru" : "en"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">
+<style>:root{color-scheme:light dark;supported-color-schemes:light dark}
+@media (prefers-color-scheme: dark){.bg{background:#1b1917!important}.fg{color:#f1ebe2!important}.acc{color:#eba8b3!important}.btn{background:#eba8b3!important;color:#1b1917!important}}</style>
+</head><body class="bg" style="margin:0;padding:0;background:#ffffff;">
+<div class="bg" style="max-width:480px;margin:0 auto;padding:28px 20px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#2b2824;">
+  <p class="acc" style="margin:0 0 16px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#7b1e2d;">KARTEL</p>
+  <h1 class="fg" style="margin:0 0 16px;font-size:24px;line-height:1.3;font-weight:600;color:#2b2824;">${esc(k.subject)}</h1>
+  ${k.lines.map((l) => `<p class="fg" style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(l)}</p>`).join("\n  ")}
+  <p style="margin:16px 0 8px;"><a class="btn" href="${esc(link)}" style="display:inline-block;padding:14px 28px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(c.open)}</a></p>
+</div></body></html>`;
+  return { subject: k.subject, text, html };
+}
+function handleSecurity(req, res) {
+  let raw = "", tooBig = false;
+  req.setEncoding("utf8");
+  req.on("data", (c) => { raw += c; if (raw.length > MAX_BODY) { tooBig = true; req.destroy(); } });
+  req.on("end", async () => {
+    if (tooBig) return;
+    if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
+    const err = checkSecurity(b);
+    if (err) return reply(res, 400, { error: err });
+    const to = b.to.trim().toLowerCase();
+    if (!allowAll([["s:global", SECURITY_LIMITS.global], [`s:to:${to}`, SECURITY_LIMITS.recipient]])) { console.warn("[relay] security rate limited"); return reply(res, 429, { error: "rate_limited" }); }
+    try {
+      const status = await sendViaBrevo(to, renderSecurityEmail({ ...b, firstName: b.firstName?.trim(), about: b.about?.trim(), lang: b.lang === "en" ? "en" : "ru" }));
+      console.log(`[relay] security ${b.kind} brevo ${status}`);
+      return status >= 200 && status < 300 ? reply(res, 202, { ok: true }) : reply(res, 502, { error: "upstream", status });
+    } catch { console.error("[relay] brevo unreachable"); return reply(res, 502, { error: "upstream" }); }
+  });
+}
+
 const FAMILY_MAX_BODY = 16 * 1024; // a full digest (≤ 30 items of ≤ 120 chars) exceeds the 4 KB sign-in limit
 function handleFamily(req, res) {
   let raw = "", tooBig = false;
@@ -361,7 +446,7 @@ function handleFamily(req, res) {
   req.on("end", async () => {
     if (tooBig) return;
     if (!sigOk(req.headers["x-kartel-ts"], raw, req.headers["x-kartel-sig"])) { console.warn("[relay] rejected: bad signature"); return reply(res, 401, { error: "unauthorized" }); }
-    let b; try { b = JSON.parse(raw); } catch { return reply(res, 400, { error: "bad_json" }); }
+    let b; try { b = normNames(JSON.parse(raw)); } catch { return reply(res, 400, { error: "bad_json" }); }
     const to = typeof b.to === "string" ? b.to.trim().toLowerCase() : "";
     if (!EMAIL_RE.test(to) || to.length > 254) return reply(res, 400, { error: "bad_recipient" });
     const err = checkFamily(b);
@@ -385,6 +470,7 @@ const server = createServer((req, res) => {
   if (req.method === "POST" && req.url === "/send-reminder") return handleReminder(req, res);
   if (req.method === "POST" && req.url === "/send-review") return handleReview(req, res);
   if (req.method === "POST" && req.url === "/send-family") return handleFamily(req, res);
+  if (req.method === "POST" && req.url === "/send-security") return handleSecurity(req, res);
   if (req.method !== "POST" || req.url !== "/send") return reply(res, 404, { error: "not_found" });
 
   let raw = "";

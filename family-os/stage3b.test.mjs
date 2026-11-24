@@ -160,7 +160,10 @@ test("ICS: own link only; token shown once, hash stored; feed; new link revokes 
   const te = (await call("POST", `/people/${P.e}/ics`, { actor: as(E.e) })).json.token;
   const fe = (await call("GET", `/ics/${te}`, { actor: "system:ics" })).text;
   assert.match(fe, /DTSTART;VALUE=DATE:20261120\r\nDTEND;VALUE=DATE:20261121\r\nSUMMARY:День рождения: QA c\r\nRRULE:FREQ=YEARLY/, "unrelated adult's feed: the child's birthday from its next date");
-  assert.ok(!/2015\d{4}|1990\d{4}/.test(fe), "no birth year in any feed (bus 81)");
+  // Only date and summary lines can carry a birth year; UIDs are random UUIDs whose digits once matched
+  // the old whole-feed pattern (a flake seen in CI 2026-11-18).
+  const dated = fe.split("\r\n").filter((l) => /^(DTSTART|DTEND|SUMMARY|DESCRIPTION)\b/.test(l)).join("\n");
+  assert.ok(dated.length > 0 && !/(^|[^\d])(2015|1990)\d{4}|\b(2015|1990)\b/.test(dated), "no birth year in any feed (bus 81)");
 });
 
 test("profile: capabilities for notes, goals and the ICS link", async () => {
