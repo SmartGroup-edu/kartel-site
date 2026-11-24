@@ -20,6 +20,7 @@ import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
+import { HEALTH_KINDS, healthPrefFor, familyTotals, tickDateOk, cleanEvening } from "./health.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { daysLeft, tier } from "./reminders.mjs";
@@ -881,6 +882,66 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 200, await principleView(prm[1]));
     }
 
+    // ================= Stage 3e-1 «Здоровье-лайт» (bus 86/109) =================
+    // GET /health?week= — the family's ONE weekly total (only once ≥ 3 people tick) + the viewer's own ticks.
+    // PUT /health/prefs { ticks_on, evening_q_on } — the viewer's own settings only.
+    // POST /health/tick { date, kind: move|sleep, done } — the viewer's own tick (today or the 6 days before).
+    // Nobody — a parent or the owner included — reads anyone else's ticks or evening answers.
+    if (path === "/health" || path === "/health/prefs" || path === "/health/tick") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock());
+      const own = healthPrefFor(me, (await store.healthPrefs()).find((r) => r.person_id === me.id));
+      if (path === "/health" && req.method === "GET") {
+        const q = url.searchParams.get("week");
+        const week = q && DATE_RE.test(q) ? mondayOf(q) : mondayOf(today);
+        const [people, prefRows, ticks] = await Promise.all([store.listPeople(), store.healthPrefs(), store.healthTicks(week, addDays(week, 6))]);
+        return reply(res, 200, { today, week_start: week, family: familyTotals(people, prefRows, ticks, week, addDays(week, 6)),
+          mine: { ...own, kind: me.kind, ticks: ticks.filter((t) => t.person_id === me.id && t.done).map((t) => ({ date: t.on_date, kind: t.kind })) } });
+      }
+      if (path === "/health/prefs" && req.method === "PUT") {
+        const b = json(body);
+        const next = { ticks_on: b?.ticks_on ?? own.ticks_on, evening_q_on: b?.evening_q_on ?? own.evening_q_on };
+        if (typeof next.ticks_on !== "boolean" || typeof next.evening_q_on !== "boolean" || Object.keys(b ?? {}).some((k) => !["ticks_on", "evening_q_on"].includes(k))) return reply(res, 400, { error: "bad_prefs" });
+        await store.setHealthPref(me.id, next);
+        return reply(res, 200, { ok: true, ...next });
+      }
+      if (path === "/health/tick" && req.method === "POST") {
+        const b = json(body);
+        if (!own.ticks_on) return reply(res, 409, { error: "ticks_off" });
+        if (!HEALTH_KINDS.includes(b?.kind) || typeof b?.done !== "boolean" || !tickDateOk(b?.date, today) || Object.keys(b).some((k) => !["date", "kind", "done"].includes(k))) return reply(res, 400, { error: "bad_tick" });
+        await store.setHealthTick(me.id, b.date, b.kind, b.done);
+        return reply(res, 200, { ok: true });
+      }
+      return reply(res, 405, { error: "method" });
+    }
+    // GET /evening — the viewer's own answers for the last 7 days (sealed at rest; logged read).
+    // PUT /evening/:date { text } — one line ≤ 200, only when the question is switched on; empty text deletes.
+    const eqm = path.match(/^\/evening(?:\/(\d{4}-\d{2}-\d{2}))?$/);
+    if (eqm) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock());
+      const own = healthPrefFor(me, (await store.healthPrefs()).find((r) => r.person_id === me.id));
+      if (!eqm[1] && req.method === "GET") {
+        const rows = await store.eveningFor(me.id, addDays(today, -6), today);
+        if (rows.length && !(await logged(res, { actor: who.email, subject: me.id, entity: "evening:own", action: "read" }))) return;
+        return reply(res, 200, { on: own.evening_q_on, today, answers: rows.map((r) => {
+          const k = unwrapDataKey(kek, r.wrapped_key, "evening", r.id);
+          try { return { date: r.on_date, text: open(k, r.text_ct, `evening:${r.id}`).toString("utf8") }; } finally { k.fill(0); }
+        }) });
+      }
+      if (eqm[1] && req.method === "PUT") {
+        if (!own.evening_q_on) return reply(res, 409, { error: "question_off" });
+        if (!tickDateOk(eqm[1], today)) return reply(res, 400, { error: "bad_date" });
+        const b = json(body); const text = cleanEvening(b?.text);
+        if (text === undefined || Object.keys(b ?? {}).some((k) => k !== "text")) return reply(res, 400, { error: "bad_text" });
+        if (text === null) { await store.deleteEvening(me.id, eqm[1]); return reply(res, 200, { ok: true, deleted: true }); }
+        const id = (await store.eveningId(me.id, eqm[1])) ?? randomUUID(), { dek, wrapped } = newDataKey(kek, "evening", id);
+        try { await store.setEvening({ id, person_id: me.id, on_date: eqm[1], wrapped_key: wrapped, text_ct: seal(dek, Buffer.from(text), `evening:${id}`) }); } finally { dek.fill(0); }
+        return reply(res, 200, { ok: true });
+      }
+      return reply(res, 405, { error: "method" });
+    }
+
     // GET /recognitions?week= — the week's recognitions THIS viewer may see (sender, recipient, recipient's parents).
     // POST /recognitions { to_id, index, text } — any member to another member; ≤ 200 chars; 5 a day. No counts anywhere.
     if (path === "/recognitions" && (req.method === "GET" || req.method === "POST")) {
@@ -1403,6 +1464,8 @@ export function routeClass(url = "") {
   if (/^\/grants\/[^/]+$/.test(p)) return "/grants/:id";
   if (/^\/people\/[^/]+\/end-sessions$/.test(p)) return "/people/:id/end-sessions";
   if (p === "/sessions/end-all") return p;
+  if (p === "/health" || p === "/health/prefs" || p === "/health/tick" || p === "/evening") return p;
+  if (/^\/evening\/[^/]+$/.test(p)) return "/evening/:date";
   if (/^\/people\/[^/]+\/routines$/.test(p)) return "/people/:id/routines";
   if (/^\/routines\/[^/]+\/check$/.test(p)) return "/routines/:id/check";
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";

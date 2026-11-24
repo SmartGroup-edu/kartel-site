@@ -33,7 +33,7 @@ test("R1: every Family OS call from the proxy carries the signed `sat`; the regi
   assert.doesNotMatch(proxy, /^let /m, "no module-level request state (concurrent requests share an instance)");
   assert.match(proxy, /if \(status === 401 && body\?\.error === "session_ended"\) \{ await destroySession\(\);/);
   assert.match(proxy, /if \(r\.status === 401\) \{[\s\S]{0,200}const res = await ended\(401,/, "a document file read also ends the session");
-  assert.match(proxy, /people\/\$\{ID\}\/end-sessions\|sessions\/end-all\)\$/, "the owner's two actions are forwarded (the service checks the owner)");
+  assert.match(proxy, /people\/\$\{ID\}\/end-sessions\|sessions\/end-all[|)]/, "the owner's two actions are forwarded (the service checks the owner)");
   for (const step of ["options", "verify"]) {
     const r = src(`app/api/family-auth/passkey/register/${step}/route.ts`);
     assert.match(r, new RegExp(`osPk\\(withSat\\("/passkeys/register/${step}", session\\)`));

@@ -581,3 +581,27 @@ CREATE TABLE IF NOT EXISTS session_cutoff (
   cut_at  timestamptz NOT NULL,
   cut_by  text NOT NULL
 );
+
+-- Stage 3e-1 «Здоровье-лайт» (bus 86/109): movement + sleep ticks (only the family's weekly total is ever shown to
+-- others) and the evening question (sealed; only its author reads it). No weight or calorie columns here.
+CREATE TABLE IF NOT EXISTS health_pref (
+  person_id     uuid PRIMARY KEY REFERENCES person(id),
+  ticks_on      boolean NOT NULL,
+  evening_q_on  boolean NOT NULL,
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS health_tick (
+  person_id  uuid NOT NULL REFERENCES person(id),
+  on_date    date NOT NULL,
+  kind       text NOT NULL CHECK (kind IN ('move', 'sleep')),
+  done       boolean NOT NULL,
+  PRIMARY KEY (person_id, on_date, kind)
+);
+CREATE TABLE IF NOT EXISTS evening_answer (
+  id           uuid PRIMARY KEY,
+  person_id    uuid NOT NULL REFERENCES person(id),
+  on_date      date NOT NULL,
+  wrapped_key  text NOT NULL,
+  text_ct      text NOT NULL,
+  UNIQUE (person_id, on_date)
+);

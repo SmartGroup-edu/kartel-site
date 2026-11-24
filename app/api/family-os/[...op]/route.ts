@@ -44,6 +44,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   if (new RegExp(`^/tasks/${ID}$`).test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   // Passkeys (bus 98/100): the person's own keys and a person's keys for a parent or the owner — JSON only.
   if (new RegExp(`^/(passkeys/mine|people/${ID}/passkeys)$`).test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
+  // 3e-1 «Здоровье-лайт»: the family total + own ticks, and the viewer's own evening answers — JSON only.
+  if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
     const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
     const key = q.has("week") ? "week" : "date";
@@ -89,7 +91,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all)$`).test(path)) return forwardJson(req, "POST", path, g);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g);
   return json(404, { error: "not_found" });
 }
 
@@ -122,7 +124,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ op: stri
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2}|plan/\\d{4}-\\d{2}-\\d{2}|principle/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
+  if (!new RegExp(`^/(people/${ID}/prefs|council/\\d{4}-\\d{2}-\\d{2}|plan/\\d{4}-\\d{2}-\\d{2}|principle/\\d{4}-\\d{2}-\\d{2}|health/prefs|evening/\\d{4}-\\d{2}-\\d{2})$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "PUT", path, g);
 }
 
