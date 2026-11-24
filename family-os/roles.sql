@@ -47,3 +47,7 @@ GRANT SELECT, INSERT, UPDATE (cut_at, cut_by) ON session_cutoff TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (ticks_on, evening_q_on, updated_at) ON health_pref TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (done) ON health_tick TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (wrapped_key, text_ct), DELETE ON evening_answer TO kfo_app;
+-- 3e-2: the person's own data — they may change and delete it at any time (export + delete by the owner of the data).
+GRANT SELECT, INSERT, UPDATE (body_on), DELETE ON body_pref TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (wrapped_key, value_ct), DELETE ON body_log TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (wrapped_key, goal_ct), DELETE ON body_goal TO kfo_app;

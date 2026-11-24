@@ -6,6 +6,7 @@
  * «Копировать» go through the logged service path. Files open only through /api/family-os (no
  * thumbnails of ID pages anywhere).
  */
+import FamilyBody from "./FamilyBody";
 import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useEffect, useState } from "react";
@@ -112,6 +113,8 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           </section>
 
           {goals && <FamilyGoals lang={lang} personId={p.id} data={goals} />}
+          {/* 3e-2: the person's own weight and calories — own page, adults only (the service refuses anyone under 18). */}
+          {"me" in state && state.me?.id === p.id && p.kind === "adult" && <FamilyBody lang={lang} />}
 
           {prefs && pauses && <FamilyPrefs lang={lang} personId={p.id} prefs={prefs} pauses={pauses} today={routines?.today ?? new Date().toISOString().slice(0, 10)} adult={p.kind === "adult"} />}
           {ics && <FamilyIcs lang={lang} personId={p.id} data={ics} />}

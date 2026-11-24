@@ -237,6 +237,16 @@ export function pgStore(pool) {
       await q("INSERT INTO session_cutoff (email, cut_at, cut_by) VALUES ($1, now(), $2) ON CONFLICT (email) DO UPDATE SET cut_at = now(), cut_by = $2", [email, actor]);
       await audit(actor, "sessions.end", email === "*" ? "family:*" : `email:${email}`);
     },
+    // ---- Stage 3e-2: an adult's own body log (sealed rows; the server decides who may call these)
+    async bodyOn(personId) { return Boolean((await q("SELECT body_on FROM body_pref WHERE person_id = $1", [personId])).rows[0]?.body_on); },
+    async setBodyOn(personId, on) { await q("INSERT INTO body_pref (person_id, body_on) VALUES ($1, $2) ON CONFLICT (person_id) DO UPDATE SET body_on = $2", [personId, on]); },
+    async bodyLog(personId) { return (await q("SELECT id, to_char(on_date, 'YYYY-MM-DD') AS on_date, wrapped_key, value_ct FROM body_log WHERE person_id = $1 ORDER BY on_date", [personId])).rows; },
+    async bodyLogId(personId, date) { return (await q("SELECT id FROM body_log WHERE person_id = $1 AND on_date = $2", [personId, date])).rows[0]?.id ?? null; },
+    async setBodyLog(r) { await q("INSERT INTO body_log (id, person_id, on_date, wrapped_key, value_ct) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (person_id, on_date) DO UPDATE SET wrapped_key = $4, value_ct = $5", [r.id, r.person_id, r.on_date, r.wrapped_key, r.value_ct]); },
+    async deleteBodyLog(personId, date) { await q("DELETE FROM body_log WHERE person_id = $1 AND on_date = $2", [personId, date]); },
+    async bodyGoal(personId) { return (await q("SELECT wrapped_key, goal_ct FROM body_goal WHERE person_id = $1", [personId])).rows[0] ?? null; },
+    async setBodyGoal(personId, wrapped, ct) { await q("INSERT INTO body_goal (person_id, wrapped_key, goal_ct) VALUES ($1, $2, $3) ON CONFLICT (person_id) DO UPDATE SET wrapped_key = $2, goal_ct = $3", [personId, wrapped, ct]); },
+    async deleteBody(personId) { await q("DELETE FROM body_log WHERE person_id = $1", [personId]); await q("DELETE FROM body_goal WHERE person_id = $1", [personId]); await q("DELETE FROM body_pref WHERE person_id = $1", [personId]); },
     // ---- Stage 3e-1 «Здоровье-лайт»
     async healthPrefs() { return (await q("SELECT person_id, ticks_on, evening_q_on FROM health_pref")).rows; },
     async setHealthPref(personId, p) {
@@ -368,10 +378,12 @@ export function pgStore(pool) {
   };
 }
 
+export const LOG_ACTIONS = ["read", "write", "reveal", "copy", "export", "delete"];
+
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
-  const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map();
+  const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
@@ -392,7 +404,8 @@ export function memoryStore() {
     async revokeGrant(id) { const g = grants.get(id); if (!g || g.revoked_at) return false; g.revoked_at = now(); return true; },
     async listNotes(personId, kinds) { return [...notes.values()].filter((n) => n.person_id === personId && kinds.includes(n.kind)); },
     async createNote(row, actor) { notes.set(row.id, { ...row, created_by: actor, created_at: now(), updated_at: now() }); },
-    async logAccess(entry) { if (this.failLog) throw new Error("log unavailable"); log.push({ id: log.length + 1, at: now(), ...entry }); },
+    // Same action enum as the access_log CHECK in schema.sql — so a new action fails here, not first in Postgres.
+    async logAccess(entry) { if (this.failLog) throw new Error("log unavailable"); if (!LOG_ACTIONS.includes(entry.action)) throw new Error(`access_log action ${entry.action} not allowed`); log.push({ id: log.length + 1, at: now(), ...entry }); },
     async accessLog() { return [...log].reverse(); },
     // ---- Stage 2a
     async setBirthDate(id, date) { const p = people.get(id); if (!p) return false; p.birth_date = date; return true; },
@@ -475,6 +488,16 @@ export function memoryStore() {
     // ---- Go-live R1
     async sessionCutoff(email) { const xs = [cutoffs.get(email), cutoffs.get("*")].filter(Boolean); return xs.length ? new Date(Math.max(...xs.map((d) => d.getTime()))) : null; },
     async endSessions(email, actor) { cutoffs.set(email, new Date(now())); auditLog.push({ actor, action: "sessions.end", entity: email === "*" ? "family:*" : `email:${email}` }); },
+    // ---- Stage 3e-2
+    async bodyOn(personId) { return Boolean(bprefs.get(personId)); },
+    async setBodyOn(personId, on) { bprefs.set(personId, on); },
+    async bodyLog(personId) { return [...blogs.values()].filter((r) => r.person_id === personId).sort((a, b) => (a.on_date < b.on_date ? -1 : 1)); },
+    async bodyLogId(personId, date) { return blogs.get(`${personId}|${date}`)?.id ?? null; },
+    async setBodyLog(r) { blogs.set(`${r.person_id}|${r.on_date}`, { ...r }); },
+    async deleteBodyLog(personId, date) { blogs.delete(`${personId}|${date}`); },
+    async bodyGoal(personId) { return bgoals.get(personId) ?? null; },
+    async setBodyGoal(personId, wrapped, ct) { bgoals.set(personId, { wrapped_key: wrapped, goal_ct: ct }); },
+    async deleteBody(personId) { for (const k of [...blogs.keys()]) if (k.startsWith(`${personId}|`)) blogs.delete(k); bgoals.delete(personId); bprefs.delete(personId); },
     // ---- Stage 3e-1
     async healthPrefs() { return [...hprefs.entries()].map(([person_id, p]) => ({ person_id, ...p })); },
     async setHealthPref(personId, p) { hprefs.set(personId, { ticks_on: p.ticks_on, evening_q_on: p.evening_q_on }); },
