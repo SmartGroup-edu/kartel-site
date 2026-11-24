@@ -50,9 +50,20 @@
   --sprint: #3b4a7a;
   --sprint-soft: #eef0f7;
   --wait-border: #cdbfc2;
+  /* Heraldic pillar accents (bus 86 §7; plan §3): thin rules and icons only, never fills or judgement
+     colours. Ритм = чернь, Здоровье = червлень, Рост = золото, Кодекс = серебро. ≥ 4.5:1 on background
+     and surface. PROPOSED — awaiting kartel-agent sign-off before wide use. */
+  --pillar-rhythm: #2b2824;
+  --pillar-health: #a3262a;
+  --pillar-growth: #8a6516;
+  --pillar-kodeks: #5d6670;
 }
 
 .dark {
+  --pillar-rhythm: #d6d0c6;
+  --pillar-health: #e8867a;
+  --pillar-growth: #d4a65a;
+  --pillar-kodeks: #b4bcc6;
   --background: #1a1816;
   --foreground: #e8e4dd;
   --accent: #c9964e;
@@ -318,6 +329,10 @@ summary:focus-visible,
   }
   :root,
   .dark {
+    --pillar-rhythm: #000000;
+    --pillar-health: #000000;
+    --pillar-growth: #000000;
+    --pillar-kodeks: #000000;
     --background: #ffffff;
     --surface: #ffffff;
     --header-bg: #ffffff;

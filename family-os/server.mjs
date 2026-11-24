@@ -16,6 +16,7 @@ import { buildDayPlan } from "./board-jobs.mjs";
 import { rotationAssignee, pausedOn, DEFAULT_PREFS, localParts } from "./engine.mjs";
 import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./recur.mjs";
 import { stripHeifMetadata } from "./heif.mjs";
+import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { daysLeft, tier } from "./reminders.mjs";
@@ -421,13 +422,18 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     // ================= Stage 2: routines and chores =================
     const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
     /** A routine as the screen needs it: due today? done today? gentle streak, next dates. */
-    const routineView = (r, checks, today, days, paused = () => false) => {
+    // bus 86: «N из M на этой неделе» for everyone; the streak only for an adult who chose it — a child's
+    // routines never carry a streak at all (ICO Children's Code: streaks are a named nudge).
+    const routineView = (r, checks, today, days, paused = () => false, mode = "week", titles = new Map()) => {
       const rule = parseRule(r.rrule);
       const done = new Set(checks.filter((c) => c.routine_id === r.id && c.done).map((c) => c.on_date));
       return { id: r.id, kind: r.kind, title: r.title, rrule: r.rrule, dtstart: r.dtstart, at_time: r.at_time,
+        anchor_text: r.anchor_text ?? null, anchor_routine_id: r.anchor_routine_id ?? null, anchor_title: r.anchor_routine_id ? titles.get(r.anchor_routine_id) ?? null : null,
         due_today: occursOn(rule, r.dtstart, today) && !paused(today), done_today: done.has(today),
         done_recent: [...done].filter((d) => d >= addDays(today, -2)).sort(),
-        streak: streak(rule, r.dtstart, done, today, 400, paused), next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10).filter((d) => !paused(d)) };
+        week: weekCount(rule, r.dtstart, done, today, paused),
+        ...(mode === "streak" ? { streak: streak(rule, r.dtstart, done, today, 400, paused) } : {}),
+        next: occurrences(rule, r.dtstart, addDays(today, 1), addDays(today, days), 10).filter((d) => !paused(d)) };
     };
     /** A rotation as seen by one member: their turns (today + next days). kind "rotation". */
     const rotationView = (x, personId, rchecks, today, days, paused = () => false) => {
@@ -435,7 +441,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const nextDays = Array.from({ length: days }, (_, i) => addDays(today, i + 1)).filter(mine);
       const doneToday = rchecks.some((c) => c.rotation_id === x.id && c.on_date === today && c.done);
       return { id: x.id, kind: "rotation", title: x.title, rrule: x.rrule, dtstart: x.dtstart, at_time: x.at_time, members: x.members.length,
-        due_today: mine(today), done_today: doneToday, done_recent: [], streak: 0, next: nextDays };
+        due_today: mine(today), done_today: doneToday, done_recent: [], next: nextDays };
     };
     /** Best-effort event (the bus feeds Stage 3 rules); a write never fails because of it. */
     const emit = async (type, subject, ref) => { try { await store.emit(type, who.email, subject, ref); } catch { console.error("[os] event emit failed"); } };
@@ -458,8 +464,10 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         const myRots = rots.filter((x) => x.members.includes(subject.id));
         const rchecks = await store.listRotationChecks(myRots.map((x) => x.id), addDays(today, -2));
         const paused = (d) => pausedOn(pauses, subject.id, d);
-        return reply(res, 200, { today, can, paused_today: paused(today),
-          routines: [...rows.map((r) => routineView(r, checks, today, days, paused)), ...myRots.map((x) => rotationView(x, subject.id, rchecks, today, days, paused))] });
+        const mode = countModeFor(subject, (await store.getPrefs(subject.id))?.count_mode);
+        const titles = new Map(rows.map((r) => [r.id, r.title]));
+        return reply(res, 200, { today, can, paused_today: paused(today), count_mode: mode,
+          routines: [...rows.map((r) => routineView(r, checks, today, days, paused, mode, titles)), ...myRots.map((x) => rotationView(x, subject.id, rchecks, today, days, paused))] });
       }
       if (!can.manage) return reply(res, 403, { error: "forbidden", reason: can.reason ?? "child_cannot_manage" });
       const b = json(body);
@@ -468,6 +476,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       // bus 85: one model — routines are personal habits; anything assigned is a task (templates on the board)
       if (r.kind === "chore") return reply(res, 400, { error: "use_templates" });
       if (!ROUTINE_KINDS.includes(r.kind) || !r.title || !parseRule(r.rrule) || !DATE_RE.test(r.dtstart) || (r.at_time && !TIME_RE.test(r.at_time))) return reply(res, 400, { error: "bad_routine" });
+      const anchor = cleanAnchor(b, (await store.listRoutines(subject.id)).map((x) => x.id), r.id);
+      if (anchor.error) return reply(res, 400, { error: anchor.error });
+      Object.assign(r, anchor);
       if (other && !(await logged(res, { actor: who.email, subject: subject.id, entity: `routine:${r.kind}`, action: "write" }))) return;
       await store.createRoutine(r, who.email);
       await emit("routine.created", subject.id, r.id);
@@ -527,9 +538,12 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const subject = await personFor(pfm[1]);
       if (!subject) return reply(res, 404, { error: "not_found" });
       if (!canEditPrefs(me, subject, await grantsNow())) return reply(res, 403, { error: "forbidden" });
-      if (req.method === "GET") return reply(res, 200, { prefs: { ...DEFAULT_PREFS, ...((await store.getPrefs(subject.id)) ?? {}) } });
+      if (req.method === "GET") { const cur = { ...DEFAULT_PREFS, count_mode: "week", ...((await store.getPrefs(subject.id)) ?? {}) }; return reply(res, 200, { prefs: { ...cur, count_mode: countModeFor(subject, cur.count_mode) }, can: { count_mode: subject.kind === "adult" } }); }
       const b = json(body) ?? {}, T = /^(0[7-9]|1\d|20):[0-5]\d$/;
-      const p = { email_on: b.email_on, digest_time: b.digest_time, evening_on: b.evening_on, evening_time: b.evening_time, lang: b.lang };
+      const p = { email_on: b.email_on, digest_time: b.digest_time, evening_on: b.evening_on, evening_time: b.evening_time, lang: b.lang, count_mode: b.count_mode };
+      // bus 86: a child always sees the weekly count — the streak cannot be switched on for a child
+      if (p.count_mode !== undefined && !["week", "streak"].includes(p.count_mode)) return reply(res, 400, { error: "bad_prefs" });
+      if (p.count_mode === "streak" && subject.kind === "child") return reply(res, 400, { error: "child_weekly_only" });
       if (typeof p.email_on !== "boolean" || typeof p.evening_on !== "boolean" || !T.test(p.digest_time ?? "") || !T.test(p.evening_time ?? "") || !["ru", "en"].includes(p.lang)) return reply(res, 400, { error: "bad_prefs" });
       await store.setPrefs(subject.id, p, who.email);
       await emit("prefs.updated", subject.id, null);
@@ -627,6 +641,14 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const sealTitle = (scope, id, title) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `${scope}:${id}`) }; } finally { dek.fill(0); } };
     const openWith = (scope, row, field, aad) => { if (!row[field]) return ""; const k = unwrapDataKey(kek, row.wrapped_key, scope, row.id); try { return open(k, row[field], aad).toString("utf8"); } finally { k.fill(0); } };
     // ================= Stage 3b: council, goals, calendar, ICS =================
+    // Stage 3d (bus 86): the week's principle — used by the council answer and by /principle.
+    const nameById = (people) => new Map(people.map((p) => [p.id, { name_ru: p.name_ru, name_en: p.name_en }]));
+    const principleView = async (week) => {
+      const [versions, pick] = await Promise.all([store.kodeksVersions(), store.principlePick(week)]);
+      const cur = versions[0]?.body ?? KODEKS_V1;
+      const { index, picked } = principleOfWeek(week, pick);
+      return { week_start: week, index, picked, element: cur.principles[index].element, principle: cur.principles[index].principle, practice: cur.principles[index].practice };
+    };
     const nameOf = (p) => p.name_ru;
     const meetingKey = (m) => unwrapDataKey(kek, m.wrapped_key, "council", m.id);
 
@@ -646,7 +668,9 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const live = (t) => !["cancelled", "carried_over", "declined_by_adult"].includes(t.state);
       const view = (t) => ({ id: t.id, title: openWith("task", t, "title_ct", `task:${t.id}`), owner_id: t.assignee_id, due_date: t.plan_date, done: isDone(t), state: t.state });
       const st = councilStatus(date, today, localParts(clock()).hhmm, Boolean(m?.held_at));
-      return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld },
+      const [pThis, pNext, cgrants] = await Promise.all([principleView(mondayOf(date)), principleView(addDays(mondayOf(date), 7)), grantsNow()]);
+      return reply(res, 200, { date, today, held: Boolean(m?.held_at), status: st.status, days_until: st.days, notes, can: { write: canWriteCouncil(me), mark_held: canWriteCouncil(me) && st.canMarkHeld, pick_principle: isParent(me, cgrants) },
+        principle: { this_week: pThis, next_week: pNext },
         tasks: tasks.filter(live).map(view), previous: prev ? { date: prev.on_date, tasks: prevTasks.filter(live).map(view) } : null,
         agenda: buildAgenda(date, today, { routines, rotations, checks, rotationChecks: rchecks, pauses, prevTasks: prevTasks.filter(live).map((t) => ({ done_at: isDone(t) ? t.done_at ?? true : null })) }) });
     }
@@ -684,6 +708,82 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       return reply(res, 201, { id });
     }
 
+    // ================= Stage 3d: Кодекс, принцип недели, признание (bus 86) =================
+
+    // GET /kodeks — the current text and its history (every member reads). POST /kodeks — a new version (a parent).
+    if (path === "/kodeks" && (req.method === "GET" || req.method === "POST")) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const grants = await grantsNow();
+      const canEdit = isParent(me, grants);
+      if (req.method === "GET") {
+        const [versions, people] = await Promise.all([store.kodeksVersions(), store.listPeople()]);
+        const byEmail = new Map(people.map((p) => [p.email, { name_ru: p.name_ru, name_en: p.name_en }]));
+        const cur = versions[0];
+        return reply(res, 200, { can: { edit: canEdit },
+          current: cur ? { version: cur.version, status: cur.status, approved_on: cur.approved_on, body: cur.body } : null,
+          history: versions.map((v) => ({ version: v.version, status: v.status, approved_on: v.approved_on, at: v.created_at, by: byEmail.get(v.created_by) ?? null })) });
+      }
+      if (!canEdit) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
+      const b = json(body);
+      const approvedOn = b?.approved_on ?? null;
+      if (!validKodeks(b?.body) || (approvedOn !== null && (!DATE_RE.test(approvedOn) || approvedOn > localDate(clock())))) return reply(res, 400, { error: "bad_kodeks" });
+      const clean = { principles: b.body.principles.map((x) => ({ element: x.element, element_ru: x.element_ru.trim(), meaning: x.meaning.trim(), principle: x.principle.trim(), practice: x.practice.trim() })), motto: b.body.motto.trim() };
+      const next = ((await store.kodeksVersions())[0]?.version ?? 0) + 1;
+      try { await store.addKodeksVersion({ version: next, body: clean, status: approvedOn ? "approved" : "draft", approved_on: approvedOn }, who.email); }
+      catch (e) { if (e?.code === "23505") return reply(res, 409, { error: "concurrent_edit" }); throw e; }
+      await emit("kodeks.version", null, String(next));
+      return reply(res, 201, { version: next });
+    }
+
+    // GET /principle?week= (default: this week) · PUT /principle/:monday { index } — a parent picks; this week or later
+    if (req.method === "GET" && path === "/principle") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const q = url.searchParams.get("week");
+      const week = q && DATE_RE.test(q) ? mondayOf(q) : mondayOf(localDate(clock()));
+      return reply(res, 200, { ...(await principleView(week)), can: { pick: isParent(me, await grantsNow()) } });
+    }
+    const prm = path.match(/^\/principle\/(\d{4}-\d{2}-\d{2})$/);
+    if (prm && req.method === "PUT") {
+      if (!me || !isParent(me, await grantsNow())) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
+      const b = json(body);
+      if (mondayOf(prm[1]) !== prm[1] || prm[1] < mondayOf(localDate(clock())) || !Number.isInteger(b?.index) || b.index < 0 || b.index > 7) return reply(res, 400, { error: "bad_principle" });
+      await store.setPrinciplePick(prm[1], b.index, who.email);
+      await emit("principle.picked", null, prm[1]);
+      return reply(res, 200, await principleView(prm[1]));
+    }
+
+    // GET /recognitions?week= — the week's recognitions THIS viewer may see (sender, recipient, recipient's parents).
+    // POST /recognitions { to_id, index, text } — any member to another member; ≤ 200 chars; 5 a day. No counts anywhere.
+    if (path === "/recognitions" && (req.method === "GET" || req.method === "POST")) {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      const today = localDate(clock());
+      if (req.method === "GET") {
+        const q = url.searchParams.get("week");
+        const week = q && DATE_RE.test(q) ? mondayOf(q) : mondayOf(today);
+        const [rows, grants, people] = await Promise.all([store.recognitionsBetween(week, addDays(week, 6)), grantsNow(), store.listPeople()]);
+        const mine = rows.filter((r) => canSeeRecognition(me, r, grants));
+        for (const pid of [...new Set(mine.filter((r) => r.from_id !== me.id && r.to_id !== me.id).map((r) => r.to_id))]) {
+          if (!(await logged(res, { actor: who.email, subject: pid, entity: "recognitions:week", action: "read" }))) return;
+        }
+        const names = nameById(people), versions = await store.kodeksVersions(), cur = versions[0]?.body ?? KODEKS_V1;
+        return reply(res, 200, { week_start: week, recognitions: mine.map((r) => {
+          const k = unwrapDataKey(kek, r.wrapped_key, "recognition", r.id);
+          try { return { id: r.id, from: { id: r.from_id, ...names.get(r.from_id) }, to: { id: r.to_id, ...names.get(r.to_id) }, index: r.idx, principle: cur.principles[r.idx].principle, on_date: r.on_date, text: open(k, r.text_ct, `recognition:${r.id}`).toString("utf8") }; }
+          finally { k.fill(0); }
+        }) });
+      }
+      const b = json(body), msg = text(b?.text, RECOGNITION_MAX);
+      const to = UUID_RE.test(b?.to_id ?? "") ? await store.getPerson(b.to_id) : null;
+      if (!to) return reply(res, 400, { error: "not_a_member" }); // only to a Family OS member — a child cannot reach anyone else
+      if (to.id === me.id || !msg || !Number.isInteger(b?.index) || b.index < 0 || b.index > 7) return reply(res, 400, { error: "bad_recognition" });
+      if ((await store.recognitionsSentOn(me.id, today)) >= RECOGNITIONS_PER_DAY) return reply(res, 429, { error: "five_a_day" });
+      const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "recognition", id);
+      try { await store.addRecognition({ id, from_id: me.id, to_id: to.id, idx: b.index, wrapped_key: wrapped, text_ct: seal(dek, Buffer.from(msg), `recognition:${id}`), on_date: today }, who.email); }
+      finally { dek.fill(0); }
+      await emit("recognition.sent", to.id, id);
+      return reply(res, 201, { id });
+    }
+
     // GET|POST /people/:id/goals — only goals the viewer may see; only the owner creates
     const gom = path.match(/^\/people\/([^/]+)\/goals$/);
     if (gom && (req.method === "GET" || req.method === "POST")) {
@@ -700,15 +800,19 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
           const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id);
           try {
             const cs = checkins.filter((c) => c.goal_id === g.id).slice(0, 8).map((c) => ({ week_start: c.week_start, mood: c.mood, note: c.note_ct ? open(k, c.note_ct, `checkin:${g.id}:${c.week_start}`).toString("utf8") : "" }));
-            return { id: g.id, sphere: g.sphere, visibility: g.visibility, status: g.status, title: open(k, g.title_ct, `goal:${g.id}`).toString("utf8"), checkins: cs, checked_this_week: cs.some((c) => c.week_start === thisWeek) };
+            // WOOP (bus 86): the owner's private plan — never returned to anyone else, whatever the goal's visibility
+            const woop = !other && g.woop_ct ? JSON.parse(open(k, g.woop_ct, `woop:${g.id}`).toString("utf8")) : null;
+            return { id: g.id, sphere: g.sphere, visibility: g.visibility, status: g.status, title: open(k, g.title_ct, `goal:${g.id}`).toString("utf8"), checkins: cs, checked_this_week: cs.some((c) => c.week_start === thisWeek), ...(other ? {} : { woop }) };
           } finally { k.fill(0); }
         }) });
       }
       if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
       const b = json(body), title = text(b?.title, 160), vis = b?.visibility ?? "owner";
-      if (!title || !GOAL_SPHERES.includes(b?.sphere) || !goalVisibilities(owner).includes(vis)) return reply(res, 400, { error: "bad_goal" });
+      const woop = b?.woop === undefined ? null : cleanWoop(b.woop);
+      if (!title || !GOAL_SPHERES.includes(b?.sphere) || !goalVisibilities(owner).includes(vis) || woop === undefined) return reply(res, 400, { error: "bad_goal" });
       const id = randomUUID(), { dek, wrapped } = newDataKey(kek, "goal", id);
-      try { await store.createGoal({ id, person_id: owner.id, sphere: b.sphere, visibility: vis, wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `goal:${id}`) }, who.email); }
+      try { await store.createGoal({ id, person_id: owner.id, sphere: b.sphere, visibility: vis, wrapped_key: wrapped, title_ct: seal(dek, Buffer.from(title), `goal:${id}`),
+        woop_ct: woop ? seal(dek, Buffer.from(JSON.stringify(woop)), `woop:${id}`) : null }, who.email); }
       finally { dek.fill(0); }
       await emit("goal.created", owner.id, id);
       return reply(res, 201, { id });
@@ -722,8 +826,12 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!canWriteGoal(me, owner)) return reply(res, 403, { error: "forbidden", reason: "owner_only" });
       const b = json(body) ?? {};
       if (req.method === "PATCH") {
-        if ((b.status !== undefined && !["active", "done", "archived"].includes(b.status)) || (b.visibility !== undefined && !goalVisibilities(owner).includes(b.visibility)) || (b.status === undefined && b.visibility === undefined)) return reply(res, 400, { error: "bad_goal" });
-        await store.updateGoal(g.id, { status: b.status, visibility: b.visibility });
+        const woop = b.woop === undefined ? undefined : cleanWoop(b.woop);
+        if ((b.status !== undefined && !["active", "done", "archived"].includes(b.status)) || (b.visibility !== undefined && !goalVisibilities(owner).includes(b.visibility)) || (b.woop !== undefined && woop === undefined)
+          || (b.status === undefined && b.visibility === undefined && b.woop === undefined)) return reply(res, 400, { error: "bad_goal" });
+        let woop_ct;
+        if (b.woop !== undefined) { if (woop === null) woop_ct = null; else { const k = unwrapDataKey(kek, g.wrapped_key, "goal", g.id); try { woop_ct = seal(k, Buffer.from(JSON.stringify(woop)), `woop:${g.id}`); } finally { k.fill(0); } } }
+        await store.updateGoal(g.id, { status: b.status, visibility: b.visibility, woop_ct });
         await emit("goal.updated", owner.id, g.id);
         return reply(res, 200, { ok: true });
       }
@@ -1118,6 +1226,8 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/(goals|ics)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/goals\/[^/]+(\/checkins)?$/.test(p)) return p.endsWith("/checkins") ? "/goals/:id/checkins" : "/goals/:id";
   if (/^\/events\/[^/]+$/.test(p)) return "/events/:id";
+  if (p === "/kodeks" || p === "/principle" || p === "/recognitions") return p;
+  if (/^\/principle\/\d{4}-\d{2}-\d{2}$/.test(p)) return "/principle/:week";
   if (/^\/ics\/[^/]+$/.test(p)) return "/ics/:token";
   if (p === "/board" || p === "/my-tasks" || p === "/plan" || p === "/templates" || p === "/sprint" || p === "/sprint/goals" || p === "/tasks/accept-all") return p;
   if (/^\/tasks\/[^/]+\/[a-z_]+$/.test(p)) return "/tasks/:id/" + p.split("/").pop();
@@ -1143,6 +1253,12 @@ export async function ensureCanary(pool, kek) {
   if ((await pool.query("SELECT 1 FROM drill_canary LIMIT 1")).rowCount) return;
   const id = randomUUID(), c = encryptNote(kek, id, CANARY_TEXT);
   await pool.query("INSERT INTO drill_canary (id, wrapped_key, title_ct, body_ct, key_version) VALUES ($1, $2, $3, $4, $5)", [id, c.wrapped_key, c.title_ct, c.body_ct, c.key_version]);
+}
+
+/** Seed the Кодекс once: v1 in the plan §3 wording, ratified by R0 on 18.11.2026 (bus 86, R0 decision 1). */
+export async function ensureKodeks(pool) {
+  await pool.query(`INSERT INTO kodeks_version (version, body, status, approved_on, created_by) VALUES (1, $1, 'approved', $2, 'system:r0-2026-11-18') ON CONFLICT (version) DO NOTHING`,
+    [JSON.stringify(KODEKS_V1), KODEKS_V1_APPROVED_ON]);
 }
 
 /**
@@ -1171,6 +1287,7 @@ async function main() {
   const owner = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
   await owner.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
   await ensureCanary(owner, parseMasterKey(masterKey));
+  await ensureKodeks(owner);
   const pool = await appRolePool(pg, owner, process.env.DATABASE_URL, process.env.FAMILY_OS_APP_DB_PASSWORD);
   await owner.end();
   console.log("[os] requests run as kfo_app (access_log: select+insert only)");

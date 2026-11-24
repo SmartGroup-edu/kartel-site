@@ -26,6 +26,8 @@ const T = {
     phone: "Календарь в телефоне", phoneHint: "Ссылка для календаря телефона: твой распорядок, совет, события семьи и дни рождения. Кто знает ссылку — видит этот календарь, поэтому не пересылай её.",
     make: "Создать ссылку", remake: "Сменить ссылку", off: "Отключить", active: "Ссылка действует с", none: "Ссылки нет.", once: "Скопируй сейчас — второй раз ссылку не покажем:", copy: "Копировать", copied: "Скопировано.",
     saved: "Сохранено.", error: "Не удалось сохранить — попробуй ещё раз.",
+    woop: "План WOOP (необязательно)", woopHint: "Видишь только ты.", woopKeys: { wish: "Мечта", outcome: "Лучший результат", obstacle: "Главное препятствие", plan: "План «если — то»" } as Record<string, string>,
+    woopPlaceholder: { wish: "Чего я хочу", outcome: "Как будет, когда получится", obstacle: "Что во мне может помешать", plan: "Если …, то я …" } as Record<string, string>, woopEdit: "Изменить план", woopSave: "Сохранить план",
   },
   EN: {
     goals: "Goals", noGoals: "No goals yet.", addGoal: "Add a goal", goalTitle: "Goal", sphere: "Area", visibility: "Who can see it", add: "Add",
@@ -38,6 +40,8 @@ const T = {
     phone: "Calendar on your phone", phoneHint: "A link for your phone's calendar: your routines, the council, family events and birthdays. Anyone with the link sees this calendar, so do not forward it.",
     make: "Create a link", remake: "Change the link", off: "Switch off", active: "Link active since", none: "No link.", once: "Copy it now — it will not be shown again:", copy: "Copy", copied: "Copied.",
     saved: "Saved.", error: "Could not save — please try again.",
+    woop: "WOOP plan (optional)", woopHint: "Only you can see it.", woopKeys: { wish: "Wish", outcome: "Best outcome", obstacle: "Main obstacle", plan: "If–then plan" } as Record<string, string>,
+    woopPlaceholder: { wish: "What I want", outcome: "How it will be when it works", obstacle: "What in me may get in the way", plan: "If …, then I …" } as Record<string, string>, woopEdit: "Change the plan", woopSave: "Save the plan",
   },
 } as const;
 type Dict = (typeof T)[Lang];
@@ -59,7 +63,8 @@ export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: st
   const add = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget, f = new FormData(form);
-    const r = await send("POST", `people/${personId}/goals`, { title: String(f.get("title") ?? "").trim(), sphere: f.get("sphere"), visibility: f.get("visibility") });
+    const woop = Object.fromEntries(WOOP.map((k) => [k, String(f.get(`woop-${k}`) ?? "").trim()]).filter(([, v]) => v));
+    const r = await send("POST", `people/${personId}/goals`, { title: String(f.get("title") ?? "").trim(), sphere: f.get("sphere"), visibility: f.get("visibility"), ...(Object.keys(woop).length ? { woop } : {}) });
     setMsg(r?.ok ? t.saved : t.error); if (r?.ok) { form.reset(); router.refresh(); }
   };
   return (
@@ -76,11 +81,43 @@ export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: st
             <label className={`${label} sm:col-span-2`}>{t.goalTitle}<input name="title" required maxLength={160} className={field} /></label>
             <label className={label}>{t.sphere}<select name="sphere" className={field}>{Object.entries(t.spheres).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
             <label className={label}>{t.visibility}<select name="visibility" className={field} defaultValue="owner">{data.can.visibilities.map((v) => <option key={v} value={v}>{t.vis[v]}</option>)}</select></label>
+            <WoopFields t={t} prefix="woop" className="sm:col-span-2" />
             <div className="flex items-center gap-3 sm:col-span-2"><button type="submit" className={primary}>{t.add}</button><span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{msg}</span></div>
           </form>
         </Disclosure>
       )}
     </section>
+  );
+}
+
+const WOOP = ["wish", "outcome", "obstacle", "plan"] as const;
+/** WOOP (bus 86): four optional lines, owner-only (the service never returns them to anyone else). Pillar Рост = золото. */
+function WoopFields({ t, prefix, values = {}, className = "" }: { t: Dict; prefix: string; values?: Record<string, string | undefined>; className?: string }) {
+  return (
+    <fieldset data-woop-form="" className={`grid gap-3 border-l-2 border-[var(--pillar-growth)] pl-3 sm:grid-cols-2 ${className}`}>
+      <legend className="text-[15px] font-medium text-[var(--foreground)]">{t.woop} <span className="font-normal text-[var(--muted)]">· {t.woopHint}</span></legend>
+      {WOOP.map((k) => <label key={k} className={label}>{t.woopKeys[k]}<input name={`${prefix}-${k}`} maxLength={300} defaultValue={values[k] ?? ""} placeholder={t.woopPlaceholder[k]} className={field} /></label>)}
+    </fieldset>
+  );
+}
+function GoalWoop({ t, g, act }: { t: Dict; g: OsGoal; act: (p: Promise<Response | null>) => Promise<void> }) {
+  const [edit, setEdit] = useState(false);
+  const w = g.woop ?? {};
+  const has = WOOP.some((k) => w[k]);
+  const save = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const next = Object.fromEntries(WOOP.map((k) => [k, String(f.get(`w-${g.id}-${k}`) ?? "").trim()]).filter(([, v]) => v));
+    setEdit(false); void act(send("PATCH", `goals/${g.id}`, { woop: Object.keys(next).length ? next : null }));
+  };
+  if (edit) return <form onSubmit={save} className="mt-3 grid gap-3"><WoopFields t={t} prefix={`w-${g.id}`} values={w} /><div><button type="submit" className={primary}>{t.woopSave}</button></div></form>;
+  return (
+    <div data-woop="" className="mt-2 border-l-2 border-[var(--pillar-growth)] pl-3">
+      {has && <dl className="grid gap-x-3 gap-y-1 text-[15px] sm:grid-cols-[11rem_1fr]">
+        {WOOP.filter((k) => w[k]).map((k) => <div key={k} className="contents"><dt className="text-[var(--text-secondary)]">{t.woopKeys[k]}</dt><dd className="text-[var(--foreground)]">{w[k]}</dd></div>)}
+      </dl>}
+      <button type="button" className={`${btn} mt-1`} onClick={() => setEdit(true)}>{has ? t.woopEdit : t.woop}</button>
+    </div>
   );
 }
 
@@ -96,6 +133,7 @@ function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: 
     <li data-goal={g.status} className="py-4">
       <p className="text-[17px] text-[var(--foreground)]">{g.title}</p>
       <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.spheres[g.sphere]} · {t.vis[g.visibility]}{g.status === "done" ? ` · ${t.done}` : ""}{g.checked_this_week ? ` · ${t.checked}` : ""}</p>
+      {write && g.woop !== undefined && <GoalWoop t={t} g={g} act={act} />}
       {g.checkins.length > 0 && (
         <p className="mt-1 text-[14px] text-[var(--text-secondary)]" suppressHydrationWarning>{t.last}: {g.checkins.slice(0, 3).map((c) => `${fmtFamilyDate(c.week_start, lang)} — ${t.moods[c.mood]}${c.note ? ` («${c.note}»)` : ""}`).join("; ")}</p>
       )}

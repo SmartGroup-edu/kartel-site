@@ -5,6 +5,8 @@
  * aggregate — family totals only, never who did or did not do what. Adults keep notes and turn
  * decisions into tasks with an owner and a date; everyone reads; a task is ticked by its owner or an adult.
  */
+import { CouncilPrinciple, RecognitionList, KODEKS_T } from "./FamilyKodeks";
+import type { OsRecognition, OsKodeksPrinciple } from "../lib/family-os";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,7 +55,8 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null; editor?: boolean }) {
+export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, recognitions = null, principles = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null;
+  recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null; editor?: boolean }) {
   const t = T[lang];
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
@@ -79,6 +82,11 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
                 <Link href={`${base}?date=${shift(council.date, 7)}`} aria-label={t.nextAria} className={btn}>{t.next}</Link>
               </nav>
 
+              {/* bus 86: the principle of the week is the first item of the agenda */}
+              {council.principle && principles && <CouncilPrinciple lang={lang} principle={council.principle} canPick={Boolean(council.can.pick_principle)} principles={principles} />}
+              {recognitions && <section aria-labelledby="council-rec-h" data-council-recognitions="" className="mt-8 border-l-2 border-[var(--pillar-kodeks)] pl-4">
+                <RecognitionList lang={lang} items={recognitions} headingId="council-rec-h" heading={KODEKS_T[lang].recCouncil} />
+              </section>}
               <section aria-labelledby="agenda-h" data-agenda-week="" className="mt-10 rounded-lg border border-[var(--border)] px-5 py-4">
                 <h2 id="agenda-h" className="font-serif text-[22px] text-[var(--foreground)]" suppressHydrationWarning>{t.week} {fmtWeekRange(council.agenda.from, council.agenda.to, lang)}</h2>
                 <p className="mt-2 text-[16px] text-[var(--foreground)]">{council.agenda.items.scheduled ? t.items(council.agenda.items.done, council.agenda.items.scheduled) : t.noItems}</p>

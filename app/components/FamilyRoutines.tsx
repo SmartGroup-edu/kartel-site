@@ -6,12 +6,13 @@
  * tick and manage; this component only shows what it was given.
  *
  * No shaming (plan §3.3, §4.1): a miss is never shown — no red, no "missed", no counts of failures.
- * A run of two or more is mentioned quietly; after a gap the row simply starts again.
+ * Бережный счёт (bus 86): «N из M на этой неделе». The streak shows only for an adult who chose it
+ * (the service never sends one for a child). An optional anchor reads «После завтрака → Собрать портфель».
  */
 import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { describeRule, streakText, buildRule, scheduleSummary, WEEKDAYS } from "../lib/family-routines.mjs";
+import { describeRule, streakText, weekText, anchorLabel, ifThenText, buildRule, scheduleSummary, WEEKDAYS } from "../lib/family-routines.mjs";
 import type { OsRoutine } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -25,6 +26,7 @@ const T = {
     time: "Time (optional)", start: "Starts", save: "Add", saving: "Saving…", added: "Added.", needDays: "Choose at least one day.", needN: "Enter a number from 2 to 52.",
     remove: "Remove", confirm: "Remove for good?", cancel: "Keep", removed: "Removed.", all: "All items", none: "No routines or chores yet.",
     weekdayNames: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    anchor: "After what? (optional)", anchorNone: "No anchor", anchorOwn: "In my own words", anchorText: "After…", anchorHint: "e.g. after breakfast",
   },
   RU: {
     routine: "Распорядок", chore: "Дело", rotation: "Дело по очереди", rotationShort: "По очереди", members: "Кто делает по очереди", needMembers: "Выбери хотя бы двоих.", paused: "День без ритма — на сегодня ничего не запланировано.", done: "Сделано", notDone: "Ещё не сделано", saveError: "Не удалось сохранить — попробуй ещё раз.",
@@ -35,9 +37,18 @@ const T = {
     time: "Время (необязательно)", start: "Начать с", save: "Добавить", saving: "Сохраняется…", added: "Добавлено.", needDays: "Выбери хотя бы один день.", needN: "Введи число от 2 до 52.",
     remove: "Убрать", confirm: "Убрать совсем?", cancel: "Оставить", removed: "Убрано.", all: "Все пункты", none: "Пока нет ни распорядка, ни дел.",
     weekdayNames: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    anchor: "После чего? (необязательно)", anchorNone: "Без якоря", anchorOwn: "Своими словами", anchorText: "После…", anchorHint: "Например, после завтрака",
   },
 } as const;
 
+/** The quiet count under a row: the weekly «N из M» (default), or the run for an adult who chose it. */
+const countText = (r: OsRoutine, delta: number, lang: Lang) =>
+  r.streak !== undefined ? streakText(r.streak + delta, lang) : weekText(r.week ? { done: r.week.done + delta, of: r.week.of } : null, lang);
+/** «После завтрака → Собрать портфель» — the anchor in front of the title, when there is one. */
+function Titled({ r, lang }: { r: OsRoutine; lang: Lang }) {
+  const a = anchorLabel(r, lang);
+  return a ? <><span data-anchor="" className="text-[var(--text-secondary)]">{a}</span> <span aria-hidden="true">→</span><span className="sr-only">,</span> {r.title}</> : <>{r.title}</>;
+}
 const kindLabel = (t: (typeof T)[Lang], r: OsRoutine) => (r.kind === "rotation" ? `${t.rotationShort}${r.members ? ` (${r.members})` : ""}` : r.kind === "chore" ? t.chore : t.routine);
 const send = (method: "POST" | "PATCH", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" });
@@ -85,16 +96,16 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
       </div>
       <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {due.map((r) => {
-          const s = streakText(r.streak + (done[r.id] && !r.done_today ? 1 : !done[r.id] && r.done_today ? -1 : 0), lang);
+          const s = countText(r, done[r.id] && !r.done_today ? 1 : !done[r.id] && r.done_today ? -1 : 0, lang);
           return (
             <li key={r.id} data-routine={r.kind} data-done={done[r.id] ? "1" : "0"}>
               <button type="button" role="checkbox" aria-checked={done[r.id]} disabled={!canCheck} onClick={() => toggle(r)}
-                aria-label={[r.title, r.at_time, kindLabel(t, r), s].filter(Boolean).join(", ")}
+                aria-label={[anchorLabel(r, lang), r.title, r.at_time, kindLabel(t, r), s].filter(Boolean).join(", ")}
                 className="flex min-h-14 w-full items-center gap-4 py-3 text-left disabled:cursor-default">
                 <Check checked={done[r.id]} />
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-[17px] ${done[r.id] ? "text-[var(--text-secondary)] line-through decoration-[var(--border)]" : "text-[var(--foreground)]"}`}>{r.title}</span>
-                  <span className="mt-0.5 block text-[14px] text-[var(--muted)]">
+                  <span className={`block text-[17px] ${done[r.id] ? "text-[var(--text-secondary)] line-through decoration-[var(--border)]" : "text-[var(--foreground)]"}`}><Titled r={r} lang={lang} /></span>
+                  <span data-count="" className="mt-0.5 block text-[14px] text-[var(--muted)]">
                     {[r.at_time, kindLabel(t, r), s].filter(Boolean).join(" · ")}
                   </span>
                 </span>
@@ -150,7 +161,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
           {routines.map((r) => (
             <li key={r.id} data-routine-row={r.kind} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] text-[var(--foreground)]">{r.title}</p>
+                <p className="text-[16px] text-[var(--foreground)]"><Titled r={r} lang={lang} /></p>
                 <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>
                   {[kindLabel(t, r), describeRule(r.rrule, lang), r.at_time, r.next[0] ? `${t.nextOn}: ${fmtDay(r.next[0], lang)}` : null].filter(Boolean).join(" · ")}
                 </p>
@@ -170,7 +181,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
   );
 }
 
-export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[] }) {
+export function AddRoutine({ lang, personId, today, routines = [] }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[]; routines?: OsRoutine[] }) {
   const t = T[lang];
   const router = useRouter();
   const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
@@ -180,14 +191,21 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
   const [monthDay, setMonthDay] = useState(String(Number(today.slice(8, 10))));
   const [dtstart, setDtstart] = useState(today);
   const [status, setStatus] = useState("");
+  // «После чего?» (bus 86): another of this person's routines, or free text (≤ 60)
+  const own = routines.filter((r) => r.kind === "routine");
+  const [anchorSel, setAnchorSel] = useState("");
+  const [anchorText, setAnchorText] = useState("");
+  const [title, setTitle] = useState("");
+  const anchorShown = anchorSel === "__text" ? anchorText : anchorSel ? anchorLabel({ anchor_title: own.find((r) => r.id === anchorSel)?.title }, lang) : "";
   const rrule = buildRule({ repeat, days, interval: repeat === "every_n" ? n : weeks, monthDay });
-  const reset = () => { setRepeat("daily"); setN("2"); setWeeks("1"); setDays([]); setDtstart(today); };
+  const reset = () => { setRepeat("daily"); setN("2"); setWeeks("1"); setDays([]); setDtstart(today); setAnchorSel(""); setAnchorText(""); setTitle(""); };
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!rrule) return setStatus(repeat === "weekly" ? t.needDays : t.needN);
     const form = e.currentTarget, f = new FormData(form);
     setStatus(t.saving);
-    const common = { title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null };
+    const anchor = anchorSel === "__text" ? (anchorText.trim() ? { anchor_text: anchorText.trim() } : {}) : anchorSel ? { anchor_routine_id: anchorSel } : {};
+    const common = { title: String(f.get("title") ?? "").trim(), rrule, dtstart: dtstart || today, at_time: f.get("at_time") || null, ...anchor };
     const r = await send("POST", `people/${personId}/routines`, { ...common, kind: "routine" }).catch(() => null);
     if (!r?.ok) return setStatus(t.saveError);
     setStatus(t.added); form.reset(); reset(); router.refresh();
@@ -195,7 +213,16 @@ export function AddRoutine({ lang, personId, today }: { lang: Lang; personId: st
   return (
     <Disclosure summary={t.add} className="mt-8">
       <form onSubmit={submit} className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} className={field} /></label>
+        <label className={`${label} sm:col-span-2`}>{t.title}<input name="title" required maxLength={120} placeholder={t.titleHint} value={title} onChange={(e) => setTitle(e.target.value)} className={field} /></label>
+        <label className={label}>{t.anchor}
+          <select name="anchor" className={field} value={anchorSel} onChange={(e) => setAnchorSel(e.target.value)}>
+            <option value="">{t.anchorNone}</option>
+            {own.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
+            <option value="__text">{t.anchorOwn}</option>
+          </select>
+        </label>
+        {anchorSel === "__text" && <label className={label}>{t.anchorText}<input name="anchor_text" maxLength={60} placeholder={t.anchorHint} value={anchorText} onChange={(e) => setAnchorText(e.target.value)} className={field} /></label>}
+        {ifThenText(anchorShown, title, lang) && <p data-if-then="" aria-live="polite" className="text-[15px] text-[var(--foreground)] sm:col-span-2">{ifThenText(anchorShown, title, lang)}</p>}
         {/* bus 85: one model — a routine is a personal habit; chores and turns are tasks (plan templates on the board) */}
         <p data-chores-moved="" className="text-[15px] text-[var(--text-secondary)] sm:col-span-2">{t.choresMoved} <a href={`/${lang === "EN" ? "en" : "ru"}/family/os/board#tpl-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toTemplates}</a></p>
         <label className={label}>{t.repeat}

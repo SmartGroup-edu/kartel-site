@@ -51,7 +51,7 @@ test("prefs: defaults, validated writes, 7-role matrix", async () => {
   for (const [actor, can] of [[as(E.c), true], [as(E.p1), true], [as(E.g), false], [ADMIN, false]])
     assert.equal((await call("GET", `/people/${P.c}`, { actor })).json.can.prefs, can, `profile can.prefs ${actor}`);
   const d = await call("GET", `/people/${P.c}/prefs`, { actor: as(E.c) });
-  assert.deepEqual(d.json.prefs, { email_on: true, digest_time: "07:00", evening_on: false, evening_time: "20:00", quiet_start: "21:00", quiet_end: "07:00", lang: "ru" });
+  assert.deepEqual(d.json.prefs, { email_on: true, digest_time: "07:00", evening_on: false, evening_time: "20:00", quiet_start: "21:00", quiet_end: "07:00", lang: "ru", count_mode: "week" });
   assert.equal((await call("PUT", `/people/${P.c}/prefs`, { actor: as(E.p1), body: PREFS })).status, 200);
   assert.equal((await call("GET", `/people/${P.c}/prefs`, { actor: as(E.c) })).json.prefs.digest_time, "07:30");
   for (const bad of [{ ...PREFS, digest_time: "06:30" }, { ...PREFS, evening_time: "21:00" }, { ...PREFS, email_on: "yes" }, { ...PREFS, lang: "de" }])
@@ -69,7 +69,9 @@ test("pause («день без ритма»): hides today's items, skips streak 
   let v = await call("GET", `/people/${P.c}/routines`, { actor: as(E.c) });
   assert.equal(v.json.paused_today, true);
   assert.equal(v.json.routines.find((x) => x.id === r).due_today, false, "paused: nothing due");
-  assert.equal(v.json.routines.find((x) => x.id === r).streak, 2, "the run survives the pause");
+  // bus 86: a child sees «N из M на этой неделе» (no streak); paused days drop out of M, nothing is "lost"
+  assert.deepEqual(v.json.routines.find((x) => x.id === r).week, { done: 2, of: 2 }, "Wed 18.11 inside the pause (18–20): Mon + Tue so far; paused and future days are out (bus 95)");
+  assert.ok(!("streak" in v.json.routines.find((x) => x.id === r)), "no streak for a child");
   assert.ok(!v.json.routines.find((x) => x.id === r).next.includes("2026-11-19"), "paused days not in the agenda");
   for (const bad of [{ from_date: "2026-11-17", to_date: "2026-11-18" }, { from_date: TODAY, to_date: "2027-02-01" }, { from_date: "2026-11-20", to_date: TODAY }])
     assert.equal((await call("POST", `/people/${P.c}/pauses`, { actor: as(E.c), body: bad })).json.error, "bad_pause", JSON.stringify(bad));

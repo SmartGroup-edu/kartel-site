@@ -433,3 +433,52 @@ CREATE TABLE IF NOT EXISTS plan_approval (
   at           timestamptz NOT NULL DEFAULT now()
 );
 INSERT INTO rule (id, enabled) VALUES ('board_new_tasks', false), ('plan_ready', false), ('needs_decision', false) ON CONFLICT DO NOTHING;
+
+-- ---- Stage 3d: values without AI (bus 86; plan «Наставник · Кодекс» §3, §6.1; R0 18.11.2026) -------------
+-- Кодекс: versions are append-only; the newest row is the current text. v1 is seeded at start (server.mjs,
+-- ensureKodeks) as approved on 18.11.2026. The text is the family's own agreement — no personal data.
+CREATE TABLE IF NOT EXISTS kodeks_version (
+  version      integer PRIMARY KEY CHECK (version >= 1),
+  body         jsonb NOT NULL,
+  status       text NOT NULL CHECK (status IN ('approved', 'draft')),
+  approved_on  date,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK ((status = 'approved') = (approved_on IS NOT NULL))
+);
+DROP TRIGGER IF EXISTS kodeks_no_update ON kodeks_version;
+CREATE TRIGGER kodeks_no_update BEFORE UPDATE OR DELETE ON kodeks_version FOR EACH ROW EXECUTE FUNCTION append_only();
+
+-- Принцип недели: a parent's pick for a week (Monday). No row = round-robin.
+CREATE TABLE IF NOT EXISTS principle_week (
+  week_start   date PRIMARY KEY CHECK (extract(isodow FROM week_start) = 1),
+  idx          smallint NOT NULL CHECK (idx BETWEEN 0 AND 7),
+  set_by       text NOT NULL,
+  set_at       timestamptz NOT NULL DEFAULT now()
+);
+
+-- Признание: the text is ciphertext under its own data key. No counters anywhere (bus 86 §3).
+CREATE TABLE IF NOT EXISTS recognition (
+  id           uuid PRIMARY KEY,
+  from_id      uuid NOT NULL REFERENCES person(id),
+  to_id        uuid NOT NULL REFERENCES person(id),
+  idx          smallint NOT NULL CHECK (idx BETWEEN 0 AND 7),
+  wrapped_key  text NOT NULL,
+  text_ct      text NOT NULL,
+  on_date      date NOT NULL,
+  created_by   text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK (from_id <> to_id)
+);
+CREATE INDEX IF NOT EXISTS recognition_week ON recognition (on_date);
+CREATE INDEX IF NOT EXISTS recognition_sender_day ON recognition (from_id, on_date);
+
+-- «После чего?» on a routine: free text or another routine of the same person (checked in server.mjs).
+ALTER TABLE routine ADD COLUMN IF NOT EXISTS anchor_text text CHECK (anchor_text IS NULL OR length(anchor_text) BETWEEN 1 AND 60);
+ALTER TABLE routine ADD COLUMN IF NOT EXISTS anchor_routine_id uuid REFERENCES routine(id);
+ALTER TABLE routine DROP CONSTRAINT IF EXISTS routine_one_anchor;
+ALTER TABLE routine ADD CONSTRAINT routine_one_anchor CHECK (anchor_text IS NULL OR anchor_routine_id IS NULL);
+-- WOOP on a goal: one ciphertext (JSON) under the goal's own key; owner-only.
+ALTER TABLE goal ADD COLUMN IF NOT EXISTS woop_ct text;
+-- Бережный счёт: an adult may choose the streak; a child always sees the weekly count (enforced in code).
+ALTER TABLE notification_pref ADD COLUMN IF NOT EXISTS count_mode text NOT NULL DEFAULT 'week' CHECK (count_mode IN ('week', 'streak'));

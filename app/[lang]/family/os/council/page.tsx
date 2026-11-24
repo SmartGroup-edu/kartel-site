@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
-import { getOsState, getCouncil, getSprint } from "@/app/lib/family-os";
+import { getOsState, getCouncil, getSprint, getRecognitions, getKodeks } from "@/app/lib/family-os";
 import FamilyCouncil from "@/app/components/FamilyCouncil";
 
 // Gated like every Family OS page; the service decides who reads and who writes.
@@ -22,6 +22,8 @@ export default async function FamilyCouncilPage({ params, searchParams }: { para
   const [state, council] = await Promise.all([getOsState(session), getCouncil(session, (await searchParams).date)]);
   if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
   // The sprint is the council's own week (Mon–Sun ending on the council Sunday).
-  const sprint = council && state.me ? await getSprint(session, council.date) : null;
-  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} sprint={sprint} editor={familyRole(session.cpifSubjectId) === "editor"} />;
+  // bus 86: the council's week (Mon–Sun ending on its Sunday) — its recognitions, as one list; principle texts for the pick.
+  const [sprint, recs, kodeks] = council && state.me ? await Promise.all([getSprint(session, council.date), getRecognitions(session, council.agenda.from), getKodeks(session)]) : [null, null, null];
+  return <FamilyCouncil lang={lang === "ru" ? "RU" : "EN"} council={council} people={state.people} me={state.me} admin={state.admin} sprint={sprint}
+    recognitions={recs?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }
