@@ -16,12 +16,13 @@ import { sendSignInLink } from "@/app/lib/family-mail";
  *     gone, so response time does not depend on whether the address is a member.
  * Only the server log distinguishes the cases.
  *
- * NOT RATE LIMITED IN CODE — and it cannot be at this architecture (no KV/Redis/DB; in-memory
- * counters do not survive serverless invocations). A Vercel Firewall rule on this path is a
- * PRECONDITION OF GOING LIVE, not a follow-up. See docs/standalone-auth-design.md §5.
+ * Rate limits live outside this function (QA-156 M1): a Vercel Firewall rule per IP on this path, and
+ * kartel-mail-relay caps sign-in letters per address. Here: the site's own Origin only (no cross-site
+ * form can request a link or overwrite a victim's nonce) — refused the same way for every address.
  */
 export async function POST(request: Request): Promise<Response> {
   if (!familyEnv.gateOn()) return new NextResponse("Not found", { status: 404 });
+  if (request.headers.get("origin") !== familyEnv.siteOrigin()) return new NextResponse("Forbidden", { status: 403 });
 
   let email = "";
   let returnToRaw: string | null = null;

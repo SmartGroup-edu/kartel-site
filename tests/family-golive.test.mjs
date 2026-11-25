@@ -6,25 +6,26 @@ import { familySessionCookie, SESSION_COOKIE_PROD, SESSION_COOKIE_DEV } from "..
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 
-test("session cookie: __Secure-kartel_family_session in production, the plain name in dev; no env override", () => {
-  assert.equal(familySessionCookie({ NODE_ENV: "production" }), "__Secure-kartel_family_session");
+test("session cookie (QA-156 L2): __Host-kartel_family_session in production, the plain name in dev; no env override", () => {
+  assert.equal(familySessionCookie({ NODE_ENV: "production" }), "__Host-kartel_family_session");
   assert.equal(familySessionCookie({ NODE_ENV: "development" }), "kartel_family_session");
   assert.equal(familySessionCookie({ NODE_ENV: "production", FAMILY_SESSION_COOKIE: "kartel_family_session" }), SESSION_COOKIE_PROD, "a stale env value can't bring the old name back");
   assert.equal(SESSION_COOKIE_DEV, "kartel_family_session");
   for (const f of ["proxy.ts", "app/lib/family-env.ts", "app/lib/family-auth.ts"]) assert.doesNotMatch(src(f), /process\.env\.FAMILY_SESSION_COOKIE/, `${f} must not read FAMILY_SESSION_COOKIE`);
   const proxy = src("proxy.ts");
-  assert.equal((proxy.match(/familySessionCookie\(\)/g) ?? []).length, 2, "the family gate and the console gate read the same name");
+  assert.ok((proxy.match(/familySessionCookie\(\)/g) ?? []).length >= 2, "the family gate and the dev console gate read the same name");
   assert.match(src("app/lib/family-env.ts"), /sessionCookie: \(\): string => familySessionCookie\(\)/);
 });
 
-test("session cookie: Secure exactly in production (a __Secure- name needs it), Domain kept for the console", () => {
+test("session cookie (QA-156 L2): Secure exactly in production, host-only — no Domain anywhere; the console has its own cookie", () => {
   const auth = src("app/lib/family-auth.ts");
   const set = auth.slice(auth.indexOf("export async function createSession"), auth.indexOf("export async function destroySession"));
   assert.match(set, /secure: process\.env\.NODE_ENV === "production"/);
-  assert.match(set, /domain: process\.env\.FAMILY_COOKIE_DOMAIN \|\| undefined/);
-  assert.match(set, /httpOnly: true/); assert.match(set, /sameSite: "lax"/);
+  assert.match(set, /httpOnly: true/); assert.match(set, /sameSite: "lax"/); assert.match(set, /path: "\/"/);
+  assert.doesNotMatch(auth, /domain:/, "no Domain on any family cookie");
+  for (const f of ["proxy.ts", "app/lib/family-auth.ts", "app/api/family-auth/console/route.ts"]) assert.doesNotMatch(src(f), /FAMILY_COOKIE_DOMAIN/, f);
   const del = auth.slice(auth.indexOf("export async function destroySession"));
-  assert.match(del.slice(0, 400), /secure: process\.env\.NODE_ENV === "production"[\s\S]*domain: process\.env\.FAMILY_COOKIE_DOMAIN/, "sign-out clears the same cookie");
+  assert.match(del.slice(0, 300), /secure: process\.env\.NODE_ENV === "production"[\s\S]*maxAge: 0/, "sign-out clears the same cookie");
 });
 
 test("R1: every Family OS call from the proxy carries the signed `sat`; the register routes too; session_ended ends the site session", () => {

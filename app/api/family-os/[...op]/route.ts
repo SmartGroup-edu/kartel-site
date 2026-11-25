@@ -30,10 +30,13 @@ async function forward(method: string, rawPath: string, who: Who, body: Uint8Arr
   const path = withSat(rawPath, who.session), actor = who.actor;
   const h = await signMediaRequest({ secret: process.env.FAMILY_OS_SECRET!, method, path, actor, body });
   const id = process.env.FAMILY_OS_ACCESS_CLIENT_ID, secret = process.env.FAMILY_OS_ACCESS_CLIENT_SECRET;
-  return fetch(new URL(path, process.env.FAMILY_OS_URL), {
+  const r = await fetch(new URL(path, process.env.FAMILY_OS_URL), {
     method, cache: "no-store", signal: AbortSignal.timeout(20000), body: method === "GET" ? undefined : (body as BodyInit),
     headers: { ...h, ...extra, ...(id && secret ? { "CF-Access-Client-Id": id, "CF-Access-Client-Secret": secret } : {}) },
   });
+  // QA-156 H1: the cut-off now guards every route, reads included — any session_ended also ends the site session.
+  if (r.status === 401 && (await r.clone().json().catch(() => null))?.error === "session_ended") await destroySession();
+  return r;
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ op: string[] }> }) {
@@ -49,7 +52,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   if (path === "/body") { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (path === "/body/export") {
     const r = await forward("GET", path, g);
-    if (!r.ok) return json(r.status === 404 ? 404 : r.status, { error: "not_found" });
+    if (!r.ok) return json(r.status === 404 ? 404 : r.status, r.status === 401 ? await r.json().catch(() => ({})) : { error: "not_found" });
     return new Response(await r.text(), { status: 200, headers: { ...headers, "content-type": "application/json; charset=utf-8", "content-disposition": r.headers.get("content-disposition") ?? "attachment" } });
   }
   if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }

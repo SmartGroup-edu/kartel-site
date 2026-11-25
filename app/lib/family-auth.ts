@@ -82,9 +82,7 @@ export async function createSession(data: {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    // Widen to the registrable domain so one session covers apex + subdomains
-    // (e.g. the gated console.kartel.org.uk). Unset in dev → host-only.
-    domain: process.env.FAMILY_COOKIE_DOMAIN || undefined,
+    // Host-only (QA-156 L2): no Domain, so no other *.kartel.org.uk host ever receives the session.
     expires: expiresAt,
   });
 }
@@ -95,7 +93,6 @@ export async function destroySession(): Promise<void> {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    domain: process.env.FAMILY_COOKIE_DOMAIN || undefined,
     path: "/",
     maxAge: 0,
   });

@@ -18,11 +18,16 @@ export const REG_FAILS_PER_HOUR = 10; // C3
 export const AUTH_FAILS_PER_HOUR = 10; // per credential → refused for the rest of the hour
 export const ALGS = [-8, -7, -257]; // Ed25519, ES256, RS256
 
-/** Feature config from env; null (feature off, fail-closed) unless both are set. */
+/**
+ * Feature config from env; null (feature off, fail-closed) unless both are set. QA-156 L5: in production every origin
+ * must be https — http://localhost only outside production, or on a local QA stand that says so explicitly
+ * (FAMILY_PASSKEY_ALLOW_LOCALHOST=1; never set on app-01).
+ */
 export function pkConfig(env = process.env) {
   const rpID = (env.FAMILY_PASSKEY_RP_ID ?? "").trim();
   const origins = (env.FAMILY_PASSKEY_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!rpID || !origins.length || !origins.every((o) => /^https:\/\/[a-z0-9.-]+$|^http:\/\/localhost(:\d+)?$/.test(o))) return null;
+  const localOk = env.NODE_ENV !== "production" || env.FAMILY_PASSKEY_ALLOW_LOCALHOST === "1";
+  if (!rpID || !origins.length || !origins.every((o) => /^https:\/\/[a-z0-9.-]+$/.test(o) || (localOk && /^http:\/\/localhost(:\d+)?$/.test(o)))) return null;
   return { rpID, origins, rpName: "KARTEL" };
 }
 

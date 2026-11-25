@@ -15,6 +15,6 @@ export function familyRoleOf(subject, owners, editors) {
   return "member";
 }
 
-/** The actor family-media sees: the owner by address; an editor as "editor:<address>" (the service then
- *  turns every write into a proposal). Members never write. */
-export const mediaActorFor = (role, subject) => (role === "editor" ? `editor:${norm(subject)}` : norm(subject));
+/** The actor family-media sees, always with its role (QA-156 L4): "owner:<address>", "editor:<address>" (the
+ *  service then turns every write into a proposal) or "member:<address>" (reads published content only). */
+export const mediaActorFor = (role, subject) => `${role === "owner" || role === "editor" ? role : "member"}:${norm(subject)}`;

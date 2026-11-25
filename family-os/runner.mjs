@@ -67,7 +67,7 @@ for (const s of plan) {
   const outcome = s.skip ?? (s.dry_run ? "dry_run" : "sent");
   const ins = await pool.query("INSERT INTO rule_run (rule_id, key, person_id, family_date, outcome) VALUES ($1, $2, $3, $4, $5) ON CONFLICT DO NOTHING RETURNING 1", [s.rule, s.key, s.person.id, date, outcome]);
   if (!ins.rowCount) continue; // another tick got there first
-  if (outcome !== "sent") { s.skip ? out.skipped++ : out.dry_run++; await event(`notify.${outcome}`, s.person.id, s.rule); continue; }
+  if (outcome !== "sent") { if (s.skip) out.skipped++; else out.dry_run++; await event(`notify.${outcome}`, s.person.id, s.rule); continue; }
   const lang = s.payload.lang === "en" ? "en" : "ru";
   const body = JSON.stringify({ to: s.person.email, kind: s.payload.kind, lang, firstName: s.payload.firstName, date: s.payload.date,
     items: s.payload.items ?? [], docs: s.payload.docs ?? [], notes: s.payload.notes ?? [], link: `${SITE}/${lang}/family/os${s.payload.kind === "plan" || s.payload.kind === "decision" ? "/board" : ""}`,

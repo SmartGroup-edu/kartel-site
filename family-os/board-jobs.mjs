@@ -22,7 +22,7 @@ export async function buildDayPlan(store, kek, date, actor) {
     const id = randomUUID(), tpl = templates.find((x) => x.id === p.template_id);
     const ok = await store.insertTask({ id, plan_date: date, kind: p.kind, origin: p.origin, template_id: p.template_id, assignee_id: p.assignee_id, ...sealTask(kek, id, p.title), due_time: p.due_time,
       when_slot: p.when_slot, estimate_min: p.estimate_min, accountable_id: personOf(tpl?.created_by), needs_review: p.needs_review, state: "proposed" }, actor);
-    ok ? created++ : existing++;
+    if (ok) created++; else existing++;
   }
   return { date, created, existing };
 }

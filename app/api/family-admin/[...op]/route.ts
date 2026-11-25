@@ -1,4 +1,5 @@
-import { familyGateDecision, familyRole, mediaActor } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole, mediaActor, sessionEndedByOwner } from "@/app/lib/family-gate";
+import { destroySession } from "@/app/lib/family-auth";
 import { familyEnv } from "@/app/lib/family-env";
 import { forward, mediaEnabled } from "@/app/lib/family-media";
 import { getOsState } from "@/app/lib/family-os";
@@ -29,6 +30,7 @@ async function guard(req: Request): Promise<Guard | Response> {
   if (!familyEnv.gateOn()) return json(404, { error: "not_found" });
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) return json(401, { error: "unauthorized" });
+  if (await sessionEndedByOwner(session)) { await destroySession(); return json(401, { error: "session_ended" }); } // QA-156 H1
   const role = familyRole(session.cpifSubjectId);
   if (role === "member") return json(403, { error: "forbidden" });
   if (req.method !== "GET" && req.headers.get("origin") !== familyEnv.siteOrigin()) return json(403, { error: "bad_origin" });

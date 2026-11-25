@@ -7,6 +7,8 @@ import type { Lang } from "../components/useLang";
 export interface NavItem {
   label: string;
   href: string;
+  /** Rendered as a POST form button, not a link (sign-out, QA-156 L1). */
+  post?: true;
 }
 
 const PRIMARY = {
@@ -52,7 +54,7 @@ export const primaryNav = (lang: Lang): NavItem[] => build(lang, PRIMARY[lang]);
  *  public home page since R0's decision of 2026-11-14 (/family/crest → 308 to /{lang}). */
 export const familyNav = (lang: Lang): NavItem[] => [
   ...primaryNav(lang),
-  { label: lang === "RU" ? "Выйти" : "Sign out", href: "/api/family-auth/logout" },
+  { label: lang === "RU" ? "Выйти" : "Sign out", href: "/api/family-auth/logout", post: true },
 ];
 export const registryNav = (lang: Lang): NavItem[] => build(lang, REGISTRY_SECTIONS[lang]);
 

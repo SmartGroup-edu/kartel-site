@@ -122,6 +122,31 @@ only).
 - Every read and write of care notes is written to `access_log` **before** any data is returned. If that
   write fails, the request fails with 503 (tested).
 - `access_log` is append-only: triggers block UPDATE, DELETE and TRUNCATE (verified on Postgres).
+- `access_log_action_check` is defined once, at the end of `schema.sql`, with the full list (`store.mjs`
+  `LOG_ACTIONS`). `schema.sql` runs on every start and runner tick, so a second, narrower definition would stop
+  the service once a wider action exists (QA-156 C1). `npm run test:pg` proves the re-apply on a populated table.
+- «Вес и питание» (`/body`): reads, export, delete, every write and switching on/off are logged (QA-156 L11).
+
+## Sessions ended by the owner (QA-156 H1, R0 25.11)
+- «Завершить сеансы» / «Завершить все сеансы» refuse an older session (`sat` < cut-off) on **every** actor route.
+  Outside it: `/healthz`, the ICS feed (its token is the credential), passkey sign-in and the site's sign-in note.
+- Ending sessions also revokes the calendar links (that person's, or everyone's).
+- The site checks the same cut-off on every family page (edge gate), family photos and the family editor API.
+
+## «Вес и питание» (Stage 3e-2, QA-156 M2/M3)
+- Open only to an adult whose birth date says 18+, or — with no birth date — after the owner's one-time
+  «взрослый» confirmation (`PATCH /people/:id {adult_confirmed}`, owner only; `person.adult_confirmed_at`).
+- Crypto-shredding: one key per person in `body_key` (wrapped by the master key); every row's data key is wrapped
+  by it (`pk1:`). «Удалить все записи» deletes the key with the rows in one transaction. Legacy rows are re-wrapped
+  on start (`body-keys.mjs`, idempotent; `rewrapBodyRows(…, "down")` reverses it).
+- **Backup retention:** deleted `/body` data stays in the nightly backups until they expire — **30 days** (local
+  `find -mtime +30 -delete` in `backup.sh`; the Storage Box copy mirrors it with `rsync --delete`). Restoring one
+  needs R0's age identity and the master key. After 30 days nothing of it can be decrypted anywhere.
+
+## Passkeys
+- `FAMILY_PASSKEY_ORIGINS` must be https in production (QA-156 L5). A local QA stand that needs
+  `http://localhost` sets `FAMILY_PASSKEY_ALLOW_LOCALHOST=1` — never on app-01.
+- One client (the site's HMAC of the IP) gets at most 20 sign-in challenges per 10 minutes (QA-156 M5).
 
 ## Deploy (app-01; standing R0 permission for KARTEL infra, 2026-11-16) — NOT before kartel-qa passes
 1. `/opt/kartel-family-os`: copy the files from `main` and compare sha256.

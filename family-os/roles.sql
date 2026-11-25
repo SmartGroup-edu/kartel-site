@@ -51,3 +51,5 @@ GRANT SELECT, INSERT, UPDATE (wrapped_key, text_ct), DELETE ON evening_answer TO
 GRANT SELECT, INSERT, UPDATE (body_on), DELETE ON body_pref TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (wrapped_key, value_ct), DELETE ON body_log TO kfo_app;
 GRANT SELECT, INSERT, UPDATE (wrapped_key, goal_ct), DELETE ON body_goal TO kfo_app;
+-- QA-156 M3: the person key is created once and deleted with the data; never changed by the app.
+GRANT SELECT, INSERT, DELETE ON body_key TO kfo_app;

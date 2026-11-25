@@ -112,14 +112,16 @@ export const canTickTask = (me, task) => Boolean(me) && (me.id === task.owner_id
 
 // Goals (Floor №8): only the owner creates or changes a goal — a child's goals are exactly what the
 // child entered; nobody writes goals for someone else. Visibility is the owner's choice:
-//   "owner" (default) · "guardians" (a child's goals to its guardians) · "family" (every member).
+//   "owner" (default) · "guardians" — «Я и родители»: the child's PARENTS only (QA-156 H2, R0 25.11; a relative's
+//   grant, whatever its scopes, does not open them) · "family" (every member).
 export const GOAL_SPHERES = ["health", "learning", "character", "finance", "contribution", "joy"];
 export const goalVisibilities = (owner) => (owner.kind === "child" ? ["owner", "guardians", "family"] : ["owner", "family"]);
 export function canReadGoal(me, goal, owner, grants) {
   if (!me || !owner) return false;
   if (me.id === owner.id) return true;
   if (goal.visibility === "family") return true;
-  return goal.visibility === "guardians" && owner.kind === "child" && guardianOf(me, owner, grants, null);
+  return goal.visibility === "guardians" && owner.kind === "child"
+    && grants.some((g) => !g.revoked_at && g.relation === "parent" && g.guardian_id === me.id && g.child_id === owner.id);
 }
 export const canWriteGoal = (me, owner) => Boolean(me && owner && me.id === owner.id);
 

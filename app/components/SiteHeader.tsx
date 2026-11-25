@@ -117,7 +117,11 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
 
           {/* Desktop nav */}
           <nav aria-label={lang === "RU" ? "Основная навигация" : "Main navigation"} className="hidden items-center gap-5 text-[15px] text-[var(--text-nav)] md:flex lg:gap-8">
-            {items.map((item) => (
+            {items.map((item) => item.post ? (
+              <form key={item.href} method="post" action={item.href} className="contents">
+                <button type="submit" className="nav-link rounded-sm py-1 transition-colors hover:text-[var(--accent)]">{item.label}</button>
+              </form>
+            ) : (
               <a
                 key={item.href}
                 href={item.href}
@@ -175,7 +179,11 @@ export default function SiteHeader({ lang, toggleLang, navItems, subNav, subNavL
           aria-label={lang === "RU" ? "Меню" : "Menu"}
         >
           <nav aria-label={lang === "RU" ? "Мобильная навигация" : "Mobile navigation"} className={`mx-auto flex ${maxWidth} flex-col px-4 py-2 text-[17px] text-[var(--text-nav)]`}>
-            {items.map((item) => (
+            {items.map((item) => item.post ? (
+              <form key={item.href} method="post" action={item.href} className="contents">
+                <button type="submit" role="menuitem" className="flex min-h-12 items-center border-l-2 border-transparent pl-3 text-left transition-colors hover:text-[var(--accent)]">{item.label}</button>
+              </form>
+            ) : (
               <a
                 key={item.href}
                 href={item.href}

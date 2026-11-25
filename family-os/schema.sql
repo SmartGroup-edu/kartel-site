@@ -625,6 +625,17 @@ CREATE TABLE IF NOT EXISTS body_goal (
   wrapped_key  text NOT NULL,
   goal_ct      text NOT NULL
 );
+-- QA-156 M3: one /body key per person (wrapped by the master key); row data keys are wrapped by it ("pk1:").
+-- «Удалить все записи» deletes it with the rows — crypto-shredding (family-os/body-keys.mjs).
+CREATE TABLE IF NOT EXISTS body_key (
+  person_id    uuid PRIMARY KEY REFERENCES person(id),
+  wrapped_key  text NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+
+-- QA-156 M2: «Вес и питание» needs a birth date saying 18+, or the owner's one-time confirmation of adulthood.
+ALTER TABLE person ADD COLUMN IF NOT EXISTS adult_confirmed_at timestamptz;
+
 -- 3e-2: the person's own export and delete-all are logged too. The only definition of this CHECK:
 -- schema.sql runs on every start, so it must always carry the full list (store.mjs LOG_ACTIONS).
 ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;

@@ -23,13 +23,15 @@ const VARIANT_RE = new RegExp(`^(${WIDTHS.join("|")})\\.(${FORMATS.join("|")})$`
 const TYPES = { webp: "image/webp", avif: "image/avif" };
 const EMAIL = /^[^\s@:]+@[^\s@]+$/;
 /**
- * The signed actor says who is asking and in which role (bus 87): "<email>" is the owner (FAMILY_ADMIN_EMAILS
- * on the site), "editor:<email>" an editor whose every change waits for the owner. Only kartel-site holds the
- * signing secret, so the role cannot be forged by a browser. Reads by family viewers carry their email too.
+ * The signed actor says who is asking and in which role (bus 87, prefixed by QA-156 L4): "owner:<email>" is the
+ * owner (FAMILY_ADMIN_EMAILS on the site), "editor:<email>" an editor whose every change waits for the owner,
+ * "member:<email>" a family viewer. Only kartel-site holds the signing secret, so the role cannot be forged by a
+ * browser. A bare "<email>" (an older site build) is a viewer, never the owner — least privilege by default.
  */
 export function parseActor(raw = "") {
-  if (raw.startsWith("editor:")) { const email = raw.slice(7); return EMAIL.test(email) ? { role: "editor", email } : null; }
-  return EMAIL.test(raw) ? { role: "owner", email: raw } : raw === "" ? { role: "viewer", email: "" } : null;
+  const m = raw.match(/^(owner|editor|member):(.*)$/);
+  if (m) return EMAIL.test(m[2]) ? { role: m[1] === "member" ? "viewer" : m[1], email: m[2] } : null;
+  return EMAIL.test(raw) ? { role: "viewer", email: raw } : raw === "" ? { role: "viewer", email: "" } : null;
 }
 
 export function sign(secret, ts, nonce, method, path, actor, bodySha) {
@@ -92,7 +94,9 @@ export function createApp({ store, mediaDir, secret }) {
     const who = parseActor(auth.actor);
     const writes = req.method !== "GET";
     if (!who || (writes && !who.email)) return reply(res, 403, { error: "actor_required" });
-    const actor = who.email, editor = who.role === "editor";
+    const actor = who.email, editor = who.role === "editor", staff = who.role === "owner" || editor;
+    // QA-156 L4: viewers only ever read published content and the files it uses — whatever scope a caller names.
+    if (writes && !staff) return reply(res, 403, { error: "forbidden" });
     if (writes && !allow(`w:${actor}`, isUpload ? 120 : 600, 3600_000)) return reply(res, 429, { error: "rate_limited" });
     // Reads are limited per viewer too, so one session cannot exhaust the shared budget.
     if (!writes && actor && !allow(`r:${actor}`, 3000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
@@ -104,6 +108,7 @@ export function createApp({ store, mediaDir, secret }) {
       // dims: [width, height] per referenced file, so pages can lay photos out before they load.
       const dims = (...docs) => store.mediaDims([...new Set(docs.flatMap((d) => [...referencedMedia(d)]))]);
       if (state === "draft") {
+        if (!staff) return reply(res, 403, { error: "forbidden" });
         const content = await store.getDraft(), published = await store.getPublished();
         if (editor) {
           // The editor works on the draft with her own open proposals laid over it.
@@ -120,7 +125,8 @@ export function createApp({ store, mediaDir, secret }) {
     // The owner's own paths. An editor never writes the draft, publishes, undoes or reads the audit (who did what).
     const ownerOnly = (req.method === "PUT" && url.pathname.startsWith("/draft/")) || (req.method === "POST" && ["/undo", "/publish"].includes(url.pathname))
       || url.pathname === "/audit" || /^\/revisions\/([^/]+\/(approve|reject)|approve-all)$/.test(url.pathname) || (req.method === "GET" && url.pathname === "/revisions" && url.searchParams.get("scope") === "pending");
-    if (editor && ownerOnly) return reply(res, 403, { error: "owner_only" });
+    if (ownerOnly && who.role !== "owner") return reply(res, 403, { error: "owner_only" });
+    if (!staff && !(req.method === "GET" && (url.pathname === "/content" || url.pathname.startsWith("/media/")))) return reply(res, 403, { error: "forbidden" });
 
     // POST /revisions/:kind/:key — an editor proposes a key's new body (a later save updates the same proposal)
     const pr = url.pathname.match(/^\/revisions\/(person|event)\/([^/]+)$/);
@@ -139,7 +145,7 @@ export function createApp({ store, mediaDir, secret }) {
     // GET /revisions?scope=mine (editor: her own, every state) | scope=pending (owner: everything waiting)
     if (req.method === "GET" && url.pathname === "/revisions") {
       const scope = url.searchParams.get("scope");
-      if (scope === "mine" && editor) return reply(res, 200, { revisions: (await store.revisions({ author: actor, limit: 50 })).map(({ author, decided_by, ...r }) => r) });
+      if (scope === "mine" && editor) return reply(res, 200, { revisions: (await store.revisions({ author: actor, limit: 50 })).map((row) => { const r = { ...row }; delete r.author; delete r.decided_by; return r; }) });
       if (scope === "pending" && !editor) {
         const rows = (await store.revisions({ state: "pending" })).reverse(), draft = await store.getDraft();
         const cur = (key) => { const [k, id] = key.split(":"); return (k === "person" ? draft.persons : draft.events)[id] ?? null; };
@@ -211,7 +217,7 @@ export function createApp({ store, mediaDir, secret }) {
     const mm = url.pathname.match(/^\/media\/([^/]+)\/([^/]+)$/);
     if (req.method === "GET" && mm) {
       if (!UUID_RE.test(mm[1]) || !VARIANT_RE.test(mm[2])) return reply(res, 404, { error: "not_found" });
-      const scope = url.searchParams.get("scope");
+      const scope = staff ? url.searchParams.get("scope") : "published";
       if (scope === "admin" && editor) {
         // An editor previews published/approved files and her own hidden uploads only.
         const info = await store.mediaInfo(mm[1]);

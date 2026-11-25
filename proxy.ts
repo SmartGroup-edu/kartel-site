@@ -4,7 +4,36 @@ import { isViewerApproved } from "@/app/lib/family-access";
 import { consoleRedirectTarget, CONSOLE_HOST } from "@/app/lib/console-host.mjs";
 import { familyRoleOf } from "@/app/lib/family-roles.mjs";
 import { routeClass } from "@/app/lib/family-ref.mjs";
-import { familySessionCookie } from "@/app/lib/family-cookie.mjs";
+import { familySessionCookie, consoleSessionCookie } from "@/app/lib/family-cookie.mjs";
+import { osSessionState } from "@/app/lib/family-os-session.mjs";
+import { verifyConsoleToken, consoleAdmins } from "@/app/lib/console-auth.mjs";
+import { ENDED_PARAM } from "@/app/lib/family-ended";
+
+const list = (v?: string) => (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+/**
+ * A refusal answers with the family not-found PAGE and a real 404 (QA-156 M6): the request is rewritten to a path no
+ * route matches, so nothing streams first and the status cannot fall back to 200 (the L7 «Кодекс»/«Неделя» case).
+ * The family layout and its reference code come from app/[lang]/family/[...missing]/page.tsx.
+ */
+function familyNotFound(request: NextRequest, lang: string, pathname: string) {
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-kartel-locale", lang);
+  forwarded.set("x-family-route", routeClass(pathname));
+  return NextResponse.rewrite(new URL(`/${lang}/family/not-found/page`, request.url), { request: { headers: forwarded }, status: 404 });
+}
+
+/** «Завершить сеансы» reached the site (QA-156 H1): clear the cookie and say so calmly on the sign-in page. */
+function sessionEnded(request: NextRequest, lang: string, pathname: string) {
+  const res = NextResponse.redirect(new URL(`/${lang}/family/signin?${ENDED_PARAM}&returnTo=${encodeURIComponent(pathname)}`, request.url));
+  res.cookies.set(familySessionCookie(), "", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 0 });
+  return res;
+}
+
+// Family OS sections that only exist for members: the owner who is not a member gets no nav item and a 404 (QA-156 L7).
+const MEMBER_ONLY = /^\/(en|ru)\/family\/os\/(board|council|calendar|kodeks|week)(\/|$)/;
+// Every family page there is. Anything else under /family is answered here with the 404 page (QA-156 L7).
+const FAMILY_ROUTES = /^\/(en|ru)\/family(\/admin|\/os(\/(access|board|council|calendar|kodeks|week|people(\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?))?)?\/?$/;
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -27,38 +56,40 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
   const cookieName = familySessionCookie();
   const token = request.cookies.get(cookieName)?.value;
   if (!token) return NextResponse.redirect(signin);
+  let sub = "", email = "", iat = 0;
   try {
     const secret = new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? "");
     const { payload } = await jwtVerify(token, secret);
-    const sub = typeof payload.sub === "string" ? payload.sub : "";
-    const email = typeof payload.email === "string" ? payload.email : "";
-    // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
-    // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
-    if (sub && (await isViewerApproved(sub, email))) {
-      // The family editor is for the owner and editors only (bus 87: FAMILY_EDITOR_EMAILS — their changes
-      // wait for the owner's approval). Refused here, at the edge, with a real 404: a page-level
-      // notFound() in a streamed dynamic render still answers 200 (seen 2026-11-16).
-      if (/^\/(en|ru)\/family\/admin(\/|$)/.test(pathname)) {
-        const list = (v?: string) => (v ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-        if (familyRoleOf(sub, list(process.env.FAMILY_ADMIN_EMAILS), list(process.env.FAMILY_EDITOR_EMAILS)) === "member") return new NextResponse("Not found", { status: 404 });
-      }
-      // Family OS «Доступы» (grants, emails): the owner only — never an editor or a member (bus 87).
-      if (/^\/(en|ru)\/family\/os\/access(\/|$)/.test(pathname)) {
-        const owners = (process.env.FAMILY_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-        if (!owners.includes(sub.toLowerCase())) return new NextResponse("Not found", { status: 404 });
-      }
-      // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
-      // (no ids) so it can render in the right language and log its reference code. Always overwritten,
-      // so a client cannot inject either header.
-      const forwarded = new Headers(request.headers);
-      forwarded.set("x-kartel-locale", lang);
-      forwarded.set("x-family-route", routeClass(pathname));
-      return NextResponse.next({ request: { headers: forwarded } });
-    }
-    return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url)); // signed-in, not approved
+    sub = typeof payload.sub === "string" ? payload.sub : "";
+    email = typeof payload.email === "string" ? payload.email : "";
+    iat = typeof payload.iat === "number" ? payload.iat : 0;
   } catch {
     return NextResponse.redirect(signin); // invalid/expired session → re-auth
   }
+  // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
+  // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
+  if (!sub || !(await isViewerApproved(sub, email))) return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url));
+  const owner = list(process.env.FAMILY_ADMIN_EMAILS).includes(sub.toLowerCase());
+  // QA-156 H1: a session older than the owner's «Завершить сеансы» cut-off ends here, on every family page.
+  const os = await osSessionState({ email: email || sub, admin: owner, iat });
+  if (os.state === "ended") return sessionEnded(request, lang, pathname);
+  if (!FAMILY_ROUTES.test(pathname)) return familyNotFound(request, lang, pathname);
+  // The family editor is for the owner and editors only (bus 87: FAMILY_EDITOR_EMAILS — their changes wait for
+  // the owner's approval). Refused here, at the edge, with a real 404: a page-level notFound() in a streamed
+  // dynamic render still answers 200 (seen 2026-11-16).
+  if (/^\/(en|ru)\/family\/admin(\/|$)/.test(pathname) && familyRoleOf(sub, list(process.env.FAMILY_ADMIN_EMAILS), list(process.env.FAMILY_EDITOR_EMAILS)) === "member") return familyNotFound(request, lang, pathname);
+  // Family OS «Доступы» (grants, emails): the owner only — never an editor or a member (bus 87).
+  if (/^\/(en|ru)\/family\/os\/access(\/|$)/.test(pathname) && !owner) return familyNotFound(request, lang, pathname);
+  // The owner who is not a member has no board, council, calendar, Кодекс or week (QA-156 L7). Only when the
+  // service answered: an outage leaves the page to say «не отвечает».
+  if (MEMBER_ONLY.test(pathname) && owner && os.state === "ok" && !os.member) return familyNotFound(request, lang, pathname);
+  // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
+  // (no ids) so it can render in the right language and log its reference code. Always overwritten,
+  // so a client cannot inject either header.
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-kartel-locale", lang);
+  forwarded.set("x-family-route", routeClass(pathname));
+  return NextResponse.next({ request: { headers: forwarded } });
 }
 
 function detectLocale(request: NextRequest): Locale {
@@ -92,8 +123,8 @@ export async function proxy(request: NextRequest) {
 
   // Ecosystem Operations Console — gated (Family-admin only), at /console and on the
   // console.kartel.org.uk subdomain. Contains internal infra/governance detail → never public.
-  // Sign-in runs on the apex (the link nonce cookie stays same-host); the session cookie is
-  // domain-wide (FAMILY_COOKIE_DOMAIN=.kartel.org.uk) so the subdomain sees it after sign-in.
+  // Sign-in runs on the apex (the link nonce cookie stays same-host). The family session is host-only
+  // (QA-156 L2), so the console host gets its own cookie through the apex hand-off.
   //
   // Admins = FAMILY_ADMIN_EMAILS (the session subject is the lowercased email). Without it,
   // /console closes to everyone. Must stay in step with familyEnv.adminEmails().
@@ -102,28 +133,33 @@ export async function proxy(request: NextRequest) {
   const toConsoleHost = consoleRedirectTarget(host, pathname, request.nextUrl.search);
   if (toConsoleHost) return NextResponse.redirect(toConsoleHost, 308);
   const onConsoleHost = host === CONSOLE_HOST;
-  if (onConsoleHost || pathname === "/console" || pathname.startsWith("/console/")) {
+  if (onConsoleHost) {
+    // QA-156 L2: the family session is host-only, so the console host reads its own cookie, minted from the
+    // owner's apex session by the hand-off (app/api/family-auth/console*). Ended sessions end the console too.
+    const c = await verifyConsoleToken(request.cookies.get(consoleSessionCookie())?.value, "console");
+    const ok = !!c && consoleAdmins().includes(c.email) && (await osSessionState({ email: c.email, admin: true, iat: c.sat })).state !== "ended";
+    if (!ok) return noindex(NextResponse.redirect(new URL("https://kartel.org.uk/api/family-auth/console-handoff"), 303));
+    if (pathname === "/" || pathname === "") {
+      const u = request.nextUrl.clone();
+      u.pathname = "/console";
+      return noindex(NextResponse.rewrite(u));
+    }
+    return noindex(NextResponse.next());
+  }
+  if (pathname === "/console" || pathname.startsWith("/console/")) {
+    // Local dev only (any other host was sent to the console host above): the family session, as before.
     const token = request.cookies.get(familySessionCookie())?.value;
     let admin = false;
     if (token) {
       try {
         const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.FAMILY_SESSION_SECRET ?? ""));
         const sub = typeof payload.sub === "string" ? payload.sub : "";
-        const admins = (process.env.FAMILY_ADMIN_EMAILS ?? "")
-          .split(",")
-          .map((s) => s.trim().toLowerCase())
-          .filter(Boolean);
-        admin = !!sub && admins.includes(sub.toLowerCase());
+        admin = !!sub && list(process.env.FAMILY_ADMIN_EMAILS).includes(sub.toLowerCase());
       } catch {
         admin = false;
       }
     }
     if (!admin) return noindex(NextResponse.redirect(new URL("https://kartel.org.uk/en/family/signin?returnTo=%2Fconsole")));
-    if (onConsoleHost && (pathname === "/" || pathname === "")) {
-      const u = request.nextUrl.clone();
-      u.pathname = "/console";
-      return noindex(NextResponse.rewrite(u));
-    }
     return noindex(NextResponse.next());
   }
 

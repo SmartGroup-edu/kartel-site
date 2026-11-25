@@ -13,7 +13,7 @@ import { ownerDue, editorDigests, quiet } from "./review.mjs";
 import { signMediaRequest } from "../app/lib/media-signature.mjs";
 
 const SECRET = "media-test-secret-at-least-32-characters";
-const OWNER = "owner@example.test", ED = "editor:editor@example.test", ED2 = "editor:editor2@example.test", VIEWER = "member@example.test";
+const OWNER = "owner:owner@example.test", ED = "editor:editor@example.test", ED2 = "editor:editor2@example.test", VIEWER = "member:member@example.test";
 let server, base, dir, store;
 async function call(method, path, { body = "", actor = OWNER } = {}) {
   const bytes = typeof body === "string" ? new TextEncoder().encode(body) : body;
@@ -38,11 +38,21 @@ before(async () => {
 });
 after(async () => { server.close(); await rm(dir, { recursive: true, force: true }); });
 
-test("actor roles: «editor:» prefix is an editor; a bare email the owner; anything else refused", () => {
+test("actor roles (QA-156 L4): owner:, editor: and member: prefixes; a bare email is only a viewer; anything else refused", async () => {
   assert.deepEqual(parseActor("editor:e@example.test"), { role: "editor", email: "e@example.test" });
-  assert.deepEqual(parseActor("o@example.test"), { role: "owner", email: "o@example.test" });
+  assert.deepEqual(parseActor("owner:o@example.test"), { role: "owner", email: "o@example.test" });
+  assert.deepEqual(parseActor("member:m@example.test"), { role: "viewer", email: "m@example.test" });
+  assert.deepEqual(parseActor("o@example.test"), { role: "viewer", email: "o@example.test" }, "never the owner without the prefix");
   assert.equal(parseActor("editor:not-an-email"), null);
-  assert.equal(parseActor("owner:o@example.test"), null, "no other role prefixes");
+  assert.equal(parseActor("admin:o@example.test"), null, "no other role prefixes");
+  // A viewer (bare or member:) cannot write, read the draft, or ask for unpublished files, whatever scope it names.
+  for (const actor of ["o@example.test", VIEWER]) {
+    assert.equal((await call("GET", "/content?state=draft", { actor })).status, 403, actor);
+    assert.equal((await call("POST", "/publish", { actor })).status, 403, actor);
+    assert.equal((await call("GET", "/audit", { actor })).status, 403, actor);
+    assert.equal((await call("GET", "/revisions?scope=pending", { actor })).status, 403, actor);
+    assert.equal((await call("GET", "/content?state=published", { actor })).status, 200, actor);
+  }
 });
 
 test("an editor cannot publish, undo, write the draft, read the audit, see or decide the queue", async () => {
@@ -136,7 +146,7 @@ test("notices: owner at most once per 2 h, only for new changes, never 21:00–0
 });
 
 test("owner addresses for notices come only from owner actions; the queue counts what is new", async () => {
-  assert.deepEqual(await store.ownerEmails(), [OWNER]);
+  assert.deepEqual(await store.ownerEmails(), ["owner@example.test"]);
   const r = (await call("POST", "/revisions/event/e5", { body: JSON.stringify({ storyEN: "Five" }), actor: ED })).json.id;
   const t0 = new Date(Date.now() - 60_000).toISOString();
   assert.deepEqual(await store.pendingStats(t0), { pending: 1, fresh: 1 });

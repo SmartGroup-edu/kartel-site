@@ -49,6 +49,12 @@ export function pgStore(pool) {
       if (r.rowCount) await audit(actor, "person.birth_date", `person:${id}`);
       return r.rowCount === 1;
     },
+    // QA-156 M2: the owner's one-time «взрослый, 18+» for a person without a birth date (true sets, false clears).
+    async setAdultConfirmed(id, on, actor) {
+      const r = await q("UPDATE person SET adult_confirmed_at = CASE WHEN $2 THEN coalesce(adult_confirmed_at, now()) END WHERE id = $1", [id, on]);
+      if (r.rowCount) await audit(actor, on ? "person.adult_confirm" : "person.adult_unconfirm", `person:${id}`);
+      return r.rowCount === 1;
+    },
     async createDocument(d, actor) {
       await q(`INSERT INTO document (id, person_id, archive, type, country, issue_date, expiry_date, number_hint, wrapped_key, fields_ct, number_ct, pcode_ct, created_by)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
@@ -246,7 +252,21 @@ export function pgStore(pool) {
     async deleteBodyLog(personId, date) { await q("DELETE FROM body_log WHERE person_id = $1 AND on_date = $2", [personId, date]); },
     async bodyGoal(personId) { return (await q("SELECT wrapped_key, goal_ct FROM body_goal WHERE person_id = $1", [personId])).rows[0] ?? null; },
     async setBodyGoal(personId, wrapped, ct) { await q("INSERT INTO body_goal (person_id, wrapped_key, goal_ct) VALUES ($1, $2, $3) ON CONFLICT (person_id) DO UPDATE SET wrapped_key = $2, goal_ct = $3", [personId, wrapped, ct]); },
-    async deleteBody(personId) { await q("DELETE FROM body_log WHERE person_id = $1", [personId]); await q("DELETE FROM body_goal WHERE person_id = $1", [personId]); await q("DELETE FROM body_pref WHERE person_id = $1", [personId]); },
+    // QA-156 M3: the person's /body key (wrapped by the master key). Created once; ON CONFLICT keeps the first.
+    async bodyKey(personId) { return (await q("SELECT wrapped_key FROM body_key WHERE person_id = $1", [personId])).rows[0]?.wrapped_key ?? null; },
+    async createBodyKey(personId, wrapped) {
+      await q("INSERT INTO body_key (person_id, wrapped_key) VALUES ($1, $2) ON CONFLICT (person_id) DO NOTHING", [personId, wrapped]);
+      return this.bodyKey(personId);
+    },
+    // «Удалить все записи»: the key goes with the rows, in one transaction (crypto-shredding, QA-156 M3).
+    async deleteBody(personId) {
+      const c = await pool.connect();
+      try {
+        await c.query("BEGIN");
+        for (const t of ["body_key", "body_log", "body_goal", "body_pref"]) await c.query(`DELETE FROM ${t} WHERE person_id = $1`, [personId]);
+        await c.query("COMMIT");
+      } catch (e) { await c.query("ROLLBACK"); throw e; } finally { c.release(); }
+    },
     // ---- Stage 3e-1 «Здоровье-лайт»
     async healthPrefs() { return (await q("SELECT person_id, ticks_on, evening_q_on FROM health_pref")).rows; },
     async setHealthPref(personId, p) {
@@ -321,6 +341,11 @@ export function pgStore(pool) {
       if (r.rowCount) await audit(actor, "ics.revoke", `person:${personId}`);
       return r.rowCount === 1;
     },
+    async revokeAllIcs(actor) {
+      const r = await q("UPDATE ics_token SET revoked_at = now() WHERE revoked_at IS NULL");
+      if (r.rowCount) await audit(actor, "ics.revoke", "family:*");
+      return r.rowCount;
+    },
     async personByIcs(hash) { return (await q("SELECT p.* FROM ics_token t JOIN person p ON p.id = t.person_id WHERE t.token_hash = $1 AND t.revoked_at IS NULL", [hash])).rows[0] ?? null; },
     // ---- Stage 3c: board
     // ---- bus 85: council decisions are tasks; legacy chores/rotations/council_task rows migrate to the task model
@@ -383,7 +408,7 @@ export const LOG_ACTIONS = ["read", "write", "reveal", "copy", "export", "delete
 export function memoryStore() {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
-  const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map();
+  const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map(), bkeys = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => new Date().toISOString();
@@ -409,6 +434,7 @@ export function memoryStore() {
     async accessLog() { return [...log].reverse(); },
     // ---- Stage 2a
     async setBirthDate(id, date) { const p = people.get(id); if (!p) return false; p.birth_date = date; return true; },
+    async setAdultConfirmed(id, on) { const p = people.get(id); if (!p) return false; p.adult_confirmed_at = on ? (p.adult_confirmed_at ?? now()) : null; return true; },
     async createDocument(d, actor) { docs.set(d.id, { ...d, created_by: actor, created_at: now() }); },
     async getDocument(id) { return docs.get(id) ?? null; },
     async listDocuments(personId) { return [...docs.values()].filter((d) => d.person_id === personId && !d.archive); },
@@ -497,7 +523,9 @@ export function memoryStore() {
     async deleteBodyLog(personId, date) { blogs.delete(`${personId}|${date}`); },
     async bodyGoal(personId) { return bgoals.get(personId) ?? null; },
     async setBodyGoal(personId, wrapped, ct) { bgoals.set(personId, { wrapped_key: wrapped, goal_ct: ct }); },
-    async deleteBody(personId) { for (const k of [...blogs.keys()]) if (k.startsWith(`${personId}|`)) blogs.delete(k); bgoals.delete(personId); bprefs.delete(personId); },
+    async bodyKey(personId) { return bkeys.get(personId) ?? null; },
+    async createBodyKey(personId, wrapped) { if (!bkeys.has(personId)) bkeys.set(personId, wrapped); return bkeys.get(personId); },
+    async deleteBody(personId) { for (const k of [...blogs.keys()]) if (k.startsWith(`${personId}|`)) blogs.delete(k); bgoals.delete(personId); bprefs.delete(personId); bkeys.delete(personId); },
     // ---- Stage 3e-1
     async healthPrefs() { return [...hprefs.entries()].map(([person_id, p]) => ({ person_id, ...p })); },
     async setHealthPref(personId, p) { hprefs.set(personId, { ticks_on: p.ticks_on, evening_q_on: p.evening_q_on }); },
@@ -554,6 +582,7 @@ export function memoryStore() {
     async getIcs(pid) { const t = ics.get(pid); return t && !t.revoked_at ? { created_at: t.created_at } : null; },
     async setIcs(pid, hash) { ics.set(pid, { hash, created_at: now(), revoked_at: null }); },
     async revokeIcs(pid) { const t = ics.get(pid); if (!t || t.revoked_at) return false; t.revoked_at = now(); return true; },
+    async revokeAllIcs() { let n = 0; for (const t of ics.values()) if (!t.revoked_at) { t.revoked_at = now(); n++; } return n; },
     async personByIcs(hash) { for (const [pid, t] of ics) if (t.hash === hash && !t.revoked_at) return people.get(pid) ?? null; return null; },
     // ---- Stage 3c
     async councilTasks(date) { return [...btasks.values()].filter((t) => t.council_date === date); },

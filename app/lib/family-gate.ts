@@ -9,6 +9,7 @@ import { getSession, type FamilySession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyRoleOf, mediaActorFor } from "@/app/lib/family-roles.mjs";
+import { osSessionState } from "@/app/lib/family-os-session.mjs";
 
 export type GateDecision = "login" | "pending" | "allow";
 
@@ -21,6 +22,16 @@ export async function familyGateDecision(): Promise<{
   if (!session) return { decision: "login", session: null };
   const approved = await isViewerApproved(session.cpifSubjectId, session.email);
   return { decision: approved ? "allow" : "pending", session };
+}
+
+/**
+ * QA-156 H1: has the owner ended this session («Завершить сеансы»)? For /api routes outside Family OS
+ * (family-media, the family editor), which proxy.ts does not see. Only an explicit answer from Family OS
+ * counts; while it is off or down this is false (Family OS's own routes still refuse without it).
+ */
+export async function sessionEndedByOwner(session: FamilySession, opts: { cacheMs?: number } = {}): Promise<boolean> {
+  const iat = Math.floor(session.issuedAt.getTime() / 1000);
+  return (await osSessionState({ email: session.email, admin: isFamilyAdmin(session.cpifSubjectId), iat, cacheMs: opts.cacheMs })).state === "ended";
 }
 
 /** True iff this viewer is a Family admin (local allowlist — never a federation role). Owner only. */

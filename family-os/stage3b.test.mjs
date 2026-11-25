@@ -49,12 +49,14 @@ test("pure: council date, week start, ICS folding, aggregate agenda", () => {
 
 test("policy: goals — only the owner writes; visibility as chosen", () => {
   const c = { id: "c", kind: "child" }, p1 = { id: "p1", kind: "adult" }, e = { id: "e", kind: "adult" };
-  const grants = [{ guardian_id: "p1", child_id: "c", scopes: ["routines"], revoked_at: null }];
+  const grants = [{ guardian_id: "p1", child_id: "c", relation: "parent", scopes: ["routines"], revoked_at: null },
+    { guardian_id: "r", child_id: "c", relation: "relative", scopes: ["health", "routines", "education", "documents"], revoked_at: null }];
   assert.equal(canWriteGoal(p1, c), false, "a parent never writes a child's goal (Floor №8)");
   assert.equal(canWriteGoal(c, c), true);
   assert.equal(canReadGoal(p1, { visibility: "owner" }, c, grants), false);
   assert.equal(canReadGoal(p1, { visibility: "guardians" }, c, grants), true);
   assert.equal(canReadGoal(e, { visibility: "guardians" }, c, grants), false);
+  assert.equal(canReadGoal({ id: "r", kind: "adult" }, { visibility: "guardians" }, c, grants), false, "«Я и родители»: a relative, whatever the scopes, does not see it (QA-156 H2)");
   assert.equal(canReadGoal(e, { visibility: "family" }, c, grants), true);
   assert.equal(canReadGoal(null, { visibility: "family" }, c, grants), false, "admin / outsider");
 });
@@ -99,7 +101,7 @@ test("goals: owner creates (a child too); a parent cannot write a child's goal; 
   assert.equal((await call("PATCH", `/goals/${G.c}`, { actor: as(E.p1), body: { visibility: "family" } })).status, 403, "only the owner shares");
   assert.equal((await call("PATCH", `/goals/${G.c}`, { actor: as(E.c), body: { visibility: "guardians" } })).status, 200);
   const before = store._raw.log.length;
-  assert.equal(await seen(as(E.p1)), 1); assert.equal(await seen(as(E.g)), 1, "a relative with a grant is a guardian too"); assert.equal(await seen(as(E.e)), 0);
+  assert.equal(await seen(as(E.p1)), 1); assert.equal(await seen(as(E.g)), 0, "«Я и родители» is parents only: a relative with a grant does not see it (QA-156 H2)"); assert.equal(await seen(as(E.e)), 0);
   assert.equal(store._raw.log.at(-1).entity, "goals:list"); assert.ok(store._raw.log.length > before, "someone else's goals: logged");
   assert.equal((await call("POST", `/goals/${G.c}/checkins`, { actor: as(E.c), body: { mood: "on_track", note: "Synthetic: two chapters" } })).json.week_start, "2026-11-16");
   assert.equal((await call("POST", `/goals/${G.c}/checkins`, { actor: as(E.p1), body: { mood: "slow" } })).status, 403, "a parent does not check in for the child");

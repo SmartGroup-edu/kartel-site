@@ -21,11 +21,52 @@ docker cp "$WORK/db.dump" kfo-drill:/tmp/db.dump
 # --no-privileges: the dump carries GRANTs to the request role kfo_app, which only exists where the
 # service runs (it re-applies roles.sql on every start). The drill proves data + keys, not grants.
 docker exec kfo-drill pg_restore -U postgres -d drill --no-owner --no-privileges /tmp/db.dump
+echo "pg_restore exit=0"
 q() { docker exec kfo-drill psql -U postgres -d drill -tAc "$1" 2>/dev/null || true; }
+qd() { docker exec kfo-drill psql -U postgres -d "$1" -tAc "$2" 2>/dev/null || true; }
 for t in person guardian_grant care_note access_log audit drill_canary document document_file; do
   printf '%s restored=%s\n' "$t" "$(q "SELECT count(*) FROM $t")"
 done
 echo "document files restored=$(find "$WORK/files" -type f | wc -l | tr -d ' ')"
+
+# --- Schema checks (bus 155/157b): the service's own migrations on the restored data, then the result compared
+# with a fresh build. Counts only. Fails (exit 1) on any difference.
+counts_sql() { echo "SELECT string_agg(t || '=' || c, ',' ORDER BY t) FROM (SELECT table_name AS t, (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM %I', table_name), false, true, '')))[1]::text AS c FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE') x"; }
+before=$(q "$(counts_sql)")
+echo "tables restored=$(q "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE'")"
+docker cp "$HERE/schema.sql" kfo-drill:/tmp/schema.sql
+docker cp "$HERE/roles.sql" kfo-drill:/tmp/roles.sql
+docker exec kfo-drill psql -U postgres -d drill -v ON_ERROR_STOP=1 -q -f /tmp/schema.sql >/dev/null || { echo "schema.sql on restored db: FAILED"; exit 1; }
+echo "schema.sql on restored db: exit 0"
+docker exec kfo-drill psql -U postgres -d drill -v ON_ERROR_STOP=1 -q -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kfo_app') THEN CREATE ROLE kfo_app LOGIN PASSWORD 'drill-only-kfo-app-password'; END IF; END \$\$" -f /tmp/roles.sql >/dev/null || { echo "roles.sql on restored db: FAILED"; exit 1; }
+echo "roles.sql on restored db: exit 0"
+deny=$(docker exec -e PGPASSWORD=drill-only-kfo-app-password kfo-drill psql -h 127.0.0.1 -U kfo_app -d drill -tAc "UPDATE access_log SET actor = actor WHERE false" 2>&1 || true)
+case "$deny" in *"permission denied"*) echo "kfo_app UPDATE access_log: denied";; *) echo "kfo_app UPDATE access_log: NOT denied"; exit 1;; esac
+[ "$before" = "$(q "$(counts_sql)")" ] && echo "row counts unchanged by migrations: yes" || { echo "row counts unchanged by migrations: NO"; exit 1; }
+docker exec kfo-drill psql -U postgres -d postgres -q -c "CREATE DATABASE fresh" >/dev/null
+docker exec kfo-drill psql -U postgres -d fresh -v ON_ERROR_STOP=1 -q -f /tmp/schema.sql >/dev/null
+# contype is "char": cast it to text before joining it into a string (bus 155b).
+for kind in \
+  "COLS|SELECT table_name || '.' || column_name || ':' || data_type || ':' || is_nullable FROM information_schema.columns WHERE table_schema = 'public'" \
+  "CONS|SELECT conrelid::regclass::text || ':' || conname || ':' || contype::text || ':' || pg_get_constraintdef(oid) FROM pg_constraint WHERE connamespace = 'public'::regnamespace" \
+  "IDX|SELECT indexdef FROM pg_indexes WHERE schemaname = 'public'" \
+  "TRG|SELECT event_object_table || ':' || trigger_name || ':' || event_manipulation FROM information_schema.triggers WHERE trigger_schema = 'public'"; do
+  name=${kind%%|*}; sql=${kind#*|}
+  a=$(qd drill "$sql" | sort); b=$(qd fresh "$sql" | sort)
+  if [ "$a" = "$b" ]; then echo "schema $name: equal ($(printf '%s\n' "$a" | grep -c .) entries)"; else echo "schema $name: DIFFERENT"; exit 1; fi
+done
+echo "constraints not validated=$(q "SELECT count(*) FROM pg_constraint WHERE connamespace = 'public'::regnamespace AND NOT convalidated")"
+# Every foreign key dropped and re-added (so validated against every restored row), inside one rolled-back
+# transaction. Each statement ends with ';' (bus 155b: the drill's fk.sql did not, and psql refused it).
+q "SELECT 'ALTER TABLE ' || conrelid::regclass::text || ' DROP CONSTRAINT ' || quote_ident(conname) || '; ALTER TABLE ' || conrelid::regclass::text || ' ADD CONSTRAINT ' || quote_ident(conname) || ' ' || pg_get_constraintdef(oid) || ';' FROM pg_constraint WHERE connamespace = 'public'::regnamespace AND contype::text = 'f'" > "$WORK/fk.sql"
+fks=$(grep -c . "$WORK/fk.sql" || true)
+{ echo "BEGIN;"; cat "$WORK/fk.sql"; echo "ROLLBACK;"; } > "$WORK/fk-tx.sql"
+docker cp "$WORK/fk-tx.sql" kfo-drill:/tmp/fk.sql
+if docker exec kfo-drill psql -U postgres -d drill -v ON_ERROR_STOP=1 -q -f /tmp/fk.sql >/dev/null; then echo "foreign keys re-added against all rows: $fks/$fks"; else echo "foreign keys re-added: FAILED"; exit 1; fi
+missing=0
+for id in $(q "SELECT id FROM document_file"); do [ -f "$WORK/files/docs/$id" ] || missing=$((missing + 1)); done
+echo "document_file rows=$(q "SELECT count(*) FROM document_file"), rows without a file=$missing"
+[ "$missing" = 0 ] || exit 1
 q "SELECT row_to_json(n) FROM (SELECT id, wrapped_key, title_ct, body_ct FROM drill_canary LIMIT 1) n" > "$WORK/canary.json"
 q "SELECT row_to_json(n) FROM (SELECT id, wrapped_key, title_ct, body_ct FROM care_note ORDER BY created_at LIMIT 1) n" > "$WORK/note.json"
 q "SELECT row_to_json(n) FROM (SELECT id, wrapped_key, mime, size FROM document_file ORDER BY created_at LIMIT 1) n" > "$WORK/file.json"

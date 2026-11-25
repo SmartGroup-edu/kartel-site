@@ -31,6 +31,8 @@ before(async () => {
     P[k] = (await call("POST", "/people", { body: { email: E[k], name_en: `QA ${k}`, name_ru: `QA ${k}`, kind } })).json.id;
   await call("PATCH", `/people/${P.y}`, { body: { birth_date: "2009-03-01" } }); // an "adult" row that is 17
   await call("PATCH", `/people/${P.a}`, { body: { birth_date: "1985-06-01" } });
+  // QA-156 M2: the spouse and the owner have no birth date — the owner confirms they are adults.
+  for (const k of ["sp", "owner"]) await call("PATCH", `/people/${P[k]}`, { body: { adult_confirmed: true } });
   await call("POST", "/grants", { body: { guardian_id: P.sp, child_id: P.c, relation: "parent", scopes: ["routines", "health", "education", "documents"] } });
 });
 after(() => server.close());
@@ -40,7 +42,9 @@ test("pure: 18+ adults only; values, goal, trend, the GP line", () => {
   assert.equal(bodyAllowed({ kind: "adult", birth_date: "2009-03-01" }, TODAY), false, "17 → no");
   assert.equal(bodyAllowed({ kind: "adult", birth_date: "2008-11-19" }, TODAY), true, "18 today → yes");
   assert.equal(bodyAllowed({ kind: "adult", birth_date: "2008-11-20" }, TODAY), false);
-  assert.equal(bodyAllowed({ kind: "adult" }, TODAY), true, "no birth date: the adult row decides");
+  assert.equal(bodyAllowed({ kind: "adult" }, TODAY), false, "no birth date: not until the owner confirms (QA-156 M2)");
+  assert.equal(bodyAllowed({ kind: "adult", adult_confirmed_at: "2026-11-25T10:00:00Z" }, TODAY), true, "…confirmed by the owner");
+  assert.equal(bodyAllowed({ kind: "adult", birth_date: "2009-03-01", adult_confirmed_at: "2026-11-25T10:00:00Z" }, TODAY), false, "a birth date under 18 always wins");
   assert.equal(cleanWeight(72.34), 72.3); assert.equal(cleanWeight(19), undefined); assert.equal(cleanWeight("70"), undefined); assert.equal(cleanWeight(null), null);
   assert.equal(cleanKcal(1800), 1800); assert.equal(cleanKcal(1800.5), undefined); assert.equal(cleanKcal(400), undefined);
   assert.deepEqual(cleanGoal({ weight_kg: 70, by_date: "2027-03-01", kcal_day: 1900 }, TODAY), { weight_kg: 70, by_date: "2027-03-01", kcal_day: 1900 });

@@ -31,7 +31,7 @@ test("sign-in route: re-checks the allowlist after the key verifies, mints the s
   assert.match(v, /if \(r\.status !== 200 \|\| !email \|\| !\(await isViewerApproved\(email, email\)\)\) return fail\(\);/);
   assert.match(v, /await createSession\(\{ email, name: null, amr: "pk" \}\);/);
   assert.match(v, /const challengeId = await takeChallenge\(\);/, "the bound challenge is read and cleared");
-  assert.match(src("app/api/family-auth/passkey/options/route.ts"), /osPk\("\/passkeys\/auth\/options", "auth:passkey"\)/);
+  assert.match(src("app/api/family-auth/passkey/options/route.ts"), /osPk\("\/passkeys\/auth\/options", "auth:passkey", \{ client: clientKey\(req\) \}\)/, "QA-156 M5: an HMAC of the IP for the per-client cap");
   const auth = src("app/lib/family-auth.ts");
   assert.match(auth, /typ: "session", amr: data\.amr \?\? "link"/);
   assert.match(auth, /amr: payload\.amr === "pk" \? "pk" : "link"/);
