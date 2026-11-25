@@ -325,9 +325,9 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
       assert.doesNotMatch(c, /rounded-full border px-2\.5/, f);
     }
   });
-  test("#4 snapshot label wording EN/RU (registry v12 and federation)", () => {
-    assert.ok(read("en/registry.html").includes("Snapshot v12 · data as of 25 November 2026"));
-    assert.ok(read("ru/registry.html").includes("Снимок v12 · данные на 25 ноября 2026"));
+  test("#4 snapshot label wording EN/RU (registry v13 and federation)", () => {
+    assert.ok(read("en/registry.html").includes("Snapshot v13 · data as of 25 November 2026"));
+    assert.ok(read("ru/registry.html").includes("Снимок v13 · данные на 25 ноября 2026"));
     assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 25 November 2026"));
     assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 25 ноября 2026"));
     assert.doesNotMatch(read("en/registry.html"), /Updated: 2026/);
@@ -440,6 +440,23 @@ describe("registry v12 rendered (bus 161: federation snapshot regenerated, MoyPo
       for (const c of ["ZNANIYE-CHELSEA", "ZNANIYE-EALING", "ZNANIYE-STRATFORD", "ZNANIYE-FINCHLEY", "BALTICA-LEEDS", "RU-ONLINE-EUREKA"]) assert.ok(h.includes(`>${c}<`), `${l} ${c}`);
     }
     assert.ok(read("ru/registry/federation.html").includes(">Упразднён<"));
+  });
+});
+
+describe("registry v13 rendered (bus 163: community.group identity off, drift fixes)", () => {
+  const text = (f) => read(f).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  test("community.group identity is off on projects and the federation map (EN + RU)", () => {
+    assert.ok(read("en/registry/projects.html").includes(">Off<"));
+    assert.ok(read("ru/registry/projects.html").includes(">Отключено<"));
+    assert.ok(text("en/registry/federation.html").includes("Community Group Steward 0 Identity: Off"));
+    assert.ok(text("ru/registry/federation.html").includes("Community Group Стюард 0 Идентичность: Отключено"));
+    assert.ok(text("en/registry/projects.html").includes("Federated sign-in has been switched off since 6 November 2026."));
+    assert.ok(text("ru/registry/projects.html").includes("Федеративный вход отключён с 6 ноября 2026 года."));
+    assert.doesNotMatch(text("en/registry/projects.html") + text("ru/registry/projects.html"), /consumes identity\. Home|потребляет идентичность\. Здесь/);
+  });
+  test("integrity: stray nodes back to 1, subjects band Active, band localised on RU", () => {
+    assert.ok(text("en/registry/federation.html").includes("Stray nodes 1 Federated subjects on non-canonical nodes Active"));
+    assert.ok(text("ru/registry/federation.html").includes("Висячие узлы 1 Федеративные субъекты на неканонических узлах Активно"));
   });
 });
 

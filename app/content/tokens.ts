@@ -25,6 +25,7 @@ const RU_STATUS: Record<string, string> = {
   pending: "ожидается",
   planned: "план",
   connected: "подключено",
+  off: "отключено",
   consumed: "потребляется",
   anchored: "закреплено",
   producer: "производитель",

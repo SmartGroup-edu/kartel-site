@@ -2,14 +2,14 @@
   "_comment": "Where app/content/registry.public.json and app/content/federation.public.json were vendored from. Update all fields together on every re-vendor. tests/registry-source.test.mjs (CI) fails if the vendored copies' version, updated date or bytes differ from this record; scripts/check-registry-sync.mjs (pre-push) fails if this record lags the local kartel-core source.",
   "repo": "SmartGroup-edu/kartel-core",
   "path": "registry/registry.public.json",
-  "sourceCommit": "8cd0515eb1c039d199f59bf38286130d8d37525b",
-  "sourceVersion": 12,
+  "sourceCommit": "aeba117e9cc798a780068ba53f94709db41c3f44",
+  "sourceVersion": 13,
   "sourceUpdated": "2026-11-25",
-  "sha256": "856bb226b6a8c0b42f714c3a31cabdd17769bd9e342b770468ae8f3199d2f213",
+  "sha256": "8cb4177099679b6ba1ca5223954237b5ce2b05c4b4cb4d0e6e67a25f10025a31",
   "federation": {
     "path": "registry/federation.public.json",
     "generatedAt": "2026-11-25",
-    "registryVersion": 12,
-    "sha256": "9366e48f0bdc728a71e1b1df251d35553ebd82b9937cce405677962150ed3524"
+    "registryVersion": 13,
+    "sha256": "46ef516bd4cd1d9e9a612edcb815eff612cbb759150cf77fed582fae625a476a"
   }
 }
