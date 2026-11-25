@@ -19,21 +19,21 @@ import type { Lang } from "../components/useLang";
 export const projectSummaries: Record<Lang, Record<string, string>> = {
   EN: {
     moypolk:
-      "Immortal Regiment UK memorial platform. Produces and serves the canonical geography taxonomy.",
+      "Immortal Regiment UK memorial platform. Brand retired into Community Group on 3 November 2026; its initiatives continue there and moypolk.uk addresses redirect permanently. The geography taxonomy is now served by community.group.",
     rusjaz:
       "Russian-language education marketplace and LMS. Identity reference implementation; consumes canonical geography and the organisation and campus anchors.",
     "community-group":
-      "Cultural funding and trust platform (CEA). Consumes identity and geography; first geography consumer.",
+      "Cultural funding and trust platform (CEA). Serves the canonical geography taxonomy (regions and countries) for KARTEL Core since 3 November 2026; consumes identity. Home of the former MoyPolk initiatives.",
     rusjazz:
       "Future module. Builds against the Federation integration gate from day one.",
   },
   RU: {
     moypolk:
-      "Мемориальная платформа «Бессмертный полк» (Великобритания). Производит и обслуживает каноническую таксономию географии.",
+      "Мемориальная платформа «Бессмертный полк» (Великобритания). Бренд упразднён 3 ноября 2026 года и вошёл в Community Group: инициативы продолжаются там, адреса moypolk.uk постоянно перенаправляются. Таксономию географии теперь обслуживает community.group.",
     rusjaz:
       "Маркетплейс и LMS русскоязычного образования. Эталонная реализация слоя идентичности; потребляет канонические слои географии, организаций и кампусов.",
     "community-group":
-      "Платформа культурного финансирования и доверия (CEA). Потребляет идентичность и географию; первый потребитель слоя географии.",
+      "Платформа культурного финансирования и доверия (CEA). С 3 ноября 2026 года обслуживает каноническую таксономию географии (регионы и страны) для Ядра KARTEL; потребляет идентичность. Здесь продолжаются бывшие инициативы MoyPolk.",
     rusjazz:
       "Будущий модуль. С первого дня строится в соответствии со шлюзом интеграции в федерацию.",
   },

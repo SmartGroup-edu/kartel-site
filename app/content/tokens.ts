@@ -40,6 +40,7 @@ const RU_ROLE: Record<string, string> = {
   steward: "стюард",
   "producer / steward": "производитель / стюард",
   planned: "планируется",
+  retired: "упразднён",
 };
 
 const RU_TIER: Record<string, string> = {

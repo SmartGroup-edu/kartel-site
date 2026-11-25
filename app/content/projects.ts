@@ -20,6 +20,7 @@ export const projectsContent = {
       { role: "Steward", desc: "Serves / maintains a layer for the ecosystem." },
       { role: "Consumer", desc: "Consumes canonical layers; never self-authors." },
       { role: "Planned", desc: "Will join via the Federation integration gate." },
+      { role: "Retired", desc: "Brand retired; its work continues in another project." },
     ],
     publicNote:
       "Public registry — status and architecture only. No personal data; operational detail lives in the access-controlled internal surface.",
@@ -42,6 +43,7 @@ export const projectsContent = {
       { role: "Steward", desc: "Обслуживает / поддерживает слой для экосистемы." },
       { role: "Consumer", desc: "Потребляет канонические слои; не создаёт сам." },
       { role: "Planned", desc: "Подключится через шлюз интеграции в федерацию." },
+      { role: "Retired", desc: "Бренд упразднён; работа продолжается в другом проекте." },
     ],
     publicNote:
       "Публичный реестр — только статус и архитектура. Без персональных данных; операционные детали — во внутреннем контуре с контролем доступа.",
