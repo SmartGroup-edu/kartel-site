@@ -36,6 +36,8 @@ if (SECRET.length < 32) throw new Error("RELAY_SECRET must be >= 32 chars");
 
 // ── In-memory rate limits (single process — fine for one container) ─────────
 const PER_RECIPIENT = { max: 3, windowMs: 60 * 60 * 1000 };
+// QA-156 M1: and at most 8 sign-in letters a day to one address, however the hours are spaced.
+const PER_RECIPIENT_DAY = { max: 8, windowMs: 24 * 60 * 60 * 1000 };
 const GLOBAL = { max: 60, windowMs: 60 * 60 * 1000 };
 const hits = new Map(); // key -> timestamps[]
 /** Allow only if EVERY limit has room; consume from all of them only then. */
@@ -52,7 +54,8 @@ function allowAll(limits) {
 }
 setInterval(() => {
   const now = Date.now();
-  for (const [k, arr] of hits) if (arr.every((t) => now - t > GLOBAL.windowMs)) hits.delete(k);
+  // The longest window any key uses (the daily per-address cap), so no key is dropped while it still counts.
+  for (const [k, arr] of hits) if (arr.every((t) => now - t > PER_RECIPIENT_DAY.windowMs)) hits.delete(k);
 }, 10 * 60 * 1000).unref();
 
 // ── Signature: hex HMAC-SHA256(secret, `${ts}.${rawBody}`) ──────────────────
@@ -493,7 +496,7 @@ const server = createServer((req, res) => {
     // LINK_TTL_MINUTES and English — an older site build simply omits them.
     const ttl = Number.isInteger(body.ttlMinutes) && body.ttlMinutes >= 1 && body.ttlMinutes <= 120 ? body.ttlMinutes : LINK_TTL_MIN;
     const lang = body.lang === "ru" ? "ru" : "en";
-    if (!allowAll([["global", GLOBAL], [`to:${to}`, PER_RECIPIENT]])) {
+    if (!allowAll([["global", GLOBAL], [`to:${to}`, PER_RECIPIENT], [`day:${to}`, PER_RECIPIENT_DAY]])) {
       console.warn("[relay] rate limited");
       return reply(res, 429, { error: "rate_limited" });
     }

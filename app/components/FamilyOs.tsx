@@ -16,12 +16,15 @@ import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
+import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
 import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines, OsMyBoard, OsBoard } from "../lib/family-os";
 import { TodayChecklist } from "./FamilyRoutines";
 import { TodayCouncil } from "./FamilyCouncil";
 import { TodayBoard } from "./FamilyBoard";
 import { TodayPrinciple, TodayRecognition } from "./FamilyKodeks";
 import FamilyHealth from "./FamilyHealth";
+import { OsDownNotice } from "./FamilyOsDown";
+import { tx } from "../lib/typograph.mjs";
 import type { OsPrinciple, OsRecognition, OsKodeksPrinciple } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -36,8 +39,6 @@ const T = {
     myDay: "My routine", todayEmpty: "Nothing planned for you today.",
     noneScheduled: "Nothing of yours is scheduled for today.",
     addOwn: "Add a routine on your page", childHint: "Your parents set up your routines and chores.",
-    off: "Family OS is not connected yet.",
-    error: "Family OS is not answering right now. Please try again in a minute.",
     notMember: "You are signed in, but you are not in Family OS yet. Ask the family admin to add you.",
     adults: "Adults", children: "Children", adult: "Adult", child: "Child", you: "you",
     parents: "Parents", relatives: "With access", none: "No guardians yet",
@@ -52,8 +53,6 @@ const T = {
     myDay: "Мой распорядок", todayEmpty: "На сегодня у тебя ничего не запланировано.",
     noneScheduled: "Сегодня по расписанию у тебя ничего нет.",
     addOwn: "Добавить распорядок на своей странице", childHint: "Распорядок и дела составляют родители.",
-    off: "Раздел «Семья» ещё не подключён.",
-    error: "Раздел «Семья» сейчас не отвечает. Попробуй через минуту.",
     notMember: "Тебя ещё нет в разделе «Семья». Попроси администратора семьи добавить тебя.",
     adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "ты",
     parents: "Родители", relatives: "С доступом", none: "Опекунов пока нет",
@@ -65,7 +64,7 @@ type Dict = (typeof T)[Lang];
 
 export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, myBoard = null, board = null, principle = null, recognitions = null, principles = null, editor = false }: { lang: Lang; view: View; state: OsState; editor?: boolean; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; board?: OsBoard | null;
   principle?: OsPrinciple | null; recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
 
@@ -73,13 +72,17 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status === "ok" && (Boolean(state.me) || state.admin)} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
+        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status !== "ok" || Boolean(state.me) || state.admin} member={state.status !== "ok" || Boolean(state.me)} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
         <div className="max-w-4xl pb-8">
 
         {state.status !== "ok" ? (
-          <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{state.status === "off" ? t.off : t.error}</p>
+          <OsDownNotice lang={lang} status={state.status} title={view === "today" ? t.today : t.people} />
         ) : !state.me && !state.admin ? (
-          <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
+          // L6: the page keeps its H1 for someone who is signed in but not in Family OS yet
+          <section aria-labelledby="os-outsider-h" className="mt-10">
+            <h1 id="os-outsider-h" className={H1}>{view === "today" ? t.today : t.people}</h1>
+            <p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
+          </section>
         ) : view === "today" ? (
           <section aria-labelledby="today-h" className="mt-10">
             <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
@@ -160,14 +163,15 @@ function People({ t, lang, me, people, grants, nameOf }: {
   );
 }
 
-/** Expiring documents, soonest first. Status is text + icon (never colour alone). */
+/** Expiring documents, soonest first. Status is text + icon (never colour alone).
+ *  Documents are private, so the block wears the private/sensitive left rule, not a card (bus 157b D8). */
 function DocList({ t, lang, id, title, items, people, nameOf }: {
   t: Dict; lang: Lang; id: string; title: string; items: OsReminder[]; people: OsPerson[]; nameOf: (p: OsPerson) => string;
 }) {
   const sorted = [...items].sort((a, b) => a.expiry_date.localeCompare(b.expiry_date));
   return (
-    <section aria-labelledby={id} data-reminders={id} className="mt-8 rounded-lg border border-[var(--border)] px-5 py-4">
-      <h2 id={id} className="font-serif text-[20px] text-[var(--foreground)]">{title}</h2>
+    <section aria-labelledby={id} data-reminders={id} className={`mt-10 ${RULE_PRIVATE}`}>
+      <h2 id={id} className={OS_H2}>{title}</h2>
       <ul className="mt-3 divide-y divide-[var(--border)]">
         {sorted.map((r) => {
           const who = people.find((x) => x.id === r.person_id);

@@ -35,6 +35,43 @@ jobs:
       - name: Snapshot tests
         run: npm test
 
+  e2e:
+    # QA-156 M8: the repo e2e against a real `next start` (production cookie names), plus H1 «Завершить сеансы»
+    # end to end with the real Family OS app in the test process. Synthetic addresses and test-only secrets.
+    runs-on: ubuntu-latest
+    env:
+      FAMILY_GATE: "on"
+      FAMILY_SESSION_SECRET: e2e-secret-at-least-32-characters-long!!
+      FAMILY_APPROVED_EMAILS: member@example.com
+      FAMILY_ADMIN_EMAILS: admin@example.com
+      FAMILY_MAIL_RELAY_URL: http://127.0.0.1:9
+      FAMILY_MAIL_RELAY_SECRET: fake-relay-secret-ci-e2e-only-0000000000
+      FAMILY_SITE_ORIGIN: http://localhost:3999
+      FAMILY_OS_URL: http://127.0.0.1:18795
+      FAMILY_OS_SECRET: e2e-os-secret-at-least-32-characters!!
+      FAMILY_MEDIA_URL: http://127.0.0.1:9
+      FAMILY_MEDIA_SECRET: e2e-media-secret-at-least-32-characters
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci && npm ci --prefix family-os
+
+      - name: Build
+        run: npm run build
+
+      - name: E2E
+        run: |
+          npx next start -p 3999 > /tmp/site.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3999/en && break; sleep 1; done
+          node tests/e2e/family-auth.e2e.mjs
+          node tests/e2e/family-ended.e2e.mjs
+
   family-os-postgres:
     # schema.sql re-applied to a populated database, then a runner tick (QA-156 C1).
     runs-on: ubuntu-latest

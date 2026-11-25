@@ -11,7 +11,8 @@ test("roles: owner list wins; editors; everyone else a member; case and spaces i
   assert.equal(familyRoleOf("", owners, editors), "member");
   assert.equal(familyRoleOf("editor@example.test", owners, []), "member", "no editor list → no editors");
 });
-test("media actor: an editor is always prefixed, so the service can only accept proposals from her", () => {
+test("media actor (QA-156 L4): every role is prefixed, so the service never takes a bare address for the owner", () => {
   assert.equal(mediaActorFor("editor", "Editor@example.test"), "editor:editor@example.test");
-  assert.equal(mediaActorFor("owner", "owner@example.test"), "owner@example.test");
+  assert.equal(mediaActorFor("owner", "owner@example.test"), "owner:owner@example.test");
+  assert.equal(mediaActorFor("member", "Member@example.test"), "member:member@example.test");
 });

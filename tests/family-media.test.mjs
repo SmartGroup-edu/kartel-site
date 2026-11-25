@@ -52,12 +52,14 @@ describe("editor API and page: the owner and editors only (bus 87)", () => {
     assert.match(a, /\^image\\\/\(jpeg\|png\|webp\)\$/);
     assert.match(a, /buf\.length > 4 \* 1024 \* 1024/);
   });
-  test("members get a real 404 at the edge (page notFound() would stream a 200); «Доступы» owner-only (bus 87)", () => {
+  test("members get the family 404 page with a real 404 at the edge (QA-156 M6); «Доступы» owner-only (bus 87)", () => {
     const p = src("proxy.ts");
     assert.match(p, /\\\/\(en\|ru\)\\\/family\\\/admin\(\\\/\|\$\)/);
-    assert.match(p, /familyRoleOf\(sub, list\(process\.env\.FAMILY_ADMIN_EMAILS\), list\(process\.env\.FAMILY_EDITOR_EMAILS\)\) === "member"\) return new NextResponse\("Not found", \{ status: 404 \}\);/);
-    assert.match(p, /\\\/family\\\/os\\\/access/);
-    assert.match(p, /if \(!owners\.includes\(sub\.toLowerCase\(\)\)\) return new NextResponse\("Not found", \{ status: 404 \}\);/);
+    assert.match(p, /familyRoleOf\(sub, list\(process\.env\.FAMILY_ADMIN_EMAILS\), list\(process\.env\.FAMILY_EDITOR_EMAILS\)\) === "member"\) return familyNotFound\(request, lang, pathname\);/);
+    assert.match(p, /\\\/family\\\/os\\\/access\(\\\/\|\$\)\/\.test\(pathname\) && !owner\) return familyNotFound\(request, lang, pathname\);/);
+    assert.match(p, /NextResponse\.rewrite\(new URL\(`\/\$\{lang\}\/family\/not-found\/page`, request\.url\), \{ request: \{ headers: forwarded \}, status: 404 \}\)/);
+    assert.doesNotMatch(p, /new NextResponse\("Not found"/, "no bare-text 404 left");
+    assert.match(src("app/[lang]/family/[...missing]/page.tsx"), /return <FamilyNotFound \/>;/);
   });
   test("editor page never prerendered or indexed", () => {
     const pg = src("app/[lang]/family/admin/page.tsx");

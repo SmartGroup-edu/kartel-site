@@ -40,7 +40,7 @@ export default function FamilyClient({ lang, data, nav = { admin: false, editor:
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={navItems} maxWidth={FAMILY_HEADER_MAX} />
 
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={nav.admin} editor={Boolean(nav.editor)} os={nav.os} active="heritage" />
+        <FamilySubNav lang={lang} admin={nav.admin} editor={Boolean(nav.editor)} os={nav.os} member={nav.member} active="heritage" />
         {/* Hero */}
         <FadeInSection>
           <header className="border-b border-[var(--border)] pb-8">

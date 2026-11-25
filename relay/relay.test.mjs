@@ -75,6 +75,17 @@ test("per-recipient limit: 4th within the hour → 429", async () => {
   for (let i = 0; i < 3; i++) assert.equal((await send({ to, link: PREFIX + i })).status, 202);
   assert.equal((await send({ to, link: PREFIX + "4" })).status, 429);
 });
+test("per-recipient daily cap (QA-156 M1): 8 letters a day to one address, however the hours are spaced", async () => {
+  const { _hits } = await import("./server.mjs");
+  const to = "daily@example.com", hourAgo = (h) => Date.now() - h * 3600_000 - 1000;
+  // Six letters already sent, two each in three earlier hours: the hourly window is clear, the daily one is not.
+  _hits.set(`day:${to}`, [hourAgo(5), hourAgo(5), hourAgo(3), hourAgo(3), hourAgo(1), hourAgo(1)]);
+  for (let i = 0; i < 2; i++) assert.equal((await send({ to, link: PREFIX + i })).status, 202);
+  assert.equal((await send({ to, link: PREFIX + "9" })).status, 429, "the 9th within 24 h is refused");
+  _hits.set(`day:${to}`, _hits.get(`day:${to}`).map(() => Date.now() - 25 * 3600_000));
+  _hits.delete(`to:${to}`);
+  assert.equal((await send({ to, link: PREFIX + "next-day" })).status, 202, "a day later it is allowed again");
+});
 test("site signer and relay signer agree byte for byte", async () => {
   const { sign } = await import("./server.mjs");
   assert.equal(await signRelayRequest(SECRET, "1794660000", '{"a":1}'), sign(SECRET, "1794660000", '{"a":1}'));

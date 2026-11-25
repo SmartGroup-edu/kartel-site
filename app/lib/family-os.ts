@@ -18,18 +18,21 @@ export type OsState =
   | { status: "error" }
   | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[] };
 
+/** The signed-in viewer. `issuedAt` travels as `sat` on every call (QA-156 H1); missing = 0 = refused after a cut-off. */
+export type OsViewer = { email?: string | null; cpifSubjectId: string; issuedAt?: Date | null };
+
 export function osEnabled(): boolean {
   return Boolean(process.env.FAMILY_OS_URL && process.env.FAMILY_OS_SECRET);
 }
 
-export function osActor(session: { email?: string | null; cpifSubjectId: string }): string {
+export function osActor(session: OsViewer): string {
   const email = (session.email ?? session.cpifSubjectId).toLowerCase();
   return `${isFamilyAdmin(session.cpifSubjectId) ? "admin" : "member"}:${email}`;
 }
 
 /**
  * Go-live R1: every call carries the session's issued-at (`sat`, seconds) inside the signed path, so the service
- * can refuse a session older than the owner's «Завершить сеансы» cut-off on its sensitive routes.
+ * can refuse a session older than the owner's «Завершить сеансы» cut-off — on every route since QA-156 H1.
  */
 export function withSat(path: string, session: { issuedAt?: Date | null }): string {
   const sat = session.issuedAt ? Math.floor(session.issuedAt.getTime() / 1000) : 0;
@@ -54,15 +57,15 @@ export async function osCall(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 }
 
 /** Who I am and who is in the family. Never throws: the page shows a calm error state instead. */
-export async function getOsState(session: { email?: string | null; cpifSubjectId: string }): Promise<OsState> {
+export async function getOsState(session: OsViewer): Promise<OsState> {
   if (!osEnabled()) return { status: "off" };
   const actor = osActor(session);
   try {
-    const meRes = await osCall("GET", "/me", actor);
+    const meRes = await osCall("GET", withSat("/me", session), actor);
     if (!meRes.ok) return { status: "error" };
     const { me, admin } = (await meRes.json()) as { me: OsPerson | null; admin: boolean };
     if (!me && !admin) return { status: "ok", admin, me: null, people: [], grants: [] };
-    const pRes = await osCall("GET", "/people", actor);
+    const pRes = await osCall("GET", withSat("/people", session), actor);
     if (!pRes.ok) return { status: "error" };
     const { people, grants } = (await pRes.json()) as { people: OsPerson[]; grants: OsGrant[] };
     return { status: "ok", admin, me, people, grants };
@@ -72,10 +75,10 @@ export async function getOsState(session: { email?: string | null; cpifSubjectId
 }
 
 /** For pages outside Family OS (heritage, editor): is the viewer in Family OS? Fail-soft: false. */
-export async function getOsNav(session: { email?: string | null; cpifSubjectId: string }): Promise<{ os: boolean; member: boolean }> {
+export async function getOsNav(session: OsViewer): Promise<{ os: boolean; member: boolean }> {
   if (!osEnabled()) return { os: false, member: false };
   try {
-    const r = await osCall("GET", "/me", osActor(session));
+    const r = await osCall("GET", withSat("/me", session), osActor(session));
     if (!r.ok) return { os: false, member: false };
     const { me, admin } = (await r.json()) as { me: unknown; admin: boolean };
     return { os: Boolean(me) || admin, member: Boolean(me) };
@@ -91,41 +94,40 @@ export type OsDocument = {
   files: OsDocFile[];
 };
 export type OsProfile = {
-  person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null };
+  person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null; adult_confirmed?: boolean };
   guardians: { guardian_id: string; relation: "parent" | "relative"; scopes: OsScope[] }[];
   can: { documents: boolean; add_documents: boolean; retype_documents: boolean; routines: OsRoutineAccess; prefs?: boolean; notes?: ("health" | "education")[]; goals?: boolean; ics?: boolean };
 };
 export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string; days_left: number; tier: "expired" | "lt3" | "lt6" | "lt12" | null };
 
-async function getJson<T>(path: string, actor: string): Promise<T | null> {
-  const r = await osCall("GET", path, actor);
+async function getJson<T>(path: string, session: OsViewer): Promise<T | null> {
+  const r = await osCall("GET", withSat(path, session), osActor(session));
   return r.ok ? ((await r.json()) as T) : null;
 }
 
 /** Person page data. null = not found / no access / service down (the page says so calmly). */
-export async function getPersonPage(session: { email?: string | null; cpifSubjectId: string }, id: string) {
+export async function getPersonPage(session: OsViewer, id: string) {
   if (!osEnabled() || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const actor = osActor(session);
   try {
-    const profile = await getJson<OsProfile>(`/people/${id}`, actor);
+    const profile = await getJson<OsProfile>(`/people/${id}`, session);
     if (!profile) return null;
     const [docs, routines, prefs, pauses, goals, notes, ics] = await Promise.all([
-      profile.can.documents ? getJson<{ documents: OsDocument[] }>(`/people/${id}/documents`, actor) : null,
-      profile.can.routines?.read ? getJson<OsRoutines>(`/people/${id}/routines?days=7`, actor) : null,
-      profile.can.prefs ? getJson<{ prefs: OsPrefs }>(`/people/${id}/prefs`, actor) : null,
-      profile.can.prefs ? getJson<{ pauses: OsPause[] }>(`/people/${id}/pauses`, actor) : null,
-      getJson<OsGoals>(`/people/${id}/goals`, actor),
-      profile.can.notes?.length ? getJson<OsNotes>(`/people/${id}/notes`, actor) : null,
-      profile.can.ics ? getJson<OsIcs>(`/people/${id}/ics`, actor) : null,
+      profile.can.documents ? getJson<{ documents: OsDocument[] }>(`/people/${id}/documents`, session) : null,
+      profile.can.routines?.read ? getJson<OsRoutines>(`/people/${id}/routines?days=7`, session) : null,
+      profile.can.prefs ? getJson<{ prefs: OsPrefs }>(`/people/${id}/prefs`, session) : null,
+      profile.can.prefs ? getJson<{ pauses: OsPause[] }>(`/people/${id}/pauses`, session) : null,
+      getJson<OsGoals>(`/people/${id}/goals`, session),
+      profile.can.notes?.length ? getJson<OsNotes>(`/people/${id}/notes`, session) : null,
+      profile.can.ics ? getJson<OsIcs>(`/people/${id}/ics`, session) : null,
     ]);
     return { profile, documents: docs?.documents ?? null, routines, prefs: prefs?.prefs ?? null, pauses: pauses?.pauses ?? null, goals, notes, ics };
   } catch { return null; }
 }
 
 /** scope "family": the admin's overview of every upcoming expiry (type, person, date only). */
-export async function getReminders(session: { email?: string | null; cpifSubjectId: string }, scope: "mine" | "family" = "mine"): Promise<OsReminder[]> {
+export async function getReminders(session: OsViewer, scope: "mine" | "family" = "mine"): Promise<OsReminder[]> {
   if (!osEnabled()) return [];
-  try { return (await getJson<{ reminders: OsReminder[] }>(scope === "family" ? "/reminders?scope=family" : "/reminders", osActor(session)))?.reminders ?? []; } catch { return []; }
+  try { return (await getJson<{ reminders: OsReminder[] }>(scope === "family" ? "/reminders?scope=family" : "/reminders", session))?.reminders ?? []; } catch { return []; }
 }
 
 // ---- Stage 2: routines and chores ---------------------------------------------------------------
@@ -140,9 +142,9 @@ export type OsRoutine = {
 export type OsRoutines = { today: string; can: OsRoutineAccess; paused_today?: boolean; count_mode?: "week" | "streak"; routines: OsRoutine[] };
 
 /** The member's own routines (Today). null = not a member, no access, or the service is down. */
-export async function getMyRoutines(session: { email?: string | null; cpifSubjectId: string }, personId: string | null): Promise<OsRoutines | null> {
+export async function getMyRoutines(session: OsViewer, personId: string | null): Promise<OsRoutines | null> {
   if (!osEnabled() || !personId) return null;
-  try { return await getJson<OsRoutines>(`/people/${personId}/routines?days=1`, osActor(session)); } catch { return null; }
+  try { return await getJson<OsRoutines>(`/people/${personId}/routines?days=1`, session); } catch { return null; }
 }
 
 // ---- Stage 3a: notification settings, pauses, rules -------------------------------------------
@@ -151,9 +153,9 @@ export type OsPause = { id: string; from_date: string; to_date: string };
 export type OsRule = { id: string; enabled: boolean; dry_run: boolean; last7: Record<string, number> };
 
 /** Admin: the engine rules with on/off, dry-run and last-7-day outcome counts. */
-export async function getRules(session: { email?: string | null; cpifSubjectId: string }): Promise<OsRule[] | null> {
+export async function getRules(session: OsViewer): Promise<OsRule[] | null> {
   if (!osEnabled()) return null;
-  try { return (await getJson<{ rules: OsRule[] }>("/rules", osActor(session)))?.rules ?? null; } catch { return null; }
+  try { return (await getJson<{ rules: OsRule[] }>("/rules", session))?.rules ?? null; } catch { return null; }
 }
 
 // ---- Stage 3b: council, goals, calendar, notes, ICS -------------------------------------------
@@ -173,8 +175,8 @@ export type OsIcs = { active: boolean; created_at: string | null };
 export type OsCalItem = { date: string; time: string | null; kind: "council" | "event" | "birthday"; id?: string; title?: string; person_id?: string; name_ru?: string; name_en?: string; age?: number };
 export type OsCalendar = { today: string; can: { write: boolean }; items: OsCalItem[] };
 
-type S = { email?: string | null; cpifSubjectId: string };
-const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, osActor(session)); } catch { return null; } };
+type S = OsViewer;
+const safe = async <T,>(path: string, session: S): Promise<T | null> => { if (!osEnabled()) return null; try { return await getJson<T>(path, session); } catch { return null; } };
 export const getCouncil = (session: S, date?: string) => safe<OsCouncil>(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? `/council?date=${date}` : "/council", session);
 export const getCalendar = (session: S) => safe<OsCalendar>("/calendar?days=62", session);
 
@@ -240,9 +242,9 @@ export type OsAdoptionRow = {
   invite: { on_date: string; sent: boolean; sent_at: string | null } | null;
 };
 export type OsAdoption = { people: OsAdoptionRow[]; family: { week_start: string; active: number; of: number } };
-export async function getAdoption(session: { email?: string | null; cpifSubjectId: string }): Promise<OsAdoption | null> {
+export async function getAdoption(session: OsViewer): Promise<OsAdoption | null> {
   if (!osEnabled()) return null;
-  try { return await getJson<OsAdoption>("/adoption", osActor(session)); } catch { return null; }
+  try { return await getJson<OsAdoption>("/adoption", session); } catch { return null; }
 }
 /** After a completed sign-in: record the DATE (first/last) for «Кто уже с нами». Never blocks sign-in. */
 export async function noteSignIn(email: string): Promise<void> {

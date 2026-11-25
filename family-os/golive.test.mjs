@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { createApp, routeClass, sensitiveRoute } from "./server.mjs";
+import { createApp, routeClass, sessionGuarded } from "./server.mjs";
 import { memoryStore } from "./store.mjs";
 import { signMediaRequest } from "../app/lib/media-signature.mjs";
 
@@ -32,13 +32,12 @@ before(async () => {
 });
 after(() => server.close());
 
-test("pure: the guarded routes are document open/reveal, passkey register and «Доступы» writes — nothing else", () => {
+test("pure: since QA-156 H1 the cut-off guards every actor route; only the sign-in note is outside it", () => {
   const id = randomUUID();
-  for (const [m, p] of [["GET", `/documents/${id}/files/${id}`], ["POST", `/documents/${id}/reveal`], ["POST", `/documents/${id}/copied`],
-    ["POST", "/passkeys/register/options"], ["POST", "/passkeys/register/verify"], ["POST", "/grants"], ["PATCH", `/grants/${id}`], ["DELETE", `/grants/${id}`],
-    ["POST", "/people"], ["PATCH", `/people/${id}`]]) assert.equal(sensitiveRoute(m, p), true, `${m} ${p}`);
-  for (const [m, p] of [["GET", "/people"], ["GET", "/me"], ["GET", "/grants"], ["GET", `/people/${id}`], ["POST", "/passkeys/auth/options"], ["GET", "/passkeys/mine"],
-    ["POST", `/routines/${id}/check`], ["GET", `/documents/${id}`], ["POST", `/people/${id}/end-sessions`], ["POST", "/sessions/end-all"]]) assert.equal(sensitiveRoute(m, p), false, `${m} ${p}`);
+  for (const [m, p] of [["GET", `/documents/${id}/files/${id}`], ["POST", "/grants"], ["GET", "/people"], ["GET", "/me"], ["GET", "/body"], ["GET", "/body/export"],
+    ["DELETE", "/body"], ["PUT", "/body/log/2026-11-25"], ["GET", `/people/${id}/notes`], ["GET", `/people/${id}/goals`], ["POST", `/people/${id}/ics`], ["GET", "/health"],
+    ["GET", "/board"], ["POST", `/people/${id}/end-sessions`], ["POST", "/sessions/end-all"]]) assert.equal(sessionGuarded(m, p), true, `${m} ${p}`);
+  assert.equal(sessionGuarded("POST", "/signins"), false);
   assert.equal(routeClass(`/people/${id}/end-sessions`), "/people/:id/end-sessions", "no ids in logs");
   assert.equal(routeClass("/sessions/end-all"), "/sessions/end-all");
 });
@@ -49,7 +48,7 @@ test("no cut-off: the guarded routes work with or without `sat` (nothing changes
   assert.equal((await call("PATCH", `/grants/${g.json.id}`, { body: { scopes: ["routines", "health"] }, sat: nowS() })).status, 200);
 });
 
-test("only the owner ends sessions; a person's cut-off refuses their older session on guarded routes only", async () => {
+test("only the owner ends sessions; a person's cut-off refuses their older session on every route", async () => {
   for (const k of ["p1", "c", "e"]) {
     assert.equal((await call("POST", `/people/${P.e}/end-sessions`, { actor: as(k) })).status, 403, k);
     assert.equal((await call("POST", "/sessions/end-all", { actor: as(k) })).status, 403, k);
@@ -64,8 +63,12 @@ test("only the owner ends sessions; a person's cut-off refuses their older sessi
   assert.equal((await call("POST", `/documents/${doc}/reveal`, { actor: as("e") })).status, 401, "no sat → refused once a cut-off exists");
   assert.equal((await call("GET", `/documents/${doc}/files/${doc}`, { actor: as("e"), sat: before })).status, 401);
   assert.equal((await call("POST", "/passkeys/register/options", { actor: as("e"), sat: before })).status, 401);
-  // …but not on ordinary routes: the rest of the 8 h session keeps working.
-  assert.equal((await call("GET", "/me", { actor: as("e"), sat: before })).status, 200);
+  // QA-156 H1: ordinary routes too — nothing of the 8 h session keeps working.
+  for (const [m, p] of [["GET", "/me"], ["GET", "/people"], ["GET", "/body"], ["GET", "/body/export"], ["DELETE", "/body"], ["GET", "/health"], ["GET", `/people/${P.e}/goals`], ["POST", `/people/${P.e}/ics`]]) {
+    const r = await call(m, p, { actor: as("e"), sat: before });
+    assert.equal(r.status, 401, `${m} ${p}`); assert.equal(r.json.error, "session_ended", `${m} ${p}`);
+  }
+  assert.notEqual((await call("POST", "/signins", { actor: as("e"), sat: before })).status, 401, "the sign-in note is outside the cut-off");
   // A session issued after the cut-off (rounded up to the second) passes the guard (then 404: no such document).
   const fresh = nowS() + 1;
   assert.equal((await call("POST", `/documents/${doc}/reveal`, { actor: as("e"), sat: fresh })).status, 404);

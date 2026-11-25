@@ -4,6 +4,8 @@ import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getCouncil, getSprint, getRecognitions, getKodeks } from "@/app/lib/family-os";
 import FamilyCouncil from "@/app/components/FamilyCouncil";
+import FamilyOsDown from "@/app/components/FamilyOsDown";
+import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 // Gated like every Family OS page; the service decides who reads and who writes.
 export const dynamic = "force-dynamic";
@@ -20,7 +22,9 @@ export default async function FamilyCouncilPage({ params, searchParams }: { para
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const [state, council] = await Promise.all([getOsState(session), getCouncil(session, (await searchParams).date)]);
-  if (state.status !== "ok" || (!state.me && !state.admin)) notFound();
+  const L = lang === "ru" ? "RU" : "EN";
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.council[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  if (!state.me && !state.admin) notFound();
   // The sprint is the council's own week (Mon–Sun ending on the council Sunday).
   // bus 86: the council's week (Mon–Sun ending on its Sunday) — its recognitions, as one list; principle texts for the pick.
   const [sprint, recs, kodeks] = council && state.me ? await Promise.all([getSprint(session, council.date), getRecognitions(session, council.agenda.from), getKodeks(session)]) : [null, null, null];

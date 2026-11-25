@@ -23,12 +23,14 @@ export default async function FamilyAdminPage({ params }: { params: Promise<{ la
   // Neither owner nor editor → the page does not exist for you (no hint that an editor is here).
   const role = session ? familyRole(session.cpifSubjectId) : "member";
   if (decision !== "allow" || !session || role === "member") notFound();
+  const nav = await getOsNav(session);
   return (
     <FamilyAdmin
       lang={lang === "ru" ? "RU" : "EN"}
       role={role}
       enabled={mediaEnabled()}
-      os={(await getOsNav(session)).os}
+      os={nav.os}
+      member={nav.member}
       people={FAMILY_TREE_NODES.map((n) => ({ id: n.id, nameEN: n.nameEN, nameRU: n.nameRU }))}
       entries={FAMILY_TIMELINE_EVENTS.map((e) => ({ id: e.id, titleEN: e.titleEN, titleRU: e.titleRU, yearEN: e.yearEN, yearRU: e.yearRU }))}
     />

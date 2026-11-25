@@ -4,6 +4,8 @@ import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState } from "@/app/lib/family-os";
 import FamilyOs from "@/app/components/FamilyOs";
+import FamilyOsDown from "@/app/components/FamilyOsDown";
+import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 // Gated (proxy.ts covers /family/*); never prerendered, never indexed. Data comes from family-os.
 export const dynamic = "force-dynamic";
@@ -19,5 +21,8 @@ export default async function FamilyOsPeoplePage({ params }: { params: Promise<{
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
-  return <FamilyOs lang={lang === "ru" ? "RU" : "EN"} view="people" state={await getOsState(session)} editor={familyRole(session.cpifSubjectId) === "editor"} />;
+  const L = lang === "ru" ? "RU" : "EN";
+  const state = await getOsState(session);
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.people[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  return <FamilyOs lang={L} view="people" state={state} editor={familyRole(session.cpifSubjectId) === "editor"} />;
 }

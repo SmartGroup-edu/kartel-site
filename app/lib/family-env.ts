@@ -32,7 +32,7 @@ export const familyEnv = {
 
   // Local session (HS256 JWT cookie). Subject = lowercased email.
   sessionSecret: (): string => need("FAMILY_SESSION_SECRET"),
-  /** `__Secure-kartel_family_session` in production, `kartel_family_session` in dev (go-live bundle). */
+  /** `__Host-kartel_family_session` in production (QA-156 L2), `kartel_family_session` in dev. */
   sessionCookie: (): string => familySessionCookie(),
   sessionMaxAgeSeconds: (): number => Number(process.env.FAMILY_SESSION_MAX_AGE ?? 28800), // 8h
 

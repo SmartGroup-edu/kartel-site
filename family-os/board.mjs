@@ -77,7 +77,7 @@ export function canMove(action, me, task, assignee, grants, ageOf = () => null) 
 }
 
 /** The state after an allowed move. */
-export const NEXT = { accept: "accepted", decline: "declined", start: "in_progress", pause: "accepted", done: (t) => "done", review: "reviewed", rework: "in_progress", reassign: "approved", cancel: "cancelled", carry: "carried_over" };
+export const NEXT = { accept: "accepted", decline: "declined", start: "in_progress", pause: "accepted", done: () => "done", review: "reviewed", rework: "in_progress", reassign: "approved", cancel: "cancelled", carry: "carried_over" };
 export const ACTIONS = ["accept", "decline", "start", "pause", "done", "continue", "review", "rework", "reassign", "carry", "cancel"];
 /** Every move this viewer may make on this task now — the drawer shows exactly these (bus 85 #9). */
 export const allowedActions = (me, task, assignee, grants, ageOf) => ACTIONS.filter((a) => canMove(a, me, task, assignee, grants, ageOf) === null);

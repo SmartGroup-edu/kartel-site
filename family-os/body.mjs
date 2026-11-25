@@ -1,5 +1,6 @@
 // Stage 3e-2 — personal weight and calorie logs (R0 decision 18.11.2026, plan §8.3; bus 86/109). Pure rules, unit-tested.
-// - ADULTS ONLY: kind "adult" AND, when a birth date is known, 18 or older. For anyone else the routes do not exist.
+// - ADULTS ONLY: kind "adult" AND either a birth date saying 18 or older, or (no birth date) the owner's one-time
+//   confirmation of adulthood. For anyone else the routes do not exist.
 // - OWNER-ONLY: the person themself. Not a spouse, a guardian or the family's owner; never in any aggregate.
 // - Neutral: «цель: N кг к дате», «калории в день: N». No BMI, no body images, no comparisons, no daily ± deltas — a
 //   trend (weekly and monthly means) instead. A missed entry means nothing.
@@ -11,11 +12,14 @@ export const KCAL_FLOOR = 1200;
 export const FAST_LOSS_KG_PER_WEEK = 1;
 export const FAST_LOSS_WEEKS = 3;
 
-/** 18+ adults only. A child row, or an adult row whose birth date says under 18, gets nothing. */
+/**
+ * 18+ adults only. A child row, or an adult row whose birth date says under 18, gets nothing. QA-156 M2 (R0 25.11):
+ * with no birth date, only after the owner has confirmed once that the person is an adult (`adult_confirmed_at`).
+ */
 export function bodyAllowed(person, today) {
   if (!person || person.kind !== "adult") return false;
   const b = person.birth_date instanceof Date ? person.birth_date.toISOString().slice(0, 10) : person.birth_date;
-  if (!b) return true;
+  if (!b) return Boolean(person.adult_confirmed_at);
   const [y, m, d] = String(b).slice(0, 10).split("-").map(Number), [ty, tm, td] = today.split("-").map(Number);
   const age = ty - y - (tm < m || (tm === m && td < d) ? 1 : 0);
   return age >= 18;

@@ -14,7 +14,7 @@ import { validateEvent } from "./validate.mjs";
 import { signMediaRequest } from "../app/lib/media-signature.mjs";
 
 const SECRET = "media-test-secret-at-least-32-characters";
-const ADMIN = "admin@example.com";
+const ADMIN = "owner:admin@example.com";
 let server, base, dir;
 
 async function call(method, path, { body = "", actor = ADMIN, secret = SECRET, headers = {} } = {}) {

@@ -38,5 +38,5 @@ test("sub-nav (bus 95 integration): every Family OS page except «Доступы
   const files = readdirSync("app/components").filter((f) => f.endsWith(".tsx"));
   const calls = files.flatMap((f) => (readFileSync(`app/components/${f}`, "utf8").match(/<FamilySubNav [^>]*\/>/g) ?? []).map((c) => [f, c]));
   assert.ok(calls.length >= 6);
-  assert.deepEqual(calls.filter(([f, c]) => !/editor=/.test(c) && !/active="access"/.test(c)).map(([f]) => f), []);
+  assert.deepEqual(calls.filter(([, c]) => !/editor=/.test(c) && !/active="access"/.test(c)).map((x) => x[0]), []);
 });

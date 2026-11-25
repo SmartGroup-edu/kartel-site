@@ -1,4 +1,6 @@
-import { familyGateDecision, familyRole, mediaActor } from "@/app/lib/family-gate";
+import { familyGateDecision, familyRole, mediaActor, sessionEndedByOwner } from "@/app/lib/family-gate";
+import { destroySession } from "@/app/lib/family-auth";
+import { PHOTO_CACHE_MS } from "@/app/lib/family-os-session.mjs";
 import { familyEnv } from "@/app/lib/family-env";
 import { fetchMedia, mediaEnabled } from "@/app/lib/family-media";
 
@@ -22,6 +24,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!ID.test(id) || !VARIANT.test(variant)) return deny(404);
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) return deny(401);
+  // QA-156 H1. Many photos per page: the answer is reused for up to 30 s (PHOTO_CACHE_MS).
+  if (await sessionEndedByOwner(session, { cacheMs: PHOTO_CACHE_MS })) { await destroySession(); return deny(401); }
   const role = familyRole(session.cpifSubjectId);
   const r = await fetchMedia(id, variant, role === "member" ? "published" : "admin", mediaActor(session.cpifSubjectId)).catch(() => null);
   if (!r || !r.ok || !r.body) return deny(r?.status === 404 ? 404 : 502);

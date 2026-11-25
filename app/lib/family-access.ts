@@ -24,21 +24,27 @@ export type FamilyAccessStatus = "pending" | "approved" | "revoked";
  *      add/revoke, OR the static founder seed `FAMILY_APPROVED_EMAILS` (env).
  * The subject-keyed Edge Config item `familyAccess` is no longer read: it was never written to
  * (key absent in production, verified 2026-11-14), so nothing is orphaned by dropping it.
- * Both the edge gate (proxy.ts) and the page guard call this. Edge Config read error → the
- * Edge Config check is skipped but the static env allowlist still applies (overall still fail-closed).
+ * Both the edge gate (proxy.ts) and the page guard call this. QA-156 L3: when Edge Config cannot be
+ * read, a revocation there cannot be seen either, so the env seed no longer lets anyone in — only admins
+ * pass until Edge Config answers again (fail-closed for the seed addresses too).
  */
 export async function isViewerApproved(subject: string, email?: string): Promise<boolean> {
   const subj = subject.trim().toLowerCase();
   if (familyEnv.adminEmails().includes(subj)) return true;
   const em = (email ?? subj).trim().toLowerCase();
-  try {
-    const fae = await get<Record<string, FamilyAccessStatus>>("familyAccessEmails");
-    // Explicit revoke beats any allow below.
-    if (em && fae?.[em] === "revoked") return false;
-    if (em && fae?.[em] === "approved") return true;
-  } catch {
-    // Edge Config unreachable → fall through to the static env allowlist.
+  if (!em) return false;
+  let fae: Record<string, FamilyAccessStatus> | undefined;
+  // No Edge Config connected at all (local dev, a QA stand): the env seed is the whole list.
+  if (process.env.EDGE_CONFIG) {
+    try {
+      fae = await get<Record<string, FamilyAccessStatus>>("familyAccessEmails");
+    } catch {
+      console.warn("[family-access] Edge Config unreadable: seed addresses refused until it answers");
+      return false;
+    }
   }
-  if (em && familyEnv.approvedEmails().includes(em)) return true;
-  return false;
+  // Explicit revoke beats any allow below.
+  if (fae?.[em] === "revoked") return false;
+  if (fae?.[em] === "approved") return true;
+  return familyEnv.approvedEmails().includes(em);
 }

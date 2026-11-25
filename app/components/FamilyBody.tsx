@@ -6,6 +6,8 @@
 // One calm GP line when the service says so. Export and delete at any time.
 import { useCallback, useEffect, useState } from "react";
 import { H2, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW, OS_H3 } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 type Entry = { on_date: string; weight_kg?: number; kcal?: number };
@@ -41,7 +43,7 @@ const T = {
   },
 } as const;
 
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
+const btn = BTN_SECONDARY;
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
 const label = "block text-[15px] text-[var(--text-secondary)]";
 const call = (method: "PUT" | "DELETE", path: string, body?: unknown) =>
@@ -54,16 +56,22 @@ export const parseDay = (s: string) => {
   return m ? `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}` : undefined;
 };
 
-/** Weekly means as a plain line — one neutral colour, no axis judgement, no deltas. */
-function Trend({ points, caption }: { points: { from: string; mean: number }[]; caption: string }) {
-  const W = 320, H = 120, P = 12;
+/** Weekly means as a plain line — one neutral colour, no axis judgement, no deltas. bus 157b D9: the first and
+ *  last points carry their values (just the number and «кг»: no arrows, no signs), in the text colour, so they
+ *  read in dark and high contrast alike. 15 viewBox units ≈ 16 px at the chart's width on a 390 px phone. */
+function Trend({ points, caption, label }: { points: { from: string; mean: number }[]; caption: string; label: (v: number) => string }) {
+  const W = 320, H = 136, P = 14, TOP = 30;
   const ys = points.map((p) => p.mean), lo = Math.min(...ys) - 1, hi = Math.max(...ys) + 1;
-  const x = (i: number) => P + (i * (W - 2 * P)) / Math.max(1, points.length - 1), y = (v: number) => H - P - ((v - lo) * (H - 2 * P)) / (hi - lo);
+  const x = (i: number) => P + (i * (W - 2 * P)) / Math.max(1, points.length - 1), y = (v: number) => H - P - ((v - lo) * (H - P - TOP)) / (hi - lo);
+  const ends = [0, points.length - 1];
   return (
     <figure className="mt-2">
     <svg data-body-trend="" role="img" aria-labelledby="body-trend-cap" viewBox={`0 0 ${W} ${H}`} className="h-auto w-full max-w-[480px]">
       <polyline fill="none" stroke="var(--foreground)" strokeWidth="1.5" points={points.map((p, i) => `${x(i)},${y(p.mean)}`).join(" ")} />
       {points.map((p, i) => <circle key={p.from} cx={x(i)} cy={y(p.mean)} r="3" fill="var(--foreground)" />)}
+      {ends.map((i, n) => (
+        <text key={n} data-body-trend-label={n === 0 ? "first" : "last"} x={x(i)} y={y(points[i].mean) - 10} textAnchor={n === 0 ? "start" : "end"} fontSize="15" fill="var(--foreground)" aria-hidden="true">{label(points[i].mean)}</text>
+      ))}
     </svg>
     <figcaption id="body-trend-cap" data-body-trend-caption="" className="mt-1 text-[15px] text-[var(--text-secondary)]">{caption}</figcaption>
     </figure>
@@ -71,7 +79,7 @@ function Trend({ points, caption }: { points: { from: string; mean: number }[]; 
 }
 
 export default function FamilyBody({ lang }: { lang: Lang }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const [b, setB] = useState<Body | null>(null);
   const [w, setW] = useState(""); const [k, setK] = useState("");
   const [gw, setGw] = useState(""); const [gby, setGby] = useState(""); const [gk, setGk] = useState("");
@@ -114,14 +122,14 @@ export default function FamilyBody({ lang }: { lang: Lang }) {
         <>
           {b.gp && <p data-body-gp="" role="note" className="mt-4 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[15px] text-[var(--foreground)]">{t.gp}</p>}
           <form className="mt-4 grid gap-3 sm:max-w-[60ch] sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); saveDay(); }}>
-            <h3 className="text-[17px] font-medium text-[var(--foreground)] sm:col-span-2">{t.today}</h3>
+            <h3 className={`${OS_H3} sm:col-span-2`}>{t.today}</h3>
             <label className={label}>{t.weight}<input data-body-weight="" inputMode="decimal" value={w} onChange={(e) => setW(e.target.value)} className={field} /></label>
             <label className={label}>{t.kcal}<input data-body-kcal="" inputMode="numeric" value={k} onChange={(e) => setK(e.target.value)} className={field} /></label>
-            <p className="sm:col-span-2"><button type="submit" data-body-save="" className={btn}>{t.save}</button></p>
+            <p className="sm:col-span-2"><button type="submit" data-body-save="" className={BTN_PRIMARY}>{t.save}</button></p>
           </form>
 
           <div className="mt-6 sm:max-w-[60ch]">
-            <h3 className="text-[17px] font-medium text-[var(--foreground)]">{t.goalHead}</h3>
+            <h3 className={OS_H3}>{t.goalHead}</h3>
             {hasGoal && <p data-body-goal="" className="mt-2 text-[16px] text-[var(--foreground)]">{t.goalLine(b.goal, fmt, dec)}</p>}
             {hasGoal && !editGoal ? (
               <p className="mt-2"><button type="button" data-body-goal-edit="" onClick={() => setEditGoal(true)} className={btn}>{t.goalEdit}</button></p>
@@ -130,18 +138,18 @@ export default function FamilyBody({ lang }: { lang: Lang }) {
                 <label className={label}>{t.goalW}<input data-body-goal-w="" inputMode="decimal" value={gw} onChange={(e) => setGw(e.target.value)} className={field} /></label>
                 <label className={label}>{t.goalBy}<input data-body-goal-by="" inputMode="numeric" lang={lang === "RU" ? "ru" : "en-GB"} placeholder={t.datePh} value={gby} onChange={(e) => setGby(e.target.value)} className={field} /></label>
                 <label className={label}>{t.goalK}<input data-body-goal-k="" inputMode="numeric" value={gk} onChange={(e) => setGk(e.target.value)} className={field} /></label>
-                <p className="flex flex-wrap gap-3 sm:col-span-3"><button type="submit" data-body-goal-save="" className={btn}>{t.goalSave}</button>
+                <p className="flex flex-wrap gap-3 sm:col-span-3"><button type="submit" data-body-goal-save="" className={BTN_PRIMARY}>{t.goalSave}</button>
                   {hasGoal && <button type="button" onClick={() => { setEditGoal(false); load(); }} className={btn}>{t.goalCancel}</button>}</p>
               </form>
             )}
           </div>
 
-          <h3 className="mt-6 text-[17px] font-medium text-[var(--foreground)]">{t.trend}</h3>
-          {b.trend.weekly.length >= 2 ? <Trend points={b.trend.weekly} caption={t.caption(dec(b.trend.weekly[0].mean), dec(b.trend.weekly[b.trend.weekly.length - 1].mean), b.trend.weekly.length)} /> : <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.trendNone}</p>}
+          <h3 className={`mt-8 ${OS_H3}`}>{t.trend}</h3>
+          {b.trend.weekly.length >= 2 ? <Trend points={b.trend.weekly} label={(v) => `${dec(v)} ${t.kg}`} caption={t.caption(dec(b.trend.weekly[0].mean), dec(b.trend.weekly[b.trend.weekly.length - 1].mean), b.trend.weekly.length)} /> : <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.trendNone}</p>}
 
           {b.entries.length > 0 && (
             <>
-              <h3 className="mt-6 text-[17px] font-medium text-[var(--foreground)]">{t.recent}</h3>
+              <h3 className={`mt-8 ${OS_H3}`}>{t.recent}</h3>
               <ul data-body-entries="" className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {b.entries.slice(-7).reverse().map((e) => (
                   <li key={e.on_date} className="py-2 text-[15px] text-[var(--foreground)]">
@@ -152,16 +160,19 @@ export default function FamilyBody({ lang }: { lang: Lang }) {
             </>
           )}
 
+          {/* D4: safe actions first; «Удалить все записи» alone in its own row under a hairline, danger style, behind a confirm */}
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <a data-body-export="" href="/api/family-os/body/export" download className={btn}>{t.export}</a>
+            {!ask && <button type="button" data-body-off="" onClick={() => toggle(false)} className={btn}>{t.off}</button>}
+          </div>
+          <div data-body-danger="" className={DANGER_ROW}>
             {ask ? (
-              <>
-                <span className="text-[15px] text-[var(--foreground)]">{t.delConfirm}</span>
-                <button type="button" data-body-delete-yes="" onClick={wipe} className={btn}>{t.delYes}</button>
+              <div role="alertdialog" aria-label={t.delConfirm} className="flex flex-wrap items-center gap-3">
+                <p className="basis-full max-w-[60ch] text-[15px] text-[var(--foreground)]">{t.delConfirm}</p>
                 <button type="button" data-body-delete-no="" autoFocus onClick={() => setAsk(false)} className={btn}>{t.delNo}</button>
-              </>
-            ) : <button type="button" data-body-delete="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.del}</button>}
-            {!ask && <button type="button" data-body-off="" onClick={() => toggle(false)} className="inline-flex min-h-11 items-center text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.off}</button>}
+                <button type="button" data-body-delete-yes="" onClick={wipe} className={BTN_DANGER}>{t.delYes}</button>
+              </div>
+            ) : <button type="button" data-body-delete="" onClick={() => { setMsg(""); setAsk(true); }} className={BTN_DANGER}>{t.del}</button>}
           </div>
         </>
       )}

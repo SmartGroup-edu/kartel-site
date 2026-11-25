@@ -16,6 +16,9 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, OS_H3 } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
+import FamilyJumpNav from "./FamilyJumpNav";
 import type { OsPerson, OsGrant, OsScope, OsRule, OsAdoption } from "../lib/family-os";
 import FamilyRules from "./FamilyRules";
 import FamilyAdoption from "./FamilyAdoption";
@@ -26,7 +29,7 @@ type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
 const T = {
   EN: {
-    title: "People and access", jump: "On this page", rulesTab: "Rules", intro: "Who is in the family and who may see what.",
+    title: "People and access", jump: "On this page", rulesTab: "Rules", withUs: "Who is with us", intro: "Who is in the family and who may see what.",
     people: "People", adult: "Adult", child: "Child", edit: "Edit", save: "Save", cancel: "Cancel", nameEn: "Name (English)", nameRu: "Name (Russian)", email: "Email", kind: "Role",
     addPerson: "Add a person", add: "Add", grants: "Guardians and access", noGrants: "No guardians yet.", guardian: "Guardian", relation: "Relation",
     rel: { parent: "Parent", relative: "Relative" }, scope: { routines: "Routines", health: "Health", education: "School", documents: "Documents" },
@@ -34,7 +37,7 @@ const T = {
     errors: { exists: "Already exists.", bad_person: "Check the name, email and role.", bad_scopes: "Choose at least one area.", guardian_not_adult: "A guardian must be an adult.", subject_not_child: "Access is given for a child." } as Record<string, string>,
   },
   RU: {
-    title: "Люди и доступы", jump: "На этой странице", rulesTab: "Правила", intro: "Кто в семье и кто что видит.",
+    title: "Люди и доступы", jump: "На этой странице", rulesTab: "Правила", withUs: "Кто уже с нами", intro: "Кто в семье и кто что видит.",
     people: "Люди", adult: "Взрослый", child: "Ребёнок", edit: "Изменить", save: "Сохранить", cancel: "Отмена", nameEn: "Имя (латиницей)", nameRu: "Имя (кириллицей)", email: "Почта", kind: "Роль",
     addPerson: "Добавить человека", add: "Добавить", grants: "Опекуны и доступ", noGrants: "Опекунов пока нет.", guardian: "Опекун", relation: "Кем приходится",
     rel: { parent: "Родитель", relative: "Родственник" }, scope: { routines: "Распорядок", health: "Здоровье", education: "Учёба", documents: "Документы" },
@@ -48,8 +51,8 @@ const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown)
   fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
 
 function useSave(t: Dict) {
   const router = useRouter();
@@ -63,8 +66,8 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
-  const t = T[lang];
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, member = true }: { lang: Lang; member?: boolean; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
   const sorted = [...people].sort((a, b) => a.kind.localeCompare(b.kind) || nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
@@ -73,16 +76,12 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin os active="access" />
+        <FamilySubNav lang={lang} admin os member={member} active="access" />
         <div className="max-w-4xl pb-8">
           <h1 className={H1}>{t.title}</h1>
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
-          {/* bus 78 #5: one tap to each part of a long page */}
-          <nav aria-label={t.jump} data-access-jump="" className="mt-4 flex flex-wrap gap-2">
-            {([...(adoption ? [["#with-us", lang === "EN" ? "Who is with us" : "Кто уже с нами"]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab]] : [])] as const).map(([href, label]) => (
-              <a key={href} href={href} className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{label}</a>
-            ))}
-          </nav>
+          {/* bus 78 #5: one tap to each part of a long page (the same index as the person page, bus 157b D6) */}
+          <FamilyJumpNav kind="access" label={t.jump} items={[...(adoption ? [["#with-us", t.withUs] as [string, string]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab] as [string, string]] : [])]} />
 
           {adoption && <FamilyAdoption lang={lang} data={adoption} />}
           {/* the owner who is not a person row: their own passkeys live here (bus 98/100) */}
@@ -92,7 +91,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
             <h2 id="ppl-h" className={H2}>{t.people}</h2>
             {([[t.adults, adults], [t.children, children]] as const).filter(([, xs]) => xs.length).map(([head, xs]) => (
               <div key={head} className="mt-6">
-                <h3 className="font-serif text-[20px] text-[var(--foreground)]">{head}</h3>
+                <h3 className={OS_H3}>{head}</h3>
                 <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {xs.map((p) => <PersonRow key={p.id} t={t} p={p} lang={lang} />)}
                 </ul>
@@ -105,7 +104,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
             <h2 id="grants-h" className={H2}>{t.grants}</h2>
             {children.map((c) => (
               <div key={c.id} data-child-grants="" className="mt-6">
-                <h3 className="font-serif text-[20px] text-[var(--foreground)]">{nameOf(c)}</h3>
+                <h3 className={OS_H3}>{nameOf(c)}</h3>
                 {grants.filter((g) => g.child_id === c.id).length === 0 && <p className={`${META} mt-2`}>{t.noGrants}</p>}
                 <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                   {grants.filter((g) => g.child_id === c.id).map((g) => {
@@ -224,12 +223,13 @@ function GrantRow({ t, lang, g, name }: { t: Dict; lang: Lang; g: OsGrant; name:
     <li data-grant={g.relation} className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <p className="text-[16px] text-[var(--foreground)]">{name} <span className="text-[14px] text-[var(--text-secondary)]">· {t.rel[g.relation]}</span></p>
+        {/* D4: revoking is a danger action — its own style, a confirm first, and the safe «Оставить» first in line */}
         {ask ? (
-          <span className="flex gap-2">
-            <button type="button" className={btn} onClick={() => run(send("DELETE", `grants/${g.id}`))}>{t.confirm}</button>
-            <button type="button" className={btn} onClick={() => setAsk(false)}>{t.keep}</button>
+          <span className="flex flex-wrap gap-2">
+            <button type="button" autoFocus className={btn} onClick={() => setAsk(false)}>{t.keep}</button>
+            <button type="button" data-grant-revoke-yes="" className={BTN_DANGER} onClick={() => run(send("DELETE", `grants/${g.id}`))}>{t.confirm}</button>
           </span>
-        ) : <button type="button" className={btn} onClick={() => setAsk(true)} aria-label={`${t.revoke}: ${name}`}>{t.revoke}</button>}
+        ) : <button type="button" data-grant-revoke="" className={BTN_DANGER} onClick={() => setAsk(true)} aria-label={`${t.revoke}: ${name}`}>{t.revoke}</button>}
       </div>
       <div className="mt-2"><ScopeBoxes t={t} value={pending ?? scopes} onChange={change} name={`${t.grants}: ${name}`} disabled={Boolean(pending)} /></div>
       {pending && (

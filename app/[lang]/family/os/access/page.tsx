@@ -5,6 +5,8 @@ import { familyEnv } from "@/app/lib/family-env";
 import { canRegister } from "@/app/lib/family-passkey-rules.mjs";
 import { getOsState, getRules, getAdoption } from "@/app/lib/family-os";
 import FamilyOsAccess from "@/app/components/FamilyOsAccess";
+import FamilyOsDown from "@/app/components/FamilyOsDown";
+import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 // Admin only: people and guardian grants. Members get a 404 (the service also refuses their writes).
 export const dynamic = "force-dynamic";
@@ -21,7 +23,10 @@ export default async function FamilyOsAccessPage({ params }: { params: Promise<{
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const state = await getOsState(session);
-  if (state.status !== "ok" || !state.admin) notFound();
+  // The edge already lets only the owner reach this page; with the service silent they get the calm state too.
+  const L = lang === "ru" ? "RU" : "EN";
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.access[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  if (!state.admin) notFound();
   const [rules, adoption] = await Promise.all([getRules(session), getAdoption(session)]);
-  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} />;
+  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} member={Boolean(state.me)} />;
 }

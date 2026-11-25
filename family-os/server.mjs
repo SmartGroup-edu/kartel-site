@@ -9,7 +9,7 @@ import { createHmac, createHash, timingSafeEqual, randomUUID, randomBytes } from
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { parseActor, noteKindsFor, checkGrant, NOTE_KINDS, SCOPES, canReadDocuments, canAddDocuments, canSeeBirth, DOC_TYPES, routineAccess, canSeeGuardians, ROUTINE_KINDS, canEditPrefs,
-  canReadCouncil, canWriteCouncil, canTickTask, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
+  canReadCouncil, canWriteCouncil, GOAL_SPHERES, goalVisibilities, canReadGoal, canWriteGoal, canWriteEvent, canSeeBirthday, canSeeBirthdayDayMonth } from "./policy.mjs";
 import { councilDate, weekStart, buildAgenda, calendarItems, buildIcs, councilStatus } from "./council.mjs";
 import { canMove, allowedActions, nextState, isParent, progress, sprintProgress, validMask, participants, needsDecision, nudgeDue, sortMinute, DECLINE_CODES, WHEN_SLOTS, MAX_PARTICIPANTS, CARRY_TIME, PLAN_TIME } from "./board.mjs";
 import { buildDayPlan } from "./board-jobs.mjs";
@@ -21,6 +21,7 @@ import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { bodyAllowed, cleanWeight, cleanKcal, cleanGoal, weightTrend, gpLine } from "./body.mjs";
+import { newBodyKey, openBodyKey, wrapUnder, rowKey, rewrapBodyRows } from "./body-keys.mjs";
 import { HEALTH_KINDS, healthPrefFor, familyTotals, tickDateOk, cleanEvening } from "./health.mjs";
 import { encryptNote, decryptNote, parseMasterKey, seal, open, sealBytes, openBytes, newDataKey, unwrapDataKey } from "./crypto.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -42,11 +43,14 @@ const sha256 = (buf) => createHash("sha256").update(buf).digest("hex");
 
 function limiter() {
   const hits = new Map();
-  return (key, max, windowMs) => {
+  setInterval(() => { const n = Date.now(); for (const [k, arr] of hits) if (arr.every((t) => n - t > 3600_000)) hits.delete(k); }, 600_000).unref();
+  /** consume=false only checks for room (QA-156 M4: the ICS budget is spent by served feeds only). */
+  return (key, max, windowMs, consume = true) => {
     const now = Date.now();
     const arr = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
     if (arr.length >= max) { hits.set(key, arr); return false; }
-    arr.push(now); hits.set(key, arr); return true;
+    if (consume) arr.push(now);
+    hits.set(key, arr); return true;
   };
 }
 
@@ -126,9 +130,12 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const icsM = req.method === "GET" && url.pathname.match(/^\/ics\/([A-Za-z0-9_-]{43})$/);
     if (icsM) {
       if (auth.actor !== "system:ics") return reply(res, 403, { error: "forbidden" });
-      if (!allow("ics", 600, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      // QA-156 M4: unknown tokens no longer spend the family's feed budget — they have their own bucket (and the
+      // per-IP limit is the Vercel Firewall's). Only a served feed counts against "ics".
+      if (!allow("ics", 600, 3600_000, false)) return reply(res, 429, { error: "rate_limited" });
       const person = await store.personByIcs(sha256(icsM[1]));
-      if (!person) return reply(res, 404, { error: "not_found" });
+      if (!person) return reply(res, allow("ics:miss", 600, 3600_000) ? 404 : 429, { error: "not_found" });
+      allow("ics", 600, 3600_000);
       return serveIcs(res, person);
     }
     // Passkey sign-in happens before there is a session: the site signs these two calls as "auth:passkey".
@@ -137,9 +144,13 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const pkPath = url.pathname;
       if (req.method !== "POST" || (pkPath !== "/passkeys/auth/options" && pkPath !== "/passkeys/auth/verify")) return reply(res, 403, { error: "forbidden" });
       if (!passkeys) return reply(res, 404, { error: "not_found" });
+      const b = json(body) ?? {};
+      // QA-156 M5: one client (the site's HMAC of the IP) may hold 20 challenges per 10 minutes, so a flood from
+      // one place cannot push out everyone else's. The 3000/h ceiling stays for the whole family.
+      const client = typeof b.client === "string" && /^[0-9a-f]{32}$/.test(b.client) ? b.client : null;
+      if (pkPath === "/passkeys/auth/options" && client && !allow(`pk:c:${client}`, 20, 600_000)) return reply(res, 429, { error: "rate_limited" });
       if (!allow("pk:auth", 3000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
       if (pkPath === "/passkeys/auth/options") return reply(res, 200, await authOptions({ store, cfg: passkeys, now: clock() }));
-      const b = json(body) ?? {};
       const r = await authVerify({ store, cfg: passkeys, challengeId: b.challenge_id, response: b.response, now: clock() });
       console.log(`[os] passkey.auth ${r.email ? "ok" : "fail"}`);
       return r.email ? reply(res, 200, { email: r.email }) : reply(res, 401, { error: "failed" });
@@ -153,10 +164,11 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     const me = await store.findPersonByEmail(who.email);
     const path = url.pathname;
 
-    // Go-live R1 (bus 100/105): a session issued before the owner's «Завершить сеансы» cut-off is refused on the
-    // sensitive routes. The site signs `sat` (the session's issued-at, seconds) into every call; a missing `sat`
-    // counts as 0, so it is refused whenever a cut-off exists. The cut-off is rounded UP to the second (fail-closed).
-    if (sensitiveRoute(req.method, path)) {
+    // Go-live R1 (bus 100/105), widened by QA-156 H1 (R0 25.11): a session issued before the owner's «Завершить
+    // сеансы» cut-off is refused on EVERY actor route — only /healthz, the ICS feed and passkey sign-in (above) and
+    // the sign-in note are outside it. The site signs `sat` (the session's issued-at, seconds) into every call; a
+    // missing `sat` counts as 0, so it is refused whenever a cut-off exists. The cut-off is rounded UP to the second.
+    if (sessionGuarded(req.method, path)) {
       const cut = await store.sessionCutoff(who.email);
       const sat = Number(url.searchParams.get("sat"));
       if (cut && !(Number.isInteger(sat) && sat >= Math.ceil(cut.getTime() / 1000))) {
@@ -173,7 +185,11 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         const p = await store.getPerson(esm[1]);
         if (!p?.email) return reply(res, 404, { error: "not_found" });
         await store.endSessions(p.email, who.email);
-      } else await store.endSessions("*", who.email);
+        await store.revokeIcs(p.id, who.email); // QA-156 H1: a calendar link is a credential too
+      } else {
+        await store.endSessions("*", who.email);
+        await store.revokeAllIcs(who.email);
+      }
       return reply(res, 200, { ok: true });
     }
 
@@ -267,24 +283,28 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const grants = await grantsNow();
       const birth = canSeeBirth(me, subject, grants, admin) ? (subject.birth_date ? String(subject.birth_date instanceof Date ? subject.birth_date.toISOString().slice(0, 10) : subject.birth_date) : null) : undefined;
       return reply(res, 200, {
-        person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}) },
+        person: { id: subject.id, name_en: subject.name_en, name_ru: subject.name_ru, kind: subject.kind, ...(birth !== undefined ? { birth_date: birth } : {}),
+          // QA-156 M2: only the owner sees (and sets) the «взрослый, 18+» confirmation, and only where it matters.
+          ...(admin && subject.kind === "adult" && !subject.birth_date ? { adult_confirmed: Boolean(subject.adult_confirmed_at) } : {}) },
         guardians: canSeeGuardians(me, subject, grants, admin) ? grants.filter((g) => g.child_id === subject.id).map((g) => ({ guardian_id: g.guardian_id, relation: g.relation, scopes: g.scopes })) : [],
         can: { documents: canReadDocuments(me, subject, grants), add_documents: canAddDocuments(me, subject, grants, admin), retype_documents: canAddDocuments(me, subject, grants, admin),
           routines: routineAccess(me, subject, grants), prefs: canEditPrefs(me, subject, grants),
           notes: noteKindsFor(me, subject, grants), goals: canWriteGoal(me, subject), ics: Boolean(me && me.id === subject.id) },
       });
     }
-    // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind }
+    // PATCH /people/:id (admin) — any of { birth_date, name_en, name_ru, kind, adult_confirmed }
     if (pm && req.method === "PATCH") {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       const b = json(body);
       if (!UUID_RE.test(pm[1]) || !b || typeof b !== "object") return reply(res, 400, { error: "bad_request" });
-      const hasBirth = "birth_date" in b, names = { name_en: text(b.name_en, 200), name_ru: text(b.name_ru, 200), kind: b.kind };
+      const hasBirth = "birth_date" in b, hasAdult = "adult_confirmed" in b, names = { name_en: text(b.name_en, 200), name_ru: text(b.name_ru, 200), kind: b.kind };
       if (hasBirth && !(b.birth_date === null || DATE_RE.test(b.birth_date ?? ""))) return reply(res, 400, { error: "bad_request" });
+      if (hasAdult && typeof b.adult_confirmed !== "boolean") return reply(res, 400, { error: "bad_request" });
       if (("name_en" in b && !names.name_en) || ("name_ru" in b && !names.name_ru) || ("kind" in b && !["adult", "child"].includes(b.kind))) return reply(res, 400, { error: "bad_person" });
-      if (!hasBirth && !("name_en" in b) && !("name_ru" in b) && !("kind" in b)) return reply(res, 400, { error: "bad_request" });
+      if (!hasBirth && !hasAdult && !("name_en" in b) && !("name_ru" in b) && !("kind" in b)) return reply(res, 400, { error: "bad_request" });
       if (!(await store.getPerson(pm[1]))) return reply(res, 404, { error: "not_found" });
       if (hasBirth) await store.setBirthDate(pm[1], b.birth_date, who.email);
+      if (hasAdult) await store.setAdultConfirmed(pm[1], b.adult_confirmed, who.email); // QA-156 M2
       if ("name_en" in b || "name_ru" in b || "kind" in b) await store.updatePerson(pm[1], { name_en: names.name_en, name_ru: names.name_ru, kind: "kind" in b ? b.kind : null }, who.email);
       return reply(res, 200, { ok: true });
     }
@@ -790,7 +810,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const today = localDate(clock());
       const q = url.searchParams.get("date");
       const date = q && DATE_RE.test(q) ? councilDate(q) : councilDate(today);
-      const [m, prev, routines, rotations, pauses, people] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses(), store.listPeople()]);
+      const [m, prev, routines, rotations, pauses] = await Promise.all([store.getMeeting(date), store.prevMeeting(date), store.allRoutines(), store.listRotations(), store.allPauses()]);
       // Decisions are tasks (bus 85): this council's and the previous one's, from the task table.
       const [checks, rchecks, tasks, prevTasks] = await Promise.all([store.allChecks(addDays(date, -7)), store.allRotationChecks(addDays(date, -7)), store.councilTasks(date), prev ? store.councilTasks(prev.on_date) : []]);
       let notes = "";
@@ -892,11 +912,22 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const today = localDate(clock());
       const self = me ? await store.getPerson(me.id) : null;
       if (!self || !bodyAllowed(self, today)) return reply(res, 404, { error: "not_found" });
-      const sealJ = (scope, id, obj) => { const { dek, wrapped } = newDataKey(kek, scope, id); try { return { wrapped, ct: seal(dek, Buffer.from(JSON.stringify(obj)), `${scope}:${id}`) }; } finally { dek.fill(0); } };
-      const openJ = (scope, id, wrapped, ct) => { const k = unwrapDataKey(kek, wrapped, scope, id); try { return JSON.parse(open(k, ct, `${scope}:${id}`).toString("utf8")); } finally { k.fill(0); } };
+      // QA-156 M3: row data keys are wrapped by the person's /body key (body-keys.mjs), destroyed by «Удалить все записи».
+      const personKey = async (create) => {
+        let w = await store.bodyKey(self.id);
+        if (!w && create) { const n = newBodyKey(kek, self.id); n.key.fill(0); w = await store.createBodyKey(self.id, n.wrapped); }
+        return w ? openBodyKey(kek, w, self.id) : null;
+      };
+      const sealJ = async (scope, id, obj) => {
+        const pk = await personKey(true), dek = randomBytes(32);
+        try { return { wrapped: wrapUnder(pk, dek, scope, id), ct: seal(dek, Buffer.from(JSON.stringify(obj)), `${scope}:${id}`) }; } finally { dek.fill(0); pk.fill(0); }
+      };
       const readAll = async () => {
         const rows = await store.bodyLog(self.id), g = await store.bodyGoal(self.id);
-        return { entries: rows.map((r) => ({ on_date: r.on_date, ...openJ("body", r.id, r.wrapped_key, r.value_ct) })), goal: g ? openJ("body-goal", self.id, g.wrapped_key, g.goal_ct) : {} };
+        if (!rows.length && !g) return { entries: [], goal: {} };
+        const pk = await personKey(false);
+        const openJ = (scope, id, wrapped, ct) => { const k = rowKey(kek, pk, wrapped, scope, id); try { return JSON.parse(open(k, ct, `${scope}:${id}`).toString("utf8")); } finally { k.fill(0); } };
+        try { return { entries: rows.map((r) => ({ on_date: r.on_date, ...openJ("body", r.id, r.wrapped_key, r.value_ct) })), goal: g ? openJ("body-goal", self.id, g.wrapped_key, g.goal_ct) : {} }; } finally { pk?.fill(0); }
       };
       const on = await store.bodyOn(self.id);
       if (!bdm[1] && !bdm[2] && req.method === "GET") {
@@ -911,6 +942,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       }
       if (bdm[1] === "prefs" && req.method === "PUT") {
         const b = json(body); if (typeof b?.on !== "boolean" || Object.keys(b).length !== 1) return reply(res, 400, { error: "bad_prefs" });
+        // QA-156 L11: switching on/off and every write are logged too (entity only, never a value).
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:prefs", action: "write" }))) return;
         await store.setBodyOn(self.id, b.on); return reply(res, 200, { ok: true, on: b.on });
       }
       if (bdm[1] === "export" && req.method === "GET") {
@@ -922,7 +955,8 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (!on) return reply(res, 409, { error: "body_off" });
       if (bdm[1] === "goal" && req.method === "PUT") {
         const g = cleanGoal(json(body), today); if (g === undefined) return reply(res, 400, { error: "bad_goal" });
-        const x = sealJ("body-goal", self.id, g); await store.setBodyGoal(self.id, x.wrapped, x.ct); return reply(res, 200, { ok: true, goal: g });
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:goal", action: "write" }))) return;
+        const x = await sealJ("body-goal", self.id, g); await store.setBodyGoal(self.id, x.wrapped, x.ct); return reply(res, 200, { ok: true, goal: g });
       }
       if (bdm[2] && req.method === "PUT") {
         const d = bdm[2], b = json(body);
@@ -930,13 +964,14 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         if (!b || typeof b !== "object" || Object.keys(b).some((k) => !["weight_kg", "kcal"].includes(k))) return reply(res, 400, { error: "bad_entry" });
         const w = b.weight_kg === undefined ? undefined : cleanWeight(b.weight_kg), k = b.kcal === undefined ? undefined : cleanKcal(b.kcal);
         if ((b.weight_kg !== undefined && w === undefined) || (b.kcal !== undefined && k === undefined)) return reply(res, 400, { error: "bad_entry" });
+        if (!(await logged(res, { actor: who.email, subject: self.id, entity: "body:log", action: "write" }))) return;
         const id0 = await store.bodyLogId(self.id, d);
         const prev = id0 ? (await readAll()).entries.find((e) => e.on_date === d) ?? {} : {};
         const next = { ...(prev.weight_kg !== undefined ? { weight_kg: prev.weight_kg } : {}), ...(prev.kcal !== undefined ? { kcal: prev.kcal } : {}) };
         if (b.weight_kg !== undefined) { if (w === null) delete next.weight_kg; else next.weight_kg = w; }
         if (b.kcal !== undefined) { if (k === null) delete next.kcal; else next.kcal = k; }
         if (!Object.keys(next).length) { await store.deleteBodyLog(self.id, d); return reply(res, 200, { ok: true, deleted: true }); }
-        const id = id0 ?? randomUUID(), x = sealJ("body", id, next);
+        const id = id0 ?? randomUUID(), x = await sealJ("body", id, next);
         await store.setBodyLog({ id, person_id: self.id, on_date: d, wrapped_key: x.wrapped, value_ct: x.ct });
         return reply(res, 200, { ok: true });
       }
@@ -1508,16 +1543,15 @@ async function stripImage(buf, mime) {
 /** A parent (active parent grant) of a CHILD subject. Parents never manage an adult's keys. */
 const pkParentOf = (me, subject, grants) => Boolean(me) && subject?.kind === "child" && grants.some((g) => !g.revoked_at && g.relation === "parent" && g.guardian_id === me.id && g.child_id === subject.id);
 
-/** "/people/<uuid>/notes" → "/people/:id/notes" — logs never carry ids, emails or text. */
-/** Go-live R1: the routes a session cut-off guards — document open/reveal, passkey register, «Доступы» writes. */
-export function sensitiveRoute(method, p) {
-  if (method === "GET" && /^\/documents\/[^/]+\/files\/[^/]+$/.test(p)) return true;
-  if (method === "POST" && /^\/documents\/[^/]+\/(reveal|copied)$/.test(p)) return true;
-  if (method === "POST" && /^\/passkeys\/register\/(options|verify)$/.test(p)) return true;
-  if (method !== "GET" && /^\/grants(\/[^/]+)?$/.test(p)) return true;
-  if ((method === "POST" && p === "/people") || (method === "PATCH" && /^\/people\/[^/]+$/.test(p))) return true;
-  return false;
+/**
+ * Go-live R1, inverted by QA-156 H1 (R0 25.11): the session cut-off guards every actor route. The one exception is
+ * the site's note of a sign-in that has just completed (date only; the session it reports is new by definition).
+ */
+export function sessionGuarded(method, p) {
+  return !(method === "POST" && p === "/signins");
 }
+
+/** "/people/<uuid>/notes" → "/people/:id/notes" — logs never carry ids, emails or text. */
 
 export function routeClass(url = "") {
   const p = url.split("?")[0];
@@ -1612,6 +1646,8 @@ async function main() {
   await owner.query(await readFile(new URL("./schema.sql", import.meta.url), "utf8"));
   await ensureCanary(owner, parseMasterKey(masterKey));
   await ensureKodeks(owner);
+  // QA-156 M3: legacy /body rows → per-person keys. Idempotent (only rows without "pk1:"); counts only.
+  { const c = await owner.connect(); try { const r = await rewrapBodyRows(c, parseMasterKey(masterKey), "up"); if (r.rows) console.log(`[os] body keys: ${r.keys} created, ${r.rows} rows re-wrapped`); } finally { c.release(); } }
   const pool = await appRolePool(pg, owner, process.env.DATABASE_URL, process.env.FAMILY_OS_APP_DB_PASSWORD);
   await owner.end();
   console.log("[os] requests run as kfo_app (access_log: select+insert only)");

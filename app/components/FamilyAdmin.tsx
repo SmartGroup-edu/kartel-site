@@ -135,7 +135,7 @@ const btnPrimary = `${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[
 const btnSecondary = `${btn} border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 const link = "underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]";
 
-export default function FamilyAdmin({ lang, role = "owner", enabled, os = false, people, entries }: { lang: Lang; role?: Role; enabled: boolean; os?: boolean; people: Person[]; entries: Entry[] }) {
+export default function FamilyAdmin({ lang, role = "owner", enabled, os = false, member = true, people, entries }: { lang: Lang; role?: Role; enabled: boolean; os?: boolean; member?: boolean; people: Person[]; entries: Entry[] }) {
   const t = T[lang];
   const editor = role === "editor";
   const [mine, setMine] = useState<Content>(EMPTY); // editor: her open proposals over the draft
@@ -230,7 +230,7 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={!editor} editor={editor} os={os} active="admin" />
+        <FamilySubNav lang={lang} admin={!editor} editor={editor} os={os} member={member} active="admin" />
         <div className="max-w-4xl pb-8">
         <p className={EYEBROW}>{t.eyebrow}</p>
         <h1 className={`mt-2 ${H1}`}>{t.title}</h1>
@@ -243,7 +243,8 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
             {/* Toolbar: one row everywhere; the in-page nav and the secondary actions fold away on phones. */}
             <div data-toolbar="" className="sticky top-16 z-20 mt-8 flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 lg:top-24">
               <nav aria-label={t.nav} className="hidden items-center gap-3 whitespace-nowrap text-[15px] sm:flex">
-                <a href="#people-h" className={`inline-flex min-h-11 items-center ${link}`}>{t.people}</a><span aria-hidden="true" className="text-[var(--muted)]">·</span><a href="#entries-h" className={`inline-flex min-h-11 items-center ${link}`}>{t.entries}</a>
+                {/* QA-156 L10: each jump link is at least 44 × 44 («Люди» was 42 px wide) */}
+                <a href="#people-h" className={`inline-flex min-h-11 min-w-11 items-center justify-center ${link}`}>{t.people}</a><span aria-hidden="true" className="text-[var(--muted)]">·</span><a href="#entries-h" className={`inline-flex min-h-11 min-w-11 items-center justify-center ${link}`}>{t.entries}</a>
               </nav>
               {!editor && <details data-pending="" className={`relative hidden text-[15px] ${pendingN > 0 ? "lg:block" : "sm:block"}`}>
                 <summary className="flex min-h-11 cursor-pointer list-none items-center whitespace-nowrap rounded px-1 text-[var(--text-secondary)] marker:hidden">{n ? `${t.unpublished}: ${n}` : t.noChanges}</summary>
