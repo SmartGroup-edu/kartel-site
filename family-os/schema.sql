@@ -86,8 +86,8 @@ ALTER TABLE person ADD COLUMN IF NOT EXISTS birth_date date;
 ALTER TABLE guardian_grant DROP CONSTRAINT IF EXISTS guardian_grant_scopes_check;
 ALTER TABLE guardian_grant ADD CONSTRAINT guardian_grant_scopes_check
   CHECK (cardinality(scopes) >= 1 AND scopes <@ ARRAY['routines', 'health', 'education', 'documents']::text[]);
-ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;
-ALTER TABLE access_log ADD CONSTRAINT access_log_action_check CHECK (action IN ('read', 'write', 'reveal', 'copy'));
+-- access_log_action_check is defined once, at the end of this file (3e-2). Re-adding a narrower list
+-- here broke every start once an 'export'/'delete' row existed (QA-156 C1).
 
 CREATE TABLE IF NOT EXISTS schema_migration (name text PRIMARY KEY, at timestamptz NOT NULL DEFAULT now());
 -- One-time: parents' existing grants on minors include documents (R0 2026-11-17). Later grants are
@@ -625,6 +625,7 @@ CREATE TABLE IF NOT EXISTS body_goal (
   wrapped_key  text NOT NULL,
   goal_ct      text NOT NULL
 );
--- 3e-2: the person's own export and delete-all are logged too.
+-- 3e-2: the person's own export and delete-all are logged too. The only definition of this CHECK:
+-- schema.sql runs on every start, so it must always carry the full list (store.mjs LOG_ACTIONS).
 ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;
 ALTER TABLE access_log ADD CONSTRAINT access_log_action_check CHECK (action IN ('read', 'write', 'reveal', 'copy', 'export', 'delete'));

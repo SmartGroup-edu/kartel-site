@@ -34,3 +34,32 @@ jobs:
 
       - name: Snapshot tests
         run: npm test
+
+  family-os-postgres:
+    # schema.sql re-applied to a populated database, then a runner tick (QA-156 C1).
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.9-alpine3.22
+        env:
+          POSTGRES_USER: kfo
+          POSTGRES_PASSWORD: kfo-ci-only
+          POSTGRES_DB: kfo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kfo -d kfo" --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci && npm ci --prefix family-os
+
+      - name: Postgres tests
+        env:
+          FAMILY_OS_TEST_DATABASE_URL: postgres://kfo:kfo-ci-only@localhost:5432/kfo
+        run: npm run test:pg

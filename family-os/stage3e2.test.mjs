@@ -120,9 +120,11 @@ test("schema + privileges: no body columns outside the sealed tables; the person
   assert.match(readFileSync(new URL("./Dockerfile", import.meta.url), "utf8"), /\bbody\.mjs\b/);
 });
 
-test("the memory store's log actions are exactly the access_log CHECK in schema.sql (the last one wins)", async () => {
+test("the memory store's log actions are exactly the access_log CHECK in schema.sql, defined once (QA-156 C1)", async () => {
   const { LOG_ACTIONS } = await import("./store.mjs");
   const schema = readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
-  const last = [...schema.matchAll(/ADD CONSTRAINT access_log_action_check CHECK \(action IN \(([^)]*)\)\)/g)].pop()[1];
-  assert.deepEqual(last.split(",").map((x) => x.trim().replace(/'/g, "")), LOG_ACTIONS);
+  const all = [...schema.matchAll(/ADD CONSTRAINT access_log_action_check CHECK \(action IN \(([^)]*)\)\)/g)];
+  // A second, narrower ADD CONSTRAINT fails on every start once a wider action is in the table.
+  assert.equal(all.length, 1, "access_log_action_check must be added exactly once");
+  assert.deepEqual(all[0][1].split(",").map((x) => x.trim().replace(/'/g, "")), LOG_ACTIONS);
 });
