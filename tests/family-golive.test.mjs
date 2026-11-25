@@ -24,6 +24,7 @@ test("session cookie (QA-156 L2): Secure exactly in production, host-only — no
   assert.match(set, /httpOnly: true/); assert.match(set, /sameSite: "lax"/); assert.match(set, /path: "\/"/);
   assert.doesNotMatch(auth, /domain:/, "no Domain on any family cookie");
   for (const f of ["proxy.ts", "app/lib/family-auth.ts", "app/api/family-auth/console/route.ts"]) assert.doesNotMatch(src(f), /FAMILY_COOKIE_DOMAIN/, f);
+  assert.doesNotMatch(src(".env.example"), /^FAMILY_COOKIE_DOMAIN=/m, "bus 160: no longer part of the env contract");
   const del = auth.slice(auth.indexOf("export async function destroySession"));
   assert.match(del.slice(0, 300), /secure: process\.env\.NODE_ENV === "production"[\s\S]*maxAge: 0/, "sign-out clears the same cookie");
 });
