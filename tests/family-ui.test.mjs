@@ -130,12 +130,58 @@ test("D2: one H2 style for every section heading, one H3 style for block titles"
       seen++;
       if (/id="drawer-h"/.test(m[0])) continue; // the task drawer's dialog title
       if (/text-\[15px\] font-medium text-\[var\(--text-secondary\)\]/.test(m[1]) && f === "FamilyCalendar.tsx") continue; // day labels in the calendar list (docs/family-os-design.md)
-      assert.match(m[1], /^\{(H2|OS_H2|`\$\{OS_H2\}[^`]*`|headingClass)\}$/, `${f}: ${m[0].slice(0, 90)}`);
+      // bus 159: OS_H2 only — the site H2 (burgundy) is no longer a section heading on an OS page
+      assert.match(m[1], /^\{(OS_H2|`\$\{OS_H2\}[^`]*`|headingClass)\}$/, `${f}: ${m[0].slice(0, 90)}`);
     }
     for (const m of s.matchAll(cls("h3"))) assert.match(m[1], /OS_H3|headingClass|H3\b/, `${f}: ${m[0].slice(0, 90)}`);
+    assert.doesNotMatch(s, /import \{[^}]*\bH2\b[^}]*\} from "\.\.\/lib\/typeScale"/, `${f}: no site H2 on an OS page`);
   }
   assert.ok(seen >= 30, `the scan saw the section headings (${seen})`);
-  assert.match(src("app/lib/family-ui.ts"), /export const OS_H2 = H2;\s*export const OS_H3 = H3;/);
+});
+
+test("bus 159 #1: section H2 is ink, ~22 px, below the burgundy H1; H3 sits below H2; HC keeps the ink", () => {
+  const ui = src("app/lib/family-ui.ts");
+  const h2 = ui.match(/export const OS_H2 = "([^"]+)";/)?.[1] ?? "", h3 = ui.match(/export const OS_H3 = "([^"]+)";/)?.[1] ?? "";
+  assert.match(h2, /font-serif/); assert.match(h2, /text-\[var\(--foreground\)\]/); assert.doesNotMatch(h2, /--accent/, "maroon is for the page title and primary buttons");
+  assert.match(h3, /text-\[var\(--foreground\)\]/); assert.doesNotMatch(h3, /--accent/);
+  const px = (s) => [...s.matchAll(/text-\[(\d+)px\]/g)].map((m) => Number(m[1]));
+  assert.deepEqual(px(h2), [22, 24]); assert.ok(Math.max(...px(h3)) < Math.min(...px(h2)), "H3 smaller than H2 at every width");
+  // contrast: --foreground on --background in light, dark and both high-contrast sets (text ≥ 4.5:1; it is far above)
+  const css = src("app/globals.css");
+  assert.ok((css.match(/--foreground:/g) ?? []).length >= 4, "every theme defines the ink");
+});
+
+test("bus 159 #2: «Принцип недели» on Today is a card label, not an H2; Today's first H2 is a section", () => {
+  const k = comp("FamilyKodeks.tsx");
+  const today = k.slice(k.indexOf("export function TodayPrinciple"), k.indexOf("export function", k.indexOf("export function TodayPrinciple") + 10));
+  assert.doesNotMatch(today, /<h[1-6]\b/, "no heading inside the principle card");
+  assert.match(today, /<p id="principle-h" className=\{`\$\{CARD_LABEL\} flex items-center gap-1\.5`\}><KodeksIcon size=\{16\} \/>\{t\.week\}<\/p>/);
+  assert.match(today, /<section aria-labelledby="principle-h"/, "the region keeps its name");
+  assert.match(src("app/lib/family-ui.ts"), /export const CARD_LABEL = "text-\[14px\] font-medium text-\[var\(--muted\)\]";/);
+});
+
+test("bus 159 #3: gold rule = goals and plans — sprint goals, the goal card, WOOP; recorded in the design notes", () => {
+  const ui = src("app/lib/family-ui.ts");
+  assert.match(ui, /RULE_GOALS = "border-l-2 border-\[var\(--pillar-growth\)\] pl-4"/);
+  const b = comp("FamilyBoard.tsx");
+  assert.equal((b.match(/data-goals-rule="" className=\{`mt-\d divide-y divide-\[var\(--border\)\] \$\{RULE_GOALS\}`\}/g) ?? []).length, 2, "board sprint panel + council sprint goals");
+  assert.match(comp("FamilyWeek.tsx"), /aria-labelledby="w-goals" data-goals-rule="" className="border-l-2 border-\[var\(--pillar-growth\)\] pl-3/, "the Week sheet's sprint goals");
+  const x = comp("FamilyPersonExtras.tsx");
+  assert.match(x, /<li data-goal=\{g\.status\} className="py-4">\s*<div className=\{RULE_GOALS\}>/, "each goal card");
+  assert.match(x, /<WoopFields t=\{t\} prefix="woop" className="sm:col-span-2" \/>/, "the add form's WOOP keeps its own rule (ruled defaults to true)");
+  assert.match(x, /values=\{w\} ruled=\{false\} \/>/, "inside a card: no second rule");
+  assert.doesNotMatch(x, /border-\[var\(--pillar-growth\)\]/, "one gold rule class: RULE_GOALS");
+  const notes = src("docs/family-os-design.md");
+  assert.match(notes, /gold \(`--pillar-growth`, `RULE_GOALS`\) — \*\*goals and plans\*\*/);
+  assert.doesNotMatch(notes, /open question for the next review/);
+});
+
+test("bus 159 #4: WOOP reads as label/value pairs — <dl>, small muted <dt>, body-text <dd>", () => {
+  const x = comp("FamilyPersonExtras.tsx");
+  const w = x.slice(x.indexOf("function GoalWoop"), x.indexOf("function GoalRow"));
+  assert.match(w, /<dl className="grid gap-3">/);
+  assert.match(w, /<div key=\{k\} data-woop-pair=\{k\}><dt className=\{CARD_LABEL\}>\{t\.woopKeys\[k\]\}<\/dt><dd className="mt-0\.5 text-\[16px\] leading-snug text-\[var\(--foreground\)\]">\{w\[k\]\}<\/dd><\/div>/);
+  assert.doesNotMatch(w, /className="contents"/, "a real pair wrapper, not display: contents");
 });
 
 test("D3: one button scale — ≥ 44 px, primary filled for a form's submit, secondary outline elsewhere", () => {
@@ -221,7 +267,7 @@ test("D6: the person page has the same index as «Доступы»; not pills; s
   assert.match(comp("FamilyPersonExtras.tsx"), /<section id="notes" aria-labelledby="notes-h"/);
 });
 
-test("D8: a left rule means values (grey) or private (червлень) only; documents on Today wear the private rule", () => {
+test("D8: a left rule means values (grey), private (червлень) or goals (gold, bus 159); documents on Today wear the private rule", () => {
   const ui = src("app/lib/family-ui.ts");
   assert.match(ui, /RULE_VALUES = "border-l-2 border-\[var\(--pillar-kodeks\)\] pl-4"/);
   assert.match(ui, /RULE_PRIVATE = "border-l-2 border-\[var\(--pillar-health\)\] pl-4"/);

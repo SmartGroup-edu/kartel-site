@@ -9,8 +9,8 @@
 import { checkEnded } from "../lib/family-ended";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { H2, META } from "../lib/typeScale";
-import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW } from "../lib/family-ui";
+import { META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW, OS_H2 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -88,7 +88,7 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
 
   return (
     <section id="signin-keys" aria-labelledby="signin-keys-h" data-passkeys={self ? "self" : "other"} className="mt-12 scroll-mt-24">
-      <h2 id="signin-keys-h" className={H2}>{t.head}</h2>
+      <h2 id="signin-keys-h" className={OS_H2}>{t.head}</h2>
       <p className={`${META} mt-2 max-w-[60ch]`}>{self ? t.lead : data?.can.clear ? t.leadOwner : t.leadOther}</p>
       {data && (data.keys.length ? (
         <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">

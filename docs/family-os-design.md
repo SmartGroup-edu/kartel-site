@@ -2,13 +2,18 @@
 
 The rules every Family OS page follows (`app/[lang]/family/os/**`, `app/components/Family*.tsx`). Baseline: the
 approved council mockup — formal, serif titles, radius 8 / 6, no pills, no tinted surfaces. Source of the rules:
-QA-156 and the bus 157b design review (D1–D11). The class strings live in `app/lib/family-ui.ts`; tests in
-`tests/family-ui.test.mjs`.
+QA-156, the bus 157b design review (D1–D11) and R0's decisions of 25.11 (bus 159). The class strings live in
+`app/lib/family-ui.ts`; tests in `tests/family-ui.test.mjs`.
 
-## Headings (D2)
-- A section of a page is an **H2** — `OS_H2` (the site scale's H2: serif, burgundy). One style on every OS page.
-- A titled block inside a section is an **H3** — `OS_H3` (serif, ink). Card titles too.
+## Colour of type (R0 25.11)
+- Burgundy (`--accent`) is for the page title only — «Привет, …», a person's name, the page H1 — and for primary
+  buttons. Section headings and everything below them are ink.
+
+## Headings (D2, R0 25.11)
+- A section of a page is an **H2** — `OS_H2` (serif, ink, 22 px → 24 px from `lg`). One style on every OS page.
+- A titled block inside a section is an **H3** — `OS_H3` (serif, ink, 18 px → 19 px). Card titles too.
 - Below that, small uppercase column labels (the board) are H4.
+- A card's own label is not a heading: «Принцип недели» on Today and the WOOP keys are `CARD_LABEL` (14 px, muted).
 - Not section headings, on purpose: the task drawer's dialog title, the board's «Нужно твоё решение» banner (a
   line), the day labels of the calendar list, and the A4 «Неделя семьи» sheet (its own print scale).
 - Every page has exactly one H1, also when it shows only one line (not a member, «не отвечает»).
@@ -23,11 +28,15 @@ QA-156 and the bus 157b design review (D1–D11). The class strings live in `app
   row under a hairline, or pushed to the far end of the row).
 
 ## Containers (D8)
-- A **left rule** means one of two things only:
+- A **left rule** means one of three things only:
   - grey (`--pillar-kodeks`, `RULE_VALUES`) — **values and principles**: «Принцип недели», «Признание», recognitions;
-  - червлень (`--pillar-health`, `RULE_PRIVATE`) — **private and sensitive**: «Здоровье», «Вес и питание», documents.
+  - червлень (`--pillar-health`, `RULE_PRIVATE`) — **private and sensitive**: «Здоровье», «Вес и питание», documents;
+  - gold (`--pillar-growth`, `RULE_GOALS`) — **goals and plans** (R0 25.11): sprint goals (board, council, the
+    «Неделя семьи» sheet), each goal card on a person's page, and WOOP. Inside a goal card the WOOP plan sits under
+    the card's rule (no second rule); in the «add a goal» form the WOOP fieldset has its own.
+- When a goal sits in a private section (the weight goal in «Вес и питание»), the private rule wins.
 - Items are plain lists (routines, documents rows) or cards (tasks). A card is a hairline border, radius 8, no fill.
-- The WOOP block on a goal keeps the gold growth rule (bus 86) — an open question for the next review.
+- WOOP shows label/value pairs as a `<dl>`: the key is a small muted label, the answer is body text.
 
 ## States
 - Family OS silent: one shared «Раздел «Семья» сейчас не отвечает. Попробуй через минуту.» (`FamilyOsDown`) on every

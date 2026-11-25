@@ -20,7 +20,7 @@ import { useLangToggle } from "./useLang";
 import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { H1, META } from "../lib/typeScale";
-import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3, RULE_VALUES } from "../lib/family-ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CARD_LABEL, OS_H2, OS_H3, RULE_VALUES } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
 import type { OsKodeks, OsKodeksBody, OsPerson, OsPrinciple, OsRecognition } from "../lib/family-os";
 
@@ -194,15 +194,17 @@ function KodeksEdit({ lang, body }: { lang: Lang; body: OsKodeksBody }) {
   );
 }
 
-/** Today: one line for everyone — the principle of the week and its practice, linked to the Кодекс. */
+/** Today: one line for everyone — the principle of the week and its practice, linked to the Кодекс.
+ *  «Принцип недели» is the card's label, not a section heading (R0 25.11, bus 159): the first H2 after «Привет» is
+ *  «Новые задачи». */
 export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsPrinciple }) {
   const t = tx(T, lang);
   return (
     <section aria-labelledby="principle-h" data-principle-week={principle.index} className={`mt-8 flex gap-4 ${RULE_VALUES}`}>
-      <span className="mt-2"><CrestThumb element={principle.element} size={44} /></span>
+      <span className="mt-1"><CrestThumb element={principle.element} size={44} /></span>
       <div className="min-w-0">
-        <h2 id="principle-h" className={`${OS_H2} flex items-center gap-2`}><KodeksIcon />{t.week}</h2>
-        <p className="mt-2 text-[17px] leading-snug text-[var(--foreground)]">
+        <p id="principle-h" className={`${CARD_LABEL} flex items-center gap-1.5`}><KodeksIcon size={16} />{t.week}</p>
+        <p className="mt-1 text-[17px] leading-snug text-[var(--foreground)]">
           <Link href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.practice}: {ty(principle.practice, lang)}</p>

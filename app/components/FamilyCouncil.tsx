@@ -20,7 +20,7 @@ import { fmtFamilyDate, fmtWeekRange } from "../lib/family-docs.mjs";
 import { Check } from "./FamilyRoutines";
 import { ruPlural } from "../lib/family-routines.mjs";
 import { useLangToggle } from "./useLang";
-import { H1, H2, META } from "../lib/typeScale";
+import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, RULE_VALUES } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 import type { OsCouncil, OsPerson, OsTask, OsSprint } from "../lib/family-os";
@@ -98,7 +98,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
               </section>
 
               <section aria-labelledby="prev-h" className="mt-10">
-                <h2 id="prev-h" className={H2}>{t.prevTasks}</h2>
+                <h2 id="prev-h" className={OS_H2}>{t.prevTasks}</h2>
                 {council.previous?.tasks.length ? (
                   <>
                     <p className={`${META} mt-2`}>{t.prevSummary(council.agenda.tasks.done, council.agenda.tasks.open)}</p>
@@ -111,7 +111,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
               <Notes key={council.date} t={t} date={council.date} notes={council.notes} held={council.held} canWrite={council.can.write} canMarkHeld={council.can.mark_held} />
 
               <section aria-labelledby="dec-h" className="mt-10">
-                <h2 id="dec-h" className={H2}>{t.decisions}</h2>
+                <h2 id="dec-h" className={OS_H2}>{t.decisions}</h2>
                 {council.tasks.length ? <TaskList lang={lang} tasks={council.tasks} nameOf={nameOf} me={me} people={people} /> : <p className={`${META} mt-2`}>{t.none}</p>}
                 {council.can.write && <AddDecision t={t} date={council.date} people={people} lang={lang} />}
               </section>

@@ -15,8 +15,8 @@ import FamilySubNav from "./FamilySubNav";
 import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
-import { H1, H2, META } from "../lib/typeScale";
-import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, OS_H3 } from "../lib/family-ui";
+import { H1, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 import FamilyJumpNav from "./FamilyJumpNav";
 import type { OsPerson, OsGrant, OsScope, OsRule, OsAdoption } from "../lib/family-os";
@@ -88,7 +88,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
           {ownKeys && <FamilyPasskeys lang={lang} personId={null} self canAdd={ownKeys.canAdd} signinHref={`/${lang === "EN" ? "en" : "ru"}/family/signin?returnTo=${encodeURIComponent(`/${lang === "EN" ? "en" : "ru"}/family/os/access#signin-keys`)}`} />}
 
           <section id="people" aria-labelledby="ppl-h" className="mt-10 scroll-mt-24">
-            <h2 id="ppl-h" className={H2}>{t.people}</h2>
+            <h2 id="ppl-h" className={OS_H2}>{t.people}</h2>
             {([[t.adults, adults], [t.children, children]] as const).filter(([, xs]) => xs.length).map(([head, xs]) => (
               <div key={head} className="mt-6">
                 <h3 className={OS_H3}>{head}</h3>
@@ -101,7 +101,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
           </section>
 
           <section id="grants" aria-labelledby="grants-h" className="mt-12 scroll-mt-24">
-            <h2 id="grants-h" className={H2}>{t.grants}</h2>
+            <h2 id="grants-h" className={OS_H2}>{t.grants}</h2>
             {children.map((c) => (
               <div key={c.id} data-child-grants="" className="mt-6">
                 <h3 className={OS_H3}>{nameOf(c)}</h3>

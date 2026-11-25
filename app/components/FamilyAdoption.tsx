@@ -5,8 +5,8 @@
 // ещё раз». One family line for the week. No per-person or per-child activity numbers (Floor №8).
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { H2, META } from "../lib/typeScale";
-import { BTN_DANGER, BTN_SECONDARY, DANGER_ROW } from "../lib/family-ui";
+import { META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_SECONDARY, DANGER_ROW, OS_H2 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 import type { OsAdoption, OsAdoptionRow } from "../lib/family-os";
 
@@ -80,7 +80,7 @@ export default function FamilyAdoption({ lang, data }: { lang: Lang; data: OsAdo
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
   return (
     <section id="with-us" aria-labelledby="with-us-h" data-adoption="" className="mt-10 scroll-mt-24">
-      <h2 id="with-us-h" className={H2}>{t.head}</h2>
+      <h2 id="with-us-h" className={OS_H2}>{t.head}</h2>
       <p className={`${META} mt-2 max-w-[60ch]`}>{t.lead}</p>
       <p data-family-week="" className="mt-4 text-[17px] text-[var(--foreground)]">{t.week(data.family.active, data.family.of)}</p>
       <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">

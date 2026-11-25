@@ -90,7 +90,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
               </section>
             )}
 
-            <section aria-labelledby="w-goals" className="print:break-inside-avoid">
+            <section aria-labelledby="w-goals" data-goals-rule="" className="border-l-2 border-[var(--pillar-growth)] pl-3 print:break-inside-avoid">
               <h2 id="w-goals" className={H2W}>{t.goals}</h2>
               {goals.length ? (
                 <ul className="mt-2 grid gap-1.5">{goals.map((g) => <li key={g.id} className="text-[16px] text-[var(--foreground)] print:text-[11pt]">{g.title} <span className="text-[var(--text-secondary)]">· {t.tasks(g.done, g.total)}</span></li>)}</ul>

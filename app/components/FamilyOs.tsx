@@ -15,7 +15,7 @@ import { familyNav } from "../content/siteNav";
 import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
-import { H1, H2, META } from "../lib/typeScale";
+import { H1, META } from "../lib/typeScale";
 import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
 import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines, OsMyBoard, OsBoard } from "../lib/family-os";
 import { TodayChecklist } from "./FamilyRoutines";
@@ -129,7 +129,7 @@ function People({ t, lang, me, people, grants, nameOf }: {
       {people.length === 0 && <p className={`${META} mt-6`}>{t.emptyPeople}</p>}
       {groups.filter(([, xs]) => xs.length).map(([label, xs]) => (
         <div key={label} className="mt-10">
-          <h2 className={H2}>{label}</h2>
+          <h2 className={OS_H2}>{label}</h2>
           <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
             {xs.map((p) => {
               const gs = grants.filter((g) => g.child_id === p.id);

@@ -22,8 +22,8 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS, fmtDocDate } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
-import { H1, H2, META } from "../lib/typeScale";
-import { BTN_PRIMARY, BTN_SECONDARY } from "../lib/family-ui";
+import { H1, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 import FamilyJumpNav from "./FamilyJumpNav";
 import type { OsState, OsProfile, OsDocument, OsRoutines, OsPrefs, OsPause, OsGoals, OsNotes, OsIcs } from "../lib/family-os";
@@ -121,7 +121,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           <div className="min-w-0 max-w-4xl xl:col-start-1 xl:row-start-1">
 
           <section id="routines" aria-labelledby="routines-h" className="mt-12 scroll-mt-24">
-            <h2 id="routines-h" className={H2}>{t.routines}</h2>
+            <h2 id="routines-h" className={OS_H2}>{t.routines}</h2>
             {routines ? (
               <>
                 <TodayChecklist lang={lang} today={routines.today} routines={routines.routines} canCheck={routines.can.check} headingId="person-today-h" heading={t.today} paused={routines.paused_today} level={3} />
@@ -144,7 +144,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           {notes && notes.kinds.length > 0 && <FamilyNotes lang={lang} personId={p.id} data={notes} />}
 
           <section id="documents" aria-labelledby="docs-h" className="mt-12 scroll-mt-24">
-            <h2 id="docs-h" className={H2}>{t.documents}</h2>
+            <h2 id="docs-h" className={OS_H2}>{t.documents}</h2>
             {documents === null ? (
               <p className={`${META} mt-4`}>{t.noAccess}</p>
             ) : documents.length === 0 ? (
@@ -159,7 +159,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
 
           {profile.guardians.length > 0 && (
             <section id="guardians" aria-labelledby="guardians-h" className="mt-12 scroll-mt-24">
-              <h2 id="guardians-h" className={H2}>{t.guardians}</h2>
+              <h2 id="guardians-h" className={OS_H2}>{t.guardians}</h2>
               <ul data-guardians="" className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {profile.guardians.map((g) => {
                   const who = byId.get(g.guardian_id);

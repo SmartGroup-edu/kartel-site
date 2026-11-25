@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import Disclosure from "./Disclosure";
 import { fmtFamilyDate } from "../lib/family-docs.mjs";
 import type { OsGoals, OsGoal, OsNotes, OsIcs } from "../lib/family-os";
-import { BTN_PRIMARY, BTN_SECONDARY, OS_H2 } from "../lib/family-ui";
+import { BTN_PRIMARY, BTN_SECONDARY, CARD_LABEL, OS_H2, RULE_GOALS } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -52,7 +52,6 @@ const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--bo
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = BTN_SECONDARY;
 const primary = BTN_PRIMARY;
-const H2 = OS_H2;
 const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null);
 
@@ -71,7 +70,7 @@ export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: st
   };
   return (
     <section id="goals" aria-labelledby="goals-h" data-goals="" className="mt-12 scroll-mt-24">
-      <h2 id="goals-h" className={H2}>{t.goals}</h2>
+      <h2 id="goals-h" className={OS_H2}>{t.goals}</h2>
       {data.goals.length === 0 ? <p className="mt-3 text-[14px] text-[var(--muted)]">{t.noGoals}</p> : (
         <ul className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {data.goals.map((g) => <GoalRow key={g.id} t={t} lang={lang} g={g} write={write} visibilities={data.can.visibilities} />)}
@@ -93,10 +92,11 @@ export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: st
 }
 
 const WOOP = ["wish", "outcome", "obstacle", "plan"] as const;
-/** WOOP (bus 86): four optional lines, owner-only (the service never returns them to anyone else). Pillar Рост = золото. */
-function WoopFields({ t, prefix, values = {}, className = "" }: { t: Dict; prefix: string; values?: Record<string, string | undefined>; className?: string }) {
+/** WOOP (bus 86): four optional lines, owner-only (the service never returns them to anyone else). A plan, so gold
+ *  (Рост, R0 25.11): its own rule in the «add a goal» form; inside a goal card the card's rule already says it. */
+function WoopFields({ t, prefix, values = {}, className = "", ruled = true }: { t: Dict; prefix: string; values?: Record<string, string | undefined>; className?: string; ruled?: boolean }) {
   return (
-    <fieldset data-woop-form="" className={`grid gap-3 border-l-2 border-[var(--pillar-growth)] pl-3 sm:grid-cols-2 ${className}`}>
+    <fieldset data-woop-form="" className={`grid gap-3 sm:grid-cols-2 ${ruled ? RULE_GOALS : ""} ${className}`}>
       <legend className="text-[15px] font-medium text-[var(--foreground)]">{t.woop} <span className="font-normal text-[var(--muted)]">· {t.woopHint}</span></legend>
       {WOOP.map((k) => <label key={k} className={label}>{t.woopKeys[k]}<input name={`${prefix}-${k}`} maxLength={300} defaultValue={values[k] ?? ""} placeholder={t.woopPlaceholder[k]} className={field} /></label>)}
     </fieldset>
@@ -112,13 +112,14 @@ function GoalWoop({ t, g, act }: { t: Dict; g: OsGoal; act: (p: Promise<Response
     const next = Object.fromEntries(WOOP.map((k) => [k, String(f.get(`w-${g.id}-${k}`) ?? "").trim()]).filter(([, v]) => v));
     setEdit(false); void act(send("PATCH", `goals/${g.id}`, { woop: Object.keys(next).length ? next : null }));
   };
-  if (edit) return <form onSubmit={save} className="mt-3 grid gap-3"><WoopFields t={t} prefix={`w-${g.id}`} values={w} /><div><button type="submit" className={primary}>{t.woopSave}</button></div></form>;
+  if (edit) return <form onSubmit={save} className="mt-3 grid gap-3"><WoopFields t={t} prefix={`w-${g.id}`} values={w} ruled={false} /><div><button type="submit" className={primary}>{t.woopSave}</button></div></form>;
   return (
-    <div data-woop="" className="mt-2 border-l-2 border-[var(--pillar-growth)] pl-3">
-      {has && <dl className="grid gap-x-3 gap-y-1 text-[15px] sm:grid-cols-[11rem_1fr]">
-        {WOOP.filter((k) => w[k]).map((k) => <div key={k} className="contents"><dt className="text-[var(--text-secondary)]">{t.woopKeys[k]}</dt><dd className="text-[var(--foreground)]">{w[k]}</dd></div>)}
+    <div data-woop="" className="mt-3">
+      {/* R0 25.11 (bus 159): small muted labels, the answers stay body text; one <dt>/<dd> pair per line */}
+      {has && <dl className="grid gap-3">
+        {WOOP.filter((k) => w[k]).map((k) => <div key={k} data-woop-pair={k}><dt className={CARD_LABEL}>{t.woopKeys[k]}</dt><dd className="mt-0.5 text-[16px] leading-snug text-[var(--foreground)]">{w[k]}</dd></div>)}
       </dl>}
-      <button type="button" className={`${btn} mt-1`} onClick={() => setEdit(true)}>{has ? t.woopEdit : t.woop}</button>
+      <button type="button" className={`${btn} ${has ? "mt-3" : ""}`} onClick={() => setEdit(true)}>{has ? t.woopEdit : t.woop}</button>
     </div>
   );
 }
@@ -133,52 +134,54 @@ function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: 
   const checkin = (e: React.FormEvent<HTMLFormElement>) => { e.preventDefault(); const f = new FormData(e.currentTarget); void act(send("POST", `goals/${g.id}/checkins`, { mood, note: String(f.get("note") ?? "") })); };
   return (
     <li data-goal={g.status} className="py-4">
-      <p className="text-[17px] text-[var(--foreground)]">{g.title}</p>
-      <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.spheres[g.sphere]} · {t.vis[g.visibility]}{g.status === "done" ? ` · ${t.done}` : ""}{g.checked_this_week ? ` · ${t.checked}` : ""}</p>
-      {write && g.woop !== undefined && <GoalWoop t={t} g={g} act={act} />}
-      {g.checkins.length > 0 && (
-        <p className="mt-1 text-[14px] text-[var(--text-secondary)]" suppressHydrationWarning>{t.last}: {g.checkins.slice(0, 3).map((c) => `${fmtFamilyDate(c.week_start, lang)} — ${t.moods[c.mood]}${c.note ? ` («${c.note}»)` : ""}`).join("; ")}</p>
-      )}
-      {write && g.status === "active" && (
-        <form onSubmit={checkin} className="mt-3 grid gap-3">
-          <fieldset>
-            <legend className={label}>{t.week}</legend>
-            <div className="mt-1 flex flex-wrap gap-2">
-              {Object.entries(t.moods).map(([k, v]) => (
-                <label key={k} className={`inline-flex min-h-11 cursor-pointer items-center rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${mood === k ? "border-[var(--accent)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
-                  <input type="radio" name={`mood-${g.id}`} className="sr-only" checked={mood === k} onChange={() => setMood(k)} />{v}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <label className={label}>{t.note}<input name="note" maxLength={500} className={field} /></label>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="submit" className={primary}>{t.checkin}</button>
-            <button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "done" }))}>{t.markDone}</button>
-          </div>
-        </form>
-      )}
-      {/* bus 80 #4: «Кто видит» is a labelled setting of its own; showing to the whole family asks once */}
-      {write && g.status === "active" && visibilities.length > 1 && (
-        <div data-goal-settings="" className="mt-3 grid gap-2 sm:max-w-xs">
-          <label className={label}>{t.visibility}
-            <select className={field} value={g.visibility} disabled={askFamily} onChange={(e) => setVisibility(e.target.value)}>
-              {visibilities.map((v) => <option key={v} value={v}>{t.vis[v]}</option>)}
-            </select>
-          </label>
-          {askFamily && (
-            <div data-confirm-family="" role="alertdialog" aria-label={t.confirmFamily} className="rounded-md border border-[var(--accent)] p-3">
-              <p className="text-[15px] text-[var(--foreground)]">{t.confirmFamily}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <button type="button" className={primary} onClick={() => { setAskFamily(false); void act(send("PATCH", `goals/${g.id}`, { visibility: "family" })); }}>{t.yes}</button>
-                <button type="button" className={btn} onClick={() => setAskFamily(false)}>{t.no}</button>
+      <div className={RULE_GOALS}>
+        <p className="text-[17px] text-[var(--foreground)]">{g.title}</p>
+        <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.spheres[g.sphere]} · {t.vis[g.visibility]}{g.status === "done" ? ` · ${t.done}` : ""}{g.checked_this_week ? ` · ${t.checked}` : ""}</p>
+        {write && g.woop !== undefined && <GoalWoop t={t} g={g} act={act} />}
+        {g.checkins.length > 0 && (
+          <p className="mt-1 text-[14px] text-[var(--text-secondary)]" suppressHydrationWarning>{t.last}: {g.checkins.slice(0, 3).map((c) => `${fmtFamilyDate(c.week_start, lang)} — ${t.moods[c.mood]}${c.note ? ` («${c.note}»)` : ""}`).join("; ")}</p>
+        )}
+        {write && g.status === "active" && (
+          <form onSubmit={checkin} className="mt-3 grid gap-3">
+            <fieldset>
+              <legend className={label}>{t.week}</legend>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {Object.entries(t.moods).map(([k, v]) => (
+                  <label key={k} className={`inline-flex min-h-11 cursor-pointer items-center rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${mood === k ? "border-[var(--accent)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
+                    <input type="radio" name={`mood-${g.id}`} className="sr-only" checked={mood === k} onChange={() => setMood(k)} />{v}
+                  </label>
+                ))}
               </div>
+            </fieldset>
+            <label className={label}>{t.note}<input name="note" maxLength={500} className={field} /></label>
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="submit" className={primary}>{t.checkin}</button>
+              <button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "done" }))}>{t.markDone}</button>
             </div>
-          )}
-        </div>
-      )}
-      {write && g.status === "done" && <div className="mt-2 flex gap-2"><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "active" }))}>{t.reopen}</button><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "archived" }))}>{t.archive}</button></div>}
-      {msg && <p role="status" aria-live="polite" className="mt-1 text-[14px] text-[var(--muted)]">{msg}</p>}
+          </form>
+        )}
+        {/* bus 80 #4: «Кто видит» is a labelled setting of its own; showing to the whole family asks once */}
+        {write && g.status === "active" && visibilities.length > 1 && (
+          <div data-goal-settings="" className="mt-3 grid gap-2 sm:max-w-xs">
+            <label className={label}>{t.visibility}
+              <select className={field} value={g.visibility} disabled={askFamily} onChange={(e) => setVisibility(e.target.value)}>
+                {visibilities.map((v) => <option key={v} value={v}>{t.vis[v]}</option>)}
+              </select>
+            </label>
+            {askFamily && (
+              <div data-confirm-family="" role="alertdialog" aria-label={t.confirmFamily} className="rounded-md border border-[var(--accent)] p-3">
+                <p className="text-[15px] text-[var(--foreground)]">{t.confirmFamily}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button type="button" className={primary} onClick={() => { setAskFamily(false); void act(send("PATCH", `goals/${g.id}`, { visibility: "family" })); }}>{t.yes}</button>
+                  <button type="button" className={btn} onClick={() => setAskFamily(false)}>{t.no}</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {write && g.status === "done" && <div className="mt-2 flex gap-2"><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "active" }))}>{t.reopen}</button><button type="button" className={btn} onClick={() => act(send("PATCH", `goals/${g.id}`, { status: "archived" }))}>{t.archive}</button></div>}
+        {msg && <p role="status" aria-live="polite" className="mt-1 text-[14px] text-[var(--muted)]">{msg}</p>}
+      </div>
     </li>
   );
 }
@@ -195,7 +198,7 @@ export function FamilyNotes({ lang, personId, data }: { lang: Lang; personId: st
   };
   return (
     <section id="notes" aria-labelledby="notes-h" data-notes="" className="mt-12 scroll-mt-24">
-      <h2 id="notes-h" className={H2}>{t.notes}</h2>
+      <h2 id="notes-h" className={OS_H2}>{t.notes}</h2>
       <p className="mt-2 text-[14px] text-[var(--muted)]">{t.notesHint}</p>
       {data.notes.length === 0 ? <p className="mt-3 text-[14px] text-[var(--muted)]">{t.noNotes}</p> : (
         <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -234,7 +237,7 @@ export function FamilyIcs({ lang, personId, data }: { lang: Lang; personId: stri
   const off = async () => { const r = await send("DELETE", `people/${personId}/ics`); setUrl(null); setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh(); };
   return (
     <section id="phone-calendar" aria-labelledby="ics-h" data-ics="" className="mt-12 scroll-mt-24">
-      <h2 id="ics-h" className={H2}>{t.phone}</h2>
+      <h2 id="ics-h" className={OS_H2}>{t.phone}</h2>
       <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.phoneHint}</p>
       <p className="mt-2 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{data.active && data.created_at ? `${t.active} ${fmtFamilyDate(String(data.created_at).slice(0, 10), lang)}` : t.none}</p>
       {url && (
