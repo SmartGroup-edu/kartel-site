@@ -13,7 +13,7 @@ import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import type { OsPrinciple, OsSprintGoal, OsRecognition } from "../lib/family-os";
 import { BTN_PRIMARY } from "../lib/family-ui";
-import { tx } from "../lib/typograph.mjs";
+import { tx, typograph } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 type PersonWeek = { id: string; name_ru: string; name_en: string; tasks: { date: string; title: string; done: boolean }[] };
@@ -47,6 +47,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
   const router = useRouter();
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
   const nm = (p: { name_ru?: string; name_en?: string }) => (lang === "EN" ? p.name_en : p.name_ru) ?? "";
+  const ty = (s: string) => (lang === "RU" ? typograph(s) : s); // Кодекс text comes from the service (QA-158 N5)
   const sun = new Date(Date.parse(`${week}T12:00:00Z`) + 6 * 86400_000).toISOString().slice(0, 10);
   const cols3 = perPerson.length >= 5;
   const range = `${day(week, lang, { day: "numeric", month: "long" })} — ${day(sun, lang, { day: "numeric", month: "long", year: "numeric" })}`.replace(/\s*г\.$/, "");
@@ -58,7 +59,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
         <div data-week-controls="" className="flex max-w-3xl flex-col gap-3 print:hidden">
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => window.print()} className={BTN_PRIMARY}>{t.print}</button>
-            <Link href={`${base}/council`} className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.back}</Link>
+            <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.back}</Link>
           </div>
           <p className={META}>{t.printHint}</p>
           <label className="flex min-h-11 items-start gap-3 text-[16px] text-[var(--foreground)]">
@@ -85,8 +86,8 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
             {principle && (
               <section aria-labelledby="w-principle" className="border-l-2 border-[var(--pillar-kodeks)] pl-3 sm:col-span-2 print:col-span-2 print:break-inside-avoid">
                 <h2 id="w-principle" className={H2W}>{t.principle}</h2>
-                <p className="mt-1 text-[18px] leading-snug text-[var(--foreground)] print:text-[13pt]">{principle.principle}</p>
-                <p className="mt-1 text-[15px] text-[var(--text-secondary)] print:text-[10pt]">{t.practice}: {principle.practice}</p>
+                <p className="mt-1 text-[18px] leading-snug text-[var(--foreground)] print:text-[13pt]">{ty(principle.principle)}</p>
+                <p className="mt-1 text-[15px] text-[var(--text-secondary)] print:text-[10pt]">{t.practice}: {ty(principle.practice)}</p>
               </section>
             )}
 
@@ -133,7 +134,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
               <section aria-labelledby="w-recs" data-week-recs="" className="border-l-2 border-[var(--pillar-kodeks)] pl-3 sm:col-span-2 print:col-span-2 print:break-inside-avoid">
                 <h2 id="w-recs" className={H2W}>{t.recs}</h2>
                 {recognitions.length ? (
-                  <ul className="mt-2 grid gap-2">{recognitions.map((r) => <li key={r.id} className="text-[15px] text-[var(--foreground)] print:text-[10pt]"><span className="text-[var(--text-secondary)]">{nm(r.from)} → {nm(r.to)} · {r.principle}:</span> {r.text}</li>)}</ul>
+                  <ul className="mt-2 grid gap-2">{recognitions.map((r) => <li key={r.id} className="text-[15px] text-[var(--foreground)] print:text-[10pt]"><span className="text-[var(--text-secondary)]">{nm(r.from)} → {nm(r.to)} · {ty(r.principle)}:</span> {r.text}</li>)}</ul>
                 ) : <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{t.none}</p>}
               </section>
             )}

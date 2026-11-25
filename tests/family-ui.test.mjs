@@ -82,7 +82,7 @@ test("M7: every OS page renders one shared «не отвечает» state (neve
   assert.match(d, /<FamilyChrome lang=\{lang\} nav=\{nav\}>/);
   const c = comp("FamilyChrome.tsx");
   assert.match(c, /navItems=\{familyNav\(lang\)\}/, "«Выйти» is in the family header");
-  assert.match(c, /<FamilySubNav lang=\{lang\} admin=\{nav\.admin\} editor=\{nav\.editor\} os=\{nav\.os\} \/>/);
+  assert.match(c, /<FamilySubNav lang=\{lang\} admin=\{nav\.admin\} editor=\{nav\.editor\} os=\{nav\.os\} member=\{nav\.member \?\? true\} \/>/);
   const n = src("app/lib/family-os-down.ts");
   assert.match(n, /return \{ admin: isFamilyAdmin\(subject\), editor: familyRole\(subject\) === "editor", os: true \};/);
   assert.doesNotMatch(comp("FamilyOs.tsx"), /не отвечает|not answering/, "one copy of the text");

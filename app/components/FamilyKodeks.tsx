@@ -205,7 +205,7 @@ export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsP
       <div className="min-w-0">
         <p id="principle-h" className={`${CARD_LABEL} flex items-center gap-1.5`}><KodeksIcon size={16} />{t.week}</p>
         <p className="mt-1 text-[17px] leading-snug text-[var(--foreground)]">
-          <Link href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
+          <Link prefetch={false} href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.practice}: {ty(principle.practice, lang)}</p>
       </div>
@@ -227,7 +227,7 @@ export function RecognitionList({ lang, items, headingId, heading, level = 3 }: 
         <ul data-recognitions="" className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {items.map((r) => (
             <li key={r.id} className="py-3">
-              <p className="text-[14px] text-[var(--text-secondary)]">{personName(r.from, lang)} <span aria-hidden="true">→</span><span className="sr-only">,</span> {personName(r.to, lang)} · {r.principle}</p>
+              <p className="text-[14px] text-[var(--text-secondary)]">{personName(r.from, lang)} <span aria-hidden="true">→</span><span className="sr-only">,</span> {personName(r.to, lang)} · {ty(r.principle, lang)}</p>
               <p className="mt-0.5 text-[16px] leading-[1.5] text-[var(--foreground)]">{r.text}</p>
             </li>
           ))}
@@ -296,7 +296,7 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
       )}
       <div className="mt-6" data-rec-today="">
         <RecognitionList lang={lang} items={shown} headingId="rec-week-h" heading={t.recWeek} />
-        {items.length > 0 && <p className="mt-2"><Link href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
+        {items.length > 0 && <p className="mt-2"><Link prefetch={false} href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
       </div>
     </section>
   );
@@ -309,7 +309,7 @@ function PrincipleRow({ lang, label: l, p }: { lang: Lang; label: string; p: OsP
       <CrestThumb element={p.element} size={44} />
       <div className="min-w-0">
         <p className="text-[14px] text-[var(--text-secondary)]">{l} · {p.picked ? t.chosen : t.auto}</p>
-        <p className="text-[17px] leading-snug text-[var(--foreground)]"><Link href={kodeksHref(lang, p.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(p.principle, lang)}</Link></p>
+        <p className="text-[17px] leading-snug text-[var(--foreground)]"><Link prefetch={false} href={kodeksHref(lang, p.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(p.principle, lang)}</Link></p>
       </div>
     </div>
   );
@@ -346,7 +346,7 @@ export function CouncilPrinciple({ lang, principle, canPick, principles }: { lan
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
         </form>
       )}
-      <p className={`${META} mt-3`}><Link href={kodeksHref(lang)} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toKodeks}</Link></p>
+      <p className={`${META} mt-3`}><Link prefetch={false} href={kodeksHref(lang)} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toKodeks}</Link></p>
     </section>
   );
 }

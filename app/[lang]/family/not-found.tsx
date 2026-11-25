@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import NotFoundView from "@/app/components/NotFoundView";
+import type { FamilyChromeNav } from "@/app/components/FamilyChrome";
 import { newRef, refLogLine } from "@/app/lib/family-ref.mjs";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyGateDecision, isFamilyAdmin, familyRole } from "@/app/lib/family-gate";
@@ -15,12 +16,13 @@ export default async function FamilyNotFound() {
   const lang = h.get("x-kartel-locale") === "ru" ? "ru" : "en";
   const ref = newRef();
   console.warn(refLogLine("not-found", ref, h.get("x-family-route") ?? ""));
-  let family: { admin: boolean; editor: boolean; os: boolean } | null = null;
+  let family: FamilyChromeNav | null = null;
   if (familyEnv.gateOn()) {
     const { decision, session } = await familyGateDecision();
     if (decision === "allow" && session) {
       const sub = session.cpifSubjectId;
-      family = { admin: isFamilyAdmin(sub), editor: familyRole(sub) === "editor", os: (await getOsNav(session)).os };
+      // QA-158 N3: `member` too, so the owner who is not a member gets the same tabs here as on every other page.
+      family = { admin: isFamilyAdmin(sub), editor: familyRole(sub) === "editor", ...(await getOsNav(session)) };
     }
   }
   return <NotFoundView lang={lang} refCode={ref} family={family} />;

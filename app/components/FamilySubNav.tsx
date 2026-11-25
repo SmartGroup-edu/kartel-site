@@ -44,7 +44,7 @@ export default function FamilySubNav({ lang, admin, os, active, badge = 0, edito
         className="flex snap-x snap-proximity scroll-px-8 flex-nowrap gap-x-6 overflow-x-auto overscroll-x-contain whitespace-nowrap text-[16px] shadow-[inset_0_-1px_0_var(--border)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((x) => (
           <li key={x.id} className="shrink-0 snap-start">
-            <Link href={x.href} aria-current={x.id === active ? "page" : undefined}
+            <Link prefetch={false} href={x.href} aria-current={x.id === active ? "page" : undefined}
               className={`inline-flex min-h-11 items-center border-b-2 focus-visible:outline-offset-[-3px] ${x.id === active ? "border-[var(--accent)] font-medium text-[var(--foreground)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`}>
               {x.label}
               {x.id === "board" && badge > 0 && <span data-badge="" className="ml-1.5 inline-grid min-w-6 place-items-center rounded-full bg-[var(--warn-soft)] px-1.5 text-[14px] font-semibold text-[var(--foreground)] ring-1 ring-[var(--warn-border)]"><span className="sr-only">{lang === "EN" ? "needs a decision: " : "нужно решение: "}</span>{badge}</span>}

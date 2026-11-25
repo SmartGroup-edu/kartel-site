@@ -838,7 +838,7 @@ function PlanPanel({ c, summary, plan }: { c: Ctx; summary: NonNullable<OsBoard[
 export function SprintPanel({ t, lang, weekStart, goals }: { t: Dict; lang: Lang; weekStart: string; goals: OsSprintGoal[] }) {
   const end = new Date(Date.parse(`${weekStart}T12:00:00Z`) + 6 * 86400_000).toISOString().slice(0, 10);
   if (!goals.length) return (
-    <p data-sprint="empty" className={`${META} self-start text-[15px]`}>{t.sprintNone} <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link></p>
+    <p data-sprint="empty" className={`${META} self-start text-[15px]`}>{t.sprintNone} <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link></p>
   );
   return (
     <section aria-labelledby="sprint-h" data-sprint="" className={panel}>
@@ -853,7 +853,7 @@ export function SprintPanel({ t, lang, weekStart, goals }: { t: Dict; lang: Lang
         ))}
       </ul>
       <p className={`${META} mt-3`}>{t.sprintNote}</p>
-      <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="mt-1 inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link>
+      <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="mt-1 inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link>
     </section>
   );
 }

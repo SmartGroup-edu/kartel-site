@@ -71,6 +71,7 @@ jobs:
           for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3999/en && break; sleep 1; done
           node tests/e2e/family-auth.e2e.mjs
           node tests/e2e/family-ended.e2e.mjs
+          node tests/e2e/family-os-calls.e2e.mjs
 
   family-os-postgres:
     # schema.sql re-applied to a populated database, then a runner tick (QA-156 C1).

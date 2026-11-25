@@ -8,6 +8,9 @@ import { familyGateDecision, isFamilyAdmin, familyRole } from "@/app/lib/family-
 import { getOsNav } from "@/app/lib/family-os";
 import { getPublishedMedia } from "@/app/lib/family-media";
 import { FamilyGateNotice } from "../../components/FamilyGateNotice";
+import { typographDict, typographRuFields } from "@/app/lib/typograph.mjs";
+
+const HERITAGE_NODES = typographRuFields(FAMILY_TREE_NODES), HERITAGE_EVENTS = typographRuFields(FAMILY_TIMELINE_EVENTS);
 
 // Gated area: must render per-request (auth), never statically prerender.
 export const dynamic = "force-dynamic";
@@ -248,7 +251,8 @@ export default async function FamilyPage({
       <FamilyClient
         lang={upperLang}
         nav={nav}
-        data={{ content: familyContent[upperLang], nodes: FAMILY_TREE_NODES, events: FAMILY_TIMELINE_EVENTS, media: await getPublishedMedia() }}
+        // QA-158 N5: the written-down RU text is typographed at render; the editor's published media is what people typed, left as is.
+        data={{ content: upperLang === "RU" ? typographDict(familyContent.RU) : familyContent.EN, nodes: HERITAGE_NODES, events: HERITAGE_EVENTS, media: await getPublishedMedia() }}
       />
     </>
   );

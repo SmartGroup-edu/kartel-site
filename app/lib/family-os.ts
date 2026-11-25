@@ -7,6 +7,7 @@ import "server-only";
  * "admin:<email>" or "member:<email>" — the service authorises on that, so only this server can say
  * who is asking. Optional Cloudflare Access service token: FAMILY_OS_ACCESS_CLIENT_ID / _SECRET.
  */
+import { cache } from "react";
 import { signMediaRequest } from "@/app/lib/media-signature.mjs";
 import { isFamilyAdmin } from "@/app/lib/family-gate";
 
@@ -16,6 +17,8 @@ export type OsGrant = { id: string; guardian_id: string; child_id: string; relat
 export type OsState =
   | { status: "off" }
   | { status: "error" }
+  /** QA-158 N2: the service answered 429 — it is up, the family's read budget is spent for now. */
+  | { status: "busy" }
   | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[] };
 
 /** The signed-in viewer. `issuedAt` travels as `sat` on every call (QA-156 H1); missing = 0 = refused after a cut-off. */
@@ -56,18 +59,29 @@ export async function osCall(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   });
 }
 
+/**
+ * QA-158 N2: a page render asks Family OS for each GET once. React `cache` lives for one request (one render) and is
+ * keyed on the signed path (it carries `sat`) and the actor, so nothing is shared between viewers or requests.
+ * Mutations never go through here. The parsed body is cached, not the Response (a body can be read once).
+ */
+type OsGet = { ok: boolean; status: number; json: unknown };
+const osGet = cache(async (path: string, actor: string): Promise<OsGet> => {
+  const r = await osCall("GET", path, actor);
+  return { ok: r.ok, status: r.status, json: r.ok ? await r.json() : null };
+});
+
 /** Who I am and who is in the family. Never throws: the page shows a calm error state instead. */
 export async function getOsState(session: OsViewer): Promise<OsState> {
   if (!osEnabled()) return { status: "off" };
   const actor = osActor(session);
   try {
-    const meRes = await osCall("GET", withSat("/me", session), actor);
-    if (!meRes.ok) return { status: "error" };
-    const { me, admin } = (await meRes.json()) as { me: OsPerson | null; admin: boolean };
+    const meRes = await osGet(withSat("/me", session), actor);
+    if (!meRes.ok) return { status: meRes.status === 429 ? "busy" : "error" };
+    const { me, admin } = meRes.json as { me: OsPerson | null; admin: boolean };
     if (!me && !admin) return { status: "ok", admin, me: null, people: [], grants: [] };
-    const pRes = await osCall("GET", withSat("/people", session), actor);
-    if (!pRes.ok) return { status: "error" };
-    const { people, grants } = (await pRes.json()) as { people: OsPerson[]; grants: OsGrant[] };
+    const pRes = await osGet(withSat("/people", session), actor);
+    if (!pRes.ok) return { status: pRes.status === 429 ? "busy" : "error" };
+    const { people, grants } = pRes.json as { people: OsPerson[]; grants: OsGrant[] };
     return { status: "ok", admin, me, people, grants };
   } catch {
     return { status: "error" };
@@ -78,9 +92,9 @@ export async function getOsState(session: OsViewer): Promise<OsState> {
 export async function getOsNav(session: OsViewer): Promise<{ os: boolean; member: boolean }> {
   if (!osEnabled()) return { os: false, member: false };
   try {
-    const r = await osCall("GET", withSat("/me", session), osActor(session));
+    const r = await osGet(withSat("/me", session), osActor(session));
     if (!r.ok) return { os: false, member: false };
-    const { me, admin } = (await r.json()) as { me: unknown; admin: boolean };
+    const { me, admin } = r.json as { me: unknown; admin: boolean };
     return { os: Boolean(me) || admin, member: Boolean(me) };
   } catch { return { os: false, member: false }; }
 }
@@ -101,8 +115,8 @@ export type OsProfile = {
 export type OsReminder = { id: string; person_id: string; type: OsDocument["type"]; country: string | null; expiry_date: string; days_left: number; tier: "expired" | "lt3" | "lt6" | "lt12" | null };
 
 async function getJson<T>(path: string, session: OsViewer): Promise<T | null> {
-  const r = await osCall("GET", withSat(path, session), osActor(session));
-  return r.ok ? ((await r.json()) as T) : null;
+  const r = await osGet(withSat(path, session), osActor(session));
+  return r.ok ? (r.json as T) : null;
 }
 
 /** Person page data. null = not found / no access / service down (the page says so calmly). */

@@ -19,6 +19,7 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { familyNav } from "../content/siteNav";
 import { useLangToggle } from "./useLang";
 import { H1, H2, EYEBROW, META } from "../lib/typeScale";
+import { tx } from "../lib/typograph.mjs";
 import { FRAME, OUTPUT, initial, place, rezoom, zoomRange } from "../lib/crop-geometry.mjs";
 import { createAutosaver, unpublishedKeys, cardStatus, eventChips, splitDate, joinDate, formatPublished } from "../lib/family-editor.mjs";
 import { diffKey } from "../lib/family-review.mjs";
@@ -136,7 +137,7 @@ const btnSecondary = `${btn} border border-[var(--border)] text-[var(--foregroun
 const link = "underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]";
 
 export default function FamilyAdmin({ lang, role = "owner", enabled, os = false, member = true, people, entries }: { lang: Lang; role?: Role; enabled: boolean; os?: boolean; member?: boolean; people: Person[]; entries: Entry[] }) {
-  const t = T[lang];
+  const t = tx(T, lang); // QA-158 N5
   const editor = role === "editor";
   const [mine, setMine] = useState<Content>(EMPTY); // editor: her open proposals over the draft
   const [revs, setRevs] = useState<Revision[]>([]); // owner: the queue · editor: her changes

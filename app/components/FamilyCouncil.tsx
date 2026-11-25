@@ -81,11 +81,11 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
                 </span>
               </p>
               <nav aria-label={t.title} className="mt-3 grid max-w-sm grid-cols-2 gap-2">
-                <Link href={`${base}?date=${shift(council.date, -7)}`} aria-label={t.prevAria} className={btn}>{t.prev}</Link>
-                <Link href={`${base}?date=${shift(council.date, 7)}`} aria-label={t.nextAria} className={btn}>{t.next}</Link>
+                <Link prefetch={false} href={`${base}?date=${shift(council.date, -7)}`} aria-label={t.prevAria} className={btn}>{t.prev}</Link>
+                <Link prefetch={false} href={`${base}?date=${shift(council.date, 7)}`} aria-label={t.nextAria} className={btn}>{t.next}</Link>
               </nav>
               {/* bus 97 item 5: one A4 sheet for the council and the fridge */}
-              {me && <p className="mt-3"><Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{lang === "EN" ? "Family week · PDF" : "Неделя семьи · PDF"}</Link></p>}
+              {me && <p className="mt-3"><Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{lang === "EN" ? "Family week · PDF" : "Неделя семьи · PDF"}</Link></p>}
 
               {/* bus 86: the principle of the week is the first item of the agenda */}
               {council.principle && principles && <CouncilPrinciple lang={lang} principle={council.principle} canPick={Boolean(council.can.pick_principle)} principles={principles} />}
@@ -239,7 +239,7 @@ export function TodayCouncil({ lang, tasks, sunday }: { lang: Lang; tasks: { id:
   return (
     <section aria-labelledby="council-today-h" data-today-council="" className="mt-10">
       <h2 id="council-today-h" className={OS_H2}>{L.head}</h2>
-      {sunday && <p className="mt-2 flex flex-wrap items-center gap-x-3 text-[16px] text-[var(--foreground)]">{L.today} <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{L.open}</Link></p>}
+      {sunday && <p className="mt-2 flex flex-wrap items-center gap-x-3 text-[16px] text-[var(--foreground)]">{L.today} <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{L.open}</Link></p>}
       {tasks.length > 0 && (
         <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {tasks.map((x) => <TaskTick key={x.id} lang={lang} task={{ ...x, done: false }} canTick meta={`${L.due} ${fmtFamilyDate(x.due_date, lang)}`} />)}

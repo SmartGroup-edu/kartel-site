@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from "react";
 import { startAuthentication, browserSupportsWebAuthn, browserSupportsWebAuthnAutofill } from "@simplewebauthn/browser";
 import AuthShell from "./AuthShell";
 import { H1, EYEBROW, PROSE } from "../lib/typeScale";
+import { typographDict } from "../lib/typograph.mjs";
 
 /** Hash the "different email" link carries back to the form, which then focuses the field. */
 const EDIT_HASH = "#family-email";
@@ -67,6 +68,7 @@ const copy = {
     invalid: (min: number) => `Ссылка не сработала. Она действует ${min} ${ruMinutes(min)}, только в том браузере, где её запросили, и только самая последняя. Запросите новую здесь и откройте письмо на этом же устройстве.`,
   },
 } as const;
+const COPY_RU = typographDict(copy.ru); // QA-158 N5
 
 export function FamilyGateNotice({
   lang,
@@ -84,7 +86,7 @@ export function FamilyGateNotice({
   /** "invalid" after a failed or expired link; "sent" after a request. */
   state?: "invalid" | "sent" | "ended";
 }) {
-  const c = copy[lang];
+  const c = lang === "ru" ? COPY_RU : copy.en;
   const [pending, setPending] = useState(false);
   // Coming back with the browser's Back button restores the page from cache — un-stick the button.
   useEffect(() => {

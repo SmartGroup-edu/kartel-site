@@ -58,7 +58,7 @@ export default function FamilyCalendar({ lang, cal, meId, admin, editor = false 
                 <p className="text-[16px] text-[var(--foreground)]">{t.weekly}</p>
                 {cal.items.find((i) => i.kind === "council") && <p className="mt-0.5 text-[15px] text-[var(--muted)]" suppressHydrationWarning>{t.nextOn} — {fmtFamilyDate(cal.items.find((i) => i.kind === "council")!.date, lang, cal.today)}</p>}
               </div>
-              {meId && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.phone} <Link href={`${base}/people/${meId}#phone-calendar`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.phoneLink}</Link></p>}
+              {meId && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.phone} <Link prefetch={false} href={`${base}/people/${meId}#phone-calendar`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.phoneLink}</Link></p>}
               {cal.can.write && <AddEvent t={t} today={cal.today} />}
               {days.size === 0 ? <p className={`${META} mt-8`}>{t.empty}</p> : (
                 <ol data-calendar="" className="mt-8 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -93,7 +93,7 @@ function Item({ t, lang, i, canWrite, base }: { t: Dict; lang: Lang; i: OsCalIte
   return (
     <li data-cal={i.kind} className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <span className="w-14 shrink-0 text-[15px] tabular-nums text-[var(--muted)]">{i.time ?? ""}</span>
-      {i.kind === "council" ? <Link href={`${base}/council`} className="inline-flex min-h-11 items-center text-[16px] text-[var(--foreground)] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{text}</Link>
+      {i.kind === "council" ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 items-center text-[16px] text-[var(--foreground)] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{text}</Link>
         : <span className="inline-flex min-h-11 flex-1 items-center text-[16px] text-[var(--foreground)]">{text}</span>}
       {i.kind === "event" && canWrite && (ask ? (
         <span className="flex gap-2"><button type="button" className={BTN_DANGER} onClick={remove}>{t.confirm}</button><button type="button" className={btn} onClick={() => setAsk(false)}>{t.keep}</button></span>
