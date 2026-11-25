@@ -7,7 +7,7 @@
  * approves (the first approval wins) → the assignee accepts (by 12:00, else «Нужно решение») → in progress
  * → done → reviewed by the accountable person. Adults' tasks are proposals. Joint tasks show in every
  * participant's lane and count once. Live: re-read every 30 s while visible; the strip is aria-live.
- * Phone: lanes fold into one accordion per person (self open). Sprint progress: family totals only.
+ * Phone/tablet: the «Кто чем занят» card expands into the person's tasks (self open). Sprint progress: family totals only.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -21,6 +21,8 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { fmtWeekRange } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H2, H1, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
+import { tx, typograph } from "../lib/typograph.mjs";
 import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
 import type { OsBoard, OsBoardMember, OsBoardTask, OsPlan, OsTemplate, OsSprint, OsSprintGoal, OsMyBoard, OsApprovalStamp, OsWhenSlot, OsDeclineCode, OsTaskHistory } from "../lib/family-os";
 
@@ -32,7 +34,7 @@ const T = {
     barText: (p: OsBoard["progress"]) => `Готово ${p.done} из ${p.total}: в работе ${p.in_progress}, принято ${p.accepted}, ждёт ${p.waiting}`,
     legend: { done: "Готово", in_progress: "В работе", accepted: "Принято", waiting: "Ждёт принятия" },
     stamp: (who: string, at: string) => `План утверждён — ${who} в ${at}`, stampAuto: (at: string) => `Утверждён автоматически по шаблону в ${at}`,
-    strip: "Кто чем занят", since: "с", nothing: "Сейчас ничего", waitingN: (n: number) => `Ждёт принятия: ${n}`, acceptBy: "принять до 12:00", doneOf: (d: number, n: number) => `готово ${d} из ${n}`, noTasks: "Сегодня задач нет", nearest: "ближайшее",
+    strip: "Кто чем занят", showTasks: (n: number) => `Задачи: ${n}`, hideTasks: "Свернуть задачи", since: "с", nothing: "Сейчас ничего", waitingN: (n: number) => `Ждёт принятия: ${n}`, acceptBy: "принять до 12:00", doneOf: (d: number, n: number) => `готово ${d} из ${n}`, noTasks: "Сегодня задач нет", nearest: "ближайшее",
     who: "Кто", adult: "взрослый", child: "ребёнок", empty: "—", with: "вместе с", routineLine: (d: number, n: number) => `Распорядок ${d}\u00a0из\u00a0${n}`, routineNote: "видят только сам ребёнок и родители",
     tag: { sprint: "Спринт", rotation: "Очередь", council: "Совет" }, cant: "Не могу", decide: "решают родители", reviewedBy: (n: string) => `Проверено · ${n}`, reviewed: "Проверено", needsReview: "с проверкой", newT: "новая", by: "до", est: (m: number) => `~${m} мин`,
     slot: { morning: "утром", after_school: "после школы", after_dinner: "после ужина", evening: "вечером" } as Record<OsWhenSlot, string>,
@@ -68,7 +70,7 @@ const T = {
     barText: (p: OsBoard["progress"]) => `Done ${p.done} of ${p.total}: in progress ${p.in_progress}, accepted ${p.accepted}, waiting ${p.waiting}`,
     legend: { done: "Done", in_progress: "In progress", accepted: "Accepted", waiting: "Waiting" },
     stamp: (who: string, at: string) => `Plan approved — ${who} at ${at}`, stampAuto: (at: string) => `Approved automatically from the templates at ${at}`,
-    strip: "Who is doing what", since: "since", nothing: "Nothing right now", waitingN: (n: number) => `Waiting to accept: ${n}`, acceptBy: "accept by 12:00", doneOf: (d: number, n: number) => `${d} of ${n} done`, noTasks: "No tasks today", nearest: "next",
+    strip: "Who is doing what", showTasks: (n: number) => `Tasks: ${n}`, hideTasks: "Hide the tasks", since: "since", nothing: "Nothing right now", waitingN: (n: number) => `Waiting to accept: ${n}`, acceptBy: "accept by 12:00", doneOf: (d: number, n: number) => `${d} of ${n} done`, noTasks: "No tasks today", nearest: "next",
     who: "Who", adult: "adult", child: "child", empty: "—", with: "with", routineLine: (d: number, n: number) => `Routine ${d}\u00a0of\u00a0${n}`, routineNote: "seen only by the child and the parents",
     tag: { sprint: "Sprint", rotation: "Rota", council: "Council" }, cant: "Can't", decide: "parents decide", reviewedBy: (n: string) => `Checked · ${n}`, reviewed: "Checked", needsReview: "to check", newT: "new", by: "by", est: (m: number) => `~${m} min`,
     slot: { morning: "in the morning", after_school: "after school", after_dinner: "after dinner", evening: "in the evening" } as Record<OsWhenSlot, string>,
@@ -110,9 +112,11 @@ const parts = (t: OsBoardTask) => [t.assignee_id, ...(t.co_ids ?? [])];
 
 const field = "mt-1 block min-h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--background)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
-const primary = "inline-flex min-h-11 items-center justify-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)] disabled:opacity-60";
-const panel = "rounded-xl border border-[var(--border)] bg-[var(--background)] px-5 py-4";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
+const panel = "rounded-lg border border-[var(--border)] bg-[var(--background)] px-5 py-4";
+/** Task titles are family-typed text: typographed for display in RU only (spaces → no-break spaces, nothing else). */
+const ty = (s: string, lang: Lang) => (lang === "RU" ? typograph(s) : s);
 const seg = (on: boolean) => `inline-flex min-h-11 items-center px-3.5 text-[15px] ${on ? "bg-[var(--accent)] font-medium text-[var(--on-accent)]" : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`;
 
 export const osSend = (method: "POST" | "PUT" | "PATCH", path: string, body: unknown = {}) =>
@@ -145,7 +149,7 @@ type Ctx = { t: Dict; lang: Lang; me: { id: string; kind: string } | null; peopl
 const withText = (task: OsBoardTask, lane: string | null, c: Ctx) => { const others = parts(task).filter((x) => x !== lane); return others.length ? `${c.t.with} ${others.map((x) => nameOfM(c.people.find((p) => p.id === x), c.lang)).join(", ")}` : ""; };
 
 export default function FamilyBoard({ lang, initial, plan, templates, me, admin, editor = false }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null; admin: boolean; editor?: boolean }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const [board, setBoard] = useState(initial);
   // A server refresh (router.refresh after a write) brings a new `initial`: take it over.
@@ -179,7 +183,8 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin,
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
         <FamilySubNav lang={lang} admin={admin} editor={editor} os active="board" badge={parent ? decisions : 0} />
-        {!board ? <p role="status" className="mt-10 max-w-4xl rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
+        {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
+        {!board ? <div className="max-w-4xl"><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></div> : (
           <div className="pb-8" data-board="">
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
@@ -192,7 +197,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin,
             </div>
             {parent && <Inbox c={c} board={board} />}
             <Toolbar c={c} view={view} setView={setView} who={who} setWho={setWho} tasks={tasks} decisions={parent ? decisions : null} />
-            <Strip c={c} members={board.members.filter(shown)} />
+            <Strip c={c} members={board.members.filter(shown)} board={view === "board" ? board : null} />
             {view === "board" ? <Lanes c={c} board={board} members={board.members.filter(shown)} /> : <ListView c={c} tasks={tasks} />}
             {board.carry_offer && board.carry_offer.length > 0 && <CarryOffer c={c} tasks={board.carry_offer} />}
             <div className={`mt-8 grid gap-5 ${parent && board.plan ? "lg:grid-cols-[1.35fr_1fr]" : ""}`}>
@@ -240,16 +245,17 @@ function Inbox({ c, board, startOpen = false }: { c: Ctx; board: OsBoard; startO
   const planDue = board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0;
   if (planDue) items.push(t.inboxPlan);
   if (!items.length) return (
-    <p data-inbox="calm" className="mt-6 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--ok-soft)] px-4 py-3 text-[15px] text-[var(--ok)]">
+    <p data-inbox="calm" className="mt-6 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--ok-soft)] px-4 py-3 text-[15px] text-[var(--ok)]">
       <span aria-hidden="true" className="font-bold">✓</span>{t.calm}{board.progress.waiting === 0 && board.progress.total > 0 ? ` ${t.calmAll}` : ""}
     </p>
   );
   // «Разобрать» opens the decisions right here, full width (bus 85 L7 — no second «Нужно решение» block below).
   const decisions = board.needs_decision ?? [];
   return (
-    <section data-inbox="open" aria-labelledby="inbox-h" className="mt-6 rounded-xl border border-[var(--warn-border)] bg-[var(--warn-soft)] px-4 py-3">
+    <section data-inbox="open" aria-labelledby="inbox-h" className="mt-6 rounded-lg border border-[var(--warn-border)] bg-[var(--warn-soft)] px-4 py-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <h2 id="inbox-h" className="text-[15px] font-semibold text-[var(--foreground)]">{t.inbox(items.length)}</h2>
+        {/* a status banner, not a section: its label is a line, so every H2 on the page keeps one style (D2) */}
+        <p id="inbox-h" className="text-[15px] font-semibold text-[var(--foreground)]">{t.inbox(items.length)}</p>
         <ul className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-[15px] text-[var(--text-secondary)]">{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
         {decisions.length > 0
           ? <button type="button" aria-expanded={open} aria-controls="decide-list" onClick={() => setOpen(!open)} className={primary}>{open ? t.inboxClose : t.inboxGo}</button>
@@ -278,16 +284,27 @@ function Toolbar({ c, view, setView, who, setWho, tasks, decisions }: { c: Ctx; 
   );
 }
 
-function Strip({ c, members }: { c: Ctx; members: OsBoardMember[] }) {
+/**
+ * «Кто чем занят» — the one people list (bus 157b D7). Below 1024 px a person's card expands in place into
+ * their tasks (self open first), so there is no second per-person list; from 1024 px the lanes table below
+ * holds the tasks and the cards stay a summary. Names are the cards' H3, column labels H4 (L6 heading order).
+ */
+function Strip({ c, members, board }: { c: Ctx; members: OsBoardMember[]; board: OsBoard | null }) {
   const { t, lang } = c;
+  const [open, setOpen] = useState<Set<string>>(() => new Set(c.me ? [c.me.id] : []));
+  const toggle = (id: string) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const cards = (m: OsBoardMember, k: Col) => (board?.tasks ?? []).filter((x) => parts(x).includes(m.id) && colOf(x.state) === k);
   return (
-    <section aria-labelledby="strip-h" className="mt-8">
-      <h2 id="strip-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.strip}</h2>
-      <ul aria-live="polite" data-strip="" className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        {members.map((m) => (
-          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} data-self={m.id === c.me?.id ? "" : undefined}
-            className={`rounded-xl border px-3 py-3 ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"} ${m.id === c.me?.id ? "ring-2 ring-[var(--muted-light)] ring-offset-1 ring-offset-[var(--background)]" : ""}`}>
-            <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]"><Avatar id={m.id} av={c.av} /><span className="min-w-0 flex-1">{nameOfM(m, lang)}</span>{m.id === c.me?.id ? <span data-you="" className="rounded-full bg-[var(--surface)] px-2 py-0.5 text-[14px] font-medium text-[var(--text-secondary)]">{lang === "EN" ? "You" : "Ты"}</span> : null}</p>
+    <section aria-labelledby="strip-h" className="mt-10">
+      <h2 id="strip-h" className={OS_H2}>{t.strip}</h2>
+      <ul data-strip="" className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+        {members.map((m) => {
+          const expandable = Boolean(board) && m.total > 0, isOpen = expandable && open.has(m.id);
+          return (
+          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} data-self={m.id === c.me?.id ? "" : undefined} data-open={isOpen ? "" : undefined}
+            className={`rounded-lg border px-3 py-3 ${isOpen ? "col-span-full lg:col-span-1" : ""} ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"} ${m.id === c.me?.id ? "ring-2 ring-[var(--muted-light)] ring-offset-1 ring-offset-[var(--background)]" : ""}`}>
+            <div className="flex items-center gap-2"><Avatar id={m.id} av={c.av} /><h3 className={`${OS_H3} min-w-0 flex-1`}>{nameOfM(m, lang)}</h3>{m.id === c.me?.id ? <span data-you="" className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[14px] font-medium text-[var(--text-secondary)]">{lang === "EN" ? "You" : "Ты"}</span> : null}</div>
+            <div aria-live="polite">
             {m.current ? (
               <>
                 <p className="mt-2 text-[15px] font-semibold leading-snug text-[var(--accent)]"><span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[var(--accent)] align-[1px] motion-safe:animate-pulse" />{m.current.title}</p>
@@ -295,19 +312,39 @@ function Strip({ c, members }: { c: Ctx; members: OsBoardMember[] }) {
               </>
             ) : (
               <>
-                <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{m.waiting ? t.waitingN(m.waiting) : m.total ? t.nothing : t.noTasks}</p>
+                <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{m.waiting ? t.waitingN(m.waiting) : m.total ? t.nothing : (m.next ? nextText(m, c) : t.noTasks)}</p>
                 {m.waiting > 0 && m.kind === "child" ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.acceptBy}</p> : m.total > 0 ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.doneOf(m.done, m.total)}</p> : null}
               </>
             )}
+            </div>
+            {m.routines && <div className="lg:hidden"><RoutineLine t={t} r={m.routines} /></div>}
+            {expandable && (
+              <div className="lg:hidden">
+                <button type="button" data-strip-toggle="" aria-expanded={isOpen} aria-controls={`strip-tasks-${m.id}`} onClick={() => toggle(m.id)}
+                  className="mt-2 flex min-h-11 w-full items-center justify-between gap-2 border-t border-[var(--border)] pt-2 text-left text-[15px] text-[var(--foreground)]">
+                  {isOpen ? t.hideTasks : t.showTasks(m.total)}
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" className={`shrink-0 text-[var(--muted)] transition-transform motion-reduce:transition-none ${isOpen ? "rotate-90" : ""}`}><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                {isOpen && (
+                  <div id={`strip-tasks-${m.id}`} data-strip-tasks="" className="grid gap-3 pb-1 pt-2">
+                    {COLS.map((k) => { const list = cards(m, k); return list.length ? (
+                      <div key={k}><h4 className="text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.legend[k]}</h4>
+                        <ul className="mt-1.5 grid gap-2">{list.map((x) => <Card key={x.id} c={c} task={x} lane={m.id} idp="s-" />)}</ul></div>
+                    ) : null; })}
+                  </div>
+                )}
+              </div>
+            )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );
 }
 
 /** One card: tag, title, meta; the state in words for screen readers; the card opens the drawer. */
-function Card({ c, task, lane }: { c: Ctx; task: OsBoardTask; lane: string }) {
+function Card({ c, task, lane, idp = "" }: { c: Ctx; task: OsBoardTask; lane: string; idp?: string }) {
   const { t } = c;
   const col = colOf(task.state);
   const mine = parts(task).includes(c.me?.id ?? "");
@@ -320,11 +357,11 @@ function Card({ c, task, lane }: { c: Ctx; task: OsBoardTask; lane: string }) {
     : task.state === "in_progress" ? [`${t.since} ${hhmm(task.started_at)}`, withText(task, lane, c)]
     : task.state === "reviewed" ? [reviewer ? t.reviewedBy(reviewer) : t.reviewed, withText(task, lane, c)]
     : [task.state === "approved" ? t.newT : "", whenText(task, t), withText(task, lane, c), task.needs_review && col !== "done" ? t.needsReview : ""];
-  const descId = `st-${lane}-${task.id}`;
+  const descId = `st-${idp}${lane}-${task.id}`; // `idp`: the same card also sits in the strip — ids stay unique
   return (
     <li data-card={task.state} className={`rounded-lg border px-3 py-2 text-[15px] leading-snug ${cls}`}>
       <button type="button" onClick={() => c.open(task.id)} aria-describedby={`col-${col} ${descId}`} className="block min-h-11 w-full text-left">
-        <span className={`block ${col === "done" ? "text-[var(--muted)]" : "text-[var(--foreground)]"}`}>{col === "done" && <span aria-hidden="true" className="mr-1 font-bold text-[var(--ok)]">✓</span>}<Tag task={task} t={t} />{task.title}</span>
+        <span className={`block ${col === "done" ? "text-[var(--muted)]" : "text-[var(--foreground)]"}`}>{col === "done" && <span aria-hidden="true" className="mr-1 font-bold text-[var(--ok)]">✓</span>}<Tag task={task} t={t} />{ty(task.title, c.lang)}</span>
         {meta.filter(Boolean).length > 0 && <span className="mt-0.5 block text-[14px] text-[var(--muted)]" suppressHydrationWarning>{meta.filter(Boolean).join(" · ")}</span>}
       </button>
       <span id={descId} className="sr-only">{t.stateSr[task.state] ?? ""}</span>
@@ -423,7 +460,8 @@ function PersonHead({ c, m }: { c: Ctx; m: OsBoardMember }) {
   const { t, lang } = c;
   return (
     <div className="min-w-0">
-      <h3 className="text-[15px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</h3>
+      {/* not a heading: the person's heading is their «Кто чем занят» card above (one H3 per person) */}
+      <p className="text-[15px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</p>
       <p className="text-[14px] text-[var(--muted)]">{m.kind === "child" ? t.child : t.adult}{m.total ? ` · ${m.done} ${t.of} ${m.total}` : ""}</p>
       {m.total > 0 && <div aria-hidden="true" className="mt-2 h-1 w-28 overflow-hidden rounded-full bg-[var(--surface)]"><i className="block h-full bg-[var(--ok)]" style={{ width: `${(m.done / m.total) * 100}%` }} /></div>}
       {m.routines && <RoutineLine t={t} r={m.routines} />}
@@ -450,9 +488,9 @@ function Lanes({ c, board, members }: { c: Ctx; board: OsBoard; members: OsBoard
   const busy = sorted.filter((m) => m.total), idle = sorted.filter((m) => !m.total);
   const cards = (m: OsBoardMember, k: Col) => board.tasks.filter((x) => parts(x).includes(m.id) && colOf(x.state) === k);
   return (
-    <section aria-label={t.lanesAria} className="mt-8">
+    <section aria-label={t.lanesAria} className="mt-8 hidden lg:block">
       {/* Wide screens: person × 4 columns; the column header is each card's label (aria-describedby). */}
-      <div data-lanes="" className="hidden overflow-hidden rounded-xl border border-[var(--border)] lg:block">
+      <div data-lanes="" className="overflow-hidden rounded-lg border border-[var(--border)]">
         <div className="grid grid-cols-[200px_repeat(4,1fr)] border-b border-[var(--border)] bg-[var(--surface)]">
           <div className="px-3.5 py-2.5 text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.who}</div>
           {COLS.map((k) => <div key={k} id={`col-${k}`} className="px-3.5 py-2.5 text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.legend[k]} <span className="ml-1 font-medium normal-case tracking-normal">{counts[k]}</span></div>)}
@@ -476,29 +514,7 @@ function Lanes({ c, board, members }: { c: Ctx; board: OsBoard; members: OsBoard
           </div>
         ))}
       </div>
-      {/* Phone / tablet: one accordion per person, self open */}
-      <div data-accordion="" className="grid gap-2 lg:hidden">
-        {sorted.map((m) => m.total ? (
-          <details key={m.id} open={m.id === c.me?.id} className="group rounded-xl border border-[var(--border)] px-3">
-            <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2.5 [&::-webkit-details-marker]:hidden">
-              <Avatar id={m.id} av={c.av} />
-              <span className="min-w-0 flex-1"><span className="block text-[16px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</span><span className="block text-[14px] text-[var(--muted)]">{t.doneOf(m.done, m.total)}</span></span>
-              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" className="shrink-0 text-[var(--muted)] transition-transform group-open:rotate-90 motion-reduce:transition-none"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </summary>
-            <div className="grid gap-3 pb-3">
-              {m.routines && <RoutineLine t={t} r={m.routines} />}
-              {COLS.map((k) => { const list = cards(m, k); return list.length ? (
-                <div key={k}><h4 id={`col-${k}`} className="text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.legend[k]}</h4>
-                  <ul className="mt-1.5 grid gap-2">{list.map((x) => <Card key={x.id} c={c} task={x} lane={m.id} />)}</ul></div>
-              ) : null; })}
-            </div>
-          </details>
-        ) : (
-          <p key={m.id} data-lane="idle" className="flex flex-wrap items-center gap-2.5 rounded-xl border border-[var(--border)] px-3 py-2.5 text-[14px] text-[var(--muted)]">
-            <Avatar id={m.id} av={c.av} /><span className="text-[15px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</span>{nextText(m, c)}
-          </p>
-        ))}
-      </div>
+      {/* Below 1024 px there is no second list: the «Кто чем занят» cards expand into these tasks (bus 157b D7). */}
     </section>
   );
 }
@@ -508,7 +524,7 @@ function ListView({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
   const { t, lang } = c;
   const sorted = [...tasks].sort((a, b) => minuteOf(a) - minuteOf(b));
   return (
-    <ul data-list="" className="mt-8 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
+    <ul data-list="" className="mt-8 divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
       {sorted.map((x) => (
         <li key={x.id} data-row={x.state}>
           <button type="button" onClick={() => c.open(x.id)} className="grid min-h-14 w-full grid-cols-[96px_1fr] items-center gap-x-3 gap-y-0.5 px-4 py-2.5 text-left sm:grid-cols-[120px_1fr_200px_140px]">
@@ -571,7 +587,7 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
             {(can.has("review") || can.has("rework")) && <Review c={inner} task={x} />}
             {x.needs_review && <p className={`${META} mt-3`}>{t.drawer.reviewNote}</p>}
             {x.needs_review && data?.photo && (data.photo.can_add || data.photo.has || data.photo.sent) && <TaskPhoto c={inner} task={x} photo={data.photo} onDone={load} />}
-            <h3 className="mt-6 font-serif text-[20px] text-[var(--foreground)]">{t.drawer.history}</h3>
+            <h3 className={`mt-6 ${OS_H3}`}>{t.drawer.history}</h3>
             <ol data-history="" className="mt-2 grid gap-2 border-l border-[var(--border)] pl-4">
               {[...(data?.history ?? [])].reverse().map((h, i) => (
                 <li key={i} className="text-[15px] text-[var(--foreground)]" suppressHydrationWarning>
@@ -609,7 +625,7 @@ function TaskPhoto({ c, task, photo, onDone }: { c: Ctx; task: OsBoardTask; phot
   };
   return (
     <section aria-labelledby={`photo-${task.id}`} data-task-photo="" className="mt-4 rounded-lg border border-[var(--border)] px-4 py-3">
-      <h3 id={`photo-${task.id}`} className="text-[16px] font-semibold text-[var(--foreground)]">{t.drawer.photo}</h3>
+      <h3 id={`photo-${task.id}`} className={OS_H3}>{t.drawer.photo}</h3>
       {photo.has && photo.delete_after && (
         <figure className="mt-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- a private, per-request image behind the family gate; never optimised or cached */}
@@ -684,7 +700,7 @@ function DecisionRow({ c, task }: { c: Ctx; task: OsBoardTask }) {
   const go = async (action: "reassign" | "carry" | "cancel") => { const r = await osSend("POST", `tasks/${task.id}/${action}`, action === "reassign" ? { assignee_id: to } : {}); if (r?.ok) c.onChange(); else setErr(true); };
   const why = task.why === "not_accepted" ? t.lateWhy : task.decline_code === "other" ? task.decline_reason : task.decline_code ? t.reasons[task.decline_code] : "—";
   return (
-    <li data-decision={task.why ?? "declined"} className="rounded-xl border border-[var(--warn-border)] bg-[var(--warn-soft)] p-4">
+    <li data-decision={task.why ?? "declined"} className="rounded-lg border border-[var(--warn-border)] bg-[var(--warn-soft)] p-4">
       <p className="text-[16px] font-semibold text-[var(--foreground)]">{who ? `${nameOfM(who, lang)}: ` : ""}«{task.title}»</p>
       <p className="mt-1 text-[14px] text-[var(--text-secondary)]">{t.reason}: {why}</p>
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
@@ -703,7 +719,7 @@ function CarryOffer({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
   const carry = async (ids: string[]) => { const rs = await Promise.all(ids.map((id) => osSend("POST", `tasks/${id}/carry`))); if (!rs.every((r) => r?.ok)) setErr(true); c.onChange(); };
   return (
     <section aria-labelledby="carry-h" data-carry="" className={`mt-8 ${panel}`}>
-      <h2 id="carry-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.carry}</h2>
+      <h2 id="carry-h" className={OS_H2}>{t.carry}</h2>
       <p className={`${META} mt-1`}>{t.carryHint}</p>
       <ul className="mt-3 divide-y divide-[var(--border)]">
         {tasks.map((x) => (
@@ -758,7 +774,7 @@ function PlanPanel({ c, summary, plan }: { c: Ctx; summary: NonNullable<OsBoard[
   const nameById = (id: string) => nameOfM(c.people.find((p) => p.id === id), lang);
   return (
     <section aria-labelledby="plan-h" data-plan="" className={`${panel} scroll-mt-24`}>
-      <h2 id="plan-h" className="font-serif text-[22px] text-[var(--foreground)]" suppressHydrationWarning>{t.plan} — {longDate(summary.date, lang).replace(/^./, (ch) => ch.toLowerCase())}</h2>
+      <h2 id="plan-h" className={OS_H2} suppressHydrationWarning>{t.plan} — {longDate(summary.date, lang).replace(/^./, (ch) => ch.toLowerCase())}</h2>
       {approved ? (
         <>
           <p role="status" data-plan-stamp="" className="mt-2 text-[16px] text-[var(--foreground)]">{plan?.approval ? stampText(plan.approval, c) : t.saved}</p>
@@ -826,7 +842,7 @@ export function SprintPanel({ t, lang, weekStart, goals }: { t: Dict; lang: Lang
   );
   return (
     <section aria-labelledby="sprint-h" data-sprint="" className={panel}>
-      <h2 id="sprint-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.sprint}</h2>
+      <h2 id="sprint-h" className={OS_H2}>{t.sprint}</h2>
       <p className={`${META} mt-1`} suppressHydrationWarning>{fmtWeekRange(weekStart, end, lang)} · {t.sprintHint}</p>
       <ul className="mt-2 divide-y divide-[var(--border)]">
         {goals.map((g) => (
@@ -895,16 +911,15 @@ function Templates({ c, templates }: { c: Ctx; templates: OsTemplate[] }) {
 /** Today: parents' decision line; «Новые задачи» (Принимаю / Не могу / Принять все) above «Мои задачи»
  *  (one primary move; the quiet «Ещё в работе?» only to the person doing it); «Мой распорядок N из M» under them. */
 export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBoard; board: OsBoard | null; me: { id: string; kind: string } | null; routines: { done: number; total: number } | null }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [err, setErr] = useState(false);
   const [cant, setCant] = useState<string | null>(null);
   const people: Person[] = board?.members ?? [];
   const c: Ctx = { t, lang, me, people, av: avatarsFor(people, lang), parent: Boolean(board?.can.approve), onChange: () => router.refresh(), open: () => {} };
   const done = data.mine.filter((x) => x.state === "done" || x.state === "reviewed").length;
-  const L = lang === "EN"
-    ? { newH: "New tasks", wait: (n: number) => `${n} waiting for you`, all: (n: number) => `Accept all (${n})`, mineH: "My tasks", of: (d: number, n: number) => `${d} of ${n} done`, routine: (d: number, n: number) => `My routine ${d} of ${n}`, chip: { accepted: "Accepted", in_progress: "In progress", done: "Done", reviewed: "Checked", declined: "Parents decide" } }
-    : { newH: "Новые задачи", wait: (n: number) => `${n} ждут тебя`, all: (n: number) => `Принять все (${n})`, mineH: "Мои задачи", of: (d: number, n: number) => `${d} из ${n} готово`, routine: (d: number, n: number) => `Мой распорядок ${d} из ${n}`, chip: { accepted: "Принято", in_progress: "В работе", done: "Готово", reviewed: "Проверено", declined: "Решают родители" } };
+  const L = tx({ EN: { newH: "New tasks", wait: (n: number) => `${n} waiting for you`, all: (n: number) => `Accept all (${n})`, mineH: "My tasks", of: (d: number, n: number) => `${d} of ${n} done`, routine: (d: number, n: number) => `My routine ${d} of ${n}`, chip: { accepted: "Accepted", in_progress: "In progress", done: "Done", reviewed: "Checked", declined: "Parents decide" } },
+    RU: { newH: "Новые задачи", wait: (n: number) => `${n} ждут тебя`, all: (n: number) => `Принять все (${n})`, mineH: "Мои задачи", of: (d: number, n: number) => `${d} из ${n} готово`, routine: (d: number, n: number) => `Мой распорядок ${d} из ${n}`, chip: { accepted: "Принято", in_progress: "В работе", done: "Готово", reviewed: "Проверено", declined: "Решают родители" } } }, lang);
   const acceptAll = async () => { const r = await osSend("POST", "tasks/accept-all"); if (r?.ok) router.refresh(); else setErr(true); };
   const answer = async (id: string, action: "done" | "continue") => { const r = await osSend("POST", `tasks/${id}/${action}`); if (r?.ok) router.refresh(); else setErr(true); };
   return (
@@ -912,11 +927,11 @@ export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBo
       {c.parent && board && <Inbox c={c} board={board} />}
       {data.new.length > 0 && (
         <section aria-labelledby="new-h" data-new-tasks="" className="mt-8">
-          <h2 id="new-h" className="flex items-baseline justify-between gap-3 font-serif text-[22px] text-[var(--foreground)]">{L.newH}<span className="font-sans text-[14px] text-[var(--muted)]">{L.wait(data.new.length)}</span></h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3"><h2 id="new-h" className={OS_H2}>{L.newH}</h2><span className="text-[14px] text-[var(--muted)]">{L.wait(data.new.length)}</span></div>
           <ul className="mt-2 grid gap-3">
             {data.new.map((x) => (
-              <li key={x.id} data-new-task="" className="rounded-xl border border-[var(--border)] p-3.5">
-                <p className="text-[16px] font-semibold text-[var(--foreground)]"><Tag task={x} t={t} />{x.title}</p>
+              <li key={x.id} data-new-task="" className="rounded-lg border border-[var(--border)] p-3.5">
+                <p className="text-[16px] font-semibold text-[var(--foreground)]"><Tag task={x} t={t} />{ty(x.title, lang)}</p>
                 {[whenText(x, t), withText(x, me?.id ?? null, c)].filter(Boolean).length > 0 && <p className="mt-0.5 text-[14px] text-[var(--muted)]">{[whenText(x, t), withText(x, me?.id ?? null, c)].filter(Boolean).join(" · ")}</p>}
                 {cant === x.id ? <Decline c={c} task={x} onCancel={() => setCant(null)} /> : (
                   <div className="mt-3 grid grid-cols-2 gap-2"><AcceptButton c={c} task={x} /><button type="button" className={btn} onClick={() => setCant(x.id)}>{t.cant}</button></div>
@@ -929,13 +944,13 @@ export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBo
       )}
       {data.mine.length > 0 && (
         <section aria-labelledby="mine-h" data-my-tasks="" className="mt-8">
-          <h2 id="mine-h" className="flex items-baseline justify-between gap-3 font-serif text-[22px] text-[var(--foreground)]">{L.mineH}<span className="font-sans text-[14px] text-[var(--muted)]">{L.of(done, data.mine.length)}</span></h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3"><h2 id="mine-h" className={OS_H2}>{L.mineH}</h2><span className="text-[14px] text-[var(--muted)]">{L.of(done, data.mine.length)}</span></div>
           <ul className="mt-2 grid gap-3">
             {data.mine.map((x) => (
-              <li key={x.id} data-mine={x.state} className={`rounded-xl border p-3.5 ${x.state === "in_progress" ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : x.state === "done" || x.state === "reviewed" ? "border-[var(--border)] bg-[var(--surface)]" : "border-[var(--border)]"}`}>
+              <li key={x.id} data-mine={x.state} className={`rounded-lg border p-3.5 ${x.state === "in_progress" ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : x.state === "done" || x.state === "reviewed" ? "border-[var(--border)] bg-[var(--surface)]" : "border-[var(--border)]"}`}>
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-[16px] font-semibold text-[var(--foreground)]"><Tag task={x} t={t} />{x.title}</p>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[14px] font-medium ${x.state === "in_progress" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : x.state === "done" || x.state === "reviewed" ? "bg-[var(--ok-soft)] text-[var(--ok)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}>{L.chip[x.state as keyof typeof L.chip]}</span>
+                  <p className="text-[16px] font-semibold text-[var(--foreground)]"><Tag task={x} t={t} />{ty(x.title, lang)}</p>
+                  <span className={`shrink-0 rounded-md px-2.5 py-1 text-[14px] font-medium ${x.state === "in_progress" ? "bg-[var(--accent-soft)] text-[var(--accent)]" : x.state === "done" || x.state === "reviewed" ? "bg-[var(--ok-soft)] text-[var(--ok)]" : "bg-[var(--surface)] text-[var(--muted)]"}`}>{L.chip[x.state as keyof typeof L.chip]}</span>
                 </div>
                 <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{[x.state === "in_progress" && x.started_at ? `${t.since} ${hhmm(x.started_at)}` : whenText(x, t), withText(x, me?.id ?? null, c), x.estimate_min ? t.est(x.estimate_min) : ""].filter(Boolean).join(" · ")}</p>
                 {x.rework_note && <p className="mt-1 text-[14px] text-[var(--text-secondary)]">{t.act.rework}: {x.rework_note}</p>}
@@ -963,12 +978,11 @@ function AcceptButton({ c, task }: { c: Ctx; task: OsBoardTask }) {
 
 /** Council: «Цели спринта» for the council's week (1–3, adults edit) and the review block (family totals). */
 export function CouncilSprint({ lang, sprint }: { lang: Lang; sprint: OsSprint }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [msg, setMsg] = useState("");
-  const L = lang === "EN"
-    ? { head: "Sprint goals", review: "Sprint review", reviewLine: (d: number, n: number) => `The family closed ${d} of ${n} sprint tasks this week.`, add: "Add a goal", goal: "Goal", save: "Save", archive: "Remove", max: "Three goals at most." }
-    : { head: "Цели спринта", review: "Итоги спринта", reviewLine: (d: number, n: number) => `За неделю семья закрыла ${d} из ${n} задач спринта.`, add: "Добавить цель", goal: "Цель", save: "Сохранить", archive: "Убрать", max: "Не больше трёх целей." };
+  const L = tx({ EN: { head: "Sprint goals", review: "Sprint review", reviewLine: (d: number, n: number) => `The family closed ${d} of ${n} sprint tasks this week.`, add: "Add a goal", goal: "Goal", save: "Save", archive: "Remove", max: "Three goals at most." },
+    RU: { head: "Цели спринта", review: "Итоги спринта", reviewLine: (d: number, n: number) => `За неделю семья закрыла ${d} из ${n} задач спринта.`, add: "Добавить цель", goal: "Цель", save: "Сохранить", archive: "Убрать", max: "Не больше трёх целей." } }, lang);
   const totals = sprint.goals.reduce((a, g) => ({ d: a.d + g.done, n: a.n + g.total }), { d: 0, n: 0 });
   const add = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); const form = e.currentTarget, f = new FormData(form);
@@ -986,7 +1000,7 @@ export function CouncilSprint({ lang, sprint }: { lang: Lang; sprint: OsSprint }
               {sprint.can.write ? (
                 <form onSubmit={(e) => { e.preventDefault(); patch(g.id, { title: String(new FormData(e.currentTarget).get("title") ?? "").trim() }); }} className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
                   <label className={label}>{L.goal}<input name="title" defaultValue={g.title} required maxLength={160} className={field} /></label>
-                  <button type="submit" className={btn}>{L.save}</button>
+                  <button type="submit" className={primary}>{L.save}</button>
                   <button type="button" className={btn} onClick={() => patch(g.id, { archived: true })}>{L.archive}</button>
                 </form>
               ) : <p className="text-[16px] font-semibold text-[var(--foreground)]">{g.title}</p>}
@@ -1004,7 +1018,7 @@ export function CouncilSprint({ lang, sprint }: { lang: Lang; sprint: OsSprint }
       <span role="status" aria-live="polite" className="mt-1 block text-[14px] text-[var(--muted)]">{msg}</span>
       {totals.n > 0 ? (
         <div data-sprint-review="" className={`mt-6 ${panel}`}>
-          <h3 className="font-serif text-[20px] text-[var(--foreground)]">{L.review}</h3>
+          <h3 className={OS_H3}>{L.review}</h3>
           <p className="mt-1 text-[16px] text-[var(--foreground)]">{L.reviewLine(totals.d, totals.n)}</p>
           <p className={`${META} mt-1`}>{t.sprintNote}</p>
         </div>

@@ -1,0 +1,48 @@
+# Family OS — design notes
+
+The rules every Family OS page follows (`app/[lang]/family/os/**`, `app/components/Family*.tsx`). Baseline: the
+approved council mockup — formal, serif titles, radius 8 / 6, no pills, no tinted surfaces. Source of the rules:
+QA-156 and the bus 157b design review (D1–D11). The class strings live in `app/lib/family-ui.ts`; tests in
+`tests/family-ui.test.mjs`.
+
+## Headings (D2)
+- A section of a page is an **H2** — `OS_H2` (the site scale's H2: serif, burgundy). One style on every OS page.
+- A titled block inside a section is an **H3** — `OS_H3` (serif, ink). Card titles too.
+- Below that, small uppercase column labels (the board) are H4.
+- Not section headings, on purpose: the task drawer's dialog title, the board's «Нужно твоё решение» banner (a
+  line), the day labels of the calendar list, and the A4 «Неделя семьи» sheet (its own print scale).
+- Every page has exactly one H1, also when it shows only one line (not a member, «не отвечает»).
+
+## Buttons (D3, D4)
+- One size: at least 44 px tall, 15 px text, 16 px side padding.
+- **Primary** (`BTN_PRIMARY`, filled): a form's submit, or the «yes» of a non-destructive confirm. One per form.
+- **Secondary** (`BTN_SECONDARY`, outline): every other action. No text-link buttons.
+- **Danger** (`BTN_DANGER`, destructive text + outline, never a fill): deletes or cuts something off — «Удалить все
+  записи», «Отозвать», «Завершить сеансы», «Завершить все сеансы». Always behind a confirm step; in the confirm the
+  safe choice comes first and has the focus. A danger action stands apart from safe ones (`DANGER_ROW`: its own
+  row under a hairline, or pushed to the far end of the row).
+
+## Containers (D8)
+- A **left rule** means one of two things only:
+  - grey (`--pillar-kodeks`, `RULE_VALUES`) — **values and principles**: «Принцип недели», «Признание», recognitions;
+  - червлень (`--pillar-health`, `RULE_PRIVATE`) — **private and sensitive**: «Здоровье», «Вес и питание», documents.
+- Items are plain lists (routines, documents rows) or cards (tasks). A card is a hairline border, radius 8, no fill.
+- The WOOP block on a goal keeps the gold growth rule (bus 86) — an open question for the next review.
+
+## States
+- Family OS silent: one shared «Раздел «Семья» сейчас не отвечает. Попробуй через минуту.» (`FamilyOsDown`) on every
+  OS page, with the page's own H1, inside the family layout — never a 404.
+- The family 404 keeps the family layout (sub-nav + «Выйти») for a signed-in family viewer.
+- A disabled control carries a line saying why it is off and how to turn it on.
+
+## Navigation
+- Sub-nav: one line; on a phone it scrolls with an edge fade (a mask, so all themes match) and snaps to tab starts;
+  the current tab sits one fade-width in from the edge.
+- Long pages («Доступы», a person's page) open with an «На этой странице» index of bordered links; on a person's
+  page it stands as a sticky column beside the reading column from 1280 px.
+
+## Russian typography (L8)
+- RU interface copy goes through `tx(T, lang)` (`app/lib/typograph.mjs`): a no-break space after short
+  prepositions, conjunctions and particles, before «же/ли/бы», between a number and its unit, and before a dash.
+- Text people type is shown as typed, except task titles and the Кодекс wording, which are typographed for display
+  only (spaces become no-break spaces; nothing else changes).

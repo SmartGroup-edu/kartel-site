@@ -21,6 +21,8 @@ import { Check } from "./FamilyRoutines";
 import { ruPlural } from "../lib/family-routines.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, RULE_VALUES } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 import type { OsCouncil, OsPerson, OsTask, OsSprint } from "../lib/family-os";
 import { CouncilSprint } from "./FamilyBoard";
 
@@ -49,15 +51,15 @@ type Dict = (typeof T)[Lang];
 
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
 const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
 export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, recognitions = null, principles = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null;
   recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null; editor?: boolean }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
   const nameOf = (id: string) => { const p = people.find((x) => x.id === id); return p ? (lang === "EN" ? p.name_en : p.name_ru) : "—"; };
@@ -68,12 +70,13 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
       <main id="main" className={FAMILY_MAIN}>
         <FamilySubNav lang={lang} admin={admin} editor={editor} os active="council" />
         <div className="max-w-4xl pb-8">
-          {!council ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
+          {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
+          {!council ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></> : (
             <>
               <h1 className={H1}>{t.title}</h1>
               <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[16px] text-[var(--text-secondary)]" suppressHydrationWarning>
                 {longDate(council.date, lang)} {t.at}
-                <span data-council-status={council.status} className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[14px] ${council.status === "live" ? "bg-[var(--accent)] text-[var(--on-accent)]" : "border border-[var(--border)]"}`}>
+                <span data-council-status={council.status} className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[14px] ${council.status === "live" ? "bg-[var(--accent)] text-[var(--on-accent)]" : "border border-[var(--border)]"}`}>
                   {council.status === "upcoming" ? t.chip.upcoming(council.days_until) : t.chip[council.status]}
                 </span>
               </p>
@@ -86,11 +89,11 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
 
               {/* bus 86: the principle of the week is the first item of the agenda */}
               {council.principle && principles && <CouncilPrinciple lang={lang} principle={council.principle} canPick={Boolean(council.can.pick_principle)} principles={principles} />}
-              {recognitions && <section aria-labelledby="council-rec-h" data-council-recognitions="" className="mt-8 border-l-2 border-[var(--pillar-kodeks)] pl-4">
-                <RecognitionList lang={lang} items={recognitions} headingId="council-rec-h" heading={KODEKS_T[lang].recCouncil} />
+              {recognitions && <section aria-labelledby="council-rec-h" data-council-recognitions="" className={`mt-10 ${RULE_VALUES}`}>
+                <RecognitionList lang={lang} items={recognitions} headingId="council-rec-h" heading={tx(KODEKS_T, lang).recCouncil} level={2} />
               </section>}
-              <section aria-labelledby="agenda-h" data-agenda-week="" className="mt-10 rounded-lg border border-[var(--border)] px-5 py-4">
-                <h2 id="agenda-h" className="font-serif text-[22px] text-[var(--foreground)]" suppressHydrationWarning>{t.week} {fmtWeekRange(council.agenda.from, council.agenda.to, lang)}</h2>
+              <section aria-labelledby="agenda-h" data-agenda-week="" className="mt-10">
+                <h2 id="agenda-h" className={OS_H2} suppressHydrationWarning>{t.week} {fmtWeekRange(council.agenda.from, council.agenda.to, lang)}</h2>
                 <p className="mt-2 text-[16px] text-[var(--foreground)]">{council.agenda.items.scheduled ? t.items(council.agenda.items.done, council.agenda.items.scheduled) : t.noItems}</p>
               </section>
 
@@ -180,7 +183,7 @@ function Notes({ t, date, notes, held, canWrite, canMarkHeld }: { t: Dict; date:
   };
   return (
     <section aria-labelledby="notes-h" className="mt-10">
-      <h2 id="notes-h" className="font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]">{t.notes}</h2>
+      <h2 id="notes-h" className={OS_H2}>{t.notes}</h2>
       {canWrite ? (
         <>
           <form onSubmit={save} className="mt-3 grid gap-3">
@@ -230,12 +233,12 @@ function AddDecision({ t, date, people, lang }: { t: Dict; date: string; people:
 /** Today: my open council tasks (tick when done) and, on Sundays, the council line. */
 /** Today: my open council tasks as tick rows (ticked ones stay, struck through, until tomorrow) and, on Sundays, the council line. */
 export function TodayCouncil({ lang, tasks, sunday }: { lang: Lang; tasks: { id: string; title: string; due_date: string }[]; sunday: boolean }) {
-  const L = lang === "EN" ? { head: "From the council", today: "Family council today at 19:00", open: "Open the council", due: "by" }
-    : { head: "С семейного совета", today: "Сегодня в 19:00 — семейный совет", open: "Открыть совет", due: "до" };
+  const L = tx({ EN: { head: "From the council", today: "Family council today at 19:00", open: "Open the council", due: "by" },
+    RU: { head: "С семейного совета", today: "Сегодня в 19:00 — семейный совет", open: "Открыть совет", due: "до" } }, lang);
   if (!sunday && tasks.length === 0) return null;
   return (
-    <section aria-labelledby="council-today-h" data-today-council="" className="mt-8">
-      <h2 id="council-today-h" className="font-serif text-[22px] text-[var(--foreground)]">{L.head}</h2>
+    <section aria-labelledby="council-today-h" data-today-council="" className="mt-10">
+      <h2 id="council-today-h" className={OS_H2}>{L.head}</h2>
       {sunday && <p className="mt-2 flex flex-wrap items-center gap-x-3 text-[16px] text-[var(--foreground)]">{L.today} <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{L.open}</Link></p>}
       {tasks.length > 0 && (
         <ul className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">

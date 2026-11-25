@@ -6,6 +6,8 @@
 // no medical advice, no sleep hours (still to be checked against NHS figures).
 import { useCallback, useEffect, useState } from "react";
 import { H2, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H3 } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 type Health = {
@@ -38,12 +40,11 @@ const T = {
   },
 } as const;
 
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
+const btn = BTN_SECONDARY;
 const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 
 export default function FamilyHealth({ lang }: { lang: Lang }) {
-  const t = T[lang];
   const [h, setH] = useState<Health | null>(null);
   const [ev, setEv] = useState<Evening | null>(null);
   const [draft, setDraft] = useState("");
@@ -55,6 +56,7 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
     }).catch(() => setEv(null));
   }, []);
   useEffect(() => { load(); }, [load]);
+  const t = tx(T, lang);
   if (!h) return null;
 
   const ticked = (kind: "move" | "sleep") => h.mine.ticks.some((x) => x.date === h.today && x.kind === kind);
@@ -82,7 +84,7 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
             ))}
           </div>
           {h.mine.kind === "child" && <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.guide}</p>}
-          <p className="mt-2"><button type="button" data-health-ticks-off="" onClick={() => prefs({ ticks_on: false })} className="inline-flex min-h-11 items-center text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.ticksOff}</button></p>
+          <p className="mt-3"><button type="button" data-health-ticks-off="" onClick={() => prefs({ ticks_on: false })} className={btn}>{t.ticksOff}</button></p>
         </div>
       ) : (
         <div className="mt-4">
@@ -92,7 +94,7 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
       )}
 
       <div data-evening="" className="mt-6">
-        <h3 className="text-[17px] font-medium text-[var(--foreground)]">{t.evening}</h3>
+        <h3 className={OS_H3}>{t.evening}</h3>
         {ev?.on ? (
           <form className="mt-2 flex flex-col gap-2 sm:max-w-[60ch]" onSubmit={(e) => { e.preventDefault(); save(); }}>
             <label htmlFor="evening-q" className="text-[15px] text-[var(--foreground)]">{t.q}</label>
@@ -100,8 +102,8 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
             <input id="evening-q" data-evening-input="" value={draft} maxLength={200} onChange={(e) => setDraft(e.target.value)}
               className="block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]" />
             <div className="flex flex-wrap gap-3">
-              <button type="submit" data-evening-save="" className={btn}>{t.save}</button>
-              <button type="button" data-evening-off="" onClick={() => prefs({ evening_q_on: false })} className="inline-flex min-h-11 items-center text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.off}</button>
+              <button type="submit" data-evening-save="" className={BTN_PRIMARY}>{t.save}</button>
+              <button type="button" data-evening-off="" onClick={() => prefs({ evening_q_on: false })} className={btn}>{t.off}</button>
             </div>
           </form>
         ) : (

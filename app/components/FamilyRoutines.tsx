@@ -14,6 +14,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { describeRule, streakText, weekText, anchorLabel, ifThenText, buildRule, scheduleSummary, WEEKDAYS } from "../lib/family-routines.mjs";
 import type { OsRoutine } from "../lib/family-os";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 const T = {
@@ -56,7 +58,7 @@ const fmtDay = (d: string, lang: Lang) =>
   new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
+const btn = BTN_SECONDARY;
 
 export function Check({ checked }: { checked: boolean }) {
   return (
@@ -67,17 +69,19 @@ export function Check({ checked }: { checked: boolean }) {
 }
 
 /** Today's due items with a tick each. `canCheck` false → read-only (e.g. someone without the scope). */
-export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading, paused = false }: {
-  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string; paused?: boolean;
+export function TodayChecklist({ lang, today, routines, canCheck, headingId, heading, paused = false, level = 2 }: {
+  lang: Lang; today: string; routines: OsRoutine[]; canCheck: boolean; headingId: string; heading: string; paused?: boolean; level?: 2 | 3;
 }) {
-  const t = T[lang];
+  const t = tx(T, lang);
+  // A section of its own on Today (H2); inside «Распорядок и дела» on a person page, a block of it (H3).
+  const HeadingTag = level === 3 ? "h3" : "h2", headingClass = level === 3 ? OS_H3 : OS_H2;
   const due = routines.filter((r) => r.due_today).sort((a, b) => (a.at_time ?? "99").localeCompare(b.at_time ?? "99"));
   const [done, setDone] = useState<Record<string, boolean>>(() => Object.fromEntries(due.map((r) => [r.id, r.done_today])));
   const [msg, setMsg] = useState("");
   if (paused) return (
-    <section aria-labelledby={headingId} data-paused="" className="mt-8">
-      <h2 id={headingId} className="font-serif text-[22px] text-[var(--foreground)]">{heading}</h2>
-      <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] px-5 py-4 text-[16px] text-[var(--text-secondary)]">{T[lang].paused}</p>
+    <section aria-labelledby={headingId} data-paused="" className="mt-10">
+      <HeadingTag id={headingId} className={headingClass}>{heading}</HeadingTag>
+      <p className="mt-3 rounded-lg border border-dashed border-[var(--border)] px-5 py-4 text-[16px] text-[var(--text-secondary)]">{t.paused}</p>
     </section>
   );
   if (due.length === 0) return null;
@@ -89,9 +93,9 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
     if (!res?.ok) { setDone((x) => ({ ...x, [r.id]: !next })); setMsg(t.saveError); }
   };
   return (
-    <section aria-labelledby={headingId} data-checklist="" className="mt-8">
+    <section aria-labelledby={headingId} data-checklist="" className="mt-10">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-        <h2 id={headingId} className="font-serif text-[22px] text-[var(--foreground)]">{heading}</h2>
+        <HeadingTag id={headingId} className={headingClass}>{heading}</HeadingTag>
         <p className="text-[14px] text-[var(--text-secondary)]" aria-live="polite">{t.progress(count, due.length)}</p>
       </div>
       <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -121,13 +125,13 @@ export function TodayChecklist({ lang, today, routines, canCheck, headingId, hea
 
 /** The next 7 days, one line per day that has something. */
 export function Agenda({ lang, routines }: { lang: Lang; routines: OsRoutine[] }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const byDay = new Map<string, OsRoutine[]>();
   for (const r of routines) for (const d of r.next.slice(0, 7)) byDay.set(d, [...(byDay.get(d) ?? []), r]);
   const days = [...byDay.keys()].sort().slice(0, 7);
   return (
     <section aria-labelledby="agenda-h" className="mt-10">
-      <h3 id="agenda-h" className="font-serif text-[20px] text-[var(--foreground)]">{t.agenda}</h3>
+      <h3 id="agenda-h" className={OS_H3}>{t.agenda}</h3>
       {days.length === 0 ? <p className="mt-2 text-[14px] text-[var(--muted)]">{t.nothingAhead}</p> : (
         <dl data-agenda="" className="mt-3 grid grid-cols-[7.5rem_1fr] gap-x-4 gap-y-2 text-[15px]">
           {days.map((d) => (
@@ -144,7 +148,7 @@ export function Agenda({ lang, routines }: { lang: Lang; routines: OsRoutine[] }
 
 /** All items with their schedule; managers can remove one (two-step, no accidental taps). */
 export function RoutineList({ lang, routines, canManage }: { lang: Lang; routines: OsRoutine[]; canManage: boolean }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [ask, setAsk] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -182,7 +186,7 @@ export function RoutineList({ lang, routines, canManage }: { lang: Lang; routine
 }
 
 export function AddRoutine({ lang, personId, today, routines = [] }: { lang: Lang; personId: string; today: string; candidates?: { id: string; name: string }[]; routines?: OsRoutine[] }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [repeat, setRepeat] = useState<"daily" | "every_n" | "weekdays" | "weekly" | "monthly">("daily");
   const [n, setN] = useState("2");
@@ -256,7 +260,7 @@ export function AddRoutine({ lang, personId, today, routines = [] }: { lang: Lan
           {rrule ? scheduleSummary(rrule, dtstart, lang) : repeat === "weekly" ? t.needDays : t.needN}
         </p>
         <div className="flex items-center gap-3 sm:col-span-2">
-          <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]">{t.save}</button>
+          <button type="submit" className={BTN_PRIMARY}>{t.save}</button>
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
         </div>
       </form>

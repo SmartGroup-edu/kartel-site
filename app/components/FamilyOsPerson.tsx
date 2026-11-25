@@ -22,6 +22,9 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS, fmtDocDate } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, H2, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
+import FamilyJumpNav from "./FamilyJumpNav";
 import type { OsState, OsProfile, OsDocument, OsRoutines, OsPrefs, OsPause, OsGoals, OsNotes, OsIcs } from "../lib/family-os";
 import FamilyPrefs from "./FamilyPrefs";
 import FamilyPasskeys from "./FamilyPasskeys";
@@ -41,6 +44,7 @@ const T = {
     scope: { routines: "routines", health: "health", education: "school", documents: "documents" },
     routinesPrivate: "An adult's routines are visible to that person only.", routinesNoAccess: "This child's routines are visible to their parents and to people given access.",
     retype: "Change type", retypeSave: "Save type", retyped: "Type changed.",
+    jump: "On this page", goals: "Goals", letters: "Emails and pauses", phone: "Phone calendar", signin: "Sign-in", notes: "Health and school",
   },
   RU: {
     back: "Люди", born: "Дата рождения", age: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "год" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "года" : "лет"}`, adult: "Взрослый", child: "Ребёнок", parents: "Родители", relatives: "С доступом",
@@ -54,18 +58,19 @@ const T = {
     scope: { routines: "распорядок", health: "здоровье", education: "учёба", documents: "документы" },
     routinesPrivate: "Распорядок взрослого видит только он сам.", routinesNoAccess: "Распорядок этого ребёнка видят родители и те, кому дали доступ.",
     retype: "Изменить тип", retypeSave: "Сохранить тип", retyped: "Тип изменён.",
+    jump: "На этой странице", goals: "Цели", letters: "Письма и паузы", phone: "Календарь в телефоне", signin: "Вход", notes: "Здоровье и учёба",
   },
 } as const;
 type Dict = (typeof T)[Lang];
 
 const api = (path: string, body?: unknown) => fetch(`/api/family-os/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body ?? {}), credentials: "same-origin", cache: "no-store" }).then(checkEnded);
 const fmtDate = (d: string | null | undefined, lang: Lang) => fmtDocDate(d, lang);
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-50";
+const btn = BTN_SECONDARY;
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 
 export default function FamilyOsPerson({ passkeys = null, lang, state, profile, documents, routines, prefs = null, pauses = null, editor = false, goals = null, notes = null, ics = null }: { passkeys?: { self: boolean; canAdd: boolean } | null; lang: Lang; state: OsState; editor?: boolean; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null; prefs?: OsPrefs | null; pauses?: OsPause[] | null; goals?: OsGoals | null; notes?: OsNotes | null; ics?: OsIcs | null }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const ok = state.status === "ok";
   const people = ok ? state.people : [];
@@ -79,15 +84,26 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
   const managed = ok && me ? people.filter((x) => (x.id === me.id && me.kind === "adult") || state.grants.some((g) => g.guardian_id === me.id && g.child_id === x.id && g.scopes.includes("routines"))) : [];
   const candidates = managed.some((x) => x.id === p.id) ? managed.map((x) => ({ id: x.id, name: nameOf(x) })) : [];
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
+  // bus 157b D6: the same «На этой странице» index as «Доступы», built from the sections this viewer gets.
+  // «Вес и питание» loads in the browser (and is absent under 18), so it has no entry — it sits between goals and letters.
+  const goalsShown = Boolean(goals && (goals.can.write || goals.goals.length > 0));
+  const jump: [string, string][] = [["#routines", t.routines],
+    ...(goalsShown ? [["#goals", t.goals] as [string, string]] : []),
+    ...(prefs && pauses ? [["#letters", t.letters] as [string, string]] : []),
+    ...(ics ? [["#phone-calendar", t.phone] as [string, string]] : []),
+    ...(passkeys ? [["#signin-keys", t.signin] as [string, string]] : []),
+    ...(notes && notes.kinds.length > 0 ? [["#notes", t.notes] as [string, string]] : []),
+    ["#documents", t.documents],
+    ...(profile.guardians.length > 0 ? [["#guardians", t.guardians] as [string, string]] : [])];
 
   return (
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
         <FamilySubNav lang={lang} editor={editor} admin={ok && state.admin} os active="people" />
-        <div className="max-w-4xl pb-8">
+        <div className="pb-8">
           <p className="text-[15px]"><Link href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>
-          <div className="mt-4 flex items-start gap-5">
+          <div className="mt-4 flex max-w-4xl items-start gap-5">
             <div className="shrink-0"><FamilyPortrait id={null} name={nameOf(p)} alt="" size={72} /></div>
             <div className="min-w-0">
               <h1 className={H1}>{nameOf(p)}</h1>
@@ -97,12 +113,16 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
               </p>
             </div>
           </div>
+          {/* reading column keeps max-w-4xl; ≥ 1280 px the index stands to its right, sticky */}
+          <div className="xl:grid xl:grid-cols-[minmax(0,56rem)_14rem] xl:gap-12">
+          <div className="xl:col-start-2 xl:row-start-1"><FamilyJumpNav kind="person" label={t.jump} items={jump} aside /></div>
+          <div className="min-w-0 max-w-4xl xl:col-start-1 xl:row-start-1">
 
-          <section aria-labelledby="routines-h" className="mt-12">
+          <section id="routines" aria-labelledby="routines-h" className="mt-12 scroll-mt-24">
             <h2 id="routines-h" className={H2}>{t.routines}</h2>
             {routines ? (
               <>
-                <TodayChecklist lang={lang} today={routines.today} routines={routines.routines} canCheck={routines.can.check} headingId="person-today-h" heading={t.today} paused={routines.paused_today} />
+                <TodayChecklist lang={lang} today={routines.today} routines={routines.routines} canCheck={routines.can.check} headingId="person-today-h" heading={t.today} paused={routines.paused_today} level={3} />
                 <Agenda lang={lang} routines={routines.routines} />
                 <RoutineList lang={lang} routines={routines.routines} canManage={routines.can.manage} />
                 {routines.can.manage && <AddRoutine lang={lang} personId={p.id} today={routines.today} candidates={candidates} routines={routines.routines} />}
@@ -121,7 +141,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           {passkeys && <FamilyPasskeys lang={lang} personId={p.id} self={passkeys.self} canAdd={passkeys.canAdd} signinHref={`/${lang === "EN" ? "en" : "ru"}/family/signin?returnTo=${encodeURIComponent(`/${lang === "EN" ? "en" : "ru"}/family/os/people/${p.id}#signin-keys`)}`} />}
           {notes && notes.kinds.length > 0 && <FamilyNotes lang={lang} personId={p.id} data={notes} />}
 
-          <section aria-labelledby="docs-h" className="mt-12">
+          <section id="documents" aria-labelledby="docs-h" className="mt-12 scroll-mt-24">
             <h2 id="docs-h" className={H2}>{t.documents}</h2>
             {documents === null ? (
               <p className={`${META} mt-4`}>{t.noAccess}</p>
@@ -136,7 +156,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           </section>
 
           {profile.guardians.length > 0 && (
-            <section aria-labelledby="guardians-h" className="mt-12">
+            <section id="guardians" aria-labelledby="guardians-h" className="mt-12 scroll-mt-24">
               <h2 id="guardians-h" className={H2}>{t.guardians}</h2>
               <ul data-guardians="" className="mt-4 divide-y divide-[var(--border)] border-y border-[var(--border)]">
                 {profile.guardians.map((g) => {
@@ -151,6 +171,8 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
               </ul>
             </section>
           )}
+          </div>
+          </div>
         </div>
       </main>
       <SiteFooter copy="KARTEL" contactEmail={null} />
@@ -325,7 +347,7 @@ function AddDocument({ t, personId }: { t: Dict; personId: string }) {
         <label className={label}>{t.expires}<input name="expiry_date" type="date" className={field} /></label>
         <label className={`${label} sm:col-span-2`}>{t.attach}<input name="file" type="file" accept="application/pdf,image/jpeg,image/png,image/heic" className={field} /></label>
         <div className="flex items-center gap-3 sm:col-span-2">
-          <button type="submit" className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]">{t.save}</button>
+          <button type="submit" className={BTN_PRIMARY}>{t.save}</button>
           <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
         </div>
       </form>

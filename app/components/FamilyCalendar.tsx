@@ -16,6 +16,8 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 import type { OsCalendar, OsCalItem } from "../lib/family-os";
 import { ruPlural } from "../lib/family-routines.mjs";
 import { fmtFamilyDate } from "../lib/family-docs.mjs";
@@ -29,12 +31,12 @@ type Dict = (typeof T)[Lang];
 
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
 const dayHead = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
 export default function FamilyCalendar({ lang, cal, meId, admin, editor = false }: { lang: Lang; cal: OsCalendar | null; meId: string | null; admin: boolean; editor?: boolean }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
   const days = new Map<string, OsCalItem[]>();
@@ -45,7 +47,8 @@ export default function FamilyCalendar({ lang, cal, meId, admin, editor = false 
       <main id="main" className={FAMILY_MAIN}>
         <FamilySubNav lang={lang} admin={admin} editor={editor} os active="calendar" />
         <div className="max-w-4xl pb-8">
-          {!cal ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p> : (
+          {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
+          {!cal ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></> : (
             <>
               <h1 className={H1}>{t.title}</h1>
               <p className={`${META} mt-3`}>{t.intro}</p>
@@ -93,7 +96,7 @@ function Item({ t, lang, i, canWrite, base }: { t: Dict; lang: Lang; i: OsCalIte
       {i.kind === "council" ? <Link href={`${base}/council`} className="inline-flex min-h-11 items-center text-[16px] text-[var(--foreground)] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{text}</Link>
         : <span className="inline-flex min-h-11 flex-1 items-center text-[16px] text-[var(--foreground)]">{text}</span>}
       {i.kind === "event" && canWrite && (ask ? (
-        <span className="flex gap-2"><button type="button" className={btn} onClick={remove}>{t.confirm}</button><button type="button" className={btn} onClick={() => setAsk(false)}>{t.keep}</button></span>
+        <span className="flex gap-2"><button type="button" className={BTN_DANGER} onClick={remove}>{t.confirm}</button><button type="button" className={btn} onClick={() => setAsk(false)}>{t.keep}</button></span>
       ) : <button type="button" className={btn} onClick={() => setAsk(true)} aria-label={`${t.remove}: ${i.title}`}>{t.remove}</button>)}
     </li>
   );

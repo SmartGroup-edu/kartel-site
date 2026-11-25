@@ -6,6 +6,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { H2, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_SECONDARY, DANGER_ROW } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 import type { OsAdoption, OsAdoptionRow } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
@@ -41,7 +43,7 @@ function inviteText(t: (typeof T)[Lang], inv: NonNullable<OsAdoptionRow["invite"
 }
 
 function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const name = lang === "EN" ? r.name_en : r.name_ru;
@@ -66,7 +68,7 @@ function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }
       </div>
       <div className="flex flex-wrap items-center gap-3 sm:justify-end">
         {/* bus 101: once a day — after that the row says what happened instead of a greyed-out button */}
-        {!invitedToday && <button type="button" data-resend="" onClick={resend} className="inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]">{t.resend}</button>}
+        {!invitedToday && <button type="button" data-resend="" onClick={resend} className={BTN_SECONDARY}>{t.resend}</button>}
         <span role="status" aria-live="polite" className="text-[14px] text-[var(--text-secondary)]">{msg}</span>
       </div>
     </li>
@@ -74,7 +76,7 @@ function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }
 }
 
 export default function FamilyAdoption({ lang, data }: { lang: Lang; data: OsAdoption }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
   return (
     <section id="with-us" aria-labelledby="with-us-h" data-adoption="" className="mt-10 scroll-mt-24">
@@ -91,24 +93,24 @@ export default function FamilyAdoption({ lang, data }: { lang: Lang; data: OsAdo
 
 /** Go-live R1: the owner's «Завершить все сеансы» — a family-wide cut-off on the sensitive routes. */
 function EndAll({ lang }: { lang: Lang }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const [ask, setAsk] = useState(false);
   const [msg, setMsg] = useState("");
-  const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
   const go = async () => {
     const r = await fetch("/api/family-os/sessions/end-all", { method: "POST", headers: { "content-type": "application/json" }, body: "{}", credentials: "same-origin", cache: "no-store" }).catch(() => null);
     setAsk(false); setMsg(r?.ok ? t.endAllDone : t.endAllErr);
   };
+  // D4: a danger action in its own row under a hairline; the confirm puts the safe «Отмена» first, with focus.
   return (
-    <div data-end-all="" className="mt-6">
+    <div data-end-all="" className={DANGER_ROW}>
       <p className="max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.endAllLead}</p>
       {ask ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div role="alertdialog" aria-label={t.endAllConfirm} className="mt-3 flex flex-wrap items-center gap-3">
           <span className="text-[15px] text-[var(--foreground)]">{t.endAllConfirm}</span>
-          <button type="button" data-end-all-yes="" onClick={go} className={btn}>{t.endAllYes}</button>
-          <button type="button" onClick={() => setAsk(false)} className={btn}>{t.endAllNo}</button>
+          <button type="button" autoFocus onClick={() => setAsk(false)} className={BTN_SECONDARY}>{t.endAllNo}</button>
+          <button type="button" data-end-all-yes="" onClick={go} className={BTN_DANGER}>{t.endAllYes}</button>
         </div>
-      ) : <p className="mt-3"><button type="button" data-end-all-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.endAll}</button></p>}
+      ) : <p className="mt-3"><button type="button" data-end-all-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={BTN_DANGER}>{t.endAll}</button></p>}
       <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
     </div>
   );
