@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
 import FamilyChrome, { type FamilyChromeNav } from "./FamilyChrome";
 import { notFoundText, familyRefText, type NotFoundLang } from "../content/notFound";
+import { typographDict } from "../lib/typograph.mjs";
+
+const FAMILY_REF_RU = typographDict(familyRefText.ru); // QA-158 N5
 
 /** The 404 body + the site header (nav, theme toggle, language switch). The address itself does
  *  not exist in either language, so the language switch goes to the other language's home.
@@ -31,7 +34,7 @@ function NotFoundBody({ lang, refCode, left = false }: { lang: NotFoundLang; ref
   // Inside the family column it reads left-aligned like every family page; the site 404 stays centred.
   const className = left ? "items-start py-12 text-left" : "items-center px-4 py-24 text-center";
   const t = notFoundText[lang];
-  const f = familyRefText[lang];
+  const f = lang === "ru" ? FAMILY_REF_RU : familyRefText.en;
   const btn = "inline-flex min-h-11 items-center rounded-md px-5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
   return (
     <div className={`flex flex-1 flex-col justify-center ${className}`}>
@@ -40,10 +43,10 @@ function NotFoundBody({ lang, refCode, left = false }: { lang: NotFoundLang; ref
       <p className="mt-3 max-w-md text-[17px] leading-[1.6] text-[var(--text-body)]">{refCode ? f.hint : t.hint}</p>
       {refCode && <RefCode label={f.code} code={refCode} />}
       <div className={`mt-8 flex flex-wrap gap-3 ${left ? "" : "justify-center"}`}>
-        <Link href={refCode ? `/${lang}/family/os` : `/${lang}`} className={`${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`}>
+        <Link prefetch={false} href={refCode ? `/${lang}/family/os` : `/${lang}`} className={`${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`}>
           {refCode ? f.home : t.home}
         </Link>
-        <Link href={refCode ? `/${lang}/family` : `/${lang}/registry`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
+        <Link prefetch={false} href={refCode ? `/${lang}/family` : `/${lang}/registry`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
           {refCode ? f.heritage : t.registry}
         </Link>
       </div>

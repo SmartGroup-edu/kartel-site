@@ -7,17 +7,19 @@ import SiteHeader from "@/app/components/SiteHeader";
 import SiteFooter from "@/app/components/SiteFooter";
 import { RefCode } from "@/app/components/NotFoundView";
 import { familyRefText } from "@/app/content/notFound";
+import { typographDict } from "@/app/lib/typograph.mjs";
 import { newRef, refFromDigest, routeClass } from "@/app/lib/family-ref.mjs";
 
 // Family OS error boundary (bus 97 item 6): «Код обращения» on the page. A server error's code is a prefix of
 // Next's digest, which the server already logged with the error. A client error has no digest: we make a
 // code and report it (code + route class only) so it also lands in the server log.
 const RU = { heading: "Что-то пошло не так", cta: "Повторить" }, EN = { heading: "Something went wrong", cta: "Try again" };
+const FAMILY_REF_RU = typographDict(familyRefText.ru); // QA-158 N5
 
 export default function FamilyError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang === "ru" ? "ru" : "en";
-  const t = lang === "ru" ? RU : EN, f = familyRefText[lang];
+  const t = lang === "ru" ? RU : EN, f = lang === "ru" ? FAMILY_REF_RU : familyRefText.en;
   const router = useRouter();
   const pathname = usePathname();
   const digest = error instanceof Error ? error.digest : undefined;

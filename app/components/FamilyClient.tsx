@@ -54,7 +54,7 @@ export default function FamilyClient({ lang, data, nav = { admin: false, editor:
         </FadeInSection>
 
         {nav.member && (
-          <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os`} data-os-entry=""
+          <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os`} data-os-entry=""
             className="mt-8 flex items-center justify-between gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-4 transition-colors hover:border-[var(--accent)]">
             <span>
               <span className="block font-serif text-[19px] text-[var(--foreground)]">{lang === "EN" ? "Today in the family" : "Сегодня в семье"}</span>
@@ -66,7 +66,7 @@ export default function FamilyClient({ lang, data, nav = { admin: false, editor:
 
         {/* bus 86 + kartel-agent 2026-11-18: the third way into the Кодекс — it grew out of the coat of arms */}
         {nav.member && (
-          <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/kodeks`} data-kodeks-entry=""
+          <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/kodeks`} data-kodeks-entry=""
             className="mt-3 flex items-center gap-4 rounded-lg border border-[var(--border)] border-l-2 border-l-[var(--pillar-kodeks)] bg-[var(--surface)] px-5 py-4 transition-colors hover:border-[var(--accent)]">
             <CrestThumb element="mantling" size={52} />
             <span className="min-w-0 flex-1">

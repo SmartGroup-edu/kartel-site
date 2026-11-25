@@ -405,13 +405,14 @@ export function pgStore(pool) {
 
 export const LOG_ACTIONS = ["read", "write", "reveal", "copy", "export", "delete"];
 
-export function memoryStore() {
+/** `clock` (QA-158 N1): pass the same clock as createApp, so a cut-off and the `sat` it is compared with share a timeline. */
+export function memoryStore({ clock = () => new Date() } = {}) {
   const people = new Map(), grants = new Map(), notes = new Map(), docs = new Map(), files = new Map(), routines = new Map(), checks = [], log = [], auditLog = [], events = [], prefs = new Map(), pauses = new Map(), rotations = new Map(), rchecks = [], meetings = new Map(), tasks = new Map(), goals = new Map(), checkins = new Map(), events3 = new Map(), ics = new Map(), btasks = new Map(), templates = new Map(), sgoals = new Map(), approvals = new Map();
   const kodeks = [], picks = new Map(), recs = [];
   const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map(), bkeys = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
-  const now = () => new Date().toISOString();
+  const now = () => clock().toISOString();
   return {
     failLog: false, // tests flip this to prove reads fail closed
     async findPersonByEmail(email) { return [...people.values()].find((p) => p.email === email) ?? null; },

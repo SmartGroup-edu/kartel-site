@@ -5,8 +5,8 @@
 // «калории в день: N»; a trend of weekly means instead of daily ± changes; no BMI, no body images, no judgement colours.
 // One calm GP line when the service says so. Export and delete at any time.
 import { useCallback, useEffect, useState } from "react";
-import { H2, META } from "../lib/typeScale";
-import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW, OS_H3 } from "../lib/family-ui";
+import { META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW, OS_H2, OS_H3 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -78,9 +78,11 @@ function Trend({ points, caption, label }: { points: { from: string; mean: numbe
   );
 }
 
-export default function FamilyBody({ lang }: { lang: Lang }) {
+/** `onShown` (QA-158 N4): tells the person page the section is there, so its index can link to it. */
+export default function FamilyBody({ lang, onShown }: { lang: Lang; onShown?: (shown: boolean) => void }) {
   const t = tx(T, lang);
   const [b, setB] = useState<Body | null>(null);
+  useEffect(() => { onShown?.(b !== null); }, [b, onShown]);
   const [w, setW] = useState(""); const [k, setK] = useState("");
   const [gw, setGw] = useState(""); const [gby, setGby] = useState(""); const [gk, setGk] = useState("");
   const [msg, setMsg] = useState(""); const [ask, setAsk] = useState(false); const [editGoal, setEditGoal] = useState(false);
@@ -110,8 +112,8 @@ export default function FamilyBody({ lang }: { lang: Lang }) {
   const wipe = async () => { const r = await call("DELETE", "body"); setAsk(false); setMsg(r?.ok ? "" : t.error); load(); };
 
   return (
-    <section aria-labelledby="body-h" data-body="" className="mt-12 border-l-2 border-[var(--pillar-health)] pl-4">
-      <h2 id="body-h" className={H2}>{t.head}</h2>
+    <section id="body" aria-labelledby="body-h" data-body="" className="mt-12 scroll-mt-24 border-l-2 border-[var(--pillar-health)] pl-4">
+      <h2 id="body-h" className={OS_H2}>{t.head}</h2>
       <p className={`${META} mt-2 max-w-[60ch]`}>{t.lead}</p>
       {!b.on ? (
         <>

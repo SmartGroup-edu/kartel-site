@@ -5,8 +5,8 @@
 // people tick. The evening question is opt-in and only its author reads it. No scores, no colours of judgement,
 // no medical advice, no sleep hours (still to be checked against NHS figures).
 import { useCallback, useEffect, useState } from "react";
-import { H2, META } from "../lib/typeScale";
-import { BTN_PRIMARY, BTN_SECONDARY, OS_H3 } from "../lib/family-ui";
+import { META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -66,7 +66,7 @@ export default function FamilyHealth({ lang }: { lang: Lang }) {
 
   return (
     <section aria-labelledby="health-h" data-health="" className="mt-10 border-l-2 border-[var(--pillar-health)] pl-4">
-      <h2 id="health-h" className={H2}>{t.head}</h2>
+      <h2 id="health-h" className={OS_H2}>{t.head}</h2>
       <p className={`${META} mt-2 max-w-[60ch]`}>{t.lead}</p>
       <p data-health-family="" className="mt-4 text-[17px] text-[var(--foreground)]">
         {h.family.ready ? t.total(h.family.move, h.family.sleep, h.family.of) : t.notYet}

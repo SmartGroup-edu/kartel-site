@@ -58,6 +58,24 @@ export function typographDict(dict) {
   return /** @type {T} */ (walk(dict));
 }
 
+/**
+ * Content kept as `{ …EN, …RU }` field pairs («Наследие»: tree nodes, timeline events): every string under a key
+ * ending in "RU" is typographed, at any depth; everything else is returned as it was (QA-158 N5).
+ * @template T
+ * @param {T} data
+ * @returns {T}
+ */
+export function typographRuFields(data) {
+  /** @param {unknown} v @param {boolean} ru @returns {unknown} */
+  const walk = (v, ru) => {
+    if (typeof v === "string") return ru ? typograph(v) : v;
+    if (Array.isArray(v)) return v.map((x) => walk(x, ru));
+    if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x, ru || k.endsWith("RU"))]));
+    return v;
+  };
+  return /** @type {T} */ (walk(data, false));
+}
+
 const cache = new WeakMap();
 /**
  * `T[lang]` for a component dictionary `{ EN, RU }`, with the RU half typographed once per dictionary.

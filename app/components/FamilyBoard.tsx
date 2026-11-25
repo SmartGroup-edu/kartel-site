@@ -20,8 +20,8 @@ import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { fmtWeekRange } from "../lib/family-docs.mjs";
 import { useLangToggle } from "./useLang";
-import { H2, H1, META } from "../lib/typeScale";
-import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
+import { H1, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3, RULE_GOALS } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
 import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
 import type { OsBoard, OsBoardMember, OsBoardTask, OsPlan, OsTemplate, OsSprint, OsSprintGoal, OsMyBoard, OsApprovalStamp, OsWhenSlot, OsDeclineCode, OsTaskHistory } from "../lib/family-os";
@@ -838,13 +838,13 @@ function PlanPanel({ c, summary, plan }: { c: Ctx; summary: NonNullable<OsBoard[
 export function SprintPanel({ t, lang, weekStart, goals }: { t: Dict; lang: Lang; weekStart: string; goals: OsSprintGoal[] }) {
   const end = new Date(Date.parse(`${weekStart}T12:00:00Z`) + 6 * 86400_000).toISOString().slice(0, 10);
   if (!goals.length) return (
-    <p data-sprint="empty" className={`${META} self-start text-[15px]`}>{t.sprintNone} <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link></p>
+    <p data-sprint="empty" className={`${META} self-start text-[15px]`}>{t.sprintNone} <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link></p>
   );
   return (
     <section aria-labelledby="sprint-h" data-sprint="" className={panel}>
       <h2 id="sprint-h" className={OS_H2}>{t.sprint}</h2>
       <p className={`${META} mt-1`} suppressHydrationWarning>{fmtWeekRange(weekStart, end, lang)} · {t.sprintHint}</p>
-      <ul className="mt-2 divide-y divide-[var(--border)]">
+      <ul data-goals-rule="" className={`mt-2 divide-y divide-[var(--border)] ${RULE_GOALS}`}>
         {goals.map((g) => (
           <li key={g.id} data-goal="" className="py-3">
             <p className="flex items-center justify-between gap-3 text-[15px]"><b className="font-semibold text-[var(--foreground)]">{g.title}</b><span className="text-[14px] text-[var(--muted)]">{g.done} {t.of} {g.total}</span></p>
@@ -853,7 +853,7 @@ export function SprintPanel({ t, lang, weekStart, goals }: { t: Dict; lang: Lang
         ))}
       </ul>
       <p className={`${META} mt-3`}>{t.sprintNote}</p>
-      <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="mt-1 inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link>
+      <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/council`} className="mt-1 inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.toCouncil}</Link>
     </section>
   );
 }
@@ -875,7 +875,7 @@ function Templates({ c, templates }: { c: Ctx; templates: OsTemplate[] }) {
   };
   return (
     <section aria-labelledby="tpl-h" data-templates="" className="mt-10">
-      <h2 id="tpl-h" className={H2}>{t.templates}</h2>
+      <h2 id="tpl-h" className={OS_H2}>{t.templates}</h2>
       <p className={`${META} mt-2 max-w-[68ch]`}>{t.tplHint}</p>
       {templates.length > 0 && (
         <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
@@ -992,9 +992,9 @@ export function CouncilSprint({ lang, sprint }: { lang: Lang; sprint: OsSprint }
   const patch = async (id: string, body: unknown) => { const r = await osSend("PATCH", `sprint/goals/${id}`, body); setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh(); };
   return (
     <section aria-labelledby="sprint-goals-h" data-council-sprint="" className="mt-10">
-      <h2 id="sprint-goals-h" className={H2}>{L.head}</h2>
+      <h2 id="sprint-goals-h" className={OS_H2}>{L.head}</h2>
       {sprint.goals.length === 0 ? <p className={`${META} mt-2`}>{t.sprintNone}</p> : (
-        <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+        <ul data-goals-rule="" className={`mt-3 divide-y divide-[var(--border)] ${RULE_GOALS}`}>
           {sprint.goals.map((g) => (
             <li key={g.id} data-goal="" className="py-3">
               {sprint.can.write ? (

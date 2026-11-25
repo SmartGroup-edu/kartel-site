@@ -15,7 +15,7 @@ import { familyNav } from "../content/siteNav";
 import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
 import { useLangToggle } from "./useLang";
-import { H1, H2, META } from "../lib/typeScale";
+import { H1, META } from "../lib/typeScale";
 import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
 import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines, OsMyBoard, OsBoard } from "../lib/family-os";
 import { TodayChecklist } from "./FamilyRoutines";
@@ -101,7 +101,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
                 <p className="font-serif text-[20px] text-[var(--foreground)]">{mine && mine.routines.length > 0 ? t.noneScheduled : t.todayEmpty}</p>
                 {state.me && <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">
                   {state.me.kind === "child" ? t.childHint : (
-                    <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${state.me.id}#routines-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.addOwn}</Link>
+                    <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${state.me.id}#routines-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.addOwn}</Link>
                   )}
                 </p>}
               </div>
@@ -129,7 +129,7 @@ function People({ t, lang, me, people, grants, nameOf }: {
       {people.length === 0 && <p className={`${META} mt-6`}>{t.emptyPeople}</p>}
       {groups.filter(([, xs]) => xs.length).map(([label, xs]) => (
         <div key={label} className="mt-10">
-          <h2 className={H2}>{label}</h2>
+          <h2 className={OS_H2}>{label}</h2>
           <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
             {xs.map((p) => {
               const gs = grants.filter((g) => g.child_id === p.id);
@@ -140,7 +140,7 @@ function People({ t, lang, me, people, grants, nameOf }: {
                   <FamilyPortrait id={null} name={nameOf(p)} alt="" size={48} />
                   <div className="min-w-0 flex-1">
                     <p className="font-serif text-[18px] leading-snug text-[var(--foreground)]">
-                      <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${p.id}`} className="underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{nameOf(p)}</Link>{me?.id === p.id && <span className="ml-2 font-sans text-[14px] text-[var(--muted)]">({t.you})</span>}
+                      <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${p.id}`} className="underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{nameOf(p)}</Link>{me?.id === p.id && <span className="ml-2 font-sans text-[14px] text-[var(--muted)]">({t.you})</span>}
                     </p>
                     {p.kind === "child" && (
                       <dl className="mt-3 space-y-1 text-[14px] text-[var(--text-secondary)]">
@@ -188,7 +188,7 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
                 <span aria-hidden="true">·</span>
                 <span suppressHydrationWarning>{fmtDocDate(r.expiry_date, lang)}</span>
               </span>
-              <Link href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
+              <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${r.person_id}`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">
                 {who ? nameOf(who) : ""} — {t.docType[r.type]}{r.country ? ` (${r.country})` : ""}
               </Link>
             </li>

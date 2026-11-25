@@ -49,7 +49,8 @@ test("H1 wiring: edge gate, family-media, the editor API and every Family OS cal
   assert.match(route, /if \(r\.status === 401 && \(await r\.clone\(\)\.json\(\)\.catch\(\(\) => null\)\)\?\.error === "session_ended"\) await destroySession\(\);/, "reads end the site session too");
   const os = src("app/lib/family-os.ts");
   assert.doesNotMatch(os, /osCall\("GET", "\//, "no server-side read without sat");
-  assert.match(os, /const r = await osCall\("GET", withSat\(path, session\), osActor\(session\)\);/);
+  assert.match(os, /const r = await osGet\(withSat\(path, session\), osActor\(session\)\);/, "reads go through the per-request cache (QA-158 N2), still with sat");
+  assert.doesNotMatch(os, /osGet\("\//, "no cached read without sat");
   assert.match(os, /osCall\("POST", "\/signins"/, "the sign-in note alone goes without (the service exempts it)");
 });
 

@@ -27,9 +27,11 @@ async function call(method, path, { body, actor = ADMIN, sat } = {}) {
   return { status: r.status, json, txt };
 }
 before(async () => {
-  store = memoryStore();
+  // QA-158 N1: the store's cut-off and the app's `sat` checks run on one fake clock, so the file passes at any hour.
+  const clock = () => new Date(nowIso);
+  store = memoryStore({ clock });
   const passkeys = { rpID: "localhost", origins: ["http://localhost:3999"], rpName: "KARTEL" };
-  server = createServer(createApp({ store, secret: SECRET, masterKey: KEK, clock: () => new Date(nowIso), passkeys })).listen(0);
+  server = createServer(createApp({ store, secret: SECRET, masterKey: KEK, clock, passkeys })).listen(0);
   await new Promise((r) => server.once("listening", r));
   base = `http://127.0.0.1:${server.address().port}`;
   for (const k of ["a", "nb", "b"]) P[k] = (await call("POST", "/people", { body: { email: E[k], name_en: `QA ${k}`, name_ru: `QA ${k}`, kind: "adult" } })).json.id;
@@ -87,6 +89,15 @@ test("H1: «Завершить сеансы» revokes the person's calendar link
   assert.equal((await call("POST", "/sessions/end-all", { sat: nowS() })).status, 200);
   assert.equal(await feed(tb), 404, "everyone's link is revoked");
   nowIso = "2026-11-25T10:10:00Z";
+});
+
+test("QA-158 N1: the memory store cuts sessions off on the clock it was given, not the wall clock", async () => {
+  const past = memoryStore({ clock: () => new Date("2001-02-03T04:05:06Z") });
+  await past.endSessions("*", "admin:owner@example.test");
+  assert.equal((await past.sessionCutoff("anyone@example.test")).toISOString(), "2001-02-03T04:05:06.000Z");
+  const real = memoryStore(), t0 = Date.now();
+  await real.endSessions("*", "admin:owner@example.test");
+  assert.ok(Math.abs((await real.sessionCutoff("anyone@example.test")).getTime() - t0) < 5000, "without a clock: now");
 });
 
 test("M4: unknown calendar tokens do not spend the family's feed budget", async () => {
