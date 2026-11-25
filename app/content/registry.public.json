@@ -1,6 +1,6 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 12,
+  "version": 13,
   "updated": "2026-11-25",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
@@ -209,12 +209,12 @@
       "url": "https://community.group",
       "role": "Steward",
       "layers": {
-        "identity": "connected",
+        "identity": "off",
         "geography": "steward",
         "organisation": "anchored"
       },
-      "summary": "Cultural funding & trust platform (CEA). Serves the canonical geography taxonomy (regions + countries) for KARTEL Core since 2026-11-03; consumes identity. Home of the former MoyPolk initiatives.",
-      "note": "v12 (2026-11-25): geography steward since 2026-11-03 (R0 act). Was: role \"Consumer\", geography \"consumed\", summary \"Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer.\""
+      "summary": "Cultural funding & trust platform (CEA). Serves the canonical geography taxonomy (regions + countries) for KARTEL Core since 2026-11-03. Federated sign-in switched off on 2026-11-06 (R0 act). Home of the former MoyPolk initiatives.",
+      "note": "v13 (2026-11-25): identity off — federated sign-in switched off by the R0 act of 2026-11-06; switching it on again needs a separate R0 act. Was: identity \"connected\", summary \"… since 2026-11-03; consumes identity. …\". v12 (2026-11-25): geography steward since 2026-11-03 (R0 act). Was: role \"Consumer\", geography \"consumed\", summary \"Cultural funding & trust platform (CEA). Consumes identity + geography; first geography consumer.\""
     },
     {
       "key": "rusjazz",

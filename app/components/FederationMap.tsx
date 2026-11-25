@@ -133,7 +133,7 @@ export default function FederationMap({ lang }: { lang: Lang }) {
               {(["orphanOrg", "orphanCampus", "orphanRegion", "drift", "strayNodes", "subjectsOnNonCanonicalNodes"] as const).map((k) => (
                 <div key={k} className="flex items-center justify-between gap-3 rounded-md border border-[var(--border)] p-3">
                   <dt className="text-[14px] text-[var(--muted)]">{c.integrityLabels[k]}</dt>
-                  <dd className="font-mono text-sm text-[var(--foreground)]">{String(integrity[k])}</dd>
+                  <dd className="font-mono text-sm text-[var(--foreground)]">{typeof integrity[k] === "string" ? bandLabel(lang, integrity[k] as string) : String(integrity[k])}</dd>
                 </div>
               ))}
             </dl>

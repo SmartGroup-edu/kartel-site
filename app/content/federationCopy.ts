@@ -23,7 +23,7 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
     rusjaz:
       "Russian-language education marketplace and LMS. Identity reference implementation; consumes canonical geography and the organisation and campus anchors.",
     "community-group":
-      "Cultural funding and trust platform (CEA). Serves the canonical geography taxonomy (regions and countries) for KARTEL Core since 3 November 2026; consumes identity. Home of the former MoyPolk initiatives.",
+      "Cultural funding and trust platform (CEA). Serves the canonical geography taxonomy (regions and countries) for KARTEL Core since 3 November 2026. Federated sign-in has been switched off since 6 November 2026. Home of the former MoyPolk initiatives.",
     rusjazz:
       "Future module. Builds against the Federation integration gate from day one.",
   },
@@ -33,7 +33,7 @@ export const projectSummaries: Record<Lang, Record<string, string>> = {
     rusjaz:
       "Маркетплейс и LMS русскоязычного образования. Эталонная реализация слоя идентичности; потребляет канонические слои географии, организаций и кампусов.",
     "community-group":
-      "Платформа культурного финансирования и доверия (CEA). С 3 ноября 2026 года обслуживает каноническую таксономию географии (регионы и страны) для Ядра KARTEL; потребляет идентичность. Здесь продолжаются бывшие инициативы MoyPolk.",
+      "Платформа культурного финансирования и доверия (CEA). С 3 ноября 2026 года обслуживает каноническую таксономию географии (регионы и страны) для Ядра KARTEL. Федеративный вход отключён с 6 ноября 2026 года. Здесь продолжаются бывшие инициативы MoyPolk.",
     rusjazz:
       "Будущий модуль. С первого дня строится в соответствии со шлюзом интеграции в федерацию.",
   },
