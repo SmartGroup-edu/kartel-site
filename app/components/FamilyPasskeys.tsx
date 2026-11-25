@@ -10,6 +10,8 @@ import { checkEnded } from "../lib/family-ended";
 import { useCallback, useEffect, useState } from "react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { H2, META } from "../lib/typeScale";
+import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, DANGER_ROW } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 type Key = { id: string; label: string; kind: string; synced: boolean; created_on: string; last_used_on: string | null; flagged: boolean };
@@ -49,14 +51,14 @@ const T = {
   },
 } as const;
 
-const btn = "inline-flex min-h-11 items-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)] disabled:opacity-60";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)] disabled:opacity-60";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
 const day = (d: string, lang: Lang) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
 const post = (path: string, body: unknown = {}, method: "POST" | "PATCH" = "POST") =>
   fetch(path, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null).then(checkEnded);
 
 export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHref }: { lang: Lang; personId: string | null; self: boolean; canAdd: boolean; signinHref: string }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const [data, setData] = useState<Data | null>(null);
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,7 +96,7 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
         </ul>
       ) : <p className="mt-4 text-[16px] text-[var(--text-secondary)]">{t.none}</p>)}
       {self && (!supported ? <p className="mt-4 text-[15px] text-[var(--text-secondary)]">{t.unsupported}</p>
-        : canAdd ? <p className="mt-4"><button type="button" data-passkey-add="" onClick={add} disabled={busy} className={primary}>{t.add}</button></p>
+        : canAdd ? <p className="mt-4"><button type="button" data-passkey-add="" onClick={add} disabled={busy} className={btn}>{t.add}</button></p>
         : <p data-passkey-reauth="" className="mt-4 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.reauth} <a href={signinHref} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.reauthLink}</a></p>)}
       <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
       {!self && personId && data?.can.clear && <EndSessions lang={lang} personId={personId} />}
@@ -104,30 +106,31 @@ export default function FamilyPasskeys({ lang, personId, self, canAdd, signinHre
 
 /** Go-live R1: the owner ends one person's open sessions (a cut-off on documents, keys and access). */
 function EndSessions({ lang, personId }: { lang: Lang; personId: string }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const [ask, setAsk] = useState(false);
   const [msg, setMsg] = useState("");
   const go = async () => {
     const r = await post(`/api/family-os/people/${personId}/end-sessions`);
     setAsk(false); setMsg(r?.ok ? t.endOneDone : t.error);
   };
+  // D4: a danger action in its own row; the confirm puts the safe «Отмена» first, with focus.
   return (
-    <div data-end-sessions="" className="mt-6 border-t border-[var(--border)] pt-4">
+    <div data-end-sessions="" className={DANGER_ROW}>
       <p className="max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.endOneLead}</p>
       {ask ? (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div role="alertdialog" aria-label={t.endOneConfirm} className="mt-3 flex flex-wrap items-center gap-3">
           <span className="text-[15px] text-[var(--foreground)]">{t.endOneConfirm}</span>
-          <button type="button" data-end-sessions-yes="" onClick={go} className={btn}>{t.endOneYes}</button>
-          <button type="button" onClick={() => setAsk(false)} className={btn}>{t.endOneNo}</button>
+          <button type="button" autoFocus onClick={() => setAsk(false)} className={btn}>{t.endOneNo}</button>
+          <button type="button" data-end-sessions-yes="" onClick={go} className={BTN_DANGER}>{t.endOneYes}</button>
         </div>
-      ) : <p className="mt-3"><button type="button" data-end-sessions-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={btn}>{t.endOne}</button></p>}
+      ) : <p className="mt-3"><button type="button" data-end-sessions-ask="" onClick={() => { setMsg(""); setAsk(true); }} className={BTN_DANGER}>{t.endOne}</button></p>}
       <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--text-secondary)]">{msg}</p>
     </div>
   );
 }
 
 function Row({ lang, k, can, onChange }: { lang: Lang; k: Key; can: Data["can"]; onChange: () => void }) {
-  const t = T[lang];
+  const t = T[lang]; // untypographed on purpose: `t.kind` is matched against the key's stored label below
   const [mode, setMode] = useState<"" | "rename" | "confirm">("");
   const [label, setLabel] = useState(k.label);
   const [err, setErr] = useState("");
@@ -150,14 +153,15 @@ function Row({ lang, k, can, onChange }: { lang: Lang; k: Key; can: Data["can"];
       ) : mode === "confirm" ? (
         <div role="alertdialog" aria-label={t.confirm} className="mt-3 flex flex-wrap items-center gap-3">
           <p className="text-[15px] text-[var(--foreground)]">{t.confirm}</p>
-          <button type="button" data-passkey-confirm="" onClick={() => act(post(`/api/family-os/passkeys/${k.id}/revoke`))} className={primary}>{t.yes}</button>
-          <button type="button" onClick={() => setMode("")} className={btn}>{t.no}</button>
+          <button type="button" autoFocus onClick={() => setMode("")} className={btn}>{t.no}</button>
+          <button type="button" data-passkey-confirm="" onClick={() => act(post(`/api/family-os/passkeys/${k.id}/revoke`))} className={BTN_DANGER}>{t.yes}</button>
         </div>
       ) : (
+        // D4: «Отозвать» is a danger action, set apart from the safe ones (pushed to the far end of the row)
         <div className="mt-3 flex flex-wrap gap-3">
           {can.rename && <button type="button" onClick={() => setMode("rename")} className={btn}>{t.rename}</button>}
-          {can.revoke && <button type="button" data-passkey-revoke="" onClick={() => setMode("confirm")} className={btn}>{t.revoke}</button>}
           {can.clear && k.flagged && <button type="button" onClick={() => act(post(`/api/family-os/passkeys/${k.id}/clear-flag`))} className={btn}>{t.restore}</button>}
+          {can.revoke && <button type="button" data-passkey-revoke="" onClick={() => setMode("confirm")} className={`${BTN_DANGER} sm:ml-auto`}>{t.revoke}</button>}
         </div>
       )}
       {err && <p role="alert" className="mt-2 text-[15px] text-[var(--destructive)]">{err}</p>}

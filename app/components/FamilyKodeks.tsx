@@ -20,7 +20,12 @@ import { useLangToggle } from "./useLang";
 import { familyNav } from "../content/siteNav";
 import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { H1, META } from "../lib/typeScale";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3, RULE_VALUES } from "../lib/family-ui";
+import { tx, typograph } from "../lib/typograph.mjs";
 import type { OsKodeks, OsKodeksBody, OsPerson, OsPrinciple, OsRecognition } from "../lib/family-os";
+
+/** A principle's wording comes from the family's Кодекс (service data): typographed for display only, never in a form. */
+const ty = (s: string, lang: Lang) => (lang === "RU" ? typograph(s) : s);
 
 type Lang = "EN" | "RU";
 const T = {
@@ -53,7 +58,7 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" });
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const primary = BTN_PRIMARY;
 const councilHref = (lang: Lang) => `/${lang === "EN" ? "en" : "ru"}/family/os/council#council-rec-h`;
 const kodeksHref = (lang: Lang, idx?: number) => `/${lang === "EN" ? "en" : "ru"}/family/os/kodeks${idx === undefined ? "" : `#p-${idx + 1}`}`;
 
@@ -91,7 +96,7 @@ export function CrestThumb({ element, size = 64 }: { element: string; size?: num
 
 /** The Кодекс page (route /family/os/kodeks). */
 export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = false }: { lang: Lang; kodeks: OsKodeks | null; admin: boolean; principle: OsPrinciple | null; editor?: boolean }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const cur = kodeks?.current ?? null;
   const name = (b: { name_ru: string; name_en: string } | null) => (b ? (lang === "EN" ? b.name_en : b.name_ru) : t.seed);
@@ -101,7 +106,7 @@ export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = 
       <main id="main" className={FAMILY_MAIN}>
         <FamilySubNav lang={lang} admin={admin} editor={editor} os active="kodeks" />
         <div className="max-w-3xl pb-8">
-          {!cur ? <p role="status" className="mt-10 rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.empty}</p> : (
+          {!cur ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.empty}</p></> : (
             <>
               <h1 className={`${H1} flex items-center gap-3`}><KodeksIcon size={28} />{t.title}</h1>
               <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -120,9 +125,9 @@ export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = 
                       <p className="text-[14px] font-medium uppercase tracking-[0.06em] text-[var(--muted)]">
                         {i + 1} · {p.element_ru}{principle?.index === i && <span className="ml-2 normal-case tracking-normal text-[var(--foreground)]">· {t.week.toLowerCase()}</span>}
                       </p>
-                      <p className="mt-1 font-serif text-[20px] leading-snug text-[var(--foreground)] sm:text-[22px]">{p.principle}</p>
-                      <p className="mt-1.5 text-[16px] text-[var(--text-body)]"><span className="text-[var(--text-secondary)]">{t.practice}:</span> {p.practice}</p>
-                      <p className="mt-1 text-[14px] text-[var(--muted)]">{t.meaning}: {p.meaning}</p>
+                      <p className="mt-1 font-serif text-[20px] leading-snug text-[var(--foreground)] sm:text-[22px]">{ty(p.principle, lang)}</p>
+                      <p className="mt-1.5 text-[16px] text-[var(--text-body)]"><span className="text-[var(--text-secondary)]">{t.practice}:</span> {ty(p.practice, lang)}</p>
+                      <p className="mt-1 text-[14px] text-[var(--muted)]">{t.meaning}: {ty(p.meaning, lang)}</p>
                     </div>
                   </li>
                 ))}
@@ -156,7 +161,7 @@ export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = 
 
 /** A parent proposes a new wording: principle + practice per element, the motto, and (optionally) the council date. */
 function KodeksEdit({ lang, body }: { lang: Lang; body: OsKodeksBody }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [status, setStatus] = useState("");
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -191,16 +196,16 @@ function KodeksEdit({ lang, body }: { lang: Lang; body: OsKodeksBody }) {
 
 /** Today: one line for everyone — the principle of the week and its practice, linked to the Кодекс. */
 export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsPrinciple }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   return (
-    <section aria-labelledby="principle-h" data-principle-week={principle.index} className="mt-6 flex gap-3 border-l-2 border-[var(--pillar-kodeks)] py-1 pl-3">
-      <CrestThumb element={principle.element} size={44} />
+    <section aria-labelledby="principle-h" data-principle-week={principle.index} className={`mt-8 flex gap-4 ${RULE_VALUES}`}>
+      <span className="mt-2"><CrestThumb element={principle.element} size={44} /></span>
       <div className="min-w-0">
-        <h2 id="principle-h" className="flex items-center gap-1.5 text-[14px] font-medium text-[var(--text-secondary)]"><KodeksIcon size={16} />{t.week}</h2>
-        <p className="mt-0.5 text-[17px] leading-snug text-[var(--foreground)]">
-          <Link href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{principle.principle}</Link>
+        <h2 id="principle-h" className={`${OS_H2} flex items-center gap-2`}><KodeksIcon />{t.week}</h2>
+        <p className="mt-2 text-[17px] leading-snug text-[var(--foreground)]">
+          <Link href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
         </p>
-        <p className="mt-0.5 text-[14px] text-[var(--muted)]">{T[lang].practice}: {principle.practice}</p>
+        <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.practice}: {ty(principle.practice, lang)}</p>
       </div>
     </section>
   );
@@ -209,11 +214,13 @@ export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsP
 const personName = (p: { name_ru?: string; name_en?: string }, lang: Lang) => (lang === "EN" ? p.name_en : p.name_ru) ?? "—";
 
 /** The week's recognitions as one list — no counts, no totals, no order by person. */
-export function RecognitionList({ lang, items, headingId, heading }: { lang: Lang; items: OsRecognition[]; headingId: string; heading: string }) {
-  const t = T[lang];
+export function RecognitionList({ lang, items, headingId, heading, level = 3 }: { lang: Lang; items: OsRecognition[]; headingId: string; heading: string; level?: 2 | 3 }) {
+  const t = tx(T, lang);
+  // On the council the list is a section of its own (H2); inside «Признание» on Today it is a block (H3).
+  const H = level === 2 ? "h2" : "h3";
   return (
     <div>
-      <h3 id={headingId} className="font-serif text-[20px] text-[var(--foreground)]">{heading}</h3>
+      <H id={headingId} className={level === 2 ? `${OS_H2} flex items-center gap-2` : OS_H3}>{level === 2 && <KodeksIcon />}{heading}</H>
       {items.length === 0 ? <p className="mt-2 text-[15px] text-[var(--muted)]">{t.recNone}</p> : (
         <ul data-recognitions="" className="mt-2 divide-y divide-[var(--border)] border-y border-[var(--border)]">
           {items.map((r) => (
@@ -235,7 +242,7 @@ export const TODAY_RECOGNITIONS = 3;
 export function TodayRecognition({ lang, people, meId, principles, current, items }: {
   lang: Lang; people: OsPerson[]; meId: string; principles: { principle: string }[]; current: number; items: OsRecognition[];
 }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
@@ -253,11 +260,11 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
   if (others.length === 0) return null;
   const shown = items.slice(-TODAY_RECOGNITIONS); // the service lists the week oldest first; Today shows the latest three
   return (
-    <section aria-labelledby="rec-h" data-recognition="" className="mt-8 border-l-2 border-[var(--pillar-kodeks)] pl-4">
-      <h2 id="rec-h" className="flex items-center gap-2 font-serif text-[22px] text-[var(--foreground)]"><KodeksIcon />{t.rec}</h2>
+    <section aria-labelledby="rec-h" data-recognition="" className={`mt-10 ${RULE_VALUES}`}>
+      <h2 id="rec-h" className={`${OS_H2} flex items-center gap-2`}><KodeksIcon />{t.rec}</h2>
       {!open ? (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button type="button" data-rec-open="" aria-expanded="false" aria-controls="rec-form" onClick={() => { setOpen(true); setStatus(""); }} className="inline-flex min-h-11 items-center rounded-md border border-[var(--pillar-kodeks)] px-4 text-[15px] font-medium text-[var(--foreground)] hover:bg-[var(--surface)]">{t.open}</button>
+          <button type="button" data-rec-open="" aria-expanded="false" aria-controls="rec-form" onClick={() => { setOpen(true); setStatus(""); }} className={BTN_SECONDARY}>{t.open}</button>
           {status && <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>}
         </div>
       ) : (
@@ -280,7 +287,7 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
           </label>
           <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
             <button type="submit" className={primary}>{t.send}</button>
-            <button type="button" onClick={() => { setOpen(false); setStatus(""); }} className="inline-flex min-h-11 items-center rounded-md px-3 text-[15px] text-[var(--text-secondary)] underline decoration-[var(--border)] underline-offset-4">{t.cancel}</button>
+            <button type="button" onClick={() => { setOpen(false); setStatus(""); }} className={BTN_SECONDARY}>{t.cancel}</button>
             <span role="status" aria-live="polite" className="text-[14px] text-[var(--muted)]">{status}</span>
           </div>
         </form>
@@ -294,13 +301,13 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
 }
 
 function PrincipleRow({ lang, label: l, p }: { lang: Lang; label: string; p: OsPrinciple }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   return (
     <div className="flex gap-3">
       <CrestThumb element={p.element} size={44} />
       <div className="min-w-0">
         <p className="text-[14px] text-[var(--text-secondary)]">{l} · {p.picked ? t.chosen : t.auto}</p>
-        <p className="text-[17px] leading-snug text-[var(--foreground)]"><Link href={kodeksHref(lang, p.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{p.principle}</Link></p>
+        <p className="text-[17px] leading-snug text-[var(--foreground)]"><Link href={kodeksHref(lang, p.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(p.principle, lang)}</Link></p>
       </div>
     </div>
   );
@@ -308,7 +315,7 @@ function PrincipleRow({ lang, label: l, p }: { lang: Lang; label: string; p: OsP
 
 /** Council: the agenda's first item — this week's principle; a parent picks next week's (default: in turn). */
 export function CouncilPrinciple({ lang, principle, canPick, principles }: { lang: Lang; principle: { this_week: OsPrinciple; next_week: OsPrinciple }; canPick: boolean; principles: { principle: string }[] }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [status, setStatus] = useState("");
   const pick = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -320,8 +327,8 @@ export function CouncilPrinciple({ lang, principle, canPick, principles }: { lan
     if (r?.ok) router.refresh();
   };
   return (
-    <section aria-labelledby="council-principle-h" data-council-principle="" className="mt-10 border-l-2 border-[var(--pillar-kodeks)] pl-4">
-      <h2 id="council-principle-h" className="flex items-center gap-2 font-serif text-[22px] text-[var(--foreground)]"><KodeksIcon />{t.week}</h2>
+    <section aria-labelledby="council-principle-h" data-council-principle="" className={`mt-10 ${RULE_VALUES}`}>
+      <h2 id="council-principle-h" className={`${OS_H2} flex items-center gap-2`}><KodeksIcon />{t.week}</h2>
       <div className="mt-3 space-y-3">
         <PrincipleRow lang={lang} label={t.thisWeek} p={principle.this_week} />
         <PrincipleRow lang={lang} label={t.nextWeek} p={principle.next_week} />

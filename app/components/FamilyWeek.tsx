@@ -12,6 +12,8 @@ import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import type { OsPrinciple, OsSprintGoal, OsRecognition } from "../lib/family-os";
+import { BTN_PRIMARY } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 type PersonWeek = { id: string; name_ru: string; name_en: string; tasks: { date: string; title: string; done: boolean }[] };
@@ -40,7 +42,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
   lang: Lang; admin: boolean; editor: boolean; week: string; principle: OsPrinciple | null; goals: OsSprintGoal[]; perPerson: PersonWeek[];
   birthdays: { date: string; name_ru: string; name_en: string }[]; council: { date: string } | null; recognitions: OsRecognition[] | null;
 }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const router = useRouter();
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
@@ -55,7 +57,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
         <div className="print:hidden"><FamilySubNav lang={lang} admin={admin} editor={editor} os active="council" /></div>
         <div data-week-controls="" className="flex max-w-3xl flex-col gap-3 print:hidden">
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => window.print()} className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]">{t.print}</button>
+            <button type="button" onClick={() => window.print()} className={BTN_PRIMARY}>{t.print}</button>
             <Link href={`${base}/council`} className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.back}</Link>
           </div>
           <p className={META}>{t.printHint}</p>

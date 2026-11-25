@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import Disclosure from "./Disclosure";
 import { fmtFamilyDate } from "../lib/family-docs.mjs";
 import type { OsGoals, OsGoal, OsNotes, OsIcs } from "../lib/family-os";
+import { BTN_PRIMARY, BTN_SECONDARY, OS_H2 } from "../lib/family-ui";
+import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
 const T = {
@@ -48,14 +50,14 @@ type Dict = (typeof T)[Lang];
 
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
-const btn = "inline-flex min-h-11 items-center justify-center rounded-md border border-[var(--border)] px-3 text-[15px] text-[var(--foreground)] hover:border-[var(--accent)]";
-const primary = "inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-4 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
-const H2 = "font-serif text-[28px] leading-[1.15] text-[var(--accent)] lg:text-[35px]";
+const btn = BTN_SECONDARY;
+const primary = BTN_PRIMARY;
+const H2 = OS_H2;
 const send = (method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin", cache: "no-store" }).catch(() => null);
 
 export function FamilyGoals({ lang, personId, data }: { lang: Lang; personId: string; data: OsGoals }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const write = data.can.write;
@@ -182,7 +184,7 @@ function GoalRow({ t, lang, g, write, visibilities }: { t: Dict; lang: Lang; g: 
 }
 
 export function FamilyNotes({ lang, personId, data }: { lang: Lang; personId: string; data: OsNotes }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const add = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -192,7 +194,7 @@ export function FamilyNotes({ lang, personId, data }: { lang: Lang; personId: st
     setMsg(r?.ok ? t.saved : t.error); if (r?.ok) { form.reset(); router.refresh(); }
   };
   return (
-    <section aria-labelledby="notes-h" data-notes="" className="mt-12">
+    <section id="notes" aria-labelledby="notes-h" data-notes="" className="mt-12 scroll-mt-24">
       <h2 id="notes-h" className={H2}>{t.notes}</h2>
       <p className="mt-2 text-[14px] text-[var(--muted)]">{t.notesHint}</p>
       {data.notes.length === 0 ? <p className="mt-3 text-[14px] text-[var(--muted)]">{t.noNotes}</p> : (
@@ -219,7 +221,7 @@ export function FamilyNotes({ lang, personId, data }: { lang: Lang; personId: st
 }
 
 export function FamilyIcs({ lang, personId, data }: { lang: Lang; personId: string; data: OsIcs }) {
-  const t = T[lang];
+  const t = tx(T, lang);
   const router = useRouter();
   const [url, setUrl] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
@@ -232,7 +234,7 @@ export function FamilyIcs({ lang, personId, data }: { lang: Lang; personId: stri
   const off = async () => { const r = await send("DELETE", `people/${personId}/ics`); setUrl(null); setMsg(r?.ok ? t.saved : t.error); if (r?.ok) router.refresh(); };
   return (
     <section id="phone-calendar" aria-labelledby="ics-h" data-ics="" className="mt-12 scroll-mt-24">
-      <h2 id="ics-h" className="font-serif text-[22px] text-[var(--foreground)]">{t.phone}</h2>
+      <h2 id="ics-h" className={H2}>{t.phone}</h2>
       <p className="mt-2 max-w-[60ch] text-[15px] text-[var(--text-secondary)]">{t.phoneHint}</p>
       <p className="mt-2 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{data.active && data.created_at ? `${t.active} ${fmtFamilyDate(String(data.created_at).slice(0, 10), lang)}` : t.none}</p>
       {url && (
@@ -243,7 +245,7 @@ export function FamilyIcs({ lang, personId, data }: { lang: Lang; personId: stri
         </div>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
-        <button type="button" className={data.active ? btn : primary} onClick={make}>{data.active ? t.remake : t.make}</button>
+        <button type="button" className={btn} onClick={make}>{data.active ? t.remake : t.make}</button>
         {data.active && <button type="button" className={btn} onClick={off}>{t.off}</button>}
       </div>
       {msg && <p role="status" aria-live="polite" className="mt-2 text-[14px] text-[var(--muted)]">{msg}</p>}

@@ -5,6 +5,8 @@ import { familyEnv } from "@/app/lib/family-env";
 import { canRegister } from "@/app/lib/family-passkey-rules.mjs";
 import { getOsState, getPersonPage } from "@/app/lib/family-os";
 import FamilyOsPerson from "@/app/components/FamilyOsPerson";
+import FamilyOsDown from "@/app/components/FamilyOsDown";
+import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,9 @@ export default async function FamilyOsPersonPage({ params }: { params: Promise<{
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const [state, page] = await Promise.all([getOsState(session), getPersonPage(session, id)]);
-  if (state.status !== "ok" || !page) notFound();
+  const L = lang === "ru" ? "RU" : "EN";
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.person[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  if (!page) notFound();
   // Passkeys «Вход» (bus 98/100): the person, a parent of a child, or the owner. Adding needs a fresh link session.
   const subject = state.people.find((x) => x.id === id);
   const self = state.me?.id === id;
