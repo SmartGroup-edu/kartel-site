@@ -325,11 +325,11 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
       assert.doesNotMatch(c, /rounded-full border px-2\.5/, f);
     }
   });
-  test("#4 snapshot label wording EN/RU (registry v11 and federation)", () => {
-    assert.ok(read("en/registry.html").includes("Snapshot v11 · data as of 24 November 2026"));
-    assert.ok(read("ru/registry.html").includes("Снимок v11 · данные на 24 ноября 2026"));
-    assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 18 June 2026"));
-    assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 18 июня 2026"));
+  test("#4 snapshot label wording EN/RU (registry v12 and federation)", () => {
+    assert.ok(read("en/registry.html").includes("Snapshot v12 · data as of 25 November 2026"));
+    assert.ok(read("ru/registry.html").includes("Снимок v12 · данные на 25 ноября 2026"));
+    assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 25 November 2026"));
+    assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 25 ноября 2026"));
     assert.doesNotMatch(read("en/registry.html"), /Updated: 2026/);
   });
   test("#5 project cards: two-column definition list, not uppercase tags", () => {
@@ -417,8 +417,29 @@ describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11
     const ru = read("ru/registry/organisations.html"), en = read("en/registry/organisations.html");
     assert.ok(ru.includes(">Школа<") && !ru.includes(">SCHOOL<"));
     assert.ok(en.includes(">School<") && !en.includes(">SCHOOL<"));
-    assert.ok(read("ru/registry/projects.html").includes("Производитель / стюард"));
-    assert.ok(!read("ru/registry/projects.html").includes("Производитель / Стюард"));
+    // v12 (bus 161): no project is "Producer / Steward" any more; the mixed-case JSON token "Retired" is the case check.
+    assert.ok(read("ru/registry/projects.html").includes(">Упразднён<"));
+    assert.ok(read("en/registry/projects.html").includes(">Retired<"));
+    assert.ok(!read("en/registry/projects.html").includes(">RETIRED<"));
+  });
+});
+
+describe("registry v12 rendered (bus 161: federation snapshot regenerated, MoyPolk retired)", () => {
+  const text = (f) => read(f).replace(/<[^>]+>/g, " ");
+  test("projects: MoyPolk retired into Community Group; community.group serves geography (EN + RU)", () => {
+    const en = text("en/registry/projects.html"), ru = text("ru/registry/projects.html");
+    assert.ok(en.includes("Brand retired into Community Group on 3 November 2026"));
+    assert.ok(ru.includes("Бренд упразднён 3 ноября 2026 года и вошёл в Community Group"));
+    assert.ok(en.includes("Serves the canonical geography taxonomy (regions and countries)"));
+    assert.doesNotMatch(en + ru, /Produces and serves the canonical geography|first geography consumer|Производит и обслуживает каноническую/);
+  });
+  test("federation map: no RUSJAZ-FDN, all five campuses, community.group steward", () => {
+    for (const l of ["en", "ru"]) {
+      const h = read(`${l}/registry/federation.html`);
+      assert.doesNotMatch(h, /RUSJAZ-FDN|RusJAz Foundation/, l);
+      for (const c of ["ZNANIYE-CHELSEA", "ZNANIYE-EALING", "ZNANIYE-STRATFORD", "ZNANIYE-FINCHLEY", "BALTICA-LEEDS", "RU-ONLINE-EUREKA"]) assert.ok(h.includes(`>${c}<`), `${l} ${c}`);
+    }
+    assert.ok(read("ru/registry/federation.html").includes(">Упразднён<"));
   });
 });
 

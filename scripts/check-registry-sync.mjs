@@ -65,6 +65,31 @@ const record = existsSync(RECORD) ? parse(RECORD) : null;
 
 // Content comparison (deep, formatting-insensitive).
 const norm = (o) => JSON.stringify(o);
+
+// Bus 161: the federation snapshot (federation.public.json) is vendored the same way and had
+// drifted unguarded (2026-06-18 copy, still listing RUSJAZ-FDN, while the registry reached v11).
+const FED_VENDORED = join(repoRoot, "app/content/federation.public.json");
+const FED_SOURCE = join(coreDir, "registry/federation.public.json");
+let fedOk = true;
+if (existsSync(FED_SOURCE)) {
+  const fv = parse(FED_VENDORED);
+  const fs = parse(FED_SOURCE);
+  if (norm(fv) !== norm(fs)) {
+    fail("federation snapshot is OUT OF SYNC with the private kartel-core source.");
+    console.error(`   vendored : generatedAt ${fv.generatedAt}  (${FED_VENDORED})`);
+    console.error(`   canonical: generatedAt ${fs.generatedAt}  (${FED_SOURCE})`);
+    fedOk = false;
+  } else if (record?.federation?.generatedAt !== fs.generatedAt || record?.federation?.registryVersion !== fs.registryVersion) {
+    fail(
+      `app/content/registry.source.json does not record the federation snapshot ` +
+        `(record: ${record?.federation?.generatedAt}; source: ${fs.generatedAt}). Update record.federation with the re-vendor.`,
+    );
+    fedOk = false;
+  }
+} else {
+  warn(`federation snapshot source not found at ${FED_SOURCE} — SKIPPED (not a green)`);
+}
+
 if (norm(vend) === norm(src)) {
   if (!record || record.sourceVersion !== src.version || record.sourceUpdated !== src.updated) {
     fail(
@@ -74,7 +99,8 @@ if (norm(vend) === norm(src)) {
     );
     process.exit(1);
   }
-  ok(`in sync (version ${src.version}, updated ${src.updated})`);
+  if (!fedOk) process.exit(1);
+  ok(`in sync (version ${src.version}, updated ${src.updated}; federation snapshot ${record.federation?.generatedAt})`);
   process.exit(0);
 }
 

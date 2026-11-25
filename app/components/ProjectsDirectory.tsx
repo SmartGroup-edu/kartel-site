@@ -17,7 +17,7 @@ import registry from "../content/registry.public.json";
 // localised display text. Kept separate so translation never shifts the tone.
 function RolePill({ value, label }: { value: string; label?: string }) {
   const authority = /authority/i.test(value);
-  const planned = /planned/i.test(value);
+  const planned = /planned|retired/i.test(value);
   return <Pill tone={authority ? "solid" : planned ? "muted" : "accent"}>{label ?? value}</Pill>;
 }
 

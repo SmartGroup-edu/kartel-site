@@ -29,3 +29,21 @@ describe("vendored registry matches its recorded kartel-core source", () => {
     assert.equal(createHash("sha256").update(bytes).digest("hex"), source.sha256);
   });
 });
+
+// Bus 161: the federation snapshot sat at 2026-06-18 (still listing RUSJAZ-FDN) while the registry
+// reached v11, because only registry.public.json was guarded.
+const fedBytes = readFileSync(new URL("../app/content/federation.public.json", import.meta.url));
+const fed = JSON.parse(fedBytes.toString("utf8"));
+
+describe("vendored federation snapshot matches its recorded kartel-core source", () => {
+  test("the record names the source path", () => {
+    assert.equal(source.federation.path, "registry/federation.public.json");
+  });
+  test("snapshot date and registry version equal the record", () => {
+    assert.equal(fed.generatedAt, source.federation.generatedAt);
+    assert.equal(fed.registryVersion, source.federation.registryVersion);
+  });
+  test("bytes equal the source file (sha256)", () => {
+    assert.equal(createHash("sha256").update(fedBytes).digest("hex"), source.federation.sha256);
+  });
+});
