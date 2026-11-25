@@ -7,6 +7,7 @@
  * thumbnails of ID pages anywhere).
  */
 import FamilyBody from "./FamilyBody";
+import FamilyAdultConfirm from "./FamilyAdultConfirm";
 import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useEffect, useState } from "react";
@@ -100,7 +101,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} editor={editor} admin={ok && state.admin} os active="people" />
+        <FamilySubNav lang={lang} editor={editor} admin={ok && state.admin} member={!ok || Boolean(state.me)} os active="people" />
         <div className="pb-8">
           <p className="text-[15px]"><Link href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>
           <div className="mt-4 flex max-w-4xl items-start gap-5">
@@ -113,6 +114,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
               </p>
             </div>
           </div>
+          {typeof p.adult_confirmed === "boolean" && <FamilyAdultConfirm lang={lang} personId={p.id} confirmed={p.adult_confirmed} />}
           {/* reading column keeps max-w-4xl; ≥ 1280 px the index stands to its right, sticky */}
           <div className="xl:grid xl:grid-cols-[minmax(0,56rem)_14rem] xl:gap-12">
           <div className="xl:col-start-2 xl:row-start-1"><FamilyJumpNav kind="person" label={t.jump} items={jump} aside /></div>

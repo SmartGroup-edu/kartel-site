@@ -10,15 +10,21 @@ const L = {
 };
 
 /**
- * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean }} o
+ * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean }} o
  * `editor` (bus 87): a family editor also sees «Редактор» — never «Доступы».
+ * `member` (QA-156 L7): false for the owner who is not a family member — no Доска, Совет or Календарь (they are empty
+ * for them and the edge answers 404).
  * @returns {{ id: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin", href: string, label: string }[]}
  */
-export function familySubNav({ lang, admin, os, editor = false }) {
+export function familySubNav({ lang, admin, os, editor = false, member = true }) {
   const base = `/${lang === "EN" ? "en" : "ru"}/family`, t = L[lang];
   const items = [{ id: "heritage", href: base, label: t.heritage }];
-  if (os) items.push({ id: "today", href: `${base}/os`, label: t.today }, { id: "board", href: `${base}/os/board`, label: t.board }, { id: "people", href: `${base}/os/people`, label: t.people },
-    { id: "council", href: `${base}/os/council`, label: t.council }, { id: "calendar", href: `${base}/os/calendar`, label: t.calendar });
+  if (os) {
+    items.push({ id: "today", href: `${base}/os`, label: t.today });
+    if (member) items.push({ id: "board", href: `${base}/os/board`, label: t.board });
+    items.push({ id: "people", href: `${base}/os/people`, label: t.people });
+    if (member) items.push({ id: "council", href: `${base}/os/council`, label: t.council }, { id: "calendar", href: `${base}/os/calendar`, label: t.calendar });
+  }
   if (admin && os) items.push({ id: "access", href: `${base}/os/access`, label: t.access });
   if (admin || editor) items.push({ id: "admin", href: `${base}/admin`, label: t.admin });
   return items.length > 1 ? items : [];

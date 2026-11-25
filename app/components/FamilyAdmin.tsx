@@ -135,7 +135,7 @@ const btnPrimary = `${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[
 const btnSecondary = `${btn} border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 const link = "underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]";
 
-export default function FamilyAdmin({ lang, role = "owner", enabled, os = false, people, entries }: { lang: Lang; role?: Role; enabled: boolean; os?: boolean; people: Person[]; entries: Entry[] }) {
+export default function FamilyAdmin({ lang, role = "owner", enabled, os = false, member = true, people, entries }: { lang: Lang; role?: Role; enabled: boolean; os?: boolean; member?: boolean; people: Person[]; entries: Entry[] }) {
   const t = T[lang];
   const editor = role === "editor";
   const [mine, setMine] = useState<Content>(EMPTY); // editor: her open proposals over the draft
@@ -230,7 +230,7 @@ export default function FamilyAdmin({ lang, role = "owner", enabled, os = false,
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={!editor} editor={editor} os={os} active="admin" />
+        <FamilySubNav lang={lang} admin={!editor} editor={editor} os={os} member={member} active="admin" />
         <div className="max-w-4xl pb-8">
         <p className={EYEBROW}>{t.eyebrow}</p>
         <h1 className={`mt-2 ${H1}`}>{t.title}</h1>

@@ -94,7 +94,7 @@ export type OsDocument = {
   files: OsDocFile[];
 };
 export type OsProfile = {
-  person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null };
+  person: { id: string; name_en: string; name_ru: string; kind: "adult" | "child"; birth_date?: string | null; adult_confirmed?: boolean };
   guardians: { guardian_id: string; relation: "parent" | "relative"; scopes: OsScope[] }[];
   can: { documents: boolean; add_documents: boolean; retype_documents: boolean; routines: OsRoutineAccess; prefs?: boolean; notes?: ("health" | "education")[]; goals?: boolean; ics?: boolean };
 };

@@ -72,7 +72,7 @@ export default function FamilyOs({ lang, view, state, reminders = [], familyRemi
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status !== "ok" || Boolean(state.me) || state.admin} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
+        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status !== "ok" || Boolean(state.me) || state.admin} member={state.status !== "ok" || Boolean(state.me)} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
         <div className="max-w-4xl pb-8">
 
         {state.status !== "ok" ? (

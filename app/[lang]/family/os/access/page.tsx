@@ -28,5 +28,5 @@ export default async function FamilyOsAccessPage({ params }: { params: Promise<{
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.access[L]} nav={osDownNav(session.cpifSubjectId)} />;
   if (!state.admin) notFound();
   const [rules, adoption] = await Promise.all([getRules(session), getAdoption(session)]);
-  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} />;
+  return <FamilyOsAccess lang={lang === "ru" ? "RU" : "EN"} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} member={Boolean(state.me)} />;
 }

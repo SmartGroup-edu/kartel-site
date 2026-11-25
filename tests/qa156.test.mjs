@@ -92,3 +92,20 @@ test("L3: with Edge Config connected but unreadable, seed addresses are refused 
   assert.match(a, /if \(process\.env\.EDGE_CONFIG\) \{\s*try \{[\s\S]*?\} catch \{[\s\S]*?return false;/);
   assert.ok(a.indexOf("return false;") < a.indexOf("familyEnv.approvedEmails().includes(em)"), "the seed is read only after Edge Config answered");
 });
+
+test("L7: the owner who is not a member has no Доска, Совет or Календарь in the family sub-nav", async () => {
+  const { familySubNav } = await import("../app/lib/family-nav.mjs");
+  const ids = (o) => familySubNav({ lang: "RU", ...o }).map((i) => i.id);
+  assert.deepEqual(ids({ admin: true, os: true, member: false }), ["heritage", "today", "people", "access", "admin"]);
+  assert.deepEqual(ids({ admin: true, os: true }), ["heritage", "today", "board", "people", "council", "calendar", "access", "admin"], "a member owner keeps everything");
+  assert.deepEqual(ids({ admin: false, os: true }), ["heritage", "today", "board", "people", "council", "calendar"]);
+  for (const f of ["FamilyOs.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyClient.tsx", "FamilyAdmin.tsx"]) assert.match(src(`app/components/${f}`), /<FamilySubNav [^>]*member=\{/, f);
+});
+
+test("M2 UI: the owner's «Взрослый, 18+» switch appears only when the service sends adult_confirmed", () => {
+  const p = src("app/components/FamilyOsPerson.tsx");
+  assert.match(p, /\{typeof p\.adult_confirmed === "boolean" && <FamilyAdultConfirm lang=\{lang\} personId=\{p\.id\} confirmed=\{p\.adult_confirmed\} \/>\}/);
+  const c = src("app/components/FamilyAdultConfirm.tsx");
+  assert.match(c, /method: "PATCH"[^\n]*JSON\.stringify\(\{ adult_confirmed: next \}\)/);
+  assert.match(c, /aria-describedby/);
+});

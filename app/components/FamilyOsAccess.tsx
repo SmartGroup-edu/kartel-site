@@ -66,7 +66,7 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, member = true }: { lang: Lang; member?: boolean; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
   const t = tx(T, lang);
   const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -76,7 +76,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
     <>
       <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
       <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin os active="access" />
+        <FamilySubNav lang={lang} admin os member={member} active="access" />
         <div className="max-w-4xl pb-8">
           <h1 className={H1}>{t.title}</h1>
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
