@@ -19,7 +19,8 @@ export type OsState =
   | { status: "error" }
   /** QA-158 N2: the service answered 429 — it is up, the family's read budget is spent for now. */
   | { status: "busy" }
-  | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[] };
+  /** `onboarded` (bus 172 P4): has this member finished the first-login tour? undefined = a service from before P4. */
+  | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[]; onboarded?: boolean };
 
 /** The signed-in viewer. `issuedAt` travels as `sat` on every call (QA-156 H1); missing = 0 = refused after a cut-off. */
 export type OsViewer = { email?: string | null; cpifSubjectId: string; issuedAt?: Date | null };
@@ -77,12 +78,12 @@ export async function getOsState(session: OsViewer): Promise<OsState> {
   try {
     const meRes = await osGet(withSat("/me", session), actor);
     if (!meRes.ok) return { status: meRes.status === 429 ? "busy" : "error" };
-    const { me, admin } = meRes.json as { me: OsPerson | null; admin: boolean };
+    const { me, admin, onboarded } = meRes.json as { me: OsPerson | null; admin: boolean; onboarded?: unknown };
     if (!me && !admin) return { status: "ok", admin, me: null, people: [], grants: [] };
     const pRes = await osGet(withSat("/people", session), actor);
     if (!pRes.ok) return { status: pRes.status === 429 ? "busy" : "error" };
     const { people, grants } = pRes.json as { people: OsPerson[]; grants: OsGrant[] };
-    return { status: "ok", admin, me, people, grants };
+    return { status: "ok", admin, me, people, grants, ...(typeof onboarded === "boolean" ? { onboarded } : {}) };
   } catch {
     return { status: "error" };
   }
@@ -255,7 +256,8 @@ export type OsAdoptionRow = {
   signed_in: { first_on: string; last_on: string } | null;
   digest: { on: boolean; time: string };
   passkey: boolean | null;
-  invite: { on_date: string; sent: boolean; sent_at: string | null } | null;
+  /** `cancelled` (bus 172 P4) is absent from a service from before P4 — the site then offers no «Отменить». */
+  invite: { on_date: string; sent: boolean; sent_at: string | null; cancelled?: boolean } | null;
 };
 export type OsAdoption = { people: OsAdoptionRow[]; family: { week_start: string; active: number; of: number } };
 export async function getAdoption(session: OsViewer): Promise<OsAdoption | null> {

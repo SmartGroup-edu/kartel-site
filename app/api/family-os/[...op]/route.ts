@@ -63,6 +63,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
     if (!r.ok) return json(r.status === 404 ? 404 : r.status, r.status === 401 ? await r.json().catch(() => ({})) : { error: "not_found" });
     return new Response(await r.text(), { status: 200, headers: { ...headers, "content-type": "application/json; charset=utf-8", "content-disposition": r.headers.get("content-disposition") ?? "attachment" } });
   }
+  // bus 172 P4: the first-login tour loads the viewer's own letter settings here (the service allows only self or a parent).
+  if (new RegExp(`^/people/${ID}/prefs$`).test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
     const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
@@ -111,7 +113,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|pause|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g);
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|pause|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all|onboarding|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g);
   return json(404, { error: "not_found" });
 }
 
@@ -164,6 +166,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ op: s
   const g = await guard(req, true);
   if (g instanceof Response) return g;
   const path = "/" + (await params).op.join("/");
-  if (!new RegExp(`^/(grants/${ID}|people/${ID}/ics|body)$`).test(path)) return json(404, { error: "not_found" });
+  // bus 172 P4: people/:id/invite — the owner cancels an invitation (the service refuses anyone else).
+  if (!new RegExp(`^/(grants/${ID}|people/${ID}/invite|people/${ID}/ics|body)$`).test(path)) return json(404, { error: "not_found" });
   return forwardJson(req, "DELETE", path, g);
 }
