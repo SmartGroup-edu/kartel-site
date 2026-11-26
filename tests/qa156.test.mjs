@@ -56,12 +56,12 @@ test("H1 wiring: edge gate, family-media, the editor API and every Family OS cal
 
 test("L7: the owner who is not a member: those sections answer 404; unknown family addresses too", () => {
   const proxy = src("proxy.ts");
-  assert.match(proxy, /const MEMBER_ONLY = \/\^\\\/\(en\|ru\)\\\/family\\\/os\\\/\(board\|council\|calendar\|kodeks\|week\)/);
+  assert.match(proxy, /const MEMBER_ONLY = \/\^\\\/\(en\|ru\)\\\/family\\\/os\\\/\(board\|council\|calendar\|kodeks\|week\|review\)/);
   assert.match(proxy, /if \(MEMBER_ONLY\.test\(pathname\) && owner && os\.state === "ok" && !os\.member\) return familyNotFound\(request, lang, pathname\);/);
   assert.match(proxy, /if \(!FAMILY_ROUTES\.test\(pathname\)\) return familyNotFound\(request, lang, pathname\);/);
   const re = new RegExp(proxy.match(/const FAMILY_ROUTES = \/(.+)\/;/)[1]);
-  for (const ok of ["/ru/family", "/en/family/admin", "/ru/family/os", "/ru/family/os/kodeks", "/en/family/os/people", "/ru/family/os/people/0b5e6b0e-1f2a-4c3d-9e8f-0123456789ab"]) assert.ok(re.test(ok), ok);
-  for (const no of ["/ru/family/x", "/ru/family/os/people/abc", "/ru/family/os/kodeks/v2", "/en/family/os/nothing"]) assert.ok(!re.test(no), no);
+  for (const ok of ["/ru/family", "/en/family/admin", "/ru/family/os", "/ru/family/os/kodeks", "/ru/family/os/review", "/ru/family/os/companies", "/en/family/os/people", "/ru/family/os/people/0b5e6b0e-1f2a-4c3d-9e8f-0123456789ab"]) assert.ok(re.test(ok), ok);
+  for (const no of ["/ru/family/x", "/ru/family/os/people/abc", "/ru/family/os/kodeks/v2", "/ru/family/os/companies/x", "/en/family/os/nothing"]) assert.ok(!re.test(no), no);
 });
 
 test("L2: the console's own cookie — a 60-second hand-off token turns into a host-only console session; tokens never cross", async () => {
@@ -104,7 +104,7 @@ test("L7: the owner who is not a member has no Доска, Совет or Кал�
   // bus 171: inside Family OS the shell draws the sections, with the same rule
   const { osShellNav } = await import("../app/lib/family-os-shell.mjs");
   const shell = (o) => osShellNav({ lang: "RU", ...o }).groups.flatMap((g) => g.items.map((i) => i.id));
-  assert.deepEqual(shell({ admin: true, os: true, member: false }), ["today", "people", "heritage", "access", "admin"]);
+  assert.deepEqual(shell({ admin: true, os: true, member: false }), ["today", "people", "heritage", "companies", "access", "admin"]);
   assert.match(src("app/[lang]/family/os/layout.tsx"), /member: Boolean\(state\.me\)/);
 });
 
