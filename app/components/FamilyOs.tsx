@@ -11,6 +11,8 @@ import { H1, META } from "../lib/typeScale";
 import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
 import type { OsState, OsPerson, OsReminder, OsScope } from "../lib/family-os";
 import { OsDownNotice } from "./FamilyOsDown";
+import { useState } from "react";
+import { InviteWizard, PendingInvites, type PendingInvite } from "./FamilyInvite";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -58,7 +60,10 @@ export type PersonCard = {
   load: { open: number; done: number; total: number; current: string | null; routines: { done: number; total: number } | null } | null;
 };
 
-export default function FamilyOs({ lang, state, cards = [] }: { lang: Lang; state: OsState; cards?: PersonCard[] }) {
+/** bus 172 P4: the owner's «+ Пригласить» and «Ждут ответа». null for everyone else. `pending` null = /adoption did not answer. */
+export type InviteData = { pending: PendingInvite[] | null };
+
+export default function FamilyOs({ lang, state, cards = [], invite = null }: { lang: Lang; state: OsState; cards?: PersonCard[]; invite?: InviteData | null }) {
   const t = tx(T, lang);
   return (
     <div className="pb-8">
@@ -71,7 +76,7 @@ export default function FamilyOs({ lang, state, cards = [] }: { lang: Lang; stat
           <p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
         </section>
       ) : (
-        <People t={t} lang={lang} cards={cards} />
+        <People t={t} lang={lang} cards={cards} invite={invite} people={state.people} />
       )}
     </div>
   );
@@ -85,7 +90,8 @@ const PILL = { g: "bg-[var(--ok-soft)] text-[var(--ok)]", b: "bg-[var(--fos-blue
  * «Люди» (bus 172 P3, mockup v5): one card per person — avatar, name (their page), role, who they are to whom, and the
  * open load today from the task board. Adults first, then children. A child never gets here (their menu is «Мой день»).
  */
-function People({ t, lang, cards }: { t: Dict; lang: Lang; cards: PersonCard[] }) {
+function People({ t, lang, cards, invite, people }: { t: Dict; lang: Lang; cards: PersonCard[]; invite: InviteData | null; people: OsPerson[] }) {
+  const [msg, setMsg] = useState("");
   const av = avatarsOf(cards.map((x) => ({ id: x.id, name: x.name }))) as Map<string, { text: string; bg: string }>;
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/people`;
   const sub = (x: PersonCard) =>
@@ -95,8 +101,14 @@ function People({ t, lang, cards }: { t: Dict; lang: Lang; cards: PersonCard[] }
           : t.adultHint;
   return (
     <section aria-labelledby="people-h">
-      <h1 id="people-h" className={H1}>{t.people}</h1>
-      <p className="mt-1 text-[15px] text-[var(--muted)]">{t.sub}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 id="people-h" className={H1}>{t.people}</h1>
+          <p className="mt-1 text-[15px] text-[var(--muted)]">{t.sub}</p>
+        </div>
+        {invite && <InviteWizard lang={lang} people={people} onDone={setMsg} />}
+      </div>
+      {invite && <p role="status" aria-live="polite" data-invite-msg="" className="mt-2 text-[14px] text-[var(--ok)]">{msg}</p>}
       {cards.length === 0 ? <p className={`${META} mt-6`}>{t.emptyPeople}</p> : (
         <ul data-people-grid="" className="mt-6 grid grid-cols-1 gap-[18px] min-[640px]:grid-cols-2 min-[1100px]:grid-cols-4">
           {cards.map((x) => {
@@ -127,6 +139,7 @@ function People({ t, lang, cards }: { t: Dict; lang: Lang; cards: PersonCard[] }
           })}
         </ul>
       )}
+      {invite?.pending && <PendingInvites lang={lang} items={invite.pending} roleOf={(id) => { const c = cards.find((x) => x.id === id); return c ? t.rel[c.rel] : ""; }} />}
     </section>
   );
 }

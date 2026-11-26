@@ -16,7 +16,7 @@ const T = {
     head: "Who is with us", lead: "Who has signed in, and how their morning letter is set. Dates only — nothing about what anyone does.",
     week: (a: number, m: number) => `This week ${a} of ${m} tick their routine.`,
     last: "Last sign-in", first: "first", never: "Has not signed in yet", letter: (t: string) => `Morning letter at ${t}`, letterOff: "Letters off",
-    pk: { on: "Passkey: yes", off: "Passkey: no" }, resend: "Send the link again", queued: "Goes out within 5 minutes", queuedQuiet: "Goes out after 07:00 (quiet hours)", sentToday: (t: string) => `Invitation sent today at ${t}`, sent: (d: string) => `Invitation sent ${d}`,
+    pk: { on: "Passkey: yes", off: "Passkey: no" }, resend: "Send the link again", queued: "Goes out within 5 minutes", queuedQuiet: "Goes out after 07:00 (quiet hours)", sentToday: (t: string) => `Invitation sent today at ${t}`, sent: (d: string) => `Invitation sent ${d}`, cancelled: "Invitation cancelled",
     already: "Already sent today.", error: "Could not send — please try again.", child: "child", adult: "adult",
     endAll: "End all sessions", endAllLead: "If a phone or laptop is lost: everyone, you included, signs in again with an email link before opening documents, adding a key or changing access.",
     endAllConfirm: "End every open session in the family?", endAllYes: "End all sessions", endAllNo: "Cancel", endAllDone: "Done. Documents, keys and access now need a fresh sign-in.", endAllErr: "Could not do that — please try again.",
@@ -25,18 +25,23 @@ const T = {
     head: "Кто уже с нами", lead: "Кто уже входил и как у кого настроено утреннее письмо. Только даты — ничего о том, кто что делает.",
     week: (a: number, m: number) => `На этой неделе распорядок отмечают ${a} из ${m}.`,
     last: "Последний вход", first: "впервые", never: "Входа ещё не было", letter: (t: string) => `Утреннее письмо в ${t}`, letterOff: "Письма выключены",
-    pk: { on: "Ключ доступа: есть", off: "Ключ доступа: нет" }, resend: "Отправить ссылку ещё раз", queued: "Уйдёт в ближайшие 5 минут", queuedQuiet: "Уйдёт утром после 07:00 (тихие часы)", sentToday: (t: string) => `Приглашение отправлено сегодня в ${t}`, sent: (d: string) => `Приглашение отправлено ${d}`,
+    pk: { on: "Ключ доступа: есть", off: "Ключ доступа: нет" }, resend: "Отправить ссылку ещё раз", queued: "Уйдёт в ближайшие 5 минут", queuedQuiet: "Уйдёт утром после 07:00 (тихие часы)", sentToday: (t: string) => `Приглашение отправлено сегодня в ${t}`, sent: (d: string) => `Приглашение отправлено ${d}`, cancelled: "Приглашение отменено",
     already: "Сегодня уже отправляли.", error: "Не удалось отправить — попробуй ещё раз.", child: "ребёнок", adult: "взрослый",
     endAll: "Завершить все сеансы", endAllLead: "Если потерян телефон или ноутбук: все, включая тебя, войдут заново по ссылке из письма, прежде чем открыть документы, добавить ключ или изменить доступы.",
     endAllConfirm: "Завершить все открытые сеансы в семье?", endAllYes: "Завершить все сеансы", endAllNo: "Отмена", endAllDone: "Готово. Для документов, ключей и доступов теперь нужен новый вход.", endAllErr: "Не получилось — попробуй ещё раз.",
   },
 } as const;
 
+/** bus 172 P4: the same words for a «Ждут ответа» card (FamilyInvite). */
+export const ADOPTION_T = T;
+
 const fmt = (d: string, lang: Lang) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
 
 const londonHM = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit" });
-/** «Приглашение отправлено сегодня в 14:05» / «Уйдёт утром после 07:00 (тихие часы)» / «Уйдёт в ближайшие 5 минут». */
-function inviteText(t: (typeof T)[Lang], inv: NonNullable<OsAdoptionRow["invite"]>, today: string, lang: Lang) {
+/** «Приглашение отправлено сегодня в 14:05» / «Уйдёт утром после 07:00 (тихие часы)» / «Уйдёт в ближайшие 5 минут» /
+ *  «Приглашение отменено» (bus 172 P4). Also the state line of a «Ждут ответа» card (FamilyInvite). */
+export function inviteText(t: (typeof T)[Lang], inv: NonNullable<OsAdoptionRow["invite"]>, today: string, lang: Lang) {
+  if (inv.cancelled) return t.cancelled;
   if (inv.sent && inv.sent_at) return inv.on_date === today ? t.sentToday(londonHM(inv.sent_at)) : t.sent(fmt(inv.on_date, lang));
   const h = Number(londonHM(new Date().toISOString()).slice(0, 2));
   return h >= 21 || h < 7 ? t.queuedQuiet : t.queued;
@@ -47,7 +52,7 @@ function Row({ lang, r, today }: { lang: Lang; r: OsAdoptionRow; today: string }
   const router = useRouter();
   const [msg, setMsg] = useState("");
   const name = lang === "EN" ? r.name_en : r.name_ru;
-  const invitedToday = r.invite?.on_date === today;
+  const invitedToday = r.invite?.on_date === today && !r.invite.cancelled;
   const resend = async () => {
     const res = await fetch(`/api/family-os/people/${r.id}/invite`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}", credentials: "same-origin", cache: "no-store" }).catch(() => null);
     if (res?.status === 202) { setMsg(""); router.refresh(); } // the row's own invite line says «Уйдёт…»
