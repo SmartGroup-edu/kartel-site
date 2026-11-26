@@ -115,6 +115,8 @@ for (const n of secDue) {
 await pool.query("DELETE FROM passkey_challenge WHERE expires_at <= now()");
 await pool.query("DELETE FROM passkey_attempt WHERE at < now() - interval '2 days'");
 await pool.query("DELETE FROM passkey WHERE revoked_at < now() - interval '90 days'");
+// bus 165: pending sign-ins, a day after they expire.
+await pool.query("DELETE FROM signin_pending WHERE expires_at < now() - interval '1 day'");
 async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
 }

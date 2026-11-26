@@ -11,7 +11,7 @@
  * and no datastore is required. See docs/standalone-auth-design.md.
  */
 
-import { familySessionCookie } from "@/app/lib/family-cookie.mjs";
+import { familySessionCookie, linkNonceCookie } from "@/app/lib/family-cookie.mjs";
 
 function need(name: string): string {
   const v = process.env[name];
@@ -43,7 +43,8 @@ export const familyEnv = {
     const m = Math.round(Number(process.env.FAMILY_LINK_TTL ?? 600) / 60);
     return Number.isFinite(m) && m >= 1 ? m : 10;
   },
-  linkNonceCookie: (): string => process.env.FAMILY_LINK_NONCE_COOKIE ?? "kartel_family_link",
+  /** `__Host-kartel_family_link` in production (bus 165), `kartel_family_link` in dev. */
+  linkNonceCookie: (): string => linkNonceCookie(),
   /** Passkeys (bus 98/100): dormant unless "on". The service also needs its RP config, or it answers 404. */
   passkeysOn: (): boolean => process.env.FAMILY_PASSKEYS === "on",
   siteOrigin: (): string => process.env.FAMILY_SITE_ORIGIN ?? "https://kartel.org.uk",

@@ -53,3 +53,5 @@ GRANT SELECT, INSERT, UPDATE (wrapped_key, value_ct), DELETE ON body_log TO kfo_
 GRANT SELECT, INSERT, UPDATE (wrapped_key, goal_ct), DELETE ON body_goal TO kfo_app;
 -- QA-156 M3: the person key is created once and deleted with the data; never changed by the app.
 GRANT SELECT, INSERT, DELETE ON body_key TO kfo_app;
+-- bus 165: pending sign-ins are never deleted by the app (the runner purges expired rows as the owner).
+GRANT SELECT, INSERT, UPDATE (attempts, superseded_at, consumed_at) ON signin_pending TO kfo_app;

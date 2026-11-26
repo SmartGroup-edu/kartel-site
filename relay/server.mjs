@@ -4,7 +4,8 @@
 // egress IP. kartel-site signs a request; this relay checks it and calls Brevo.
 //
 // It is NOT a general mail relay. It sends two fixed templates, each to one recipient:
-//  - /send: the sign-in link (only links that start with ALLOWED_LINK_PREFIX);
+//  - /send: the sign-in link (only links that start with ALLOWED_LINK_PREFIX), optionally with the six-digit
+//    one-time code (bus 165) — digits only, shown beside the button, never part of a link;
 //  - /send-reminder: a Family OS document-expiry reminder (fixed wording; validated document type,
 //    first name, date and milestone; the link must be a Family OS person page). It never carries a
 //    document number — there is no field for one.
@@ -97,21 +98,27 @@ const COPY = {
     subject: "Your KARTEL sign-in link",
     heading: "Sign in to KARTEL",
     intro: "Use the button below to sign in to Family Heritage.",
-    rule: (m) => `The link works once, only in this browser, and expires in ${m} ${m === 1 ? "minute" : "minutes"}.`,
+    rule: (m) => `The link works once, in the browser where you asked to sign in, and expires in ${m} ${m === 1 ? "minute" : "minutes"}.`,
     button: "Sign in",
     preheader: (m) => `Your sign-in link — valid for ${m} ${m === 1 ? "minute" : "minutes"}.`,
     ignore: "If you did not request this, ignore this message — nothing has changed.",
     open: "Open this link to sign in:",
+    codeLead: "If the button opens another browser, type this code on the sign-in page instead:",
+    codeRule: (m) => `The code works once, in the tab where you asked to sign in, for ${m} ${m === 1 ? "minute" : "minutes"}. Never share it.`,
+    codeText: "Or type this code on the sign-in page:",
   },
   ru: {
     subject: "Ссылка для входа на KARTEL",
     heading: "Вход на KARTEL",
     intro: "Нажмите кнопку ниже, чтобы войти в раздел «Семейное наследие».",
-    rule: (m) => `Ссылка действует ${m} ${ruMinutes(m)}, срабатывает один раз и только в этом браузере.`,
+    rule: (m) => `Ссылка действует ${m} ${ruMinutes(m)} и срабатывает один раз в том браузере, где вы запросили вход.`,
     button: "Войти",
-    preheader: (m) => `Ваша ссылка для входа — действует ${m} ${ruMinutes(m)}.`,
-    ignore: "Если вы не запрашивали вход, просто проигнорируйте это письмо — ничего не изменилось.",
+    preheader: (m) => `Ваша ссылка для входа — действует ${m} ${ruMinutes(m)}.`,
+    ignore: "Если вы не запрашивали вход, просто проигнорируйте это письмо — ничего не изменилось.",
     open: "Откройте ссылку, чтобы войти:",
+    codeLead: "Если кнопка открылась в другом браузере, введите на странице входа этот код:",
+    codeRule: (m) => `Код действует ${m} ${ruMinutes(m)} и срабатывает один раз в той вкладке, где вы запросили вход. Никому его не сообщайте.`,
+    codeText: "Или введите на странице входа этот код:",
   },
 };
 
@@ -121,10 +128,20 @@ const COPY = {
  * ("works once, only in this browser, expires in N minutes", N = the site's FAMILY_LINK_TTL, sent
  * with the request) and the motto in the footer. Exported for tests and local previews.
  */
-export function renderSignInEmail({ link, ttlMinutes = LINK_TTL_MIN, lang = "en" }) {
+export function renderSignInEmail({ link, ttlMinutes = LINK_TTL_MIN, lang = "en", code = null }) {
   const c = COPY[lang] ?? COPY.en;
   const m = ttlMinutes;
-  const text = [c.heading, "", c.intro, "", `${c.open} ${link}`, "", c.rule(m), c.ignore, "", "Virtus et Potestas · kartel.org.uk"].join("\n");
+  // bus 165: the six-digit code, shown as «123 456» (the page accepts it with or without the space). Absent when
+  // the site could not record it — then the letter is exactly the link-only letter.
+  const shown = typeof code === "string" && /^\d{6}$/.test(code) ? `${code.slice(0, 3)} ${code.slice(3)}` : null;
+  const text = [c.heading, "", c.intro, "", `${c.open} ${link}`, "", c.rule(m), ...(shown ? ["", `${c.codeText} ${shown}`, c.codeRule(m)] : []), "", c.ignore, "", "Virtus et Potestas · kartel.org.uk"].join("\n");
+  // Neutral light panel, dark digits: stays readable when Gmail on iOS inverts the letter in dark mode.
+  const codeBlock = shown ? `
+  <p style="margin:0 0 10px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(c.codeLead)}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 10px;"><tr><td style="border:1px solid #d9d3cb;border-radius:8px;background:#f6f3ef;padding:12px 20px;">
+    <span data-code="" style="font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:28px;line-height:32px;letter-spacing:0.12em;font-weight:600;color:#2b2824;">${esc(shown)}</span>
+  </td></tr></table>
+  <p style="margin:0 0 28px;font-size:14px;line-height:1.6;color:#6f685c;">${esc(c.codeRule(m))}</p>` : "";
   const serif = "Georgia,'Times New Roman',serif";
   // Single column, inline styles (mail clients ignore <style>), no images — reads the same with
   // images blocked. color-scheme "light only": Apple Mail otherwise auto-darkens the white page
@@ -139,7 +156,7 @@ export function renderSignInEmail({ link, ttlMinutes = LINK_TTL_MIN, lang = "en"
   <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#2b2824;">${esc(c.rule(m))}</p>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;"><tr><td style="border-radius:8px;background:#7b1e2d;">
     <a href="${esc(link)}" style="display:inline-block;padding:14px 28px;line-height:20px;min-height:20px;border-radius:8px;background:#7b1e2d;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">${esc(c.button)}</a>
-  </td></tr></table>
+  </td></tr></table>${codeBlock}
   <p style="margin:0;padding-top:16px;border-top:1px solid #e6e2dd;font-size:14px;line-height:1.6;color:#6f685c;">${esc(c.ignore)}</p>
   <p style="margin:16px 0 0;font-family:${serif};font-size:16px;font-style:italic;color:#7b1e2d;">Virtus et Potestas</p>
   <p style="margin:4px 0 0;font-size:14px;color:#6f685c;"><a href="https://kartel.org.uk" style="color:#6f685c;text-decoration:none;">kartel.org.uk</a></p>
@@ -496,12 +513,15 @@ const server = createServer((req, res) => {
     // LINK_TTL_MINUTES and English — an older site build simply omits them.
     const ttl = Number.isInteger(body.ttlMinutes) && body.ttlMinutes >= 1 && body.ttlMinutes <= 120 ? body.ttlMinutes : LINK_TTL_MIN;
     const lang = body.lang === "ru" ? "ru" : "en";
+    // bus 165: an optional six-digit code. Anything else in the field is refused, not dropped: a malformed code
+    // means a site bug, and a letter without the code the site promised would be worse than no letter.
+    if (body.code !== undefined && !(typeof body.code === "string" && /^\d{6}$/.test(body.code))) return reply(res, 400, { error: "bad_code" });
     if (!allowAll([["global", GLOBAL], [`to:${to}`, PER_RECIPIENT], [`day:${to}`, PER_RECIPIENT_DAY]])) {
       console.warn("[relay] rate limited");
       return reply(res, 429, { error: "rate_limited" });
     }
     try {
-      const status = await sendViaBrevo(to, renderSignInEmail({ link, ttlMinutes: ttl, lang }));
+      const status = await sendViaBrevo(to, renderSignInEmail({ link, ttlMinutes: ttl, lang, code: body.code ?? null }));
       console.log(`[relay] brevo ${status}`);
       if (status >= 200 && status < 300) return reply(res, 202, { ok: true });
       return reply(res, 502, { error: "upstream", status });

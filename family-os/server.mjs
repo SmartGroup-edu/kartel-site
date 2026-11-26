@@ -18,6 +18,7 @@ import { parseRule, occursOn, occurrences, streak, localDate, addDays } from "./
 import { stripHeifMetadata } from "./heif.mjs";
 import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
+import { addPending, pendingStatus, consumePending, checkCode } from "./signin.mjs";
 import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { bodyAllowed, cleanWeight, cleanKcal, cleanGoal, weightTrend, gpLine } from "./body.mjs";
@@ -154,6 +155,22 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const r = await authVerify({ store, cfg: passkeys, challengeId: b.challenge_id, response: b.response, now: clock() });
       console.log(`[os] passkey.auth ${r.email ? "ok" : "fail"}`);
       return r.email ? reply(res, 200, { email: r.email }) : reply(res, 401, { error: "failed" });
+    }
+    // bus 165: the one-time code and the email link's single use, before there is a session. The site signs these
+    // four calls as "auth:signin"; that actor is accepted on exactly these routes and nowhere else.
+    if (auth.actor === "auth:signin") {
+      const sp = url.pathname;
+      const route = { "/signin/pending": addPending, "/signin/status": pendingStatus, "/signin/consume": consumePending, "/signin/code": checkCode }[sp];
+      if (req.method !== "POST" || !route) return reply(res, 403, { error: "forbidden" });
+      const b = json(body) ?? {};
+      // Guesses: per client (the site's HMAC of the IP, as for passkeys) 20 per 10 minutes, on top of 5 per request.
+      const client = typeof b.client === "string" && /^[0-9a-f]{32}$/.test(b.client) ? b.client : null;
+      if (sp === "/signin/code" && client && !allow(`sc:c:${client}`, 20, 600_000)) return reply(res, 429, { error: "rate_limited" });
+      if (!allow("signin", 3000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      const r = await route({ store, b, now: clock() });
+      // The outcome only (reason code) — never an address, a nonce or a code.
+      if (sp === "/signin/consume" || sp === "/signin/code") console.log(`[os] ${sp.slice(1).replace("/", ".")} ${r.body.state ?? r.status}`);
+      return reply(res, r.status, r.body);
     }
     const who = parseActor(auth.actor);
     if (!who) return reply(res, 403, { error: "actor_required" });
@@ -1569,6 +1586,7 @@ export function routeClass(url = "") {
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
   if (p === "/signins" || p === "/adoption") return p;
+  if (/^\/signin\/(pending|status|consume|code)$/.test(p)) return p;
   if (/^\/passkeys\/(register\/(options|verify)|auth\/(options|verify)|mine)$/.test(p)) return p;
   if (/^\/passkeys\/[^/]+(\/(revoke|clear-flag))?$/.test(p)) return "/passkeys/:id" + (p.match(/\/(revoke|clear-flag)$/)?.[0] ?? "");
   if (/^\/people\/[^/]+\/passkeys$/.test(p)) return "/people/:id/passkeys";

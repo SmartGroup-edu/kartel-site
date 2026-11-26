@@ -44,7 +44,7 @@ jobs:
       FAMILY_SESSION_SECRET: e2e-secret-at-least-32-characters-long!!
       FAMILY_APPROVED_EMAILS: member@example.com
       FAMILY_ADMIN_EMAILS: admin@example.com
-      FAMILY_MAIL_RELAY_URL: http://127.0.0.1:9
+      FAMILY_MAIL_RELAY_URL: http://127.0.0.1:18797 # bus 165: the code e2e runs a fake relay here; elsewhere nothing listens
       FAMILY_MAIL_RELAY_SECRET: fake-relay-secret-ci-e2e-only-0000000000
       FAMILY_SITE_ORIGIN: http://localhost:3999
       FAMILY_OS_URL: http://127.0.0.1:18795
@@ -72,6 +72,7 @@ jobs:
           node tests/e2e/family-auth.e2e.mjs
           node tests/e2e/family-ended.e2e.mjs
           node tests/e2e/family-os-calls.e2e.mjs
+          node tests/e2e/family-signin-code.e2e.mjs
 
   family-os-postgres:
     # schema.sql re-applied to a populated database, then a runner tick (QA-156 C1).

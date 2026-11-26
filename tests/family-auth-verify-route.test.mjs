@@ -22,14 +22,15 @@ describe("verify route — nonce kept on failure", () => {
     assert.doesNotMatch(fail, /clearSignInNonce\s*\(/);
   });
 
-  test("the nonce is cleared exactly once, after the session is created", () => {
+  test("the nonce is cleared once per sign-in path (link, code), each time right after the session is created", () => {
     const calls = src.match(/await clearSignInNonce\(\)/g) ?? [];
-    assert.equal(calls.length, 1);
-    assert.ok(src.indexOf("await createSession(") < src.indexOf("await clearSignInNonce()"));
+    assert.equal(calls.length, 2);
+    for (const m of src.matchAll(/await createSession\([^)]*\);\s*await clearSignInNonce\(\)/g)) assert.ok(m);
+    assert.equal([...src.matchAll(/await createSession\([^)]*\);\s*await clearSignInNonce\(\)/g)].length, 2);
   });
 
   test("a failed link keeps the reader's language", () => {
-    assert.match(src, /if \(!claims\) return fail\(langHint\(token\)\)/);
+    assert.match(src, /if \(!chk\.claims\) return fail\(langHint\(token\)/);
   });
 });
 

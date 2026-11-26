@@ -310,6 +310,24 @@ export function pgStore(pool) {
     },
     async pkAttempt(key, kind, at = new Date()) { await q("INSERT INTO passkey_attempt (key, kind, at) VALUES ($1, $2, $3)", [key, kind, at]); },
     async pkAttempts(key, kind, since) { return (await q("SELECT count(*)::int AS n FROM passkey_attempt WHERE key = $1 AND kind = $2 AND at >= $3", [key, kind, since])).rows[0].n; },
+    // ---- bus 165: pending sign-ins (see signin.mjs). A new row supersedes every older open row for the address.
+    async signinAdd(r, now) {
+      const ins = await q("INSERT INTO signin_pending (nonce_hash, email_key, email, code_hash, expires_at) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (nonce_hash) DO NOTHING", [r.nonce_hash, r.email_key, r.email, r.code_hash, r.expires_at]);
+      if (!ins.rowCount) return false;
+      await q("UPDATE signin_pending SET superseded_at = $3 WHERE email_key = $1 AND nonce_hash <> $2 AND superseded_at IS NULL AND consumed_at IS NULL AND expires_at > $3", [r.email_key, r.nonce_hash, now]);
+      return true;
+    },
+    async signinGet(nonceHash) { return (await q("SELECT * FROM signin_pending WHERE nonce_hash = $1", [nonceHash])).rows[0] ?? null; },
+    async signinReserve(nonceHash, max, now) {
+      return (await q("UPDATE signin_pending SET attempts = attempts + 1 WHERE nonce_hash = $1 AND attempts < $2 AND consumed_at IS NULL AND superseded_at IS NULL AND expires_at > $3 RETURNING *", [nonceHash, max, now])).rows[0] ?? null;
+    },
+    async signinConsume(nonceHash, now) {
+      return (await q("UPDATE signin_pending SET consumed_at = $2 WHERE nonce_hash = $1 AND consumed_at IS NULL AND superseded_at IS NULL AND expires_at > $2 RETURNING *", [nonceHash, now])).rows[0] ?? null;
+    },
+    async signinSupersededCodes(emailKey, now) {
+      return (await q("SELECT code_hash FROM signin_pending WHERE email_key = $1 AND superseded_at IS NOT NULL AND consumed_at IS NULL AND expires_at > $2", [emailKey, now])).rows.map((r) => r.code_hash);
+    },
+    async signinAudit(action, entity) { await audit("auth:signin", action, entity); },
     async noticeAdd(n) { await q("INSERT INTO security_notice (kind, email, device_kind, on_date) VALUES ($1, $2, $3, $4)", [n.kind, n.email, n.device_kind, n.on_date]); },
     // ---- 3d-2: review photo
     async activeTaskPhoto(taskId) { return (await q("SELECT id, task_id, mime, size, wrapped_key, uploaded_at, delete_after FROM task_photo WHERE task_id = $1 AND deleted_at IS NULL", [taskId])).rows[0] ?? null; },
@@ -411,6 +429,7 @@ export function memoryStore({ clock = () => new Date() } = {}) {
   const kodeks = [], picks = new Map(), recs = [];
   const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map(), bkeys = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
+  const signins = new Map();
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => clock().toISOString();
   return {
@@ -565,6 +584,19 @@ export function memoryStore({ clock = () => new Date() } = {}) {
     async pkChallengePrune(now, keep) { for (const [id, c] of pk.challenges) if (c.expires_at <= now) pk.challenges.delete(id); const all = [...pk.challenges.values()].sort((a, b) => b.expires_at - a.expires_at); for (const c of all.slice(keep)) pk.challenges.delete(c.id); },
     async pkAttempt(key, kind, at = new Date()) { pk.attempts.push({ key, kind, at }); },
     async pkAttempts(key, kind, since) { return pk.attempts.filter((a) => a.key === key && a.kind === kind && a.at >= since).length; },
+    // ---- bus 165: pending sign-ins
+    async signinAdd(r, now) {
+      if (signins.has(r.nonce_hash)) return false;
+      signins.set(r.nonce_hash, { ...r, attempts: 0, created_at: now, superseded_at: null, consumed_at: null });
+      for (const x of signins.values()) if (x.email_key === r.email_key && x.nonce_hash !== r.nonce_hash && !x.superseded_at && !x.consumed_at && x.expires_at > now) x.superseded_at = now;
+      return true;
+    },
+    async signinGet(nonceHash) { const r = signins.get(nonceHash); return r ? { ...r } : null; },
+    async signinReserve(nonceHash, max, now) { const r = signins.get(nonceHash); if (!r || r.attempts >= max || r.consumed_at || r.superseded_at || r.expires_at <= now) return null; r.attempts++; return { ...r }; },
+    async signinConsume(nonceHash, now) { const r = signins.get(nonceHash); if (!r || r.consumed_at || r.superseded_at || r.expires_at <= now) return null; r.consumed_at = now; return { ...r }; },
+    async signinSupersededCodes(emailKey, now) { return [...signins.values()].filter((x) => x.email_key === emailKey && x.superseded_at && !x.consumed_at && x.expires_at > now).map((x) => x.code_hash); },
+    async signinAudit(action, entity) { auditLog.push({ actor: "auth:signin", action, entity }); },
+    _signinAudit() { return auditLog.filter((a) => a.actor === "auth:signin"); }, // test-only view
     async noticeAdd(n) { pk.notices.push({ ...n, id: pk.notices.length + 1, sent_at: null }); },
     // ---- 3d-2: review photo
     async activeTaskPhoto(taskId) { return photos.find((p) => p.task_id === taskId && !p.deleted_at) ?? null; },
