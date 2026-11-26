@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { latinMotto } from "../lib/latin";
-import { H1, H2, H3 } from "../lib/typeScale";
+import { H2, H3 } from "../lib/typeScale";
 import dynamic from "next/dynamic";
 import ParallaxImage from "./ParallaxImage";
 import ImageLightbox from "./ImageLightbox";
@@ -26,10 +26,12 @@ import { noDashLineStart } from "../lib/typography";
 // lands in the prerendered HTML for SEO.
 const CrestExplorer = dynamic(() => import("./CrestExplorer"));
 
-const SECTION_IDS = ["home", "meaning", "legacy"];
+const SECTION_IDS = ["office", "companies", "home", "meaning", "legacy"];
 
-/** Public home (R0 2026-11-14: the coat of arms is the main page). No personal data here —
- *  family names live only in the gated /family area (app/content/family-private.ts). */
+/** Public home. Bus 172 P5 (mockup v5, R0-approved 26.11.2026): the family-office view (PublicOffice — hero, registry
+ *  counts, companies) opens the page; the coat of arms (R0 2026-11-14: the main page) follows in full, unchanged
+ *  below its heading, which is now an H2. No personal data here — family names live only in the gated /family area
+ *  (app/content/family-private.ts). */
 /**
  * The Meaning essay grouped under element subheadings (cycle 10 #1), split only at the existing
  * paragraph boundaries — no copy changes. The first paragraph is about the staff the griffin holds
@@ -59,7 +61,8 @@ function meaningGroups(paras: string[]) {
   return groups.filter((g) => g.paras.length > 0);
 }
 
-export default function HomeClient({ lang }: { lang: Lang }) {
+/** `office`: the server-rendered PublicOffice block, passed in so the registry JSON it reads never ships to the browser. */
+export default function HomeClient({ lang, office }: { lang: Lang; office: React.ReactNode }) {
   const toggleLang = useLangToggle(lang);
   const langPath = lang.toLowerCase();
 
@@ -71,13 +74,16 @@ export default function HomeClient({ lang }: { lang: Lang }) {
   // First section is the crest itself; "Home" here would repeat the header's Home link.
   const overviewLabel = lang === "RU" ? "Обзор" : "Overview";
   const sectionNav = [
-    { label: overviewLabel, href: "#home" },
+    { label: overviewLabel, href: "#office" },
+    { label: lang === "RU" ? "Компании" : "Companies", href: "#companies" },
+    { label: lang === "RU" ? "Герб" : "Coat of arms", href: "#home" },
     { label: t.navMeaning, href: "#meaning" },
     { label: t.navLegacy, href: "#legacy" },
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    // [data-fos]: the v5 palette and type (app/globals.css) for the whole home, crest sections included.
+    <div data-fos="" className="min-h-screen bg-[var(--fos-bg)] text-[var(--foreground)]">
       <ReadingProgress />
       <SiteHeader
         lang={lang}
@@ -87,18 +93,20 @@ export default function HomeClient({ lang }: { lang: Lang }) {
       />
 
       <main id="main">
-        {/* Hero (design pass 2026-11-15): crest + H1 + lede + two actions; the essay starts below.
+        {office}
+
+        {/* The coat of arms (the hero until bus 172 P5; design pass 2026-11-15): crest + heading + lede + two actions; the essay starts below.
             Below 1024px: title · crest · lede · actions (h1 first in the DOM) — at tablet width two
             half columns squeezed the crest and broke the title (cycle 9 #2). 640–1023 centres all
             four on one axis (cycle 10 #2); phones stay left-aligned for the longer lede. lg+ and phones held
             sideways: crest left, the text block vertically centred against it; sideways the crest
             is sized by the viewport height. One edge (or one axis, 640–1023) for all hero text. */}
-        <article id="home" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:flex lg:min-h-[calc(100svh-8.5rem)] lg:items-center lg:px-10 lg:py-8 short-land:py-4">
+        <article id="home" aria-labelledby="crest-title" className="mx-auto max-w-7xl scroll-mt-28 border-t border-[var(--border)] px-4 py-12 sm:px-6 lg:px-10 lg:py-20 short-land:py-4">
           <div className="grid w-full gap-6 [grid-template-areas:'title'_'crest'_'text'] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-x-16 lg:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] lg:[grid-template-rows:1fr_auto_auto_1fr] short-land:grid-cols-[auto_minmax(0,1fr)] short-land:gap-x-8 short-land:gap-y-4 short-land:[grid-template-areas:'crest_.'_'crest_title'_'crest_text'_'crest_.'] short-land:[grid-template-rows:1fr_auto_auto_1fr]">
             <div className="[grid-area:title] sm:text-center lg:text-left short-land:text-left">
-              <h1 className={`${H1} text-balance short-land:text-[30px]`}>
+              <h2 id="crest-title" className={`${H2} text-balance short-land:text-[30px]`}>
                 {t.title}
-              </h1>
+              </h2>
             </div>
 
             <div className="[grid-area:crest] flex justify-center lg:items-center short-land:items-center">

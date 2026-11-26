@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
 import HomeClient from "../components/HomeClient";
+import PublicOffice from "../components/PublicOffice";
 
-// HOME = the Kartel coat of arms (R0 2026-11-14: "coat of arm make the main"). Public and
+// HOME = the family-office view of mockup v5 (bus 172 P5: hero, registry counts, companies — PublicOffice, rendered
+// here on the server), then the Kartel coat of arms in full (R0 2026-11-14: "coat of arm make the main"). Public and
 // indexable. NO personal data: family names, tree and chronicle stay in the gated /family area
 // (app/content/family-private.ts, server-only) — this page must never import it.
 // The KARTEL Core registry stays at /core and /registry, one click away in the main menu.
@@ -189,7 +191,7 @@ export default async function HomePage({
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildStructuredData(locale)) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildFaq(locale)) }} />
-      <HomeClient lang={upperLang} />
+      <HomeClient lang={upperLang} office={<PublicOffice lang={upperLang} />} />
     </>
   );
 }
