@@ -1,9 +1,9 @@
 // Snapshot tests for the prerendered HTML, sitemap, and service worker.
 // These read the .next/server/app outputs after `npm run build` and assert
 // invariants we care about — i18n correctness + the public/family split:
-//   /              → Coat of Arms of the Kartel family (public home, R0 2026-11-14)
+//   /              → KARTEL the family office, with the Kartel coat of arms below (bus 172 P5, bus 173)
 //   /core, /registry → KARTEL Core (one click away in the main menu)
-//   /family        → Family Heritage members   — GATED (see below)
+//   /family        → «Наследие» in the family area («Семейный кабинет») — GATED (see below)
 //   /family/crest  → 308 to /{lang} (next.config.ts redirects)
 //
 // The public home carries NO personal data: family names live only in the gated /family area
@@ -42,12 +42,13 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /<html[^>]*\blang="en"/);
   });
 
-  test("coat-of-arms title", () => {
-    assert.match(html, /<title>Kartel Coat of Arms — Virtus et Potestas<\/title>/);
+  test("family-office title (bus 173)", () => {
+    assert.match(html, /<title>KARTEL — a family office in London<\/title>/);
   });
 
-  test("share card is the coat of arms (og:title + og:image)", () => {
-    assert.match(html, /<meta property="og:title" content="Kartel Coat of Arms — Virtus et Potestas"\/>/);
+  test("share card names the family office (og:title + og:image)", () => {
+    assert.match(html, /<meta property="og:title" content="KARTEL — a family office in London"\/>/);
+    assert.match(html, /<meta property="og:image:alt" content="KARTEL — a family office in London\. Virtus et Potestas — Strength and Power\."\/>/);
     assert.match(html, /<meta property="og:image" content="https:\/\/kartel\.org\.uk\/opengraph-image"\/>/);
   });
 
@@ -64,6 +65,10 @@ describe("/en — Coat of Arms home", () => {
   test("JSON-LD WebSite + Organization + FAQPage present, no Person", () => {
     assert.match(html, /"@type":"WebSite"/);
     assert.match(html, /"@type":"Organization"/);
+    // bus 173: the page is about KARTEL the family office, not an article about the crest
+    assert.match(html, /"description":"A family office in London\./);
+    assert.match(html, /"mainEntity":\{"@id":"https:\/\/kartel\.org\.uk\/#organization"\}/);
+    assert.doesNotMatch(html, /"@type":"Article"/);
     assert.match(html, /"@type":"FAQPage"/);
     assert.doesNotMatch(html, /"@type":"Person"/);
   });
@@ -80,7 +85,7 @@ describe("/en — Coat of Arms home", () => {
 
   test("design pass 2026-11-15: sentence-case crest heading, no drop cap, hero actions", () => {
     // bus 172 P5: the family-office hero holds the page's one H1; the crest heading is the H2 that follows it.
-    assert.match(html, /<h1[^>]*>A family business, built for generations\.<\/h1>/);
+    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>The KARTEL family — work that lasts for generations\.<\/h1>/);
     assert.match(html, /<h2 id="crest-title"[^>]*>Kartel Coat of Arms<\/h2>/);
     assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1);
     assert.doesNotMatch(html, /drop-cap/);
@@ -139,8 +144,8 @@ describe("/ru — Coat of Arms home", () => {
     assert.match(html, /<html[^>]*\blang="ru"/);
   });
 
-  test("Russian coat-of-arms title", () => {
-    assert.match(html, /<title>Фамильный герб Картель — Virtus et Potestas<\/title>/);
+  test("Russian family-office title (bus 173)", () => {
+    assert.match(unescape(html), /<title>KARTEL — семейный офис в Лондоне<\/title>/);
   });
 
   test("canonical points at /ru", () => {
@@ -148,7 +153,7 @@ describe("/ru — Coat of Arms home", () => {
   });
 
   test("Russian H1 in sentence case (the office hero, bus 172 P5); the crest heading follows as an H2", () => {
-    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>Семейный бизнес, построенный на поколения\.<\/h1>/);
+    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>Семья KARTEL — дело на поколения\.<\/h1>/);
     assert.match(unescape(html), /<h2 id="crest-title"[^>]*>Фамильный герб Картель<\/h2>/);
   });
 
@@ -166,11 +171,12 @@ describe("/ru — Coat of Arms home", () => {
     assert.doesNotMatch(u, /alt="Герб семьи Картель/);
   });
 
-  test("RU JSON-LD uses «Фамильный герб Картель», dateModified 2026-11-14", () => {
+  test("RU JSON-LD: the crest is the KARTEL emblem («Фамильный герб Картель»); the organisation is the family office (bus 173)", () => {
     const u = unescape(html);
-    assert.match(u, /"caption":"Фамильный герб Картель"/);
+    assert.match(u, /"caption":"Эмблема KARTEL — фамильный герб Картель"/);
     assert.doesNotMatch(u, /"Герб семьи Картель"/);
-    assert.match(u, /"dateModified":"2026-11-14"/);
+    assert.match(u, /"description":"Семейный офис в Лондоне\./);
+    assert.doesNotMatch(u, /"@type":"Article"/);
   });
 });
 
@@ -217,12 +223,12 @@ describe("home cycle 1 (2026-11-15)", () => {
     for (const m of ["Truth, virtue", "Courage, determination", "Willpower, endurance", "Nobility, wisdom"]) assert.ok(en.includes(m), m);
   });
   test("#5 closing block: motto, explorer + members links, copy link (EN/RU)", () => {
-    for (const [h, l, a, b, t] of [[en, "en", "Explore the coat of arms", "Family Heritage — members only", "Strength and Power"], [ru, "ru", "Исследовать герб", "Семейное наследие — только для членов семьи", "Сила и Власть"]]) {
+    for (const [h, l, a, b, t] of [[en, "en", "Explore the coat of arms", "Family area — members only", "Strength and Power"], [ru, "ru", "Исследовать герб", "Семейный кабинет — только для членов семьи", "Сила и Власть"]]) {
       const i = h.indexOf('data-closing=""');
       assert.ok(i > 0, l);
       const sec = h.slice(i, h.indexOf("</section>", i));
       assert.match(sec, /lang="la"[^>]*>Virtus et Potestas</);
-      for (const s of [t, `href="#explorer"`, a, `href="/${l}/family"`, b]) assert.ok(sec.includes(s), `${l}: ${s}`);
+      for (const s of [t, `href="#explorer"`, a, `href="/${l}/family/os"`, b]) assert.ok(sec.includes(s), `${l}: ${s}`);
       assert.match(sec, /<button/);
     }
   });
@@ -390,7 +396,7 @@ describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11
     assert.doesNotMatch(g, /lang="ru"|На главную|Return home/);
     const v = src("app/components/NotFoundView.tsx");
     assert.match(v, /<SiteHeader /);
-    assert.match(src("app/content/notFound.ts"), /home: "Coat of arms",[\s\S]*registry: "Registry",[\s\S]*home: "Герб",[\s\S]*registry: "Реестр",/);
+    assert.match(src("app/content/notFound.ts"), /home: "Home page",[\s\S]*registry: "Registry",[\s\S]*home: "На главную",[\s\S]*registry: "Реестр",/);
   });
   test("#2 tab-title brand is KARTEL in both locales", () => {
     assert.doesNotMatch(src("app/[lang]/layout.tsx"), /КАРТЕЛЬ/);
@@ -816,8 +822,8 @@ describe("cycle 11 — residuals: explorer heading case, error page on the scale
     assert.match(e, /<h1 className=\{H1\}>/);
     assert.match(e, /\$\{PROSE\}/);
     assert.doesNotMatch(e, /TRY AGAIN|ПОВТОРИТЬ|tracking-\[0\.1em\]|hover:text-white/);
-    assert.match(e, /cta: "Try again", home: "Back to the coat of arms"/);
-    assert.match(e, /cta: "Повторить", home: "К гербу"/);
+    assert.match(e, /cta: "Try again", home: "Back to the home page"/);
+    assert.match(e, /cta: "Повторить", home: "На главную"/);
   });
   test("explorer element labels in sentence case (bus 92 L1)", () => {
     const c = src("app/components/CrestExplorer.tsx");

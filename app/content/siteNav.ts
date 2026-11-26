@@ -11,18 +11,19 @@ export interface NavItem {
   post?: true;
 }
 
+// bus 173: the home is the family office (bus 172 P5), not the coat of arms, so «Герб» is no longer a menu item —
+// the KARTEL wordmark leads home, and the crest is a section of the home page. The family area is «Семейный кабинет»
+// everywhere (its heritage page is «Наследие» inside it) and opens on «Сегодня».
 const PRIMARY = {
   EN: [
-    { label: "Coat of Arms", path: "" },
     { label: "Core", path: "core" },
     { label: "Registry", path: "registry" },
-    { label: "Family Heritage", path: "family" },
+    { label: "Family area", path: "family/os" },
   ],
   RU: [
-    { label: "Герб", path: "" },
     { label: "Ядро", path: "core" },
     { label: "Реестр", path: "registry" },
-    { label: "Семейное наследие", path: "family" },
+    { label: "Семейный кабинет", path: "family/os" },
   ],
 } as const;
 
@@ -50,7 +51,7 @@ const build = (lang: Lang, items: readonly { label: string; path: string }[]): N
 
 export const primaryNav = (lang: Lang): NavItem[] => build(lang, PRIMARY[lang]);
 
-/** Family area header (/family): the one site menu plus Sign out. The coat of arms is the
+/** Family area header (/family): the one site menu plus Sign out. The coat of arms is a section of the
  *  public home page since R0's decision of 2026-11-14 (/family/crest → 308 to /{lang}). */
 export const familyNav = (lang: Lang): NavItem[] => [
   ...primaryNav(lang),

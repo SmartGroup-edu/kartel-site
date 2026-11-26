@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
-  return { title: lang === "ru" ? "Календарь · Семья" : "Calendar · Family", robots: { index: false, follow: false } };
+  return { title: lang === "ru" ? "Календарь · Семейный кабинет" : "Calendar · Family area", robots: { index: false, follow: false } };
 }
 
 export default async function FamilyCalendarPage({ params, searchParams }: { params: Promise<{ lang: string }>; searchParams: Promise<{ cal?: string }> }) {

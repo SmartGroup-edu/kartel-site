@@ -11,8 +11,8 @@ import { homeContent } from "../content/home";
 // a sentence-case retry button and a way back to the crest. The [lang] layout renders no chrome
 // (each page draws its own), so the boundary brings the site header and footer itself (bus 92 L2).
 const text = {
-  en: { heading: "Something went wrong", message: "The page could not be shown. Please try again.", cta: "Try again", home: "Back to the coat of arms" },
-  ru: { heading: "Что-то пошло не так", message: "Страницу не удалось показать. Пожалуйста, попробуйте ещё раз.", cta: "Повторить", home: "К гербу" },
+  en: { heading: "Something went wrong", message: "The page could not be shown. Please try again.", cta: "Try again", home: "Back to the home page" },
+  ru: { heading: "Что-то пошло не так", message: "Страницу не удалось показать. Пожалуйста, попробуйте ещё раз.", cta: "Повторить", home: "На главную" },
 };
 
 export default function Error({

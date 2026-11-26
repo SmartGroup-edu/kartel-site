@@ -15,7 +15,7 @@ import { tx } from "../lib/typograph.mjs";
 type Lang = "EN" | "RU";
 type State = "active" | "retired" | "planned";
 export type CompanyCard = {
-  key: string; name: string; url: string | null; state: State; role: string; type: string;
+  key: string; name: string; title: Record<Lang, string>; url: string | null; state: State; role: string; type: string;
   layers: { key: string; status: string }[]; changed: { version: number; date: string } | null;
 };
 
@@ -69,7 +69,7 @@ export default function FamilyCompanies({ lang, cards, registry }: { lang: Lang;
                 <div className="flex items-start gap-3">
                   <span aria-hidden="true" style={{ background: SQ[i % SQ.length] }} className="grid h-10 w-10 flex-none place-items-center rounded-[10px] text-[14px] font-bold text-white">{monogram(c.name)}</span>
                   <div className="min-w-0">
-                    <h2 className="text-[16px] font-semibold leading-snug text-[var(--foreground)]">{c.name}</h2>
+                    <h2 className="text-[16px] font-semibold leading-snug text-[var(--foreground)]">{c.title[lang]}</h2>
                     {lead && <p className="mt-0.5 text-[13px] text-[var(--muted)]">{lead}</p>}
                   </div>
                   <span data-state-pill="" className={`ml-auto whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${PILL[c.state]}`}>{t.state[c.state]}</span>

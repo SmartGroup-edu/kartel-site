@@ -18,8 +18,8 @@ import { homeCompanies, homeOrganisations, homeStats, registryStamp } from "../c
 const copy = {
   EN: {
     pill: "Family office · London",
-    title: "A family business, built for generations.",
-    lead: "KARTEL brings together the projects the family runs — in education, culture and communities — under shared rules, decisions and responsibility.",
+    title: "The KARTEL family — work that lasts for generations.",
+    lead: "KARTEL brings together the federation projects the family runs — in education, culture and communities — under shared rules, decisions and responsibility.",
     companiesCta: "Our companies",
     crestCta: "The coat of arms",
     cabinet: "The family area",
@@ -38,8 +38,8 @@ const copy = {
   },
   RU: {
     pill: "Семейный офис · Лондон",
-    title: "Семейный бизнес, построенный на поколения.",
-    lead: "KARTEL объединяет проекты, которые ведёт семья, — в образовании, культуре и сообществах — общими правилами, решениями и ответственностью.",
+    title: "Семья KARTEL — дело на поколения.",
+    lead: "KARTEL объединяет проекты федерации, которые ведёт семья, — в образовании, культуре и сообществах — общими правилами, решениями и ответственностью.",
     companiesCta: "Наши компании",
     crestCta: "Фамильный герб",
     cabinet: "Семейный кабинет",
@@ -76,7 +76,7 @@ const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(
 export default function PublicOffice({ lang }: { lang: Lang }) {
   const t = COPY[lang];
   const l = lang.toLowerCase();
-  const companies: { key: string; name: string; url: string | null; state: keyof typeof STATE_TONE; lead: Record<Lang, string> }[] = homeCompanies(registry, projectSummaries);
+  const companies: { key: string; name: string; title: Record<Lang, string>; url: string | null; state: keyof typeof STATE_TONE; lead: Record<Lang, string> }[] = homeCompanies(registry, projectSummaries);
   const { entity, schools }: { entity: { name: string } | null; schools: { name: string; nameRu?: string }[] } = homeOrganisations(registry);
   const stats = homeStats(registry, lang);
 
@@ -151,7 +151,7 @@ export default function PublicOffice({ lang }: { lang: Lang }) {
                       {t.state[c.state]}
                     </span>
                   </div>
-                  <h3 className={`mt-4 ${H3}`}>{c.name}</h3>
+                  <h3 className={`mt-4 ${H3}`}>{c.title[lang]}</h3>
                   <p className="mt-2 flex-1 text-[15px] leading-[1.5] text-[var(--text-body)]">{noDashLineStart(c.lead[lang])}</p>
                   {host && (
                     <a

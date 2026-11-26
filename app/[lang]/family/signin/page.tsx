@@ -16,7 +16,7 @@ export function generateMetadata({ params }: { params: Promise<{ lang: string }>
   return params.then(({ lang }) => {
     const locale = (LOCALES.includes(lang as Locale) ? lang : "en") as Locale;
     return {
-      title: locale === "ru" ? "Семейное наследие — вход" : "Family Heritage — sign in",
+      title: locale === "ru" ? "Семейный кабинет — вход" : "Family area — sign in",
       robots: { index: false, follow: false },
     };
   });

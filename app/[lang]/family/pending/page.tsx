@@ -11,15 +11,15 @@ type Locale = (typeof LOCALES)[number];
 
 const copy: Record<Locale, { title: string; heading: string; body: string; back: string }> = {
   en: {
-    title: "Family Heritage — pending approval",
+    title: "Family area — pending approval",
     heading: "Registration received",
-    body: "Your account is signed in but not yet approved to view the Family Heritage area. An administrator reviews access requests; you will be able to enter once approved.",
+    body: "Your account is signed in but not yet approved to open the family area. An administrator reviews access requests; you will be able to enter once approved.",
     back: "Back to the home page",
   },
   ru: {
-    title: "Семейное наследие — ожидает одобрения",
+    title: "Семейный кабинет — ожидает одобрения",
     heading: "Заявка получена",
-    body: "Вы вошли в аккаунт, но доступ к разделу «Семейное наследие» ещё не одобрен. Администратор рассматривает запросы; вы сможете войти после одобрения.",
+    body: "Вы вошли в аккаунт, но доступ в семейный кабинет ещё не одобрен. Администратор рассматривает запросы; вы сможете войти после одобрения.",
     back: "На главную",
   },
 };

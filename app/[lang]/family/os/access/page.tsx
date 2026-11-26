@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
-  return { title: lang === "ru" ? "Доступ и безопасность · Семья" : "Access and security · Family", robots: { index: false, follow: false } };
+  return { title: lang === "ru" ? "Доступ и безопасность · Семейный кабинет" : "Access and security · Family area", robots: { index: false, follow: false } };
 }
 
 export default async function FamilyOsAccessPage({ params }: { params: Promise<{ lang: string }> }) {

@@ -2,6 +2,7 @@
 // app/opengraph-image.tsx (EN, the long-standing URL) and app/[lang]/opengraph-image.tsx.
 // Crest full height on the left; wordmark, headline, motto and domain on the right, sized to
 // stay legible as a 400px feed thumbnail. No family names — the crest and the surname only.
+// bus 173: the card names KARTEL the family office; the crest stays as its emblem, the motto as its words.
 import { ImageResponse } from "next/og";
 import { readFile } from "fs/promises";
 import { join } from "path";
@@ -9,8 +10,8 @@ import { join } from "path";
 export const OG_SIZE = { width: 1200, height: 630 };
 
 const COPY = {
-  en: { headline: ["Kartel", "Coat of Arms"], motto: "Virtus et Potestas", translation: "Strength and Power", alt: "KARTEL — the Kartel coat of arms. Virtus et Potestas — Strength and Power." },
-  ru: { headline: ["Фамильный герб", "Картель"], motto: "Virtus et Potestas", translation: "Сила и Власть", alt: "KARTEL — фамильный герб Картель. Virtus et Potestas — Сила и Власть." },
+  en: { headline: ["Family office", "in London"], motto: "Virtus et Potestas", translation: "Strength and Power", alt: "KARTEL — a family office in London. Virtus et Potestas — Strength and Power." },
+  ru: { headline: ["Семейный офис", "в Лондоне"], motto: "Virtus et Potestas", translation: "Сила и Власть", alt: "KARTEL — семейный офис в Лондоне. Virtus et Potestas — Сила и Власть." },
 } as const;
 
 export type OgLang = keyof typeof COPY;
@@ -42,7 +43,7 @@ export async function renderOgCard(lang: OgLang): Promise<ImageResponse> {
         <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", marginLeft: 56, flex: 1, height: "100%" }}>
           <div style={{ display: "flex", fontSize: 40, letterSpacing: "0.12em", color: ACCENT }}>KARTEL</div>
           <div style={{ display: "flex", width: 96, height: 3, backgroundColor: ACCENT, marginTop: 22, marginBottom: 26 }} />
-          {/* Explicit lines: an automatic wrap split "Coat of / Arms". */}
+          {/* Explicit lines: an automatic wrap split the headline mid-phrase. */}
           <div style={{ display: "flex", flexDirection: "column", fontSize: lang === "ru" ? 62 : 68, fontWeight: 600, lineHeight: 1.08, color: INK }}>
             {c.headline.map((line) => (
               <div key={line} style={{ display: "flex" }}>{line}</div>

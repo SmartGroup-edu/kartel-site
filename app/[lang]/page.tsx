@@ -18,18 +18,19 @@ export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
 
+// bus 173: the title, the share card and the JSON-LD describe KARTEL the family office; the crest is its emblem, below.
 const pageMeta: Record<Locale, { title: string; description: string; keywords: string[] }> = {
   en: {
-    title: "Kartel Coat of Arms — Virtus et Potestas",
+    title: "KARTEL — a family office in London",
     description:
-      "The Kartel family coat of arms: griffin, crossed keys, coronet, swords, fleur-de-lis and wings, with the Latin motto Virtus et Potestas (Strength and Power).",
-    keywords: ["Kartel coat of arms", "Kartel heraldry", "griffin", "Virtus et Potestas", "Kartel family crest"],
+      "KARTEL is a family office in London. The federation projects the family runs — in education, culture and communities — share rules, decisions and responsibility. Its coat of arms bears the motto Virtus et Potestas (Strength and Power).",
+    keywords: ["KARTEL", "Kartel family office", "family office London", "KARTEL federation", "Virtus et Potestas"],
   },
   ru: {
-    title: "Фамильный герб Картель — Virtus et Potestas",
+    title: "KARTEL — семейный офис в Лондоне",
     description:
-      "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья, латинский девиз Virtus et Potestas (Сила и Власть).",
-    keywords: ["герб Картель", "геральдика Картель", "грифон", "Virtus et Potestas", "фамильный герб Картель"],
+      "KARTEL — семейный офис в Лондоне. Проекты федерации, которые ведёт семья, — в образовании, культуре и сообществах — объединены общими правилами, решениями и ответственностью. Девиз фамильного герба — Virtus et Potestas (Сила и Власть).",
+    keywords: ["KARTEL", "семейный офис Картель", "семейный офис Лондон", "федерация KARTEL", "Virtus et Potestas"],
   },
 };
 
@@ -45,8 +46,8 @@ export async function generateMetadata({
     title: m.title,
     description: m.description,
     keywords: m.keywords,
-    // Page-level OG/Twitter replace the layout's (site default = KARTEL Core), so the home's
-    // share card says "coat of arms". Image = the generated crest card (app/lib/ogCard.tsx), RU on its own URL.
+    // Page-level OG/Twitter replace the layout's (site default = KARTEL Core), so the home's share card names
+    // the family office. Image = the generated card (app/lib/ogCard.tsx), RU on its own URL.
     openGraph: {
       type: "website",
       locale: lang === "ru" ? "ru_RU" : "en_GB",
@@ -92,6 +93,12 @@ function buildStructuredData(lang: Locale) {
         "name": "KARTEL",
         "url": "https://kartel.org.uk",
         "logo": "https://kartel.org.uk/crest.jpeg",
+        "description":
+          lang === "en"
+            ? "A family office in London. The family runs the KARTEL federation projects in education, culture and communities."
+            : "Семейный офис в Лондоне. Семья ведёт проекты федерации KARTEL в образовании, культуре и сообществах.",
+        "slogan": "Virtus et Potestas",
+        "location": { "@type": "Place", "name": "London" },
       },
       {
         "@type": "WebPage",
@@ -100,42 +107,17 @@ function buildStructuredData(lang: Locale) {
         "name": pageMeta[lang].title,
         "description": pageMeta[lang].description,
         "isPartOf": { "@id": "https://kartel.org.uk/#website" },
+        "about": { "@id": "https://kartel.org.uk/#organization" },
+        "mainEntity": { "@id": "https://kartel.org.uk/#organization" },
         "inLanguage": lang,
         "primaryImageOfPage": {
           "@type": "ImageObject",
           "url": "https://kartel.org.uk/crest.jpeg",
           "width": 800,
           "height": 800,
-          "caption": lang === "en" ? "Coat of Arms of the Kartel Family" : "Фамильный герб Картель",
+          "caption": lang === "en" ? "The KARTEL emblem — the Kartel family coat of arms" : "Эмблема KARTEL — фамильный герб Картель",
         },
         "speakable": { "@type": "SpeakableSpecification", "cssSelector": ["h1", "h2", ".motto"] },
-      },
-      {
-        "@type": "Article",
-        "headline": lang === "en" ? "The Coat of Arms of the Kartel Family" : "Фамильный герб Картель",
-        "description":
-          lang === "en"
-            ? "A detailed description of the Kartel family heraldic coat of arms: griffin, crossed keys, coronet, swords, fleur-de-lis, wings, and the Latin motto Virtus et Potestas (Strength and Power)."
-            : "Подробное описание фамильного герба Картель: грифон, скрещённые ключи, корона, мечи, лилии, крылья и латинский девиз Virtus et Potestas (Сила и Власть).",
-        "image": "https://kartel.org.uk/crest.jpeg",
-        "url": url,
-        "inLanguage": lang,
-        "author": { "@type": "Organization", "name": "Kartel Family", "url": "https://kartel.org.uk" },
-        "publisher": {
-          "@type": "Organization",
-          "name": "Kartel Family",
-          "url": "https://kartel.org.uk",
-          "logo": { "@type": "ImageObject", "url": "https://kartel.org.uk/crest.jpeg" },
-        },
-        "datePublished": "2025-01-01",
-        "dateModified": "2026-11-14",
-        "mainEntityOfPage": { "@id": `${url}#webpage` },
-        "about": [
-          { "@type": "Thing", "name": "Heraldry" },
-          { "@type": "Thing", "name": "Coat of Arms" },
-          { "@type": "Thing", "name": "Kartel Family Heritage" },
-        ],
-        "keywords": pageMeta[lang].keywords.join(", "),
       },
       {
         "@type": "VisualArtwork",
@@ -148,6 +130,7 @@ function buildStructuredData(lang: Locale) {
         "artMedium": "Digital illustration",
         "image": "https://kartel.org.uk/crest.jpeg",
         "creator": { "@type": "Organization", "name": "Kartel Family" },
+        "isPartOf": { "@id": `${url}#webpage` },
       },
     ],
   };

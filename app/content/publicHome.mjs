@@ -19,6 +19,22 @@ export function projectState(p) {
 
 const ORDER = { active: 0, retired: 1, planned: 2 };
 
+/**
+ * bus 173: a retired brand whose work goes on inside another registry project. Its card says so in its title and links
+ * to that project's address (from the registry), never to the old brand's own domain — moypolk.uk only redirects there.
+ */
+const MERGED_INTO = {
+  moypolk: { into: "community-group", title: { EN: "MoyPolkUK — now part of Community Group", RU: "MoyPolkUK — теперь часть Community Group" } },
+};
+
+/** A project's card title and link: its registry name and url, or — for a merged brand — the successor's. */
+export function cardIdentity(registry, p) {
+  const m = projectState(p) === "retired" ? MERGED_INTO[p.key] : undefined;
+  const into = m ? registry.projects.find((q) => q.key === m.into) : undefined;
+  if (!m || !into) return { title: { EN: p.name, RU: p.name }, url: p.url ?? null };
+  return { title: m.title, url: into.url ?? null };
+}
+
 /** The registry's projects as home cards: active first, then retired, then planned; registry order within each. */
 export function homeCompanies(registry, summaries) {
   return registry.projects
@@ -27,7 +43,7 @@ export function homeCompanies(registry, summaries) {
     .map(({ p, state }) => ({
       key: p.key,
       name: p.name,
-      url: p.url ?? null,
+      ...cardIdentity(registry, p),
       state,
       lead: { EN: firstSentence(summaries.EN[p.key] ?? p.summary), RU: firstSentence(summaries.RU[p.key] ?? p.summary) },
     }));

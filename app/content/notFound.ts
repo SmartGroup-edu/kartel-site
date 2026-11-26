@@ -5,14 +5,14 @@ export const notFoundText = {
     title: "Page not found",
     message: "This page does not exist.",
     hint: "The address may be mistyped, or the page has moved.",
-    home: "Coat of arms",
+    home: "Home page",
     registry: "Registry",
   },
   ru: {
     title: "Страница не найдена",
     message: "Такой страницы нет.",
     hint: "Возможно, в адресе опечатка или страница переехала.",
-    home: "Герб",
+    home: "На главную",
     registry: "Реестр",
   },
 } as const;
