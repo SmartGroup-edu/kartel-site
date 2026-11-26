@@ -66,7 +66,7 @@ const itemText = (i: OsCalItem, t: Dict, lang: Lang) => {
 const londonNow = () => { const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
   const g = (k: string) => p.find((x) => x.type === k)?.value ?? "00"; return { date: `${g("year")}-${g("month")}-${g("day")}`, hhmm: `${g("hour")}:${g("minute")}` }; };
 
-export default function FamilyCalendar({ lang, cal, meId, initialView = "week" }: { lang: Lang; cal: OsCalendar | null; meId: string | null; initialView?: View }) {
+export default function FamilyCalendar({ lang, cal, meId, initialView = "week", child = false }: { lang: Lang; cal: OsCalendar | null; meId: string | null; initialView?: View; child?: boolean }) {
   const t = tx(T, lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
   const [view, setView] = useState<View>(initialView);
@@ -117,7 +117,8 @@ export default function FamilyCalendar({ lang, cal, meId, initialView = "week" }
                 </div>
                 {/* bus 171: the printable family week lives under Календарь */}
                 {meId && <div className="text-[15px]">
-                  <p><Link prefetch={false} href={`${base}/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.week}</Link></p>
+                  {/* bus 172 P3: a child's menu has no family week sheet (its page sends a child to «Мой день») */}
+                  {!child && <p><Link prefetch={false} href={`${base}/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.week}</Link></p>}
                   <p className="text-[var(--text-secondary)]">{t.phone} <Link prefetch={false} href={`${base}/people/${meId}#phone-calendar`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.phoneLink}</Link></p>
                 </div>}
               </div>

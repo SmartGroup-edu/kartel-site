@@ -6,6 +6,7 @@ import { getOsState, getKodeks, getPrinciple } from "@/app/lib/family-os";
 import FamilyKodeks from "@/app/components/FamilyKodeks";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { childHome } from "@/app/lib/family-child";
 
 // Кодекс семьи (bus 86): gated like every Family OS page; members read, parents add versions (the service decides).
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function FamilyKodeksPage({ params }: { params: Promise<{ l
   const L = lang === "ru" ? "RU" : "EN";
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.kodeks[L]} />;
   if (!state.me) notFound();
+  childHome(lang, state.me);
   const [kodeks, principle] = await Promise.all([getKodeks(session), getPrinciple(session)]);
   return <FamilyKodeks lang={lang === "ru" ? "RU" : "EN"} kodeks={kodeks} principle={principle} />;
 }

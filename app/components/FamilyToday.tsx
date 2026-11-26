@@ -27,7 +27,7 @@ type Decision = { key: string; type: "task" | "plan"; title: string | null; who:
 type FamilyRow = { id: string; name: string; open: number; done: number; total: number; current: string | null; routines: { done: number; total: number } | null; me: boolean };
 type Kpi = { id: "open" | "decisions" | "events" | "documents"; value: number; new?: number };
 export type TodayModel = {
-  child: boolean; adult: boolean; owner: boolean; today: string; greeting: string;
+  child: boolean; adult: boolean; owner: boolean; today: string; greeting: string; name?: string | null;
   items: Item[]; newTasks: number; paused: boolean; summary: { decisions: number | null };
   kpis: Kpi[]; schedule: Sched[] | null; decisions: Decision[] | null; family: FamilyRow[] | null;
 };
@@ -35,7 +35,7 @@ export type TodayModel = {
 const T = {
   RU: {
     brief: "Сводка дня", done: "сделано", toDecisions: "Разобрать решения", kpi: { open: "Открытых задач", decisions: "Ждут решения", events: "Событий на неделе", documents: "Документы скоро истекают" },
-    kpiHint: { new: (n: number) => `${n} ${n === 1 ? "новая ждёт" : n < 5 ? "новые ждут" : "новых ждут"} тебя`, none: "новых нет", decisions: "на доске задач", events: "до воскресенья", documents: "в ближайшие 3 месяца" },
+    kpiHint: { new: (n: number) => `${n} ${n === 1 ? "новая ждёт" : n < 5 ? "новые ждут" : "новых ждут"} тебя`, none: "новых нет", decisions: "в разделе «Решения»", events: "до воскресенья", documents: "в ближайшие 3 месяца" },
     mine: "Мои дела на сегодня", allTasks: "Все задачи", schedule: "Расписание", calendar: "Календарь", waiting: "Ждут решения", open: "Открыть",
     family: "Семья сегодня", people: "Люди", you: "ты",
     task: "задача", routine: "распорядок", chore: "дело", rotation: "по очереди", inProgress: "в работе", doneChip: "готово", parents: "решают родители",
@@ -48,10 +48,13 @@ const T = {
     emptyFamily: "На доске пока никого нет.", famLine: (o: number, d: number) => `${o} открыто · ${d} готово`, now: "сейчас", routineOf: (d: number, n: number) => `распорядок ${d} из ${n}`,
     eventsToday: (n: number) => `${n} ${n === 1 ? "событие" : n < 5 ? "события" : "событий"} сегодня`, decisionsChip: (n: number) => `${n} ${n === 1 ? "решение ждёт" : n < 5 ? "решения ждут" : "решений ждут"}`,
     noDecisionsChip: "Решений в очереди нет", progress: (d: number, n: number) => `Сделано ${d} из ${n}`,
+    hi: (n: string | null) => (n ? `Привет, ${n}!` : "Привет!"), left: (n: number) => `у тебя ${n} ${n === 1 ? "дело" : n < 5 ? "дела" : "дел"}`, allDone: "всё сделано", nothing: "дел на сегодня нет",
+    heroLabel: "Сегодня", heroOf: (d: number, n: number) => `${d} из ${n}`, heroLeft: (n: number) => `Ещё ${n} — и день закрыт.`, heroDone: "Все дела на сегодня сделаны. Молодец!", heroEmpty: "На сегодня дел нет.",
+    myTasks: "Мои дела", myDay: "Мой день", tapHint: "Нажми на дело, когда сделаешь.", waitParents: "ждёт решения родителей",
   },
   EN: {
     brief: "Today at a glance", done: "done", toDecisions: "Review decisions", kpi: { open: "Open tasks", decisions: "Waiting for a decision", events: "Events this week", documents: "Documents expiring soon" },
-    kpiHint: { new: (n: number) => `${n} new waiting for you`, none: "nothing new", decisions: "on the task board", events: "until Sunday", documents: "within 3 months" },
+    kpiHint: { new: (n: number) => `${n} new waiting for you`, none: "nothing new", decisions: "in Decisions", events: "until Sunday", documents: "within 3 months" },
     mine: "My things for today", allTasks: "All tasks", schedule: "Schedule", calendar: "Calendar", waiting: "Waiting for a decision", open: "Open",
     family: "Family today", people: "People", you: "you",
     task: "task", routine: "routine", chore: "chore", rotation: "in turns", inProgress: "in progress", doneChip: "done", parents: "parents decide",
@@ -64,6 +67,9 @@ const T = {
     emptyFamily: "No one is on the board yet.", famLine: (o: number, d: number) => `${o} open · ${d} done`, now: "now", routineOf: (d: number, n: number) => `routine ${d} of ${n}`,
     eventsToday: (n: number) => `${n} ${n === 1 ? "event" : "events"} today`, decisionsChip: (n: number) => `${n} ${n === 1 ? "decision waits" : "decisions wait"}`,
     noDecisionsChip: "No decisions waiting", progress: (d: number, n: number) => `${d} of ${n} done`,
+    hi: (n: string | null) => (n ? `Hi, ${n}!` : "Hi!"), left: (n: number) => `${n} thing${n === 1 ? "" : "s"} to do`, allDone: "all done", nothing: "nothing to do today",
+    heroLabel: "Today", heroOf: (d: number, n: number) => `${d} of ${n}`, heroLeft: (n: number) => `${n} more and the day is done.`, heroDone: "Everything for today is done. Well done!", heroEmpty: "Nothing to do today.",
+    myTasks: "My things", myDay: "My day", tapHint: "Tap a thing when it is done.", waitParents: "waiting for your parents",
   },
 };
 
@@ -124,6 +130,10 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
   const av = model.family ? avatarsOf(model.family.map((f) => ({ id: f.id, name: f.name }))) as Map<string, { text: string; bg: string }> : null;
   const eventsToday = model.schedule?.length ?? 0;
 
+  // bus 172 P3: a child's «Мой день» (ChildDay, below). The model already holds no adult block for a child.
+  if (model.child) return <ChildDay t={t} lang={lang} model={model} items={items} done={done} tick={tick} answer={answer} err={err} when={when} dateLine={dateLine}
+    myBoard={myBoard} people={people} meId={meId} principle={principle} recognitions={recognitions} principles={principles} reminders={reminders} />;
+
   return (
     <div data-today="" className="pb-8">
       <header className="mb-6">
@@ -142,7 +152,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
             {decisionsN !== null && <li className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1"><Scale aria-hidden="true" className="h-3.5 w-3.5" />{decisionsN ? t.decisionsChip(decisionsN) : t.noDecisionsChip}</li>}
           </ul>
         </div>
-        {decisionsN ? <Link prefetch={false} href={`${base}/board`} className="inline-flex min-h-11 items-center justify-center gap-1.5 justify-self-start rounded-[10px] bg-white px-4 text-[14px] font-semibold text-[#1e4d35] hover:opacity-90">{t.toDecisions}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link> : null}
+        {decisionsN ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 items-center justify-center gap-1.5 justify-self-start rounded-[10px] bg-white px-4 text-[14px] font-semibold text-[#1e4d35] hover:opacity-90">{t.toDecisions}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link> : null}
       </section>
 
       {model.kpis.length > 0 && (
@@ -221,7 +231,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
       {model.adult && (
         <div className="mt-[18px] grid gap-[18px] min-[900px]:grid-cols-2">
           <section aria-labelledby="dec-h" data-decisions="" className={CARD}>
-            <div className="mb-2 flex items-center"><h2 id="dec-h" className={CARD_H}>{t.waiting}</h2><Link prefetch={false} href={`${base}/board`} className={MORE}>{t.open}<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></Link></div>
+            <div className="mb-2 flex items-center"><h2 id="dec-h" className={CARD_H}>{t.waiting}</h2><Link prefetch={false} href={`${base}/council`} className={MORE}>{t.open}<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></Link></div>
             {!model.decisions || model.decisions.length === 0 ? <p className={EMPTY}>{t.emptyDecisions}</p> : (
               <ul>
                 {model.decisions.slice(0, 5).map((d) => (
@@ -261,6 +271,95 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
         {reminders.length > 0 && <TodayDocs lang={lang} items={reminders} people={people} />}
         {familyReminders.length > 0 && <TodayDocs lang={lang} family items={familyReminders} people={people} />}
         {meId && <TodayCouncil lang={lang} tasks={[]} sunday={sunday} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * bus 172 P3: a child's «Мой день» — big task cards (the tick is the same «Готово» / routine check as «Сегодня»),
+ * today's schedule and the day's progress. No star counter: Family OS keeps no stars or points for anyone, so none is
+ * shown. New tasks are accepted (or «Не могу») here, as on «Сегодня».
+ */
+function ChildDay({ t, lang, model, items, done, tick, answer, err, when, dateLine, myBoard, people, meId, principle, recognitions, principles, reminders }: {
+  t: (typeof T)[Lang]; lang: Lang; model: TodayModel; items: Item[]; done: number; tick: (x: Item) => void; answer: (x: Item, a: "done" | "continue") => void; err: string;
+  when: (x: Item) => string; dateLine: string; myBoard: OsMyBoard | null; people: OsPerson[]; meId: string | null;
+  principle: OsPrinciple | null; recognitions: OsRecognition[] | null; principles: OsKodeksPrinciple[] | null; reminders: OsReminder[];
+}) {
+  const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
+  const ty = (s: string) => (lang === "RU" ? typograph(s) : s);
+  const left = items.length - done;
+  return (
+    <div data-today="" data-child-day="" className="pb-8">
+      <header className="mb-6">
+        <h1 id="today-h" className="font-serif text-[24px] leading-tight min-[900px]:text-[30px]">{t.hi(model.name ?? null)}</h1>
+        <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{dateLine} · {items.length === 0 ? t.nothing : left ? t.left(left) : t.allDone}</p>
+      </header>
+      <section aria-labelledby="kid-hero-h" data-kid-hero="" className="rounded-[22px] bg-[linear-gradient(135deg,#3b5fc4,#6a42c9_60%,#a8467f)] px-5 py-5 text-white shadow-[0_16px_40px_rgba(90,70,200,.28)] min-[900px]:px-7 min-[900px]:py-6 [:root.hc_&]:border [:root.hc_&]:border-[var(--border)] [:root.hc_&]:bg-none [:root.hc_&]:text-[var(--foreground)]">
+        <h2 id="kid-hero-h" className="text-[14px] font-medium">{t.heroLabel}</h2>
+        <p className="mt-1 text-[30px] font-bold leading-tight">{t.heroOf(done, items.length)}</p>
+        <div aria-hidden="true" className="mt-2 h-2.5 max-w-md overflow-hidden rounded-full bg-white/25"><i className="block h-full rounded-full bg-white" style={{ width: `${items.length ? Math.round((done / items.length) * 100) : 0}%` }} /></div>
+        <p aria-live="polite" className="mt-2 text-[14px]">{items.length === 0 ? t.heroEmpty : left ? t.heroLeft(left) : t.heroDone}</p>
+      </section>
+
+      {myBoard && myBoard.new.length > 0 && <TodayBoard lang={lang} data={myBoard} board={null} people={people} me={meId ? { id: meId, kind: "child" } : null} only="new" />}
+
+      <div className="mt-[18px] grid gap-[18px] min-[900px]:grid-cols-2">
+        <section aria-labelledby="kid-tasks-h" data-my-day="" className={CARD}>
+          <h2 id="kid-tasks-h" className={CARD_H}>{t.myTasks}</h2>
+          {model.paused && <p className="mt-2 rounded-[10px] border border-dashed border-[var(--border)] px-3 py-2 text-[14px] text-[var(--text-secondary)]">{t.paused}</p>}
+          {items.length === 0 ? <div className={EMPTY}><p>{t.emptyMine}</p><p className="mt-1">{t.childHint}</p></div> : (
+            <>
+              <p className="mb-3 mt-0.5 text-[13px] text-[var(--muted)]">{t.tapHint}</p>
+              <ul className="grid gap-2.5">
+                {items.map((x) => (
+                  <li key={x.key} data-item={x.type} data-done={x.done ? "1" : "0"}>
+                    <button type="button" role="checkbox" aria-checked={x.done} aria-label={t.check(x.title)} disabled={!x.checkable || (x.type === "task" && x.done)} onClick={() => tick(x)} data-kid-task=""
+                      className={`flex min-h-14 w-full items-center gap-3.5 rounded-2xl border-2 px-3.5 py-3 text-left text-[16px] font-semibold transition-colors disabled:cursor-default ${x.done ? "border-[var(--fos-accent-2)] bg-[var(--ok-soft)] text-[var(--muted)] line-through" : "border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] enabled:hover:border-[var(--fos-blue)]"}`}>
+                      <span className="min-w-0 flex-1">
+                        <span className="block">{ty(x.title)}</span>
+                        {(when(x) || x.state === "declined" || x.inProgress) && <span className="mt-0.5 block text-[13px] font-normal text-[var(--muted)] no-underline">{[when(x), x.state === "declined" ? t.waitParents : x.inProgress ? t.inProgress : ""].filter(Boolean).join(" · ")}</span>}
+                      </span>
+                      <span aria-hidden="true" className={`grid h-8 w-8 flex-none place-items-center rounded-full border-2 ${x.done ? "border-[var(--fos-accent-2)] bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "border-[var(--fos-control)]"}`}>
+                        {x.done && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
+                      </span>
+                    </button>
+                    {x.nudge && (
+                      <div data-nudge="" className="mt-1.5 flex flex-wrap items-center gap-2 px-1 text-[13px]">
+                        <span className="text-[var(--text-secondary)]">{t.stillDoing}</span>
+                        <button type="button" onClick={() => answer(x, "done")} className="min-h-11 rounded-[10px] bg-[var(--accent)] px-3 font-semibold text-[var(--on-accent)]">{t.finish}</button>
+                        <button type="button" onClick={() => answer(x, "continue")} className="min-h-11 rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] px-3 font-semibold">{t.goOn}</button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <p role="status" aria-live="polite" className="text-[13px] text-[var(--destructive)]">{err}</p>
+        </section>
+
+        <section aria-labelledby="kid-day-h" data-schedule="" className={CARD}>
+          <div className="mb-2 flex items-center"><h2 id="kid-day-h" className={CARD_H}>{t.myDay}</h2>{model.schedule && <Link prefetch={false} href={`${base}/calendar`} className={MORE}>{t.calendar}<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></Link>}</div>
+          {!model.schedule ? <p className={EMPTY}>{t.noCalendar}</p> : model.schedule.length === 0 ? <p className={EMPTY}>{t.emptySchedule}</p> : (
+            <ul>
+              {model.schedule.map((e) => (
+                <li key={e.key} data-event={e.kind} className={ROW}>
+                  <span className="w-[56px] flex-none whitespace-nowrap text-[15px] font-bold">{e.time ?? <span className="text-[12px] font-medium text-[var(--muted)]">{t.allDay}</span>}</span>
+                  <p className="min-w-0 flex-1 truncate text-[15px] font-semibold">{e.kind === "council" ? t.council : e.kind === "birthday" ? `${ty(e.title)} — ${t.birthday(e.age)}` : ty(e.title)}</p>
+                  {e.kind === "birthday" && <Cake aria-hidden="true" className="h-4 w-4 text-[var(--fos-plum)]" />}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      <div data-today-more="" className="max-w-4xl">
+        {principle && <TodayPrinciple lang={lang} principle={principle} link={false} />}
+        {meId && principles && recognitions && <TodayRecognition lang={lang} people={people} meId={meId} principles={principles} current={principle?.index ?? 0} items={recognitions} />}
+        {meId && <FamilyHealth lang={lang} />}
+        {reminders.length > 0 && <TodayDocs lang={lang} items={reminders} people={people} />}
       </div>
     </div>
   );

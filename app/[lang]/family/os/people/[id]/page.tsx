@@ -7,6 +7,7 @@ import { getOsState, getPersonPage } from "@/app/lib/family-os";
 import FamilyOsPerson from "@/app/components/FamilyOsPerson";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { childHome } from "@/app/lib/family-child";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,9 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   if (familyEnv.gateOn()) {
     const { decision, session } = await familyGateDecision();
     if (decision === "allow" && session) {
-      const page = await getPersonPage(session, id);
+      // bus 172 P3: a child is sent home from anyone else's page — so the title does not read it either
+      const state = await getOsState(session);
+      const page = state.status === "ok" && state.me?.kind === "child" && state.me.id !== id ? null : await getPersonPage(session, id);
       if (page) name = lang === "ru" ? page.profile.person.name_ru : page.profile.person.name_en;
     }
   }
@@ -31,9 +34,12 @@ export default async function FamilyOsPersonPage({ params }: { params: Promise<{
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
-  const [state, page] = await Promise.all([getOsState(session), getPersonPage(session, id)]);
+  const state = await getOsState(session);
   const L = lang === "ru" ? "RU" : "EN";
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.person[L]} />;
+  // bus 172 P3: a child opens only their own page; any other person page sends them to «Мой день» unread.
+  childHome(lang, state.me, state.me?.id === id);
+  const page = await getPersonPage(session, id);
   if (!page) notFound();
   // Passkeys «Вход» (bus 98/100): the person, a parent of a child, or the owner. Adding needs a fresh link session.
   const subject = state.people.find((x) => x.id === id);

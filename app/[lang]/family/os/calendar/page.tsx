@@ -27,5 +27,5 @@ export default async function FamilyCalendarPage({ params, searchParams }: { par
   if (!state.me && !state.admin) notFound();
   // ?cal=month opens the month view (the mockup's deep link); the week is the default.
   const view = (await searchParams).cal === "month" ? "month" : "week";
-  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} initialView={view} />;
+  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} initialView={view} child={state.me?.kind === "child"} />;
 }

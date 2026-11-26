@@ -186,8 +186,8 @@ function KodeksEdit({ lang, body }: { lang: Lang; body: OsKodeksBody }) {
 
 /** Today: one line for everyone — the principle of the week and its practice, linked to the Кодекс.
  *  «Принцип недели» is the card's label, not a section heading (R0 25.11, bus 159): the first H2 after «Привет» is
- *  «Новые задачи». */
-export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsPrinciple }) {
+ *  «Новые задачи». `link`: false on a child's «Мой день» (bus 172 P3) — their menu has no Кодекс, so the line is plain text. */
+export function TodayPrinciple({ lang, principle, link = true }: { lang: Lang; principle: OsPrinciple; link?: boolean }) {
   const t = tx(T, lang);
   return (
     <section aria-labelledby="principle-h" data-principle-week={principle.index} className={`mt-8 flex gap-4 ${RULE_VALUES}`}>
@@ -195,7 +195,7 @@ export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsP
       <div className="min-w-0">
         <p id="principle-h" className={`${CARD_LABEL} flex items-center gap-1.5`}><KodeksIcon size={16} />{t.week}</p>
         <p className="mt-1 text-[17px] leading-snug text-[var(--foreground)]">
-          <Link prefetch={false} href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
+          {link ? <Link prefetch={false} href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link> : ty(principle.principle, lang)}
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.practice}: {ty(principle.practice, lang)}</p>
       </div>

@@ -75,7 +75,7 @@ jobs:
     env:
       FAMILY_GATE: "on"
       FAMILY_SESSION_SECRET: e2e-secret-at-least-32-characters-long!!
-      FAMILY_APPROVED_EMAILS: member@example.com
+      FAMILY_APPROVED_EMAILS: member@example.com,child@example.com # bus 172 P3: the child e2e (family-os-calls)
       FAMILY_ADMIN_EMAILS: admin@example.com
       FAMILY_MAIL_RELAY_URL: http://127.0.0.1:18797 # bus 165: the code e2e runs a fake relay here; elsewhere nothing listens
       FAMILY_MAIL_RELAY_SECRET: fake-relay-secret-ci-e2e-only-0000000000
