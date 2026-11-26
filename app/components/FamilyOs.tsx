@@ -98,7 +98,7 @@ function People({ t, lang, cards }: { t: Dict; lang: Lang; cards: PersonCard[] }
       <h1 id="people-h" className={H1}>{t.people}</h1>
       <p className="mt-1 text-[15px] text-[var(--muted)]">{t.sub}</p>
       {cards.length === 0 ? <p className={`${META} mt-6`}>{t.emptyPeople}</p> : (
-        <ul data-people-grid="" className="mt-6 grid grid-cols-1 gap-[18px] sm:grid-cols-2 min-[1100px]:grid-cols-4">
+        <ul data-people-grid="" className="mt-6 grid grid-cols-1 gap-[18px] min-[640px]:grid-cols-2 min-[1100px]:grid-cols-4">
           {cards.map((x) => {
             const a = av.get(x.id);
             return (

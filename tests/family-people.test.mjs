@@ -65,3 +65,12 @@ test("wiring: «Люди» reads the board once more and nothing else; «Дос�
   assert.doesNotMatch(overview, /onClick|onChange|<input|<form|send\(/, "the overview cards change nothing");
   assert.match(a, /noGuest: "Роли «гость» нет/);
 });
+
+// bus 172 P3 QA (acceptor): Tailwind v4 emits arbitrary min-[…] queries before `sm:`, so `sm:` would win at every
+// width — the cards stayed in 2 columns and the shell gutter at 20 px on a desktop. Both use min-[640px] now.
+test("QA: the «Люди» grid reaches 4 columns and the shell gutter 40 px (no sm: against min-[…] in one list)", () => {
+  const people = readFileSync("app/components/FamilyOs.tsx", "utf8"), shell = readFileSync("app/components/FamilyOsShell.tsx", "utf8");
+  assert.match(people, /grid-cols-1 gap-\[18px\] min-\[640px\]:grid-cols-2 min-\[1100px\]:grid-cols-4/);
+  assert.match(shell, /min-\[640px\]:px-5 min-\[900px\]:px-10/);
+  for (const s of [people, shell]) for (const cls of s.match(/className="[^"]*"/g) ?? []) assert.ok(!(/\bsm:/.test(cls) && /min-\[\d+px\]:/.test(cls)), cls);
+});

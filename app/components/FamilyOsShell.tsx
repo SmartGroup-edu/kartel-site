@@ -202,7 +202,7 @@ export default function FamilyOsShell({ lang, nav, badges, me, children }: { lan
               <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </button>
           </header>
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-5 outline-none sm:px-5 min-[900px]:px-10 min-[900px]:pb-16 min-[900px]:pt-7 print:p-0">
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-5 outline-none min-[640px]:px-5 min-[900px]:px-10 min-[900px]:pb-16 min-[900px]:pt-7 print:p-0">
             {children}
           </main>
         </div>

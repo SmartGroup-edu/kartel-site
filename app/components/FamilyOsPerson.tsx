@@ -97,7 +97,8 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
     <>
       <div data-fos-page="">
         <div className="pb-8">
-          <p className="text-[15px]"><Link prefetch={false} href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>
+          {/* bus 172 P3 QA: a child has no «Люди» (it sends them to «Мой день»), so no way back to it either */}
+          {!(ok && state.me?.kind === "child") && <p className="text-[15px]"><Link prefetch={false} href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>}
           <div className="mt-4 flex max-w-4xl items-start gap-5">
             <div className="shrink-0"><FamilyPortrait id={null} name={nameOf(p)} alt="" size={72} /></div>
             <div className="min-w-0">

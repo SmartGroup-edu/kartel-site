@@ -134,7 +134,7 @@ export default function FamilyCalendar({ lang, cal, meId, initialView = "week", 
           )}
         </div>
       </div>
-      {cal && <DayPanel t={t} lang={lang} day={day} items={day ? days.get(day) ?? [] : []} known={day ? inWindow(day, today, DAYS) : false} canWrite={cal.can.write && Boolean(day && day >= today)} base={base}
+      {cal && <DayPanel t={t} lang={lang} day={day} items={day ? days.get(day) ?? [] : []} known={day ? inWindow(day, today, DAYS) : false} canWrite={cal.can.write && Boolean(day && day >= today)} base={base} child={child}
         showWeek={view === "month"} onWeek={openWeek} onClose={() => setDay(null)} returnFocus={opener} />}
     </>
   );
@@ -262,7 +262,7 @@ function MonthGrid({ t, lang, ym, items, today, onDay }: { t: Dict; lang: Lang; 
 }
 
 /** The day's side panel: its items (adults may remove an event), «Открыть неделю» from the month, and add on this day. */
-function DayPanel({ t, lang, day, items, known, canWrite, base, showWeek, onWeek, onClose, returnFocus }: { t: Dict; lang: Lang; day: string | null; items: OsCalItem[]; known: boolean; canWrite: boolean; base: string; showWeek: boolean; onWeek: (d: string) => void; onClose: () => void; returnFocus: React.RefObject<HTMLElement | null> }) {
+function DayPanel({ t, lang, day, items, known, canWrite, base, child = false, showWeek, onWeek, onClose, returnFocus }: { t: Dict; lang: Lang; day: string | null; items: OsCalItem[]; known: boolean; canWrite: boolean; base: string; child?: boolean; showWeek: boolean; onWeek: (d: string) => void; onClose: () => void; returnFocus: React.RefObject<HTMLElement | null> }) {
   return (
     <Dialog open={Boolean(day)} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent closeLabel={t.close} data-day-panel="" onCloseAutoFocus={(e) => { const el = returnFocus.current; if (el?.isConnected) { e.preventDefault(); el.focus(); } }} className="left-auto right-0 top-0 h-dvh w-full max-w-md translate-x-0 translate-y-0 content-start gap-3 overflow-y-auto rounded-none border-0 border-l border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow-lg)] sm:max-w-md">
@@ -273,7 +273,7 @@ function DayPanel({ t, lang, day, items, known, canWrite, base, showWeek, onWeek
             <DialogDescription className="sr-only">{t.dayPanel}</DialogDescription>
             {!known ? <p className="text-[15px] text-[var(--muted)]">{t.noData}</p>
               : items.length === 0 ? <p className="py-4 text-center text-[15px] text-[var(--muted)]">{t.free}</p>
-              : <ul data-day-items="" className="divide-y divide-[var(--border)]">{items.map((i, n) => <Item key={`${i.kind}-${i.id ?? i.person_id ?? n}`} t={t} lang={lang} i={i} canWrite={canWrite} base={base} />)}</ul>}
+              : <ul data-day-items="" className="divide-y divide-[var(--border)]">{items.map((i, n) => <Item key={`${i.kind}-${i.id ?? i.person_id ?? n}`} t={t} lang={lang} i={i} canWrite={canWrite} base={base} child={child} />)}</ul>}
             <div className="mt-2 flex flex-wrap gap-2">
               {showWeek && known && <button type="button" className={btn} onClick={() => onWeek(day)}>{t.openWeek}</button>}
             </div>
@@ -285,7 +285,7 @@ function DayPanel({ t, lang, day, items, known, canWrite, base, showWeek, onWeek
   );
 }
 
-function Item({ t, lang, i, canWrite, base }: { t: Dict; lang: Lang; i: OsCalItem; canWrite: boolean; base: string }) {
+function Item({ t, lang, i, canWrite, base, child = false }: { t: Dict; lang: Lang; i: OsCalItem; canWrite: boolean; base: string; child?: boolean }) {
   const router = useRouter();
   const [ask, setAsk] = useState(false);
   const remove = async () => {
@@ -297,7 +297,8 @@ function Item({ t, lang, i, canWrite, base }: { t: Dict; lang: Lang; i: OsCalIte
     <li data-cal={i.kind} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2">
       <span className="w-[76px] shrink-0 text-[13px] font-semibold tabular-nums text-[var(--text-secondary)]">{i.time ?? t.allDay}</span>
       <i aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: TONE[i.kind].fg }} />
-      {i.kind === "council" ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 flex-1 items-center text-[16px] text-[var(--foreground)] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{text}</Link>
+      {/* bus 172 P3 QA: a child has no «Решения» — the council is plain text for them */}
+      {i.kind === "council" && !child ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 flex-1 items-center text-[16px] text-[var(--foreground)] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{text}</Link>
         : <span className="inline-flex min-h-11 flex-1 items-center text-[16px] text-[var(--foreground)]">{text}</span>}
       {i.kind === "event" && canWrite && (ask ? (
         <span className="flex gap-2"><button type="button" className={BTN_DANGER} onClick={remove}>{t.confirm}</button><button type="button" className={btn} onClick={() => setAsk(false)}>{t.keep}</button></span>

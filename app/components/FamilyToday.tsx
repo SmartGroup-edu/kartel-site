@@ -357,7 +357,7 @@ function ChildDay({ t, lang, model, items, done, tick, answer, err, when, dateLi
 
       <div data-today-more="" className="max-w-4xl">
         {principle && <TodayPrinciple lang={lang} principle={principle} link={false} />}
-        {meId && principles && recognitions && <TodayRecognition lang={lang} people={people} meId={meId} principles={principles} current={principle?.index ?? 0} items={recognitions} />}
+        {meId && principles && recognitions && <TodayRecognition lang={lang} people={people} meId={meId} principles={principles} current={principle?.index ?? 0} items={recognitions} councilLink={false} />}
         {meId && <FamilyHealth lang={lang} />}
         {reminders.length > 0 && <TodayDocs lang={lang} items={reminders} people={people} />}
       </div>

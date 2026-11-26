@@ -74,3 +74,14 @@ test("edge: a child is sent to «Мой день» with a real 307 before any pa
   assert.deepEqual(await osSessionState({ email: "a1@example.com", admin: false, iat: 1 }, env, reply({ me: { id: other, kind: "adult" }, admin: false })), { state: "ok", member: true, child: false, id: other });
   assert.deepEqual(await osSessionState({ email: "d1@example.com", admin: false, iat: 1 }, env, reply({}, 503)), { state: "unknown", member: false, child: false, id: null });
 });
+
+// bus 172 P3 QA (acceptor): no link on a child's pages leads to a page that sends them back to «Мой день».
+test("QA: a child's pages carry no dead-end links (Люди, Решения) and /os is titled «Мой день»", () => {
+  assert.match(src("app/components/FamilyOsPerson.tsx"), /\{!\(ok && state\.me\?\.kind === "child"\) && <p className="text-\[15px\]"><Link prefetch=\{false\} href=\{`\$\{base\}\/people`\}/);
+  const cal = src("app/components/FamilyCalendar.tsx");
+  assert.match(cal, /i\.kind === "council" && !child \? <Link/);
+  assert.match(cal, /canWrite=\{canWrite\} base=\{base\} child=\{child\} \/>/);
+  assert.match(src("app/components/FamilyKodeks.tsx"), /\{councilLink && items\.length > 0 && <p className="mt-2"><Link prefetch=\{false\} href=\{councilHref\(lang\)\}/);
+  assert.match(src("app/components/FamilyToday.tsx"), /items=\{recognitions\} councilLink=\{false\} \/>/);
+  assert.match(src("app/[lang]/family/os/page.tsx"), /child \? \(lang === "ru" \? "Мой день · Семья" : "My day · Family"\)/);
+});

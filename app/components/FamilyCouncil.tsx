@@ -122,7 +122,13 @@ export default function FamilyCouncil({ lang, council, people, me, sprint = null
                   <h1 className={H1}>{t.title}</h1>
                   <p className="mt-1 text-[15px] text-[var(--muted)]">{t.sub}</p>
                 </div>
-                {council.can.write && <a href="#add-decision" data-propose="" className={primary}>+ {t.propose}</a>}
+                {/* bus 172 P3 QA: the form sits in a closed fold-out — open it and put the cursor in «Что сделать» */}
+                {council.can.write && <a href="#add-decision" data-propose="" className={primary} onClick={(e) => {
+                  const box = document.getElementById("add-decision"), det = box?.querySelector("details");
+                  if (!box || !det) return;
+                  e.preventDefault(); det.open = true; box.scrollIntoView({ block: "start" });
+                  box.querySelector<HTMLInputElement>("input[name=title]")?.focus({ preventScroll: true });
+                }}>+ {t.propose}</a>}
               </div>
 
               <div className="grid items-start gap-[18px] min-[900px]:grid-cols-[1.7fr_1fr]">
@@ -269,7 +275,7 @@ function Panel({ t, lang, item, people, onDone }: { t: Dict; lang: Lang; item: P
       </dl>
       <div data-decision-actions="" className="mt-2 grid gap-2">
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className={label}>{t.whoDoes}<select value={to} onChange={(e) => setTo(e.target.value)} className={field}>{people.map((p) => <option key={p.id} value={p.id}>{lang === "EN" ? p.name_en : p.name_ru}</option>)}</select></label>
+          <label className={label}>{t.whoDoes}<select value={to} onChange={(e) => setTo(e.target.value)} className={field}>{people.filter((p) => p.id !== item.assigneeId).map((p) => <option key={p.id} value={p.id}>{lang === "EN" ? p.name_en : p.name_ru}</option>)}</select></label>
           <button type="button" data-act="reassign" disabled={busy} className={primary} onClick={() => run(send("POST", `tasks/${item.id}/reassign`, { assignee_id: to }), t.doneMsg.reassign(item.title))}>{t.reassign}</button>
         </div>
         <div className="grid grid-cols-2 gap-2">

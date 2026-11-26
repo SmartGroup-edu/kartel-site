@@ -67,3 +67,11 @@ test("wiring: the panel makes only the board's existing moves; no vote is invent
   const today = readFileSync("app/components/FamilyToday.tsx", "utf8");
   assert.equal((today.match(/href=\{`\$\{base\}\/council`\}/g) ?? []).length, 2);
 });
+
+// bus 172 P3 QA (acceptor)
+test("QA: «+ Предложить решение» opens the fold-out and focuses «Что сделать»; «Передать» never offers the assignee", () => {
+  const s = readFileSync("app/components/FamilyCouncil.tsx", "utf8");
+  assert.match(s, /det\.open = true; box\.scrollIntoView\(\{ block: "start" \}\);/);
+  assert.match(s, /querySelector<HTMLInputElement>\("input\[name=title\]"\)\?\.focus/);
+  assert.match(s, /people\.filter\(\(p\) => p\.id !== item\.assigneeId\)\.map\(\(p\) =>/);
+});

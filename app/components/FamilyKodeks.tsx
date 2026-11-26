@@ -231,8 +231,9 @@ export function RecognitionList({ lang, items, headingId, heading, level = 3 }: 
 export const TODAY_RECOGNITIONS = 3;
 
 /** Today: one button «Отметить хорошее» opens the form inline; the week as a short list (≤ 3) + a link to the council. */
-export function TodayRecognition({ lang, people, meId, principles, current, items }: {
+export function TodayRecognition({ lang, people, meId, principles, current, items, councilLink = true }: {
   lang: Lang; people: OsPerson[]; meId: string; principles: { principle: string }[]; current: number; items: OsRecognition[];
+  /** false on a child's «Мой день» (bus 172 P3 QA): their menu has no «Решения», where the full list lives */ councilLink?: boolean;
 }) {
   const t = tx(T, lang);
   const router = useRouter();
@@ -286,7 +287,7 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
       )}
       <div className="mt-6" data-rec-today="">
         <RecognitionList lang={lang} items={shown} headingId="rec-week-h" heading={t.recWeek} />
-        {items.length > 0 && <p className="mt-2"><Link prefetch={false} href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
+        {councilLink && items.length > 0 && <p className="mt-2"><Link prefetch={false} href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
       </div>
     </section>
   );
