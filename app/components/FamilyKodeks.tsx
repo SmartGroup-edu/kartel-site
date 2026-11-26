@@ -186,8 +186,8 @@ function KodeksEdit({ lang, body }: { lang: Lang; body: OsKodeksBody }) {
 
 /** Today: one line for everyone — the principle of the week and its practice, linked to the Кодекс.
  *  «Принцип недели» is the card's label, not a section heading (R0 25.11, bus 159): the first H2 after «Привет» is
- *  «Новые задачи». */
-export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsPrinciple }) {
+ *  «Новые задачи». `link`: false on a child's «Мой день» (bus 172 P3) — their menu has no Кодекс, so the line is plain text. */
+export function TodayPrinciple({ lang, principle, link = true }: { lang: Lang; principle: OsPrinciple; link?: boolean }) {
   const t = tx(T, lang);
   return (
     <section aria-labelledby="principle-h" data-principle-week={principle.index} className={`mt-8 flex gap-4 ${RULE_VALUES}`}>
@@ -195,7 +195,7 @@ export function TodayPrinciple({ lang, principle }: { lang: Lang; principle: OsP
       <div className="min-w-0">
         <p id="principle-h" className={`${CARD_LABEL} flex items-center gap-1.5`}><KodeksIcon size={16} />{t.week}</p>
         <p className="mt-1 text-[17px] leading-snug text-[var(--foreground)]">
-          <Link prefetch={false} href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link>
+          {link ? <Link prefetch={false} href={kodeksHref(lang, principle.index)} className="underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{ty(principle.principle, lang)}</Link> : ty(principle.principle, lang)}
         </p>
         <p className="mt-0.5 text-[14px] text-[var(--muted)]">{t.practice}: {ty(principle.practice, lang)}</p>
       </div>
@@ -231,8 +231,9 @@ export function RecognitionList({ lang, items, headingId, heading, level = 3 }: 
 export const TODAY_RECOGNITIONS = 3;
 
 /** Today: one button «Отметить хорошее» opens the form inline; the week as a short list (≤ 3) + a link to the council. */
-export function TodayRecognition({ lang, people, meId, principles, current, items }: {
+export function TodayRecognition({ lang, people, meId, principles, current, items, councilLink = true }: {
   lang: Lang; people: OsPerson[]; meId: string; principles: { principle: string }[]; current: number; items: OsRecognition[];
+  /** false on a child's «Мой день» (bus 172 P3 QA): their menu has no «Решения», where the full list lives */ councilLink?: boolean;
 }) {
   const t = tx(T, lang);
   const router = useRouter();
@@ -286,7 +287,7 @@ export function TodayRecognition({ lang, people, meId, principles, current, item
       )}
       <div className="mt-6" data-rec-today="">
         <RecognitionList lang={lang} items={shown} headingId="rec-week-h" heading={t.recWeek} />
-        {items.length > 0 && <p className="mt-2"><Link prefetch={false} href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
+        {councilLink && items.length > 0 && <p className="mt-2"><Link prefetch={false} href={councilHref(lang)} data-rec-all="" className="inline-flex min-h-11 items-center text-[15px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.allAtCouncil}</Link></p>}
       </div>
     </section>
   );

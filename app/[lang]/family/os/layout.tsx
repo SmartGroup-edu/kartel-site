@@ -27,12 +27,13 @@ export default async function FamilyOsLayout({ children, params }: { children: R
   if (state.status !== "ok") {
     // Family OS silent: the member sections all lead to the same calm «не отвечает» (QA-156 M7).
     const down = osDownNav(session.cpifSubjectId);
-    nav = { admin: down.admin, editor: down.editor, os: true, member: true };
+    nav = { admin: down.admin, editor: down.editor, os: true, member: true, child: false };
     me = { name: null, role: role === "owner" ? "owner" : role === "editor" ? "editor" : "member" };
   } else {
-    nav = { admin: state.admin, editor: role === "editor", os: Boolean(state.me) || state.admin, member: Boolean(state.me) };
+    // bus 172 P3: a child's menu is «Мой день» + «Календарь»; the other pages send a child home (family-child.ts).
+    nav = { admin: state.admin, editor: role === "editor", os: Boolean(state.me) || state.admin, member: Boolean(state.me), child: state.me?.kind === "child" };
     me = {
-      name: state.me ? (L === "EN" ? state.me.name_en : state.me.name_ru) : null,
+      name: state.me ? (L === "EN" ? state.me.name_en : state.me.name_ru) : null, id: state.me?.id ?? null,
       role: state.me?.kind === "child" ? "child" : role === "owner" ? "owner" : role === "editor" ? "editor" : "member",
     };
     if (state.me) board = openTaskCount(await getMyBoard(session));

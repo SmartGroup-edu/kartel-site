@@ -7,6 +7,7 @@ import FamilyBoard from "@/app/components/FamilyBoard";
 import { childBoardView } from "@/app/lib/family-kanban.mjs";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { childHome } from "@/app/lib/family-child";
 
 // Gated like every Family OS page. The service decides what each member sees (family tasks only);
 // the plan and templates are parents-only there too, so a member simply gets null for them.
@@ -24,10 +25,14 @@ export default async function FamilyBoardPage({ params, searchParams }: { params
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
-  const [state, read] = await Promise.all([getOsState(session), getBoard(session, (await searchParams).date)]);
+  // bus 172 P3: who is asking first — a child is sent to «Мой день» before the family board is even asked for.
+  const state = await getOsState(session);
   const L = lang === "ru" ? "RU" : "EN";
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.board[L]} />;
   if (!state.me && !state.admin) notFound();
+  childHome(lang, state.me);
+  const read = await getBoard(session, (await searchParams).date);
+  // the P2 cut stays as a second wall (the proxy keeps it too)
   const board = state.me?.kind === "child" && read ? childBoardView(read, state.me.id) : read;
   const parent = Boolean(board?.can.approve);
   const [plan, templates] = parent ? await Promise.all([getPlan(session, board!.plan?.date), getTemplates(session)]) : [null, null];

@@ -136,8 +136,9 @@ test("D2: one H2 style for every section heading, one H3 style for block titles"
       seen++;
       if (/id="drawer-h"/.test(m[0])) continue; // the task drawer's dialog title
       if (/text-\[15px\] font-medium text-\[var\(--text-secondary\)\]/.test(m[1]) && f === "FamilyCalendar.tsx") continue; // day labels in the calendar list (docs/family-os-design.md)
-      // bus 159: OS_H2 only — the site H2 (burgundy) is no longer a section heading on an OS page
-      assert.match(m[1], /^\{(OS_H2|`\$\{OS_H2\}[^`]*`|headingClass)\}$/, `${f}: ${m[0].slice(0, 90)}`);
+      // bus 159: OS_H2 only — the site H2 (burgundy) is no longer a section heading on an OS page.
+      // bus 172 P3: or a mockup v5 card's title (CARD_H — the same small ink title as the cards on «Сегодня», bus 171).
+      assert.match(m[1], /^\{(OS_H2|`\$\{OS_H2\}[^`]*`|headingClass|CARD_H)\}$/, `${f}: ${m[0].slice(0, 90)}`);
     }
     for (const m of s.matchAll(cls("h3"))) assert.match(m[1], /OS_H3|headingClass|H3\b/, `${f}: ${m[0].slice(0, 90)}`);
     assert.doesNotMatch(s, /import \{[^}]*\bH2\b[^}]*\} from "\.\.\/lib\/typeScale"/, `${f}: no site H2 on an OS page`);

@@ -41,19 +41,35 @@ await osCall("POST", "/grants", owner, { guardian_id: memberId, child_id: childI
 
 const nowS = () => Math.floor(Date.now() / 1000);
 const session = (email) => new SignJWT({ email, typ: "session", amr: "link" }).setProtectedHeader({ alg: "HS256" }).setSubject(email).setIssuedAt(nowS() - 5).setExpirationTime(nowS() + 3600).sign(KEY);
-const member = await session(MEMBER), admin = await session(ADMIN);
+const member = await session(MEMBER), admin = await session(ADMIN), child = await session("child@example.com");
 
-async function page(who, tok, path, status = 200) {
+async function page(who, tok, path, status = 200, location = null) {
   calls.length = 0;
   const r = await fetch(B + path, { redirect: "manual", headers: { cookie: `${SESSION}=${tok}` } });
-  await r.text();
+  const html = await r.text();
   const me = calls.filter((c) => c === "/me").length, max = path.endsWith("/week") ? MAX_WEEK : MAX_CALLS;
-  check(`${who} ${path}: ${status}, ≤ ${max} OS calls, ≤ ${MAX_ME} × /me`, r.status === status && calls.length <= max && me <= MAX_ME, `${r.status} · ${calls.length} calls · ${me} × /me`);
+  const loc = r.headers.get("location") ?? "";
+  check(`${who} ${path}: ${status}${location ? ` → ${location}` : ""}, ≤ ${max} OS calls, ≤ ${MAX_ME} × /me`, r.status === status && (!location || new URL(loc, B).pathname === location) && calls.length <= max && me <= MAX_ME,
+    `${r.status}${loc ? ` → ${loc}` : ""} · ${calls.length} calls · ${me} × /me`);
+  return { html, calls: [...calls] };
 }
 
 for (const p of ["/ru/family", "/ru/family/os", "/ru/family/os/board", "/ru/family/os/people", `/ru/family/os/people/${memberId}`, `/ru/family/os/people/${childId}`,
   "/ru/family/os/council", "/ru/family/os/calendar", "/ru/family/os/kodeks", "/ru/family/os/week", "/en/family/os/board"]) await page("member", member, p);
 for (const p of ["/ru/family/os", "/ru/family/os/access", "/ru/family/os/people", "/ru/family/admin"]) await page("owner", admin, p);
+// bus 172 P3: a child's Family OS is «Мой день» + «Календарь» (and their own page). Every other section sends them home
+// on the server — before the page reads its data, so no /board, /council or /people/:id call is made for them.
+const kidDay = await page("child", child, "/ru/family/os");
+check("P3 child: «Мой день» in the menu, no Задачи / Решения / Люди / Кодекс links", kidDay.html.includes("Мой день") && !/href="\/ru\/family\/os\/(board|council|people"|kodeks|week|access)/.test(kidDay.html));
+check("P3 child: «Мой день» does not read the family board", !kidDay.calls.includes("/board"), kidDay.calls.join(" "));
+await page("child", child, "/ru/family/os/calendar");
+await page("child", child, `/ru/family/os/people/${childId}`);
+for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${memberId}`, "/ru/family/os/kodeks", "/ru/family/os/week"]) {
+  const r = await page("child", child, p, 307, "/ru/family/os");
+  check(`P3 child ${p}: nothing read past /me, /people, /my-tasks`, r.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), r.calls.join(" "));
+}
+await page("child", child, "/en/family/os/board", 307, "/en/family/os");
+
 // The owner who is not a member: member-only sections and unknown addresses are the family 404 (N3).
 for (const p of ["/ru/family/os/council", "/ru/family/os/board", "/ru/family/os/no-such-page"]) await page("owner", admin, p, 404);
 

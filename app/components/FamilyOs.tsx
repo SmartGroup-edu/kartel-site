@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * «Люди»: the people list with roles and guardian relations, and the documents list that «Сегодня» reuses (DocList).
+ * «Люди»: the person cards (bus 172 P3), and the documents list that «Сегодня» reuses (DocList).
  * «Сегодня» itself is FamilyToday (bus 171). Data arrives from the server page; nothing here talks to the service.
  */
 import Link from "next/link";
 import { DOC_LABELS, fmtDocDate } from "../lib/family-docs.mjs";
-import FamilyPortrait from "./FamilyPortrait";
+import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
 import { H1, META } from "../lib/typeScale";
 import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
-import type { OsState, OsPerson, OsGrant, OsReminder } from "../lib/family-os";
+import type { OsState, OsPerson, OsReminder, OsScope } from "../lib/family-os";
 import { OsDownNotice } from "./FamilyOsDown";
 import { tx } from "../lib/typograph.mjs";
 
@@ -25,7 +25,9 @@ const T = {
     noneScheduled: "Nothing of yours is scheduled for today.",
     addOwn: "Add a routine on your page", childHint: "Your parents set up your routines and chores.",
     notMember: "You are signed in, but you are not in Family OS yet. Ask the family admin to add you.",
-    adults: "Adults", children: "Children", adult: "Adult", child: "Child", you: "you",
+    adults: "Adults", children: "Children", adult: "Adult", child: "Child", you: "you", sub: "The family, and who looks after what",
+    rel: { parent: "Parent", relative: "Relative", adult: "Adult", child: "Child" }, parentOf: "Parent of", adultHint: "Family member",
+    noLoad: "The task board did not answer.", openToday: (n: number) => `open task${n === 1 ? "" : "s"} today`, doneOf: (d: number, n: number) => `${d} of ${n} done`, now: "now", routineOf: (d: number, n: number) => `routine ${d} of ${n}`,
     parents: "Parents", relatives: "With access", none: "No guardians yet",
     scope: { routines: "routines", health: "health", education: "school", documents: "documents" },
     emptyPeople: "No one has been added yet.",
@@ -39,7 +41,9 @@ const T = {
     noneScheduled: "Сегодня по расписанию у тебя ничего нет.",
     addOwn: "Добавить распорядок на своей странице", childHint: "Распорядок и дела составляют родители.",
     notMember: "Тебя ещё нет в разделе «Семья». Попроси администратора семьи добавить тебя.",
-    adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "ты",
+    adults: "Взрослые", children: "Дети", adult: "Взрослый", child: "Ребёнок", you: "ты", sub: "Семья — и кто за что отвечает",
+    rel: { parent: "Родитель", relative: "Родственник", adult: "Взрослый", child: "Ребёнок" }, parentOf: "Родитель для", adultHint: "Член семьи",
+    noLoad: "Доска задач сейчас не ответила.", openToday: (n: number) => `${n % 10 === 1 && n % 100 !== 11 ? "открытое дело" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "открытых дела" : "открытых дел"} сегодня`, doneOf: (d: number, n: number) => `${d} из ${n} готово`, now: "сейчас", routineOf: (d: number, n: number) => `распорядок ${d} из ${n}`,
     parents: "Родители", relatives: "С доступом", none: "Опекунов пока нет",
     scope: { routines: "распорядок", health: "здоровье", education: "учёба", documents: "документы" },
     emptyPeople: "Пока никого не добавили.",
@@ -47,68 +51,82 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, state }: { lang: Lang; state: OsState }) {
+/** A person card (bus 172 P3), built on the server by app/lib/family-people.mjs. */
+export type PersonCard = {
+  id: string; name: string; kind: "adult" | "child"; rel: "parent" | "relative" | "adult" | "child"; parents: string[]; kids: string[];
+  sees: { child: string; scopes: OsScope[] }[]; me: boolean;
+  load: { open: number; done: number; total: number; current: string | null; routines: { done: number; total: number } | null } | null;
+};
+
+export default function FamilyOs({ lang, state, cards = [] }: { lang: Lang; state: OsState; cards?: PersonCard[] }) {
   const t = tx(T, lang);
-  const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
   return (
-    <div className="max-w-4xl pb-8">
+    <div className="pb-8">
       {state.status !== "ok" ? (
         <OsDownNotice lang={lang} status={state.status} title={t.people} />
       ) : !state.me && !state.admin ? (
         // L6: the page keeps its H1 for someone who is signed in but not in Family OS yet
-        <section aria-labelledby="os-outsider-h">
+        <section aria-labelledby="os-outsider-h" className="max-w-4xl">
           <h1 id="os-outsider-h" className={H1}>{t.people}</h1>
           <p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
         </section>
       ) : (
-        <People t={t} lang={lang} me={state.me} people={state.people} grants={state.grants} nameOf={nameOf} />
+        <People t={t} lang={lang} cards={cards} />
       )}
     </div>
   );
 }
 
-function People({ t, lang, me, people, grants, nameOf }: {
-  t: Dict; lang: Lang; me: { id: string } | null; people: OsPerson[]; grants: OsGrant[]; nameOf: (p: OsPerson) => string;
-}) {
-  const byId = new Map(people.map((p) => [p.id, p]));
-  const sorted = (xs: OsPerson[]) => [...xs].sort((a, b) => nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
-  const groups: [string, OsPerson[]][] = [[t.adults, sorted(people.filter((p) => p.kind === "adult"))], [t.children, sorted(people.filter((p) => p.kind === "child"))]];
+const CARD_H = "text-[16px] font-semibold leading-snug text-[var(--foreground)]";
+const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow)]";
+const PILL = { g: "bg-[var(--ok-soft)] text-[var(--ok)]", b: "bg-[var(--fos-blue-soft)] text-[var(--fos-blue)]", a: "bg-[var(--warn-soft)] text-[var(--fos-amber)]" };
+
+/**
+ * «Люди» (bus 172 P3, mockup v5): one card per person — avatar, name (their page), role, who they are to whom, and the
+ * open load today from the task board. Adults first, then children. A child never gets here (their menu is «Мой день»).
+ */
+function People({ t, lang, cards }: { t: Dict; lang: Lang; cards: PersonCard[] }) {
+  const av = avatarsOf(cards.map((x) => ({ id: x.id, name: x.name }))) as Map<string, { text: string; bg: string }>;
+  const base = `/${lang === "EN" ? "en" : "ru"}/family/os/people`;
+  const sub = (x: PersonCard) =>
+    x.rel === "child" ? (x.parents.length ? `${t.parents}: ${x.parents.join(", ")}` : t.none)
+      : x.rel === "parent" ? `${t.parentOf}: ${x.kids.join(", ")}`
+        : x.rel === "relative" ? x.sees.map((s) => `${s.child}: ${s.scopes.map((k) => t.scope[k]).join(", ")}`).join(" · ")
+          : t.adultHint;
   return (
     <section aria-labelledby="people-h">
       <h1 id="people-h" className={H1}>{t.people}</h1>
-      {people.length === 0 && <p className={`${META} mt-6`}>{t.emptyPeople}</p>}
-      {groups.filter(([, xs]) => xs.length).map(([label, xs]) => (
-        <div key={label} className="mt-10">
-          <h2 className={OS_H2}>{label}</h2>
-          <ul className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-            {xs.map((p) => {
-              const gs = grants.filter((g) => g.child_id === p.id);
-              const parents = gs.filter((g) => g.relation === "parent");
-              const others = gs.filter((g) => g.relation === "relative");
-              return (
-                <li key={p.id} data-person={p.kind} className="flex gap-4 py-4">
-                  <FamilyPortrait id={null} name={nameOf(p)} alt="" size={48} />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-serif text-[18px] leading-snug text-[var(--foreground)]">
-                      <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${p.id}`} className="underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{nameOf(p)}</Link>{me?.id === p.id && <span className="ml-2 font-sans text-[14px] text-[var(--muted)]">({t.you})</span>}
-                    </p>
-                    {p.kind === "child" && (
-                      <dl className="mt-3 space-y-1 text-[14px] text-[var(--text-secondary)]">
-                        {gs.length === 0 && <div><dd>{t.none}</dd></div>}
-                        {parents.length > 0 && <div><dt className="inline font-medium text-[var(--foreground)]">{t.parents}: </dt><dd className="inline">{parents.map((g) => byId.get(g.guardian_id)).filter(Boolean).map((x) => nameOf(x!)).join(", ")}</dd></div>}
-                        {others.map((g) => (
-                          <div key={g.id}><dt className="inline font-medium text-[var(--foreground)]">{t.relatives}: </dt>
-                            <dd className="inline">{byId.get(g.guardian_id) ? nameOf(byId.get(g.guardian_id)!) : "—"} ({g.scopes.map((s) => t.scope[s]).join(", ")})</dd></div>
-                        ))}
-                      </dl>
-                    )}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ))}
+      <p className="mt-1 text-[15px] text-[var(--muted)]">{t.sub}</p>
+      {cards.length === 0 ? <p className={`${META} mt-6`}>{t.emptyPeople}</p> : (
+        <ul data-people-grid="" className="mt-6 grid grid-cols-1 gap-[18px] min-[640px]:grid-cols-2 min-[1100px]:grid-cols-4">
+          {cards.map((x) => {
+            const a = av.get(x.id);
+            return (
+              <li key={x.id} data-person={x.kind} data-rel={x.rel} className={`${CARD} flex flex-col items-center gap-1.5 text-center`}>
+                <span aria-hidden="true" style={{ background: a?.bg }} className="mb-1 grid h-16 w-16 place-items-center rounded-full text-[22px] font-semibold text-white">{a?.text}</span>
+                <h2 className={CARD_H}>
+                  <Link prefetch={false} href={`${base}/${x.id}`} className="inline-flex min-h-6 items-center underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{x.name}</Link>
+                  {x.me && <span className="ml-1.5 text-[13px] font-normal text-[var(--muted)]">({t.you})</span>}
+                </h2>
+                <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${x.rel === "child" ? PILL.b : x.rel === "parent" ? PILL.g : PILL.a}`}>{t.rel[x.rel]}</span>
+                <span className="text-[13px] text-[var(--muted)]">{sub(x)}</span>
+                <div data-load="" className="mt-2 w-full text-left text-[13px] text-[var(--muted)]">
+                  {x.load === null ? <p>{t.noLoad}</p> : (
+                    <>
+                      <p><b className="font-semibold text-[var(--foreground)]">{x.load.open}</b> {t.openToday(x.load.open)}{x.load.total > 0 ? ` · ${t.doneOf(x.load.done, x.load.total)}` : ""}</p>
+                      <div aria-hidden="true" className="mt-1.5 h-[7px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--fos-panel-2)]">
+                        <i className="block h-full rounded-lg bg-[var(--fos-accent-2)]" style={{ width: `${x.load.total ? Math.round((x.load.done / x.load.total) * 100) : 0}%` }} />
+                      </div>
+                      {x.load.current && <p className="mt-1.5 truncate">{t.now}: {x.load.current}</p>}
+                      {x.load.routines && x.load.routines.total > 0 && <p className="mt-0.5">{t.routineOf(x.load.routines.done, x.load.routines.total)}</p>}
+                    </>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 }

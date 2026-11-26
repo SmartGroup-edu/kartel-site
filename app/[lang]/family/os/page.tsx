@@ -15,7 +15,15 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
-  return { title: lang === "ru" ? "Сегодня · Семья" : "Today · Family", robots: { index: false, follow: false } };
+  // bus 172 P3 QA: a child's /os is «Мой день» (their menu and H1 say so). getOsState is the page's own read (cached
+  // per request), so the title costs no extra Family OS call.
+  let child = false;
+  if (familyEnv.gateOn()) {
+    const { decision, session } = await familyGateDecision();
+    if (decision === "allow" && session) { const s = await getOsState(session); child = s.status === "ok" && s.me?.kind === "child"; }
+  }
+  const title = child ? (lang === "ru" ? "Мой день · Семья" : "My day · Family") : lang === "ru" ? "Сегодня · Семья" : "Today · Family";
+  return { title, robots: { index: false, follow: false } };
 }
 
 const NOT_MEMBER = {

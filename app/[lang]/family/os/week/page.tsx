@@ -6,6 +6,7 @@ import { getOsState, getPrinciple, getSprint, getCouncil, getCalendar, getBoard,
 import FamilyWeek from "@/app/components/FamilyWeek";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { childHome } from "@/app/lib/family-child";
 import { weekDays, weekTasks, weekBirthdays } from "@/app/lib/family-week.mjs";
 
 // «Неделя семьи · PDF» (bus 84/97 item 5): one A4 sheet for the council and the fridge, printed by the browser
@@ -28,6 +29,7 @@ export default async function FamilyWeekPage({ params, searchParams }: { params:
   const state = await getOsState(session);
   if (state.status !== "ok") { const L = lang === "ru" ? "RU" : "EN"; return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.week[L]} />; }
   if (!state.me) notFound();
+  childHome(lang, state.me);
   const withRec = (await searchParams).rec === "1";
   const principle = await getPrinciple(session);
   const week = principle?.week_start ?? null;

@@ -16,11 +16,13 @@ const cache = new Map();
 /**
  * @param {{ email: string, admin: boolean, iat: number, cacheMs?: number }} s  iat = the session's issued-at, seconds
  * @param {Record<string, string | undefined>} [env]
- * @returns {Promise<{ state: "ok" | "ended" | "unknown", member: boolean }>}
+ * @returns {Promise<{ state: "ok" | "ended" | "unknown", member: boolean, child: boolean, id: string | null }>}
+ *   `child`/`id` (bus 172 P3): the viewer is a child member of Family OS, and their person id — so the edge can keep a
+ *   child inside «Мой день» + «Календарь» with a real redirect.
  */
 export async function osSessionState(s, env = process.env, fetchImpl = fetch) {
   const key = `${s.admin ? "a" : "m"}:${s.email.toLowerCase()}|${s.iat}`, hit = cache.get(key), now = Date.now();
-  if (hit && (hit.state === "ended" || now - hit.at < (s.cacheMs ?? 0))) return { state: hit.state, member: hit.member };
+  if (hit && (hit.state === "ended" || now - hit.at < (s.cacheMs ?? 0))) return { state: hit.state, member: hit.member, child: hit.child, id: hit.id };
   const out = await ask(s, env, fetchImpl);
   if (out.state !== "unknown") {
     if (cache.size > 2000) cache.clear();
@@ -30,7 +32,8 @@ export async function osSessionState(s, env = process.env, fetchImpl = fetch) {
 }
 
 async function ask({ email, admin, iat }, env, fetchImpl) {
-  if (!env.FAMILY_OS_URL || !env.FAMILY_OS_SECRET) return { state: "unknown", member: false };
+  const none = { member: false, child: false, id: null };
+  if (!env.FAMILY_OS_URL || !env.FAMILY_OS_SECRET) return { state: "unknown", ...none };
   const path = `/me?sat=${Number.isInteger(iat) && iat > 0 ? iat : 0}`, actor = `${admin ? "admin" : "member"}:${email.toLowerCase()}`;
   try {
     const h = await signMediaRequest({ secret: env.FAMILY_OS_SECRET, method: "GET", path, actor });
@@ -39,12 +42,12 @@ async function ask({ email, admin, iat }, env, fetchImpl) {
     const r = await fetchImpl(new URL(path, env.FAMILY_OS_URL), { headers: { ...h, ...access }, cache: "no-store", signal: AbortSignal.timeout(3000) });
     if (r.status === 401) {
       const b = await r.json().catch(() => null);
-      return { state: b?.error === "session_ended" ? "ended" : "unknown", member: false };
+      return { state: b?.error === "session_ended" ? "ended" : "unknown", ...none };
     }
-    if (!r.ok) return { state: "unknown", member: false };
+    if (!r.ok) return { state: "unknown", ...none };
     const b = await r.json().catch(() => null);
-    return { state: "ok", member: Boolean(b?.me) };
+    return { state: "ok", member: Boolean(b?.me), child: b?.me?.kind === "child", id: typeof b?.me?.id === "string" ? b.me.id : null };
   } catch {
-    return { state: "unknown", member: false };
+    return { state: "unknown", ...none };
   }
 }

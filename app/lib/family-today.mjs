@@ -144,7 +144,7 @@ export function todayModel({ lang, me, admin, people, myBoard, routines, board, 
   const meName = me ? nameOf(me, lang) : null;
   return {
     child, adult, owner: Boolean(admin), today: day,
-    greeting: greetingAt(lang, meName, hour),
+    greeting: greetingAt(lang, meName, hour), name: meName && !meName.includes("@") ? meName.trim().split(/\s+/)[0] : null,
     items, newTasks: myBoard?.new?.length ?? 0, paused: Boolean(routines?.paused_today),
     summary: { decisions: decisionsCount },
     kpis, schedule, decisions, family,

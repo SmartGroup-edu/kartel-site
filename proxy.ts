@@ -6,6 +6,7 @@ import { familyRoleOf } from "@/app/lib/family-roles.mjs";
 import { routeClass } from "@/app/lib/family-ref.mjs";
 import { familySessionCookie, consoleSessionCookie } from "@/app/lib/family-cookie.mjs";
 import { osSessionState } from "@/app/lib/family-os-session.mjs";
+import { childMayOpenPath } from "@/app/lib/family-os-shell.mjs";
 import { verifyConsoleToken, consoleAdmins } from "@/app/lib/console-auth.mjs";
 import { ENDED_PARAM } from "@/app/lib/family-ended";
 
@@ -83,6 +84,10 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
   // The owner who is not a member has no board, council, calendar, Кодекс or week (QA-156 L7). Only when the
   // service answered: an outage leaves the page to say «не отвечает».
   if (MEMBER_ONLY.test(pathname) && owner && os.state === "ok" && !os.member) return familyNotFound(request, lang, pathname);
+  // bus 172 P3: a child's Family OS is «Мой день» + «Календарь» (and their own page). Any other OS page sends them
+  // to «Мой день» here, with a real 307 — a page-level redirect() in a streamed render answers 200 with a meta tag.
+  // Only when the service answered; the pages keep the same rule (childHome) as a second wall.
+  if (os.state === "ok" && os.child && !childMayOpenPath(pathname, os.id)) return NextResponse.redirect(new URL(`/${lang}/family/os`, request.url), 307);
   // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
   // (no ids) so it can render in the right language and log its reference code. Always overwritten,
   // so a client cannot inject either header.

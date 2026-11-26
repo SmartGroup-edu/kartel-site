@@ -21,8 +21,9 @@ import { tx } from "../lib/typograph.mjs";
 type Lang = "EN" | "RU";
 type SectionId = "today" | "board" | "calendar" | "council" | "people" | "kodeks" | "heritage" | "access" | "admin";
 type Item = { id: SectionId; href: string; label: string; badge?: number };
-export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean };
-export type OsShellMe = { name: string | null; role: "owner" | "editor" | "member" | "child" };
+export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean; child?: boolean };
+/** `id`: the viewer's own person page (their keys and letters) — the name in the user block opens it. */
+export type OsShellMe = { name: string | null; id?: string | null; role: "owner" | "editor" | "member" | "child" };
 
 const ICON: Record<SectionId, LucideIcon> = {
   today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, people: Users, kodeks: FileText,
@@ -35,12 +36,14 @@ const T = {
     paletteTitle: "Перейти к разделу", paletteHint: "Начни вводить название раздела", noMatch: "Такого раздела нет.",
     close: "Закрыть", signOut: "Выйти", lang: "EN — переключить язык на английский", langShort: "EN",
     role: { owner: "Владелец", editor: "Редактор", member: "Член семьи", child: "Ребёнок" }, badge: (n: number) => `открытых задач: ${n}`,
+    myPage: (n: string) => `${n} — моя страница`,
   },
   EN: {
     brand: "Family office", search: "Search and commands", searchShort: "Search sections", menu: "Sections menu",
     paletteTitle: "Go to a section", paletteHint: "Start typing a section name", noMatch: "No such section.",
     close: "Close", signOut: "Sign out", lang: "RU — switch language to Russian", langShort: "RU",
     role: { owner: "Owner", editor: "Editor", member: "Family member", child: "Child" }, badge: (n: number) => `open tasks: ${n}`,
+    myPage: (n: string) => `${n} — my page`,
   },
 } as const;
 
@@ -90,7 +93,9 @@ function MeBlock({ me, lang }: { me: OsShellMe; lang: Lang }) {
     <div data-me="" className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
       <span aria-hidden="true" className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full bg-[var(--fos-accent-2)] text-[12px] font-semibold text-[var(--fos-on-accent-2)]">{initial}</span>
       <div className="min-w-0 flex-1">
-        {me.name && <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{me.name}</p>}
+        {me.name && (me.id
+          ? <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${me.id}`} data-me-link="" aria-label={t.myPage(me.name)} className="block min-h-6 truncate rounded-sm text-[13px] leading-6 font-semibold text-[var(--foreground)] underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{me.name}</Link>
+          : <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{me.name}</p>)}
         <p className="truncate text-[12px] text-[var(--muted)]">{t.role[me.role]}</p>
       </div>
       <ThemeToggle placement="up" />
@@ -197,7 +202,7 @@ export default function FamilyOsShell({ lang, nav, badges, me, children }: { lan
               <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </button>
           </header>
-          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-5 outline-none sm:px-5 min-[900px]:px-10 min-[900px]:pb-16 min-[900px]:pt-7 print:p-0">
+          <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-5 outline-none min-[640px]:px-5 min-[900px]:px-10 min-[900px]:pb-16 min-[900px]:pt-7 print:p-0">
             {children}
           </main>
         </div>

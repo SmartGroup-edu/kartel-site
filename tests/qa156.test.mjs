@@ -15,7 +15,7 @@ const s = (extra = {}) => ({ email: "member@example.test", admin: false, iat: n+
 
 test("H1: the site asks Family OS about a session — /me signed with the session's sat; only an explicit session_ended ends it", async () => {
   const f = fakeFetch(401, { error: "session_ended" });
-  assert.deepEqual(await osSessionState({ email: "Member@example.test", admin: false, iat: 1764000000 }, ENV, f), { state: "ended", member: false });
+  assert.deepEqual(await osSessionState({ email: "Member@example.test", admin: false, iat: 1764000000 }, ENV, f), { state: "ended", member: false, child: false, id: null }); // bus 172 P3: + child, id
   assert.match(f.calls[0].url, /\/me\?sat=1764000000$/);
   assert.equal(f.calls[0].init.headers["x-kartel-actor"], "member:member@example.test");
   assert.equal((await osSessionState(s({ admin: true }), ENV, fakeFetch(200, { me: { id: "x" }, admin: true }))).state, "ok");
