@@ -100,7 +100,7 @@ const empty = (): Draft => ({ name_ru: "", name_en: "", email: "", role: "adult"
 const londonToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
 
 function Steps({ n }: { n: number }) {
-  return <div aria-hidden="true" className="flex gap-1.5">{[1, 2, 3].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= n ? "bg-[var(--fos-accent-2)]" : "bg-[var(--border)]"}`} />)}</div>;
+  return <div aria-hidden="true" data-invite-steps="" className="flex gap-1.5 pr-8">{[1, 2, 3].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= n ? "bg-[var(--fos-accent-2)]" : "bg-[var(--border)]"}`} />)}</div>;
 }
 
 /** The header button and the 3-step dialog. */
@@ -129,7 +129,8 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
     if (step === 1) {
       const e = checkStep1(d, { people }) as string[];
       setErrs(e);
-      if (e.length) { document.getElementById(`inv-${e[0] === "email_taken" ? "email" : e[0]}`)?.focus(); return; }
+      // The first problem's field; a group with nothing to tick (no children yet) falls back to the role cards.
+      if (e.length) { (document.getElementById(`inv-${e[0] === "email_taken" ? "email" : e[0]}`) ?? document.getElementById("inv-role"))?.focus(); return; }
       setList("checking"); setStep(2);
       const r = await post("POST", "family-invite", { email: d.email });
       const j = r?.ok ? ((await r.json().catch(() => null)) as { state?: ListState } | null) : null;
@@ -202,8 +203,8 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                 {(err("email") || err("email_taken")) && <span id="inv-email-err" className={ERR}>{err("email") || err("email_taken")}</span>}
               </label>
               <fieldset>
-                <legend className={label}>{t.role}</legend>
-                <div id="inv-role" tabIndex={-1} className="mt-2 grid gap-2">
+                <legend id="inv-role-l" className={label}>{t.role}</legend>
+                <div id="inv-role" tabIndex={-1} role="radiogroup" aria-labelledby="inv-role-l" className="mt-2 grid gap-2">
                   {(["parent", "relative", "adult", "child"] as Role[]).map((r) => (
                     <label key={r} data-role-card={r} className={`flex cursor-pointer items-start gap-3 rounded-[14px] border-2 px-3.5 py-3 ${d.role === r ? "border-[var(--fos-accent-2)] bg-[var(--fos-panel-2)]" : "border-[var(--border)]"}`}>
                       <input type="radio" name="inv-role" value={r} checked={d.role === r} onChange={() => setD((x) => ({ ...x, role: r, scopes: ["routines"] }))} className="mt-1 h-4 w-4 accent-[var(--fos-accent-2)]" />
@@ -215,9 +216,9 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
               </fieldset>
               {(needKids || d.role === "child") && (
                 <fieldset>
-                  <legend className={label}>{needKids ? t.whose : t.parentsOf}</legend>
+                  <legend id="inv-children-l" className={label}>{needKids ? t.whose : t.parentsOf}</legend>
                   {(needKids ? kids : adults).length === 0 ? <p className="mt-1 text-[14px] text-[var(--muted)]">{needKids ? t.noKids : t.noAdults}</p> : (
-                    <div id="inv-children" tabIndex={-1} className="mt-2 flex flex-wrap gap-2">
+                    <div id="inv-children" tabIndex={-1} role="group" aria-labelledby="inv-children-l" aria-describedby="inv-children-err" className="mt-2 flex flex-wrap gap-2">
                       {(needKids ? kids : adults).map((p) => {
                         const k = needKids ? "children" : "parents", on = (d[k] as string[]).includes(p.id);
                         return (
@@ -228,13 +229,13 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                       })}
                     </div>
                   )}
-                  {err("children") && <p className={ERR}>{err("children")}</p>}
+                  {err("children") && <p id="inv-children-err" className={ERR}>{err("children")}</p>}
                 </fieldset>
               )}
               {(needKids || (d.role === "child" && d.parents.length > 0)) && (
                 <fieldset>
-                  <legend className={label}>{t.areas}</legend>
-                  <div id="inv-scopes" tabIndex={-1} className="mt-2 flex flex-wrap gap-2">
+                  <legend id="inv-scopes-l" className={label}>{t.areas}</legend>
+                  <div id="inv-scopes" tabIndex={-1} role="group" aria-labelledby="inv-scopes-l" aria-describedby="inv-scopes-err" className="mt-2 flex flex-wrap gap-2">
                     {(SCOPES as OsScope[]).map((s) => {
                       const fixed = s === "routines" && d.role !== "relative", on = fixed || d.scopes.includes(s);
                       return (
@@ -245,7 +246,7 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                       );
                     })}
                   </div>
-                  {err("scopes") && <p className={ERR}>{err("scopes")}</p>}
+                  {err("scopes") && <p id="inv-scopes-err" className={ERR}>{err("scopes")}</p>}
                 </fieldset>
               )}
               <div className="flex flex-wrap justify-end gap-2">

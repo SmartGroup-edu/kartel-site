@@ -77,3 +77,21 @@ test("the access-list check is owner-only, same-origin, read-only", () => {
   assert.doesNotMatch(src, /\b(set|update|patch|put)\w*\(/i, "nothing is written");
   assert.doesNotMatch(src, /export async function (GET|PUT|PATCH|DELETE)/);
 });
+
+test("QA P4: tour copy claims only what exists; wizard group errors are announced; one access-list read on «Люди»", () => {
+  const ob = readFileSync(new URL("../app/components/FamilyOnboarding.tsx", import.meta.url), "utf8");
+  // Calendar colours are per kind of item (FamilyCalendar TONE), not per person — no person colour exists.
+  assert.doesNotMatch(ob, /у каждого свой цвет|a colour for each person/);
+  // The new-key notice is queued for the runner, not sent by the click.
+  assert.doesNotMatch(ob, /ушло письмо|is on its way/);
+  const inv = readFileSync(new URL("../app/components/FamilyInvite.tsx", import.meta.url), "utf8");
+  for (const g of ["children", "scopes"]) {
+    assert.match(inv, new RegExp(`id="inv-${g}" tabIndex=\\{-1\\} role="group" aria-labelledby="inv-${g}-l" aria-describedby="inv-${g}-err"`));
+    assert.match(inv, new RegExp(`<p id="inv-${g}-err"`));
+  }
+  assert.match(inv, /\?\? document\.getElementById\("inv-role"\)\)\?\.focus\(\)/, "focus never lost when the group is absent");
+  assert.match(inv, /data-invite-steps="" className="flex gap-1\.5 pr-8"/, "the step bar stops short of the close button");
+  const page = readFileSync(new URL("../app/[lang]/family/os/people/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /accessListStates\(/);
+  assert.doesNotMatch(page, /accessListState\(/);
+});

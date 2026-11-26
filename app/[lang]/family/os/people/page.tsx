@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getBoard, getAdoption } from "@/app/lib/family-os";
-import { accessListState, type AccessListState } from "@/app/lib/family-access";
+import { accessListStates, type AccessListState } from "@/app/lib/family-access";
 import { pendingCards } from "@/app/lib/family-invite.mjs";
 import { peopleCards } from "@/app/lib/family-people.mjs";
 import FamilyOs, { type PersonCard, type InviteData } from "@/app/components/FamilyOs";
@@ -39,10 +39,10 @@ export default async function FamilyOsPeoplePage({ params }: { params: Promise<{
   let invite: InviteData | null = null;
   if (state.admin) {
     const waiting = (adoption?.people ?? []).filter((r) => !r.signed_in);
-    const listed: Record<string, AccessListState> = Object.fromEntries(await Promise.all(waiting.map(async (r) => {
-      const email = state.people.find((p) => p.id === r.id)?.email;
-      return [r.id, email ? await accessListState(email) : "unknown"] as const;
-    })));
+    const emails = waiting.map((r) => state.people.find((p) => p.id === r.id)?.email ?? "");
+    const states = await accessListStates(emails.filter(Boolean)); // one Edge Config read for all of them
+    let k = 0;
+    const listed: Record<string, AccessListState> = Object.fromEntries(waiting.map((r, i) => [r.id, emails[i] ? states[k++] : "unknown"]));
     invite = { pending: pendingCards({ adoption, listed }) as InviteData["pending"] };
   }
   return <FamilyOs lang={L} state={state} cards={cards} invite={invite} />;
