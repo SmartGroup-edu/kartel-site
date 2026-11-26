@@ -1,7 +1,15 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
+  "_generated": "GENERATED — do not edit. Built by kartel-core tools/generate-public.mjs from registry/registry.yaml + registry/public-template.json; CI fails if this file differs from a fresh build.",
+  "schemaVersion": 1,
   "version": 14,
   "updated": "2026-11-26",
+  "generatedAt": "2026-11-26T11:35:32Z",
+  "source": {
+    "repo": "SmartGroup-edu/kartel-core",
+    "commit": "9bb7c19a5a17df2d7c1f961ecd8a6ecc4452516d"
+  },
+  "contentHash": "4dd2f5bdc46d3323d5a9793b772d32d12872cc49453eb4201c955432ddabacad",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
     {
