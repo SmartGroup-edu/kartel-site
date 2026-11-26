@@ -1,5 +1,5 @@
 // Public home (bus 172 P5): the companies and the counts strip, derived from the vendored registry only.
-// Plain .mjs so the node tests share it (tests must not import .ts). No Node built-ins: the client home imports it.
+// Plain .mjs so the node tests share it (tests must not import .ts). Imported by the server component PublicOffice only, so the registry JSON stays off the client.
 // No invented numbers: every figure here is a count over registry.public.json, and the strip says which version.
 
 import { plural } from "../lib/family-today.mjs";

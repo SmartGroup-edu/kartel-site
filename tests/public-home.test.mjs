@@ -100,3 +100,18 @@ describe("sign-in — v5 two panels, every state kept", () => {
     for (const k of ['state === "sent" ?', 'state === "elsewhere" ?', 'state === "ended" &&', 'state === "invalid" || state === "expired" || state === "superseded" || state === "used"', "{codes && <CodeForm c={c} returnTo={returnTo} />}"]) assert.ok(n.includes(k), k);
   });
 });
+
+describe("P5 acceptor QA", () => {
+  test("the hero lead calls the registry's projects the ones the family runs, not the family's companies (CEA CIC is the legal entity)", () => {
+    const o = src("app/components/PublicOffice.tsx");
+    assert.match(o, /lead: "KARTEL объединяет проекты, которые ведёт семья, /);
+    assert.match(o, /lead: "KARTEL brings together the projects the family runs /);
+    assert.doesNotMatch(o, /компании и проекты семьи|the family's companies/);
+  });
+  test("the RU sign-in speaks to the visitor as «вы» throughout, the passkey messages included", () => {
+    const ru = src("app/components/FamilyGateNotice.tsx").split(/^  ru: \{/m)[1].split(/^  \},$/m)[0];
+    assert.match(ru, /pkBusy: "Подтвердите на устройстве…"/);
+    assert.match(ru, /войдите по ссылке из письма/);
+    assert.doesNotMatch(ru, /"Подтверди |— войди /);
+  });
+});

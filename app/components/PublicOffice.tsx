@@ -19,7 +19,7 @@ const copy = {
   EN: {
     pill: "Family office · London",
     title: "A family business, built for generations.",
-    lead: "KARTEL brings the family's companies and projects together — education, culture and communities — under shared rules, decisions and responsibility.",
+    lead: "KARTEL brings together the projects the family runs — in education, culture and communities — under shared rules, decisions and responsibility.",
     companiesCta: "Our companies",
     crestCta: "The coat of arms",
     cabinet: "The family area",
@@ -39,7 +39,7 @@ const copy = {
   RU: {
     pill: "Семейный офис · Лондон",
     title: "Семейный бизнес, построенный на поколения.",
-    lead: "KARTEL объединяет компании и проекты семьи — образование, культуру и сообщества — с общими правилами, решениями и ответственностью.",
+    lead: "KARTEL объединяет проекты, которые ведёт семья, — в образовании, культуре и сообществах — общими правилами, решениями и ответственностью.",
     companiesCta: "Наши компании",
     crestCta: "Фамильный герб",
     cabinet: "Семейный кабинет",
