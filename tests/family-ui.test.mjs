@@ -112,17 +112,17 @@ test("L6: an H1 above the one line for the owner (Доска/Совет/Кале
   assert.match(src("app/[lang]/family/error.tsx"), /<h1 className=\{H1\}>/, "the error page has its H1");
 });
 
-test("L6 heading order + D7: the board has one people list; H2 strip → H3 name → H4 column, no accordion", () => {
+test("L6 heading order + D7: the board has one people list; H2 strip → H3 name, no accordion; tasks live in the Kanban (bus 172 P2)", () => {
   const b = comp("FamilyBoard.tsx");
   assert.doesNotMatch(b, /<details|data-accordion/, "the per-person accordion list is gone");
-  const strip = b.slice(b.indexOf("function Strip("), b.indexOf("/** One card:"));
-  const order = ["<h2 id=\"strip-h\"", "<h3 className={`${OS_H3}", "data-strip-toggle=\"\" aria-expanded={isOpen} aria-controls=", "<h4 "].map((x) => strip.indexOf(x));
-  assert.ok(order.every((i) => i > 0), "strip H2, card H3, an expand button, column H4");
+  const strip = b.slice(b.indexOf("function Strip("), b.indexOf("/**\n * The Kanban"));
+  const order = ["<h2 id=\"strip-h\"", "<h3 className={`${OS_H3}"].map((x) => strip.indexOf(x));
+  assert.ok(order.every((i) => i > 0), "strip H2, card H3");
   assert.deepEqual([...order].sort((a, c) => a - c), order);
-  assert.match(strip, /<Card key=\{x\.id\} c=\{c\} task=\{x\} lane=\{m\.id\} idp="s-" \/>/, "the strip copy of a card keeps ids unique");
-  assert.match(strip, /className="lg:hidden"/, "from 1024 px the lanes table holds the tasks");
-  assert.match(b, /<section aria-label=\{t\.lanesAria\} className="mt-8 hidden lg:block">/);
-  assert.doesNotMatch(b.slice(b.indexOf("function PersonHead"), b.indexOf("function RoutineLine")), /<h3/, "one heading per person");
+  // bus 172 P2: the tasks are in the four Kanban columns at every width — the strip is a summary, never a second task list
+  assert.doesNotMatch(strip, /<KCard |<Card |data-strip-toggle/, "no second per-person task list");
+  assert.match(b, /<section aria-label=\{t\.kanbanAria\} className="mt-6">/);
+  assert.doesNotMatch(b, /function Lanes\(|function ListView\(/, "one task layout");
 });
 
 test("D2: one H2 style for every section heading, one H3 style for block titles", () => {

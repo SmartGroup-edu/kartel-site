@@ -4,11 +4,13 @@ import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getBoard, getPlan, getTemplates } from "@/app/lib/family-os";
 import FamilyBoard from "@/app/components/FamilyBoard";
+import { childBoardView } from "@/app/lib/family-kanban.mjs";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 // Gated like every Family OS page. The service decides what each member sees (family tasks only);
 // the plan and templates are parents-only there too, so a member simply gets null for them.
+// bus 172 P2: a child sees only their own tasks — cut here, on the server, before anything reaches the browser.
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
@@ -22,10 +24,11 @@ export default async function FamilyBoardPage({ params, searchParams }: { params
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
-  const [state, board] = await Promise.all([getOsState(session), getBoard(session, (await searchParams).date)]);
+  const [state, read] = await Promise.all([getOsState(session), getBoard(session, (await searchParams).date)]);
   const L = lang === "ru" ? "RU" : "EN";
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.board[L]} />;
   if (!state.me && !state.admin) notFound();
+  const board = state.me?.kind === "child" && read ? childBoardView(read, state.me.id) : read;
   const parent = Boolean(board?.can.approve);
   const [plan, templates] = parent ? await Promise.all([getPlan(session, board!.plan?.date), getTemplates(session)]) : [null, null];
   return <FamilyBoard lang={lang === "ru" ? "RU" : "EN"} initial={board} plan={plan} templates={templates} me={state.me} />;
