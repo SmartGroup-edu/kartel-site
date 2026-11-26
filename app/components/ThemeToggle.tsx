@@ -24,7 +24,8 @@ function Check({ on }: { on: boolean }) {
   );
 }
 
-export default function ThemeToggle() {
+/** `placement`: "up" opens the menu above the button (the Family OS sidebar keeps it at the bottom of the screen). */
+export default function ThemeToggle({ placement = "down" }: { placement?: "down" | "up" } = {}) {
   const { theme, resolved, setTheme, contrast, setContrast } = useTheme();
   const t = L[useUiLang() === "ru" ? "ru" : "en"];
   const [open, setOpen] = useState(false);
@@ -93,7 +94,7 @@ export default function ThemeToggle() {
           role="menu"
           aria-label={t.open}
           onKeyDown={onKey}
-          className="absolute right-0 top-full z-50 mt-2 w-56 rounded-lg border border-[var(--border)] bg-[var(--background)] p-1 shadow-lg"
+          className={`absolute z-50 w-56 rounded-lg border ${placement === "up" ? "bottom-full left-0 mb-2" : "right-0 top-full mt-2"} border-[var(--border)] bg-[var(--background)] p-1 shadow-lg`}
         >
           {radios.map(([v, label]) => (
             <button key={v} type="button" role="menuitemradio" aria-checked={theme === v} tabIndex={-1} className={item} onClick={() => { setTheme(v); close(); }}>
