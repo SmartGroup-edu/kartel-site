@@ -10,7 +10,7 @@
     "commit": "9bb7c19a5a17df2d7c1f961ecd8a6ecc4452516d"
   },
   "contentHash": "4dd2f5bdc46d3323d5a9793b772d32d12872cc49453eb4201c955432ddabacad",
-  "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
+  "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core. (stale-copy test, bus 169)",
   "canonicalLayers": [
     {
       "key": "identity",

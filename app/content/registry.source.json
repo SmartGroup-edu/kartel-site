@@ -5,7 +5,7 @@
   "sourceCommit": "20286f862c38d94bf3b6f13e045b38a9b7ac44b1",
   "sourceVersion": 14,
   "sourceUpdated": "2026-11-26",
-  "sha256": "9f1070a22dbef9e688f4e29b53801779924c8cd4d1cb8f12fc7c7e72d9dfc4c8",
+  "sha256": "c38c0c8ae6bc1f3b3c513738b26361809628d97b3463a5fbcdb0eca5ce840382",
   "federation": {
     "path": "registry/federation.public.json",
     "generatedAt": "2026-11-25",
