@@ -2,9 +2,9 @@
 
 /**
  * Family OS does not answer (QA-156 M7): every OS page renders this one calm state instead of a 404 — the
- * page's own title as the H1 (L6), one status line, inside the family layout (bus 157b D11).
+ * page's own title as the H1 (L6), one status line. The Family OS shell (os/layout.tsx) draws the navigation
+ * around it (bus 171; it was the old family layout, bus 157b D11).
  */
-import FamilyChrome, { type FamilyChromeNav } from "./FamilyChrome";
 import { H1 } from "../lib/typeScale";
 import { tx } from "../lib/typograph.mjs";
 
@@ -28,6 +28,6 @@ export function OsDownNotice({ lang, status, title }: { lang: Lang; status: Stat
   );
 }
 
-export default function FamilyOsDown({ lang, status, title, nav }: { lang: Lang; status: Status; title: string; nav: FamilyChromeNav }) {
-  return <FamilyChrome lang={lang} nav={nav}><OsDownNotice lang={lang} status={status} title={title} /></FamilyChrome>;
+export default function FamilyOsDown({ lang, status, title }: { lang: Lang; status: Status; title: string }) {
+  return <OsDownNotice lang={lang} status={status} title={title} />;
 }

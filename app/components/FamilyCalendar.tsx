@@ -8,13 +8,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
 import Disclosure from "./Disclosure";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
@@ -24,8 +18,8 @@ import { fmtFamilyDate } from "../lib/family-docs.mjs";
 
 type Lang = "EN" | "RU";
 const T = {
-  RU: { weekly: "Каждое воскресенье, 19:00 — семейный совет", nextOn: "Ближайший", title: "Календарь", intro: "Два месяца вперёд: события семьи и дни рождения.", council: "Семейный совет", birthday: "День рождения", add: "Добавить событие", what: "Что", when: "Дата", time: "Время (необязательно)", save: "Добавить", saved: "Добавлено.", error: "Не удалось сохранить — попробуй ещё раз.", remove: "Убрать", confirm: "Убрать событие?", keep: "Оставить", removed: "Убрано.", empty: "Ничего не запланировано.", phone: "Хочешь видеть это в календаре телефона? Ссылка — на твоей странице.", phoneLink: "Моя страница", notMember: "Календарь видят члены семьи." },
-  EN: { weekly: "Every Sunday, 19:00 — family council", nextOn: "Next", title: "Calendar", intro: "The next two months: family events and birthdays.", council: "Family council", birthday: "Birthday", add: "Add an event", what: "What", when: "Date", time: "Time (optional)", save: "Add", saved: "Added.", error: "Could not save — please try again.", remove: "Remove", confirm: "Remove the event?", keep: "Keep", removed: "Removed.", empty: "Nothing planned.", phone: "Want this in your phone's calendar? The link is on your page.", phoneLink: "My page", notMember: "The calendar is for family members." },
+  RU: { week: "Неделя семьи · PDF", weekly: "Каждое воскресенье, 19:00 — семейный совет", nextOn: "Ближайший", title: "Календарь", intro: "Два месяца вперёд: события семьи и дни рождения.", council: "Семейный совет", birthday: "День рождения", add: "Добавить событие", what: "Что", when: "Дата", time: "Время (необязательно)", save: "Добавить", saved: "Добавлено.", error: "Не удалось сохранить — попробуй ещё раз.", remove: "Убрать", confirm: "Убрать событие?", keep: "Оставить", removed: "Убрано.", empty: "Ничего не запланировано.", phone: "Хочешь видеть это в календаре телефона? Ссылка — на твоей странице.", phoneLink: "Моя страница", notMember: "Календарь видят члены семьи." },
+  EN: { week: "Family week · PDF", weekly: "Every Sunday, 19:00 — family council", nextOn: "Next", title: "Calendar", intro: "The next two months: family events and birthdays.", council: "Family council", birthday: "Birthday", add: "Add an event", what: "What", when: "Date", time: "Time (optional)", save: "Add", saved: "Added.", error: "Could not save — please try again.", remove: "Remove", confirm: "Remove the event?", keep: "Keep", removed: "Removed.", empty: "Nothing planned.", phone: "Want this in your phone's calendar? The link is on your page.", phoneLink: "My page", notMember: "The calendar is for family members." },
 } as const;
 type Dict = (typeof T)[Lang];
 
@@ -35,17 +29,14 @@ const btn = BTN_SECONDARY;
 const primary = BTN_PRIMARY;
 const dayHead = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCalendar({ lang, cal, meId, admin, editor = false }: { lang: Lang; cal: OsCalendar | null; meId: string | null; admin: boolean; editor?: boolean }) {
+export default function FamilyCalendar({ lang, cal, meId }: { lang: Lang; cal: OsCalendar | null; meId: string | null }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
   const days = new Map<string, OsCalItem[]>();
   for (const i of cal?.items ?? []) days.set(i.date, [...(days.get(i.date) ?? []), i]);
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="calendar" />
+      <div data-fos-page="">
         <div className="max-w-4xl pb-8">
           {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
           {!cal ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></> : (
@@ -58,6 +49,8 @@ export default function FamilyCalendar({ lang, cal, meId, admin, editor = false 
                 <p className="text-[16px] text-[var(--foreground)]">{t.weekly}</p>
                 {cal.items.find((i) => i.kind === "council") && <p className="mt-0.5 text-[15px] text-[var(--muted)]" suppressHydrationWarning>{t.nextOn} — {fmtFamilyDate(cal.items.find((i) => i.kind === "council")!.date, lang, cal.today)}</p>}
               </div>
+              {/* bus 171: the printable family week lives under Календарь */}
+              {meId && <p className="mt-3"><Link prefetch={false} href={`${base}/week`} data-week-link="" className="inline-flex min-h-11 items-center text-[16px] underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.week}</Link></p>}
               {meId && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.phone} <Link prefetch={false} href={`${base}/people/${meId}#phone-calendar`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.phoneLink}</Link></p>}
               {cal.can.write && <AddEvent t={t} today={cal.today} />}
               {days.size === 0 ? <p className={`${META} mt-8`}>{t.empty}</p> : (
@@ -75,8 +68,7 @@ export default function FamilyCalendar({ lang, cal, meId, admin, editor = false 
             </>
           )}
         </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }

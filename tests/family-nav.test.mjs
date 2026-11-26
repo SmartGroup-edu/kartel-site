@@ -34,9 +34,16 @@ test("sub-nav (bus 87): an editor sees «Редактор» but never «Дост
   assert.ok(!ids({ lang: "RU", admin: false, os: true, editor: true }).includes("access"));
 });
 
-test("sub-nav (bus 95 integration): every Family OS page except «Доступы» passes `editor`, so «Редактор» never vanishes", () => {
+test("sub-nav (bus 95 integration): every family page passes `editor`, so «Редактор» never vanishes", () => {
+  // Outside Family OS (heritage, editor, the family 404) the old sub-nav stays; each call passes `editor`.
   const files = readdirSync("app/components").filter((f) => f.endsWith(".tsx"));
   const calls = files.flatMap((f) => (readFileSync(`app/components/${f}`, "utf8").match(/<FamilySubNav [^>]*\/>/g) ?? []).map((c) => [f, c]));
-  assert.ok(calls.length >= 6);
+  assert.ok(calls.length >= 3);
   assert.deepEqual(calls.filter(([, c]) => !/editor=/.test(c) && !/active="access"/.test(c)).map((x) => x[0]), []);
+  // Family OS pages (bus 171): no page draws a sub-nav of its own; the shell's layout passes the editor role in both
+  // branches (service up and «не отвечает»).
+  const os = ["FamilyOs", "FamilyToday", "FamilyBoard", "FamilyCalendar", "FamilyCouncil", "FamilyKodeks", "FamilyOsAccess", "FamilyOsPerson", "FamilyWeek", "FamilyOsDown"];
+  for (const f of os) assert.doesNotMatch(readFileSync(`app/components/${f}.tsx`, "utf8"), /<FamilySubNav |<SiteHeader /, f);
+  const layout = readFileSync("app/[lang]/family/os/layout.tsx", "utf8");
+  assert.match(layout, /editor: down\.editor/); assert.match(layout, /editor: role === "editor"/);
 });

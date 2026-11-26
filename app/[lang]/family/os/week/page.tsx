@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
+import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getPrinciple, getSprint, getCouncil, getCalendar, getBoard, getRecognitions } from "@/app/lib/family-os";
 import FamilyWeek from "@/app/components/FamilyWeek";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
-import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 import { weekDays, weekTasks, weekBirthdays } from "@/app/lib/family-week.mjs";
 
 // «Неделя семьи · PDF» (bus 84/97 item 5): one A4 sheet for the council and the fridge, printed by the browser
@@ -26,7 +26,7 @@ export default async function FamilyWeekPage({ params, searchParams }: { params:
   const { decision, session } = await familyGateDecision();
   if (decision !== "allow" || !session) notFound();
   const state = await getOsState(session);
-  if (state.status !== "ok") { const L = lang === "ru" ? "RU" : "EN"; return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.week[L]} nav={osDownNav(session.cpifSubjectId)} />; }
+  if (state.status !== "ok") { const L = lang === "ru" ? "RU" : "EN"; return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.week[L]} />; }
   if (!state.me) notFound();
   const withRec = (await searchParams).rec === "1";
   const principle = await getPrinciple(session);
@@ -40,8 +40,6 @@ export default async function FamilyWeekPage({ params, searchParams }: { params:
   return (
     <FamilyWeek
       lang={lang === "ru" ? "RU" : "EN"}
-      admin={state.admin}
-      editor={familyRole(session.cpifSubjectId) === "editor"}
       week={week}
       principle={principle}
       goals={sprint?.goals ?? []}

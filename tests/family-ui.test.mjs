@@ -60,7 +60,7 @@ test("L8 typographDict / tx: RU strings and function results are typographed; EN
 });
 
 test("L8 wiring: every Family OS screen reads its words through tx(); principle and task titles are typographed for display", () => {
-  for (const f of ["FamilyOs.tsx", "FamilyBoard.tsx", "FamilyCouncil.tsx", "FamilyCalendar.tsx", "FamilyKodeks.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyRules.tsx", "FamilyPrefs.tsx", "FamilyRoutines.tsx", "FamilyPersonExtras.tsx", "FamilyHealth.tsx", "FamilyBody.tsx", "FamilyAdoption.tsx", "FamilyPasskeys.tsx", "FamilyWeek.tsx", "FamilyOsDown.tsx"]) {
+  for (const f of ["FamilyOs.tsx", "FamilyBoard.tsx", "FamilyCouncil.tsx", "FamilyCalendar.tsx", "FamilyKodeks.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyRules.tsx", "FamilyPrefs.tsx", "FamilyRoutines.tsx", "FamilyPersonExtras.tsx", "FamilyHealth.tsx", "FamilyBody.tsx", "FamilyAdoption.tsx", "FamilyPasskeys.tsx", "FamilyWeek.tsx", "FamilyOsDown.tsx", "FamilyToday.tsx", "FamilyOsShell.tsx"]) {
     assert.match(comp(f), /tx\(T, lang\)|tx\(OS_DOWN_T, lang\)/, `${f} reads RU copy through the typographer`);
   }
   const k = comp("FamilyKodeks.tsx");
@@ -73,13 +73,18 @@ test("M7: every OS page renders one shared «не отвечает» state (neve
   const pages = { "os/page.tsx": "today", "os/people/page.tsx": "people", "os/board/page.tsx": "board", "os/council/page.tsx": "council", "os/calendar/page.tsx": "calendar", "os/kodeks/page.tsx": "kodeks", "os/week/page.tsx": "week", "os/people/[id]/page.tsx": "person", "os/access/page.tsx": "access" };
   for (const [p, key] of Object.entries(pages)) {
     const s = src(`app/[lang]/family/${p}`);
-    assert.match(s, new RegExp(`if \\(state\\.status !== "ok"\\)[^\\n]*<FamilyOsDown lang=\\{L\\} status=\\{state\\.status\\} title=\\{OS_DOWN_TITLE\\.${key}\\[L\\]\\} nav=\\{osDownNav\\(session\\.cpifSubjectId\\)\\} />`), p);
+    assert.match(s, new RegExp(`if \\(state\\.status !== "ok"\\)[^\\n]*<FamilyOsDown lang=\\{L\\} status=\\{state\\.status\\} title=\\{OS_DOWN_TITLE\\.${key}\\[L\\]\\} />`), p);
     assert.doesNotMatch(s, /state\.status !== "ok" \|\|/, `${p}: a silent service is not a 404`);
   }
   const d = comp("FamilyOsDown.tsx");
   assert.match(d, /error: "Раздел «Семья» сейчас не отвечает\. Попробуй через минуту\."/, "the Today/People text, reused");
   assert.match(d, /<h1 id="os-down-h" className=\{H1\}>\{title\}<\/h1>/, "L6: the state has an H1");
-  assert.match(d, /<FamilyChrome lang=\{lang\} nav=\{nav\}>/);
+  // bus 171: the Family OS shell (os/layout.tsx) is the family layout around it — with «Выйти» and the sections
+  // from osDownNav while the service is silent.
+  assert.doesNotMatch(d, /<FamilyChrome /);
+  const lay = src("app/[lang]/family/os/layout.tsx");
+  assert.match(lay, /if \(state\.status !== "ok"\) \{[\s\S]*?const down = osDownNav\(session\.cpifSubjectId\);/);
+  assert.match(comp("FamilyOsShell.tsx"), /action="\/api\/family-auth\/logout"/, "«Выйти» is in the shell");
   const c = comp("FamilyChrome.tsx");
   assert.match(c, /navItems=\{familyNav\(lang\)\}/, "«Выйти» is in the family header");
   assert.match(c, /<FamilySubNav lang=\{lang\} admin=\{nav\.admin\} editor=\{nav\.editor\} os=\{nav\.os\} member=\{nav\.member \?\? true\} \/>/);
@@ -102,7 +107,8 @@ test("L6: an H1 above the one line for the owner (Доска/Совет/Кале
   assert.match(comp("FamilyBoard.tsx"), /\{!board \? <div className="max-w-4xl"><h1 className=\{H1\}>\{t\.title\}<\/h1><p role="status"/);
   assert.match(comp("FamilyCouncil.tsx"), /\{!council \? <><h1 className=\{H1\}>\{t\.title\}<\/h1><p role="status"/);
   assert.match(comp("FamilyCalendar.tsx"), /\{!cal \? <><h1 className=\{H1\}>\{t\.title\}<\/h1><p role="status"/);
-  assert.match(comp("FamilyOs.tsx"), /<h1 id="os-outsider-h" className=\{H1\}>\{view === "today" \? t\.today : t\.people\}<\/h1>/);
+  assert.match(comp("FamilyOs.tsx"), /<h1 id="os-outsider-h" className=\{H1\}>\{t\.people\}<\/h1>/);
+  assert.match(src("app/[lang]/family/os/page.tsx"), /<h1 id="os-outsider-h"[^>]*>\{title\}<\/h1>/, "«Сегодня» for an outsider (bus 171)");
   assert.match(src("app/[lang]/family/error.tsx"), /<h1 className=\{H1\}>/, "the error page has its H1");
 });
 
@@ -220,8 +226,9 @@ test("D4: destructive actions are danger-styled, set apart, and still ask first;
   assert.match(k, /data-end-sessions-yes="" onClick=\{go\} className=\{BTN_DANGER\}/);
   assert.match(k, /data-passkey-revoke="" onClick=\{\(\) => setMode\("confirm"\)\} className=\{`\$\{BTN_DANGER\} sm:ml-auto`\}/);
   assert.match(k, /data-passkey-confirm="" onClick=\{\(\) => act\(post\(`\/api\/family-os\/passkeys\/\$\{k\.id\}\/revoke`\)\)\} className=\{BTN_DANGER\}/);
-  // the theme sets --destructive in every mode (light, dark, both high-contrast sets)
-  assert.equal((src("app/globals.css").match(/--destructive:/g) ?? []).length, 4);
+  // the theme sets --destructive in every mode (light, dark, both high-contrast sets) and in the Family OS light and dark
+  // palettes (bus 171; high contrast keeps the site's AAA value there)
+  assert.equal((src("app/globals.css").match(/--destructive:/g) ?? []).length, 6);
 });
 
 test("D1: «Правила» — one 3-state radio group per rule mapped onto enabled/dry_run; «Включено» asks first", () => {

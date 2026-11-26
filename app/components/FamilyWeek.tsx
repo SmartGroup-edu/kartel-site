@@ -4,12 +4,6 @@
 // recognitions opt-in. In print: the sheet only, A4, black on white (the print block in globals.css).
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import type { OsPrinciple, OsSprintGoal, OsRecognition } from "../lib/family-os";
 import { BTN_PRIMARY } from "../lib/family-ui";
@@ -38,12 +32,11 @@ const loc = (lang: Lang) => (lang === "EN" ? "en-GB" : "ru-RU");
 const day = (d: string, lang: Lang, o: Intl.DateTimeFormatOptions) => new Date(`${d}T12:00:00Z`).toLocaleDateString(loc(lang), { ...o, timeZone: "UTC" });
 const H2W = "font-serif text-[20px] leading-tight text-[var(--foreground)] print:text-[15pt]";
 
-export default function FamilyWeek({ lang, admin, editor, week, principle, goals, perPerson, birthdays, council, recognitions }: {
-  lang: Lang; admin: boolean; editor: boolean; week: string; principle: OsPrinciple | null; goals: OsSprintGoal[]; perPerson: PersonWeek[];
+export default function FamilyWeek({ lang, week, principle, goals, perPerson, birthdays, council, recognitions }: {
+  lang: Lang; week: string; principle: OsPrinciple | null; goals: OsSprintGoal[]; perPerson: PersonWeek[];
   birthdays: { date: string; name_ru: string; name_en: string }[]; council: { date: string } | null; recognitions: OsRecognition[] | null;
 }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const router = useRouter();
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os`;
   const nm = (p: { name_ru?: string; name_en?: string }) => (lang === "EN" ? p.name_en : p.name_ru) ?? "";
@@ -53,9 +46,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
   const range = `${day(week, lang, { day: "numeric", month: "long" })} — ${day(sun, lang, { day: "numeric", month: "long", year: "numeric" })}`.replace(/\s*г\.$/, "");
   return (
     <>
-      <div className="print:hidden"><SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} /></div>
-      <main id="main" className={`${FAMILY_MAIN} print:m-0 print:max-w-none print:p-0`}>
-        <div className="print:hidden"><FamilySubNav lang={lang} admin={admin} editor={editor} os active="council" /></div>
+      <div data-fos-page="" className="print:m-0 print:max-w-none print:p-0">
         <div data-week-controls="" className="flex max-w-3xl flex-col gap-3 print:hidden">
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={() => window.print()} className={BTN_PRIMARY}>{t.print}</button>
@@ -144,8 +135,7 @@ export default function FamilyWeek({ lang, admin, editor, week, principle, goals
             <p className="text-[14px] text-[var(--text-secondary)] print:text-[8pt]">{t.foot}</p>
           </footer>
         </article>
-      </main>
-      <div className="print:hidden"><SiteFooter copy="KARTEL" contactEmail={null} /></div>
+      </div>
     </>
   );
 }

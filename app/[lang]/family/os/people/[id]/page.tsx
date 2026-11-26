@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
+import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { canRegister } from "@/app/lib/family-passkey-rules.mjs";
 import { getOsState, getPersonPage } from "@/app/lib/family-os";
 import FamilyOsPerson from "@/app/components/FamilyOsPerson";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
-import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +33,12 @@ export default async function FamilyOsPersonPage({ params }: { params: Promise<{
   if (decision !== "allow" || !session) notFound();
   const [state, page] = await Promise.all([getOsState(session), getPersonPage(session, id)]);
   const L = lang === "ru" ? "RU" : "EN";
-  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.person[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.person[L]} />;
   if (!page) notFound();
   // Passkeys «Вход» (bus 98/100): the person, a parent of a child, or the owner. Adding needs a fresh link session.
   const subject = state.people.find((x) => x.id === id);
   const self = state.me?.id === id;
   const parentOfChild = subject?.kind === "child" && state.grants.some((g) => g.guardian_id === state.me?.id && g.child_id === id && g.relation === "parent");
   const passkeys = familyEnv.passkeysOn() && (self || parentOfChild || state.admin) ? { self, canAdd: self && canRegister(session) } : null;
-  return <FamilyOsPerson passkeys={passkeys} lang={lang === "ru" ? "RU" : "EN"} state={state} profile={page.profile} documents={page.documents} routines={page.routines} prefs={page.prefs} pauses={page.pauses} goals={page.goals} notes={page.notes} ics={page.ics} editor={familyRole(session.cpifSubjectId) === "editor"} />;
+  return <FamilyOsPerson passkeys={passkeys} lang={lang === "ru" ? "RU" : "EN"} state={state} profile={page.profile} documents={page.documents} routines={page.routines} prefs={page.prefs} pauses={page.pauses} goals={page.goals} notes={page.notes} ics={page.ics} />;
 }
