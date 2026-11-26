@@ -25,7 +25,7 @@ test("placement: only on the person's own page, only for an adult row; children'
   const p = src("app/components/FamilyOsPerson.tsx");
   assert.match(p, /\{"me" in state && state\.me\?\.id === p\.id && p\.kind === "adult" && <FamilyBody lang=\{lang\} onShown=\{setBodyShown\} \/>\}/);
   assert.equal((p.match(/<FamilyBody/g) ?? []).length, 1);
-  for (const f of ["app/components/FamilyOs.tsx", "app/components/FamilyHealth.tsx", "app/components/FamilyAdoption.tsx", "app/components/FamilyBoard.tsx"]) assert.doesNotMatch(src(f), /FamilyBody|\/body\b|weight_kg|kcal/, `${f} carries nothing of it`);
+  for (const f of ["app/components/FamilyOs.tsx", "app/components/FamilyToday.tsx", "app/lib/family-today.mjs", "app/components/FamilyHealth.tsx", "app/components/FamilyAdoption.tsx", "app/components/FamilyBoard.tsx"]) assert.doesNotMatch(src(f), /FamilyBody|\/body\b|weight_kg|kcal/, `${f} carries nothing of it`);
 });
 
 test("proxy: GET /body, GET /body/export (download), PUT prefs/goal/log/<date>, DELETE /body — no other person's path", () => {

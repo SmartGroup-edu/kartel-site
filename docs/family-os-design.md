@@ -55,3 +55,18 @@ QA-156, the bus 157b design review (D1–D11) and R0's decisions of 25.11 (bus 1
   prepositions, conjunctions and particles, before «же/ли/бы», between a number and its unit, and before a dash.
 - Text people type is shown as typed, except task titles and the Кодекс wording, which are typographed for display
   only (spaces become no-break spaces; nothing else changes).
+
+## Redesign v5 (bus 171, R0 approved the mockup 26.11.2026) — phase 1 of 6
+Phase 1 is in: tokens, the app shell, «Сегодня». Pages restyled in later phases keep the rules above until their phase.
+- **Tokens** live in `app/globals.css` under `[data-fos]` (light, `.dark`, high contrast). The existing names
+  (`--accent`, `--background`, `--muted`, …) are re-pointed inside Family OS; the extra roles are `--fos-*` (page,
+  panels, control edge, the brighter green, amber, blue, plum, shadows, the day banner). Radii 14 / 16, headings in
+  `ui-serif, "New York", Georgia` (600), body in the site sans. AA is tested in `tests/family-os-shell.test.mjs`; high
+  contrast keeps its AAA tokens. Dark: dark text on green fills (white on the mockup's green is 3.4:1).
+- **Shell** (`FamilyOsShell`, rendered once by `app/[lang]/family/os/layout.tsx`): 248 px sidebar on desktop, top bar +
+  bottom tab bar below 900 px, ⌘K = search over the sections. Sections and names come from
+  `app/lib/family-os-shell.mjs`; addresses unchanged, no technical names (no Кодекс/Совет/Доска/Неделя/Access on screen).
+  A section shows only when its page exists for the viewer. Pages no longer draw a header, sub-nav or footer.
+- **«Сегодня»** (`FamilyToday`, model in `app/lib/family-today.mjs`): built from existing reads only; a child's model has
+  no adult blocks and the page does not fetch the family board for a child. Card titles inside «Сегодня» are small sans
+  H2s (the mockup), not `OS_H2`.

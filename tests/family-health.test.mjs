@@ -38,8 +38,9 @@ test("proxy: GET /health and /evening (JSON), POST /health/tick, PUT /health/pre
 });
 
 test("Today shows «Здоровье» for members, after recognition and before documents", () => {
-  const f = src("app/components/FamilyOs.tsx");
-  const i = f.indexOf("<TodayRecognition"), j = f.indexOf("<FamilyHealth lang={lang} />"), k = f.indexOf('id="remind-h"');
+  // bus 171: «Сегодня» is FamilyToday; a member is someone with a person id (meId)
+  const f = src("app/components/FamilyToday.tsx");
+  const i = f.indexOf("<TodayRecognition"), j = f.indexOf("<FamilyHealth lang={lang} />"), k = f.indexOf("<TodayDocs ");
   assert.ok(i > 0 && j > i && k > j);
-  assert.match(f, /\{state\.me && <FamilyHealth lang=\{lang\} \/>\}/);
+  assert.match(f, /\{meId && <FamilyHealth lang=\{lang\} \/>\}/);
 });
