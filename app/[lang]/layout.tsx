@@ -6,6 +6,8 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import "../globals.css";
+import registry from "../content/registry.public.json";
+import { listJoin, projectNames } from "../content/registryText.mjs";
 
 // Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
 // Both cover Cyrillic, so EN and RU render in the same faces on every OS.
@@ -29,8 +31,7 @@ const meta: Record<Locale, {
       default: "KARTEL Core — public registry of the KARTEL federation",
       template: "%s | KARTEL",
     },
-    description:
-      "The public registry of the KARTEL federation: one identity, one map of countries and regions and one organisation model, shared by RusJAz and Community Group.",
+    description: `The public registry of the KARTEL federation: one identity, one map of countries and regions and one organisation model, shared by ${listJoin(projectNames(registry, "active"), "EN")}.`,
     ogTitle: "KARTEL Core — public registry of the KARTEL federation",
     twTitle: "KARTEL Core — public registry of the KARTEL federation",
     twDescription:
@@ -43,8 +44,7 @@ const meta: Record<Locale, {
       default: "Ядро KARTEL — публичный реестр федерации KARTEL",
       template: "%s | KARTEL",
     },
-    description:
-      "Публичный реестр федерации KARTEL: единая идентичность, единая карта стран и регионов и единая модель организаций для RusJAz и Community Group.",
+    description: `Публичный реестр федерации KARTEL: единая идентичность, единая карта стран и регионов и единая модель организаций для ${listJoin(projectNames(registry, "active"), "RU")}.`,
     ogTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
     twTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
     twDescription:
