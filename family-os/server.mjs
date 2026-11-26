@@ -36,6 +36,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const REMIND_DAYS = 365; // documents expiring within 12 months (bus 66)
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+$/;
+const INVITES_PER_DAY = 10; // bus 172 P4: the owner's invitation requests per family day (wizard sends + resends)
 
 export function sign(secret, ts, nonce, method, path, actor, bodySha) {
   return createHmac("sha256", secret).update(`${ts}.${nonce}.${method}.${path}.${actor}.${bodySha}`).digest("hex");
@@ -212,7 +213,10 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /me — who am I in Family OS (null = signed in to /family but not a Family OS member yet)
     if (req.method === "GET" && path === "/me") {
-      return reply(res, 200, { me: me ? { id: me.id, name_en: me.name_en, name_ru: me.name_ru, kind: me.kind } : null, admin });
+      // bus 172 P4: `onboarded` — has this member finished the first-login tour? No sign-in row yet counts as "not yet":
+      // the site notes a sign-in after its response, so the first page can arrive first. Not sent for a non-member.
+      const ob = me ? await store.onboardedOn(who.email) : null;
+      return reply(res, 200, { me: me ? { id: me.id, name_en: me.name_en, name_ru: me.name_ru, kind: me.kind } : null, admin, ...(me ? { onboarded: Boolean(ob?.on) } : {}) });
     }
 
     // GET /people — names, roles and guardian relations. Emails only for the admin.
@@ -780,14 +784,30 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         owner_signed_in: seen.find((x) => x.email === who.email) ?? null,
       });
     }
-    // POST /people/:id/invite — owner only: queue «Отправить ссылку ещё раз» (the runner sends it). One a day.
+    // POST /people/:id/invite — owner only: queue «Отправить ссылку ещё раз» (the runner sends it). One a day per
+    // person, and (bus 172 P4) at most INVITES_PER_DAY requests a day per owner — the wizard's send is this call.
+    // DELETE /people/:id/invite — owner only (bus 172 P4): cancel the invitation. An unsent letter is never sent;
+    // the person, their grants and the site's access list stay as they are. Audited (invite.cancel).
     const invm = path.match(/^\/people\/([0-9a-f-]{36})\/invite$/);
-    if (invm && req.method === "POST") {
+    if (invm && (req.method === "POST" || req.method === "DELETE")) {
       if (!admin) return reply(res, 403, { error: "admin_only" });
       if (!(await store.getPerson(invm[1]))) return reply(res, 404, { error: "not_found" });
-      if (!(await store.requestInvite(invm[1], localDate(clock()), who.email))) return reply(res, 409, { error: "already_today" });
+      if (req.method === "DELETE") {
+        if (!(await store.cancelInvite(invm[1], who.email))) return reply(res, 404, { error: "no_invite" });
+        await emit("invite.cancelled", invm[1], null);
+        return reply(res, 200, { ok: true });
+      }
+      const today = localDate(clock());
+      if ((await store.invitesRequestedBy(who.email, today)) >= INVITES_PER_DAY) return reply(res, 429, { error: "too_many_invites" });
+      if (!(await store.requestInvite(invm[1], today, who.email))) return reply(res, 409, { error: "already_today" });
       await emit("invite.requested", invm[1], null);
       return reply(res, 202, { ok: true });
+    }
+    // POST /onboarding — bus 172 P4: the signed-in actor finished the first-login tour. Own address only; date only.
+    if (path === "/onboarding" && req.method === "POST") {
+      if (!me) return reply(res, 403, { error: "not_a_member" });
+      await store.markOnboarded(who.email, localDate(clock()));
+      return reply(res, 200, { ok: true });
     }
 
     if (path === "/rules" && req.method === "GET") {
@@ -1585,7 +1605,7 @@ export function routeClass(url = "") {
   if (/^\/routines\/[^/]+$/.test(p)) return "/routines/:id";
   if (/^\/people\/[^/]+\/(prefs|pauses)$/.test(p)) return "/people/:id/" + p.split("/").pop();
   if (/^\/pauses\/[^/]+$/.test(p)) return "/pauses/:id";
-  if (p === "/signins" || p === "/adoption") return p;
+  if (p === "/signins" || p === "/adoption" || p === "/onboarding") return p;
   if (/^\/signin\/(pending|status|consume|code)$/.test(p)) return p;
   if (/^\/passkeys\/(register\/(options|verify)|auth\/(options|verify)|mine)$/.test(p)) return p;
   if (/^\/passkeys\/[^/]+(\/(revoke|clear-flag))?$/.test(p)) return "/passkeys/:id" + (p.match(/\/(revoke|clear-flag)$/)?.[0] ?? "");

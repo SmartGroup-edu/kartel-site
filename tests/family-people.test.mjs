@@ -55,6 +55,9 @@ test("sign-in summary: methods from the deploy settings, latest sign-in by date,
 test("wiring: «Люди» reads the board once more and nothing else; «Доступ» adds no read and stays owner-only and read-only", () => {
   const pp = readFileSync("app/[lang]/family/os/people/page.tsx", "utf8");
   assert.match(pp, /childHome\(lang, state\.me\);\n[\s\S]*await getBoard\(session\)/, "a child is sent home before the board is read");
+  // bus 172 P4: the owner's «Ждут ответа» adds one read, /adoption — after childHome, and for the owner only.
+  assert.match(pp, /childHome\(lang, state\.me\);\n[\s\S]*const adoptionRead = state\.admin \? getAdoption\(session\) : null;/);
+  assert.equal((pp.match(/getAdoption\(/g) ?? []).length, 1);
   const ap = readFileSync("app/[lang]/family/os/access/page.tsx", "utf8");
   assert.match(ap, /if \(!state\.admin\) notFound\(\);/);
   assert.match(ap, /roleRows\(\{ people: state\.people, grants: state\.grants, owners: familyEnv\.adminEmails\(\), editors: familyEnv\.editorEmails\(\)/);

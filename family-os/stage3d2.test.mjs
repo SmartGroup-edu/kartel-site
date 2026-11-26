@@ -76,7 +76,7 @@ test("invite: owner only; one per person per day (409); 404 for an unknown perso
   assert.equal((await call("POST", `/people/${P.e}/invite`, { body: {} })).status, 202);
   assert.equal((await call("POST", `/people/${P.e}/invite`, { body: {} })).status, 409, "once a day");
   const row = (await call("GET", "/adoption")).json.people.find((x) => x.id === P.e);
-  assert.deepEqual(row.invite, { on_date: TODAY, sent: false, sent_at: null });
+  assert.deepEqual(row.invite, { on_date: TODAY, sent: false, sent_at: null, cancelled: false });
   assert.equal(routeClass(`/people/${P.e}/invite`), "/people/:id/invite");
   assert.equal(routeClass("/adoption"), "/adoption"); assert.equal(routeClass("/signins"), "/signins");
 });
@@ -96,8 +96,8 @@ test("planInvites: quiet hours defer, older than two days drop, sent ones skip; 
 
 test("privileges: kfo_app may upsert sign-in dates and mark invites sent — never delete either", () => {
   const roles = readFileSync(new URL("./roles.sql", import.meta.url), "utf8");
-  assert.match(roles, /GRANT SELECT, INSERT, UPDATE \(last_on\) ON signin_seen TO kfo_app;/);
-  assert.match(roles, /GRANT SELECT, INSERT, UPDATE \(sent_at\) ON invite_request TO kfo_app;/);
+  assert.match(roles, /GRANT SELECT, INSERT, UPDATE \(last_on, onboarded_on\) ON signin_seen TO kfo_app;/);
+  assert.match(roles, /GRANT SELECT, INSERT, UPDATE \(sent_at, cancelled_at, cancelled_by, requested_by, requested_at\) ON invite_request TO kfo_app;/);
   assert.doesNotMatch(roles, /GRANT[^;]*DELETE[^;]* ON [^;]*\b(signin_seen|invite_request)\b/);
   const schema = readFileSync(new URL("./schema.sql", import.meta.url), "utf8");
   assert.match(schema, /CREATE TABLE IF NOT EXISTS signin_seen \(\s*email\s+text PRIMARY KEY CHECK \(email = lower\(email\)/);

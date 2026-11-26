@@ -28,8 +28,9 @@ GRANT SELECT, INSERT, UPDATE ON task_template, sprint_goal, task, plan_approval 
 GRANT SELECT, INSERT ON kodeks_version, recognition TO kfo_app;
 GRANT SELECT, INSERT, UPDATE ON principle_week TO kfo_app;
 -- 3d-2: sign-in dates (upsert) and invite requests (the runner marks sent_at). No DELETE on either.
-GRANT SELECT, INSERT, UPDATE (last_on) ON signin_seen TO kfo_app;
-GRANT SELECT, INSERT, UPDATE (sent_at) ON invite_request TO kfo_app;
+-- bus 172 P4: the first-login tour's date; an invitation is cancelled (cancelled_*) and may be re-opened the same day.
+GRANT SELECT, INSERT, UPDATE (last_on, onboarded_on) ON signin_seen TO kfo_app;
+GRANT SELECT, INSERT, UPDATE (sent_at, cancelled_at, cancelled_by, requested_by, requested_at) ON invite_request TO kfo_app;
 GRANT USAGE ON SEQUENCE invite_request_id_seq TO kfo_app;
 -- 3d-2 review photo: rows are never deleted by the app; the file is removed and deleted_at set.
 GRANT SELECT, INSERT, UPDATE (deleted_at) ON task_photo TO kfo_app;

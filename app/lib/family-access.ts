@@ -48,3 +48,29 @@ export async function isViewerApproved(subject: string, email?: string): Promise
   if (fae?.[em] === "approved") return true;
   return familyEnv.approvedEmails().includes(em);
 }
+
+/**
+ * bus 172 P4: the owner's view of one address on the access list, for the invite wizard and «Ждут ответа». Same
+ * sources and order as isViewerApproved, but it tells "not on the list" apart from "could not read the list".
+ * Read-only: nothing here adds or removes an address.
+ */
+export type AccessListState = "listed" | "not_listed" | "revoked" | "unknown";
+export async function accessListState(email: string): Promise<AccessListState> {
+  return (await accessListStates([email]))[0];
+}
+/** The same, for several addresses with one Edge Config read (QA P4: «Люди» read it once per waiting person). */
+export async function accessListStates(emails: string[]): Promise<AccessListState[]> {
+  let fae: Record<string, FamilyAccessStatus> | undefined, unread = false;
+  if (emails.length && process.env.EDGE_CONFIG) {
+    try { fae = await get<Record<string, FamilyAccessStatus>>("familyAccessEmails"); } catch { unread = true; }
+  }
+  return emails.map((email) => {
+    const em = email.trim().toLowerCase();
+    if (!em) return "not_listed";
+    if (familyEnv.adminEmails().includes(em)) return "listed";
+    if (unread) return "unknown";
+    if (fae?.[em] === "revoked") return "revoked";
+    if (fae?.[em] === "approved" || familyEnv.approvedEmails().includes(em)) return "listed";
+    return "not_listed";
+  });
+}

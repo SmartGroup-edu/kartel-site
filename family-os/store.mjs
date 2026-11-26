@@ -226,13 +226,32 @@ export function pgStore(pool) {
       await q("INSERT INTO signin_seen (email, first_on, last_on) VALUES ($1, $2, $2) ON CONFLICT (email) DO UPDATE SET last_on = GREATEST(signin_seen.last_on, $2)", [email, date]);
     },
     async signIns() { return (await q("SELECT email, to_char(first_on, 'YYYY-MM-DD') AS first_on, to_char(last_on, 'YYYY-MM-DD') AS last_on FROM signin_seen")).rows; },
+    // bus 172 P4: a request on a day whose invitation was cancelled re-opens it. A letter that already went out that
+    // day stays sent (sent_at is kept), so cancel → invite cannot send the same person a second letter the same day.
     async requestInvite(personId, date, actor) {
-      const r = await q("INSERT INTO invite_request (person_id, on_date, requested_by) VALUES ($1, $2, $3) ON CONFLICT (person_id, on_date) DO NOTHING RETURNING id", [personId, date, actor]);
+      const r = await q(`INSERT INTO invite_request (person_id, on_date, requested_by) VALUES ($1, $2, $3)
+        ON CONFLICT (person_id, on_date) DO UPDATE SET cancelled_at = NULL, cancelled_by = NULL, requested_by = $3, requested_at = now()
+        WHERE invite_request.cancelled_at IS NOT NULL RETURNING id`, [personId, date, actor]);
       if (r.rows.length) await audit(actor, "invite.request", `person:${personId}`);
       return r.rows.length > 0;
     },
-    async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
-    async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1", [since])).rows; },
+    async invitesRequestedBy(actor, date) { return Number((await q("SELECT count(*) AS n FROM invite_request WHERE requested_by = $1 AND on_date = $2", [actor, date])).rows[0].n); },
+    async cancelInvite(personId, actor) {
+      const r = await q("UPDATE invite_request SET cancelled_at = now(), cancelled_by = $2 WHERE person_id = $1 AND cancelled_at IS NULL RETURNING id", [personId, actor]);
+      if (r.rows.length) await audit(actor, "invite.cancel", `person:${personId}`);
+      return r.rows.length > 0;
+    },
+    async lastInvites() { return (await q("SELECT DISTINCT ON (person_id) person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at, cancelled_at FROM invite_request ORDER BY person_id, on_date DESC")).rows; },
+    async pendingInvites(since) { return (await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND cancelled_at IS NULL AND on_date >= $1", [since])).rows; },
+    // bus 172 P4: first-login onboarding. null = no sign-in noted for this address yet.
+    async onboardedOn(email) { const r = (await q("SELECT to_char(onboarded_on, 'YYYY-MM-DD') AS on FROM signin_seen WHERE email = $1", [email])).rows[0]; return r ? { on: r.on } : null; },
+    // An upsert: the site notes a sign-in after its response, so the tour can end before that row exists.
+    async markOnboarded(email, date) {
+      const r = await q(`INSERT INTO signin_seen (email, first_on, last_on, onboarded_on) VALUES ($1, $2, $2, $2)
+        ON CONFLICT (email) DO UPDATE SET onboarded_on = $2 WHERE signin_seen.onboarded_on IS NULL RETURNING email`, [email, date]);
+      if (r.rows.length) await audit(email, "onboarding.done", "signin:self");
+      return r.rows.length > 0;
+    },
     async markInviteSent(id) { await q("UPDATE invite_request SET sent_at = now() WHERE id = $1 AND sent_at IS NULL", [id]); },
     // ---- Go-live R1: session cut-offs ('*' = everyone). The later of the person's and the family-wide one wins.
     async sessionCutoff(email) {
@@ -559,11 +578,21 @@ export function memoryStore({ clock = () => new Date() } = {}) {
     async noteSignIn(email, date) { const x = seen.get(email); seen.set(email, x ? { ...x, last_on: date > x.last_on ? date : x.last_on } : { email, first_on: date, last_on: date }); },
     async signIns() { return [...seen.values()]; },
     async requestInvite(personId, date, actor) {
-      if (invites.some((i) => i.person_id === personId && i.on_date === date)) return false;
-      invites.push({ id: invites.length + 1, person_id: personId, on_date: date, requested_by: actor, sent_at: null }); return true;
+      const x = invites.find((i) => i.person_id === personId && i.on_date === date);
+      if (x && !x.cancelled_at) return false;
+      if (x) { Object.assign(x, { cancelled_at: null, cancelled_by: null, requested_by: actor }); return true; }
+      invites.push({ id: invites.length + 1, person_id: personId, on_date: date, requested_by: actor, sent_at: null, cancelled_at: null }); return true;
+    },
+    async invitesRequestedBy(actor, date) { return invites.filter((i) => i.requested_by === actor && i.on_date === date).length; },
+    async cancelInvite(personId, actor) {
+      const open = invites.filter((i) => i.person_id === personId && !i.cancelled_at);
+      for (const i of open) Object.assign(i, { cancelled_at: now(), cancelled_by: actor });
+      return open.length > 0;
     },
     async lastInvites() { const m = new Map(); for (const i of invites) if (!m.has(i.person_id) || m.get(i.person_id).on_date < i.on_date) m.set(i.person_id, i); return [...m.values()]; },
-    async pendingInvites(since) { return invites.filter((i) => !i.sent_at && i.on_date >= since); },
+    async pendingInvites(since) { return invites.filter((i) => !i.sent_at && !i.cancelled_at && i.on_date >= since); },
+    async onboardedOn(email) { const x = seen.get(email); return x ? { on: x.onboarded_on ?? null } : null; },
+    async markOnboarded(email, date) { const x = seen.get(email); if (x?.onboarded_on) return false; seen.set(email, x ? { ...x, onboarded_on: date } : { email, first_on: date, last_on: date, onboarded_on: date }); return true; },
     async markInviteSent(id) { const i = invites.find((x) => x.id === id); if (i && !i.sent_at) i.sent_at = now(); },
     // ---- Passkeys
     async pkUser(email) { return pk.users.get(email) ?? null; },

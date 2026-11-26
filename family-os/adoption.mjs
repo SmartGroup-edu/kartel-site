@@ -21,7 +21,7 @@ export function adoptionRows(people, seen, prefs, invites, passkeys = null) {
       signed_in: s ? { first_on: s.first_on, last_on: s.last_on } : null,
       digest: { on: pr ? pr.email_on : true, time: pr?.digest_time ?? "07:00" },
       passkey: passkeys ? passkeys.has(p.email) : null, // null = passkeys not built yet (bus 98, in security review)
-      invite: i ? { on_date: i.on_date, sent: Boolean(i.sent_at), sent_at: i.sent_at ? new Date(i.sent_at).toISOString() : null } : null,
+      invite: i ? { on_date: i.on_date, sent: Boolean(i.sent_at), sent_at: i.sent_at ? new Date(i.sent_at).toISOString() : null, cancelled: Boolean(i.cancelled_at) } : null, // bus 172 P4
     };
   });
 }

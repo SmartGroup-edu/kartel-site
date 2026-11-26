@@ -60,7 +60,7 @@ test("L8 typographDict / tx: RU strings and function results are typographed; EN
 });
 
 test("L8 wiring: every Family OS screen reads its words through tx(); principle and task titles are typographed for display", () => {
-  for (const f of ["FamilyOs.tsx", "FamilyBoard.tsx", "FamilyCouncil.tsx", "FamilyCalendar.tsx", "FamilyKodeks.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyRules.tsx", "FamilyPrefs.tsx", "FamilyRoutines.tsx", "FamilyPersonExtras.tsx", "FamilyHealth.tsx", "FamilyBody.tsx", "FamilyAdoption.tsx", "FamilyPasskeys.tsx", "FamilyWeek.tsx", "FamilyOsDown.tsx", "FamilyToday.tsx", "FamilyOsShell.tsx"]) {
+  for (const f of ["FamilyOs.tsx", "FamilyBoard.tsx", "FamilyCouncil.tsx", "FamilyCalendar.tsx", "FamilyKodeks.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyRules.tsx", "FamilyPrefs.tsx", "FamilyRoutines.tsx", "FamilyPersonExtras.tsx", "FamilyHealth.tsx", "FamilyBody.tsx", "FamilyAdoption.tsx", "FamilyPasskeys.tsx", "FamilyWeek.tsx", "FamilyOsDown.tsx", "FamilyToday.tsx", "FamilyOsShell.tsx", "FamilyInvite.tsx", "FamilyOnboarding.tsx"]) {
     assert.match(comp(f), /tx\(T, lang\)|tx\(OS_DOWN_T, lang\)/, `${f} reads RU copy through the typographer`);
   }
   const k = comp("FamilyKodeks.tsx");

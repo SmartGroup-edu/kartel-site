@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getReminders, getMyRoutines, getMyBoard, getBoard, getPrinciple, getRecognitions, getKodeks, getCalendar } from "@/app/lib/family-os";
+import { canRegister } from "@/app/lib/family-passkey-rules.mjs";
+import FamilyOnboarding from "@/app/components/FamilyOnboarding";
 import { todayModel, familyHour } from "@/app/lib/family-today.mjs";
 import FamilyToday, { type TodayModel } from "@/app/components/FamilyToday";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
@@ -53,6 +55,9 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
   }
   const me = state.me;
   const child = me?.kind === "child";
+  // bus 172 P4: the first-login tour, until Family OS says it is done (a service from before P4 says nothing: no tour).
+  // It costs this render no Family OS call: `onboarded` comes with /me, the letter settings load in the browser.
+  const onboarding = Boolean(me) && state.onboarded === false;
   const [family, routines, myBoard, board, calendar, principle, recognitions, kodeks] = await Promise.all([
     state.admin ? getReminders(session, "family") : Promise.resolve([]),
     me ? getMyRoutines(session, me.id) : Promise.resolve(null),
@@ -79,9 +84,13 @@ export default async function FamilyOsTodayPage({ params }: { params: Promise<{ 
   const model = todayModel({ lang: L, me, admin: state.admin, people: state.people, myBoard, routines, board, calendar, reminders, hour, today: now.toISOString().slice(0, 10) }) as TodayModel;
   const day = model.today;
   return (
+    <>
+    {onboarding && <FamilyOnboarding lang={L} me={{ id: me.id, name: L === "EN" ? me.name_en : me.name_ru, kind: me.kind }}
+      passkeys={{ on: familyEnv.passkeysOn(), canAdd: canRegister(session) }} />}
     <FamilyToday lang={L} model={model} dateLine={dateLine} myBoard={myBoard} board={board} people={state.people} meId={me.id}
       principle={principle} recognitions={recognitions?.recognitions ?? null} principles={kodeks?.current?.body.principles ?? null}
       reminders={reminders} familyReminders={family} sunday={new Date(`${day}T12:00:00Z`).getUTCDay() === 0} />
+    </>
   );
 }
 
