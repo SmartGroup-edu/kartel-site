@@ -1,9 +1,9 @@
 // The vendored public registry must be exactly the kartel-core copy it was synced from.
-// kartel-core is private, so CI cannot read it; app/content/registry.source.json records
-// the source version, date, commit and file hash at sync time. This fails when the site
-// copy changes without the record (hand edit, partial re-vendor) or the record without
-// the copy. The pre-push check (scripts/check-registry-sync.mjs) compares the record with
-// the local kartel-core checkout. Bus 155: the site sat at v6 while kartel-core reached v10.
+// app/content/registry.source.json records the source version, date, commit and file hash
+// at sync time. This fails when the site copy changes without the record (hand edit, partial
+// re-vendor) or the record without the copy. scripts/check-registry-sync.mjs compares the
+// record with kartel-core itself: pre-push against the local checkout, and in CI (job
+// registry-sync, bus 169) against kartel-core main. Bus 155: the site sat at v6 while kartel-core reached v10.
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
