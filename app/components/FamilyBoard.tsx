@@ -18,9 +18,12 @@ import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3, RULE_GOALS } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
 import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
-import type { OsBoard, OsBoardMember, OsBoardTask, OsPlan, OsTemplate, OsSprint, OsSprintGoal, OsMyBoard, OsApprovalStamp, OsWhenSlot, OsDeclineCode, OsTaskHistory } from "../lib/family-os";
+import { KANBAN_COLS, kanbanColumns, moveAction, MOVE_STATE, canDrag, tasksOf } from "../lib/family-kanban.mjs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import type { OsBoard, OsBoardMember, OsBoardTask, OsPlan, OsTemplate, OsSprint, OsSprintGoal, OsMyBoard, OsApprovalStamp, OsWhenSlot, OsDeclineCode, OsTaskHistory, OsTaskState } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
+type KCol = (typeof KANBAN_COLS)[number];
 type Person = { id: string; name_en: string; name_ru: string; kind: "adult" | "child" };
 const T = {
   RU: {
@@ -58,6 +61,11 @@ const T = {
     step: { proposed: "Предложено", approved: "Утверждено", accepted: "Принято", started: "Начато", paused: "Пауза", continued: "Продолжено", done: "Готово", reviewed: "Проверено", declined: "Не может", edited: "Изменено", carried_over: "Перенесено на завтра", cancelled: "Снято" } as Record<string, string>,
     origin: { template: "из шаблона", rotation: "по очереди", sprint: "из спринта", carry: "перенесено", adhoc: "добавлено" } as Record<string, string>,
     actor: { auto: "автоматически", system: "система", admin: "администратор" } as Record<string, string>, todayW: "сегодня", yesterday: "вчера",
+    sub: "Семейные задачи на день: перетащи карточку в другую колонку или открой «Переместить в…».", subChild: "Твои задачи на день.",
+    kcol: { todo: "Нужно сделать", doing: "В работе", wait: "Ждёт решения", done: "Готово" } as Record<KCol, string>, kanbanAria: "Задачи по колонкам",
+    moveTo: "Переместить в…", moveMenu: (x: string) => `Переместить «${x}»`, emptyCol: "Пусто", everyone: "Все",
+    cantMove: "Сюда эту задачу перенести нельзя — открой её, там все доступные шаги.", moved: (x: string, col: string) => `«${x}» — ${col.toLowerCase()}.`,
+    notYours: "Этот шаг делает другой человек.", oneInProgress: (x: string) => `Сейчас в работе «${x}». Открой задачу, чтобы поставить её на паузу.`,
   },
   EN: {
     title: "Family board", updated: "updated", today: "Family tasks today", of: "of", ready: "done", noneToday: "No family tasks today.",
@@ -94,14 +102,18 @@ const T = {
     step: { proposed: "Proposed", approved: "Approved", accepted: "Accepted", started: "Started", paused: "Paused", continued: "Still going", done: "Done", reviewed: "Checked", declined: "Can't", edited: "Changed", carried_over: "Moved to tomorrow", cancelled: "Removed" } as Record<string, string>,
     origin: { template: "from a template", rotation: "from the rota", sprint: "from the sprint", carry: "carried over", adhoc: "added" } as Record<string, string>,
     actor: { auto: "automatically", system: "system", admin: "admin" } as Record<string, string>, todayW: "today", yesterday: "yesterday",
+    sub: "The family's tasks for the day: drag a card to another column or use “Move to…”.", subChild: "Your tasks for the day.",
+    kcol: { todo: "To do", doing: "In progress", wait: "Waiting for a decision", done: "Done" } as Record<KCol, string>, kanbanAria: "Tasks by column",
+    moveTo: "Move to…", moveMenu: (x: string) => `Move “${x}”`, emptyCol: "Empty", everyone: "Everyone",
+    cantMove: "This task cannot go there — open it to see every step you can take.", moved: (x: string, col: string) => `“${x}” — ${col.toLowerCase()}.`,
+    notYours: "Someone else takes this step.", oneInProgress: (x: string) => `“${x}” is in progress now. Open that task to pause it.`,
   },
 };
 type Dict = (typeof T)["RU"];
-const COLS = ["waiting", "accepted", "in_progress", "done"] as const;
-type Col = (typeof COLS)[number];
-const colOf = (s: OsBoardTask["state"]): Col | null => (s === "approved" || s === "declined" ? "waiting" : s === "accepted" ? "accepted" : s === "in_progress" ? "in_progress" : s === "done" || s === "reviewed" ? "done" : null);
-const SLOT_MIN: Record<OsWhenSlot, number> = { morning: 480, after_school: 960, after_dinner: 1170, evening: 1230 };
-const minuteOf = (t: { due_time: string | null; when_slot: OsWhenSlot | null }) => (t.due_time ? Number(t.due_time.slice(0, 2)) * 60 + Number(t.due_time.slice(3)) : t.when_slot ? SLOT_MIN[t.when_slot] : 1440);
+/** The progress bar's segments (family totals from the service). */
+type Col = "waiting" | "accepted" | "in_progress" | "done";
+/** Column dot colours, as in the mockup: grey · blue · amber · green. */
+const KDOT: Record<KCol, string> = { todo: "var(--muted)", doing: "var(--fos-blue)", wait: "var(--fos-amber)", done: "var(--fos-accent-2)" };
 const parts = (t: OsBoardTask) => [t.assignee_id, ...(t.co_ids ?? [])];
 
 const field = "mt-1 block min-h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[16px] leading-6 text-[var(--foreground)]";
@@ -111,7 +123,8 @@ const primary = BTN_PRIMARY;
 const panel = "rounded-lg border border-[var(--border)] bg-[var(--background)] px-5 py-4";
 /** Task titles are family-typed text: typographed for display in RU only (spaces → no-break spaces, nothing else). */
 const ty = (s: string, lang: Lang) => (lang === "RU" ? typograph(s) : s);
-const seg = (on: boolean) => `inline-flex min-h-11 items-center px-3.5 text-[15px] ${on ? "bg-[var(--accent)] font-medium text-[var(--on-accent)]" : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`;
+/** A person filter chip (mockup .fchip): the chosen one is filled with ink. */
+const chip = (on: boolean) => `inline-flex min-h-11 items-center gap-2 rounded-full border px-3.5 text-[14px] font-medium ${on ? "border-[var(--foreground)] bg-[var(--foreground)] text-[var(--background)]" : "border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] hover:border-[var(--accent)]"}`;
 
 export const osSend = (method: "POST" | "PUT" | "PATCH", path: string, body: unknown = {}) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
@@ -126,9 +139,9 @@ const whenText = (x: { due_time: string | null; when_slot: OsWhenSlot | null }, 
 /** Avatars (bus 85 M2): colour fixed per id, letters from the display name in the UI language (app/lib/family-avatars.mjs). */
 const avatarsFor = (people: Person[], lang: Lang) => avatarsOf(people.map((p) => ({ id: p.id, name: nameOfM(p, lang) }))) as Map<string, { text: string; bg: string }>;
 type Avatars = ReturnType<typeof avatarsFor>;
-function Avatar({ id, av }: { id: string; av: Avatars }) {
+function Avatar({ id, av, sm = false }: { id: string; av: Avatars; sm?: boolean }) {
   const a = av.get(id);
-  return <span aria-hidden="true" className="grid h-8 w-8 flex-none place-items-center rounded-full text-[14px] font-semibold text-white" style={{ background: a?.bg ?? "#7b1e2d" }}>{a?.text ?? "?"}</span>;
+  return <span aria-hidden="true" className={`grid flex-none place-items-center rounded-full font-semibold text-white ${sm ? "h-7 w-7 text-[12px] ring-2 ring-[var(--fos-panel)]" : "h-8 w-8 text-[14px]"}`} style={{ background: a?.bg ?? "#7b1e2d" }}>{a?.text ?? "?"}</span>;
 }
 
 /** The small tag before a title: sprint (blue) or rota (green). Plain chores carry none. */
@@ -139,7 +152,7 @@ function Tag({ task, t }: { task: { kind: string; origin?: string }; t: Dict }) 
   return null;
 }
 
-type Ctx = { t: Dict; lang: Lang; me: { id: string; kind: string } | null; people: Person[]; av: Avatars; parent: boolean; onChange: () => void; open: (id: string) => void };
+type Ctx = { t: Dict; lang: Lang; me: { id: string; kind: string } | null; people: Person[]; av: Avatars; parent: boolean; onChange: () => void; open: (id: string, decline?: boolean) => void };
 const withText = (task: OsBoardTask, lane: string | null, c: Ctx) => { const others = parts(task).filter((x) => x !== lane); return others.length ? `${c.t.with} ${others.map((x) => nameOfM(c.people.find((p) => p.id === x), c.lang)).join(", ")}` : ""; };
 
 export default function FamilyBoard({ lang, initial, plan, templates, me }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null }) {
@@ -149,9 +162,8 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
   const [seen, setSeen] = useState(initial);
   if (initial !== seen) { setSeen(initial); setBoard(initial); }
   const [at, setAt] = useState<string>(initial?.now ?? "");
-  const [view, setView] = useState<"board" | "list">("board");
-  const [who, setWho] = useState<"mine" | "kids" | "all">("all");
-  const [drawer, setDrawer] = useState<string | null>(null);
+  const [who, setWho] = useState<string | null>(null);
+  const [drawer, setDrawer] = useState<{ id: string; decline: boolean } | null>(null);
   const refresh = useCallback(async () => {
     const r = await fetch(`/api/family-os/board${initial ? `?date=${initial.date}` : ""}`, { credentials: "same-origin", cache: "no-store" }).catch(() => null);
     if (r?.ok) { const b = (await r.json()) as OsBoard; setBoard(b); setAt(b.now); }
@@ -166,10 +178,10 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
   const people: Person[] = board?.members ?? [];
   const av = avatarsFor(people, lang);
   const parent = Boolean(board?.can.approve);
-  const c: Ctx = { t, lang, me, people, av, parent, onChange: refresh, open: setDrawer };
-  const decisions = decisionCount(board);
-  const shown = (m: OsBoardMember) => who === "all" || (who === "mine" ? m.id === me?.id : m.kind === "child");
-  const tasks = board ? board.tasks.filter((x) => who === "all" || (who === "mine" ? parts(x).includes(me?.id ?? "") : parts(x).some((p) => people.find((q) => q.id === p)?.kind === "child"))) : [];
+  const c: Ctx = { t, lang, me, people, av, parent, onChange: refresh, open: (id, decline = false) => setDrawer({ id, decline }) };
+  const child = me?.kind === "child";
+  const shown = (m: OsBoardMember) => !who || m.id === who;
+  const tasks = board ? tasksOf(board.tasks, who) as OsBoardTask[] : [];
 
   return (
     <>
@@ -180,6 +192,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
                 <h1 className={H1}>{t.title}</h1>
+                <p className="mt-1 text-[15px] text-[var(--muted)]">{child ? t.subChild : t.sub}</p>
                 <p data-stamp="" className={`${META} mt-2 text-[16px]`} suppressHydrationWarning>
                   {longDate(board.date, lang)}{board.approval ? ` · ${stampText(board.approval, c)}` : ""}{at ? ` · ${t.updated} ${at}` : ""}
                 </p>
@@ -187,9 +200,10 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
               <Progress t={t} p={board.progress} />
             </div>
             {parent && <Inbox c={c} board={board} />}
-            <Toolbar c={c} view={view} setView={setView} who={who} setWho={setWho} tasks={tasks} decisions={parent ? decisions : null} />
-            <Strip c={c} members={board.members.filter(shown)} board={view === "board" ? board : null} />
-            {view === "board" ? <Lanes c={c} board={board} members={board.members.filter(shown)} /> : <ListView c={c} tasks={tasks} />}
+            {/* A child's board holds only their own tasks (server-side, family-kanban.mjs childBoardView): no person chips. */}
+            {!child && <PersonChips c={c} who={who} setWho={setWho} members={board.members} />}
+            <Kanban c={c} tasks={tasks} decisionIds={new Set((board.needs_decision ?? []).map((x) => x.id))} />
+            <Strip c={c} members={board.members.filter(shown)} />
             {board.carry_offer && board.carry_offer.length > 0 && <CarryOffer c={c} tasks={board.carry_offer} />}
             <div className={`mt-8 grid gap-5 ${parent && board.plan ? "lg:grid-cols-[1.35fr_1fr]" : ""}`}>
               {parent && board.plan && <PlanPanel key={`${board.plan.date}:${board.plan.approved}:${plan?.tasks.length ?? 0}:${plan?.approval?.at ?? ""}`} c={c} summary={board.plan} plan={plan} />}
@@ -198,13 +212,12 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
             {parent && templates && <Templates c={c} templates={templates} />}
           </div>
         )}
-        {drawer && board && <Drawer c={c} id={drawer} onClose={() => setDrawer(null)} />}
+        {drawer && board && <Drawer key={drawer.id} c={c} id={drawer.id} decline={drawer.decline} onClose={() => setDrawer(null)} />}
       </div>
     </>
   );
 }
 
-const decisionCount = (b: OsBoard | null) => (b?.needs_decision?.length ?? 0) + (b?.plan && b.plan.ready && !b.plan.approved && b.plan.proposed > 0 ? 1 : 0);
 function stampText(a: OsApprovalStamp, c: Ctx) {
   if (a.auto) return c.t.stampAuto(a.at ?? "07:00");
   const by = a.by && c.t.actor[a.by] ? c.t.actor[a.by] : nameOfM(c.people.find((p) => p.id === a.by), c.lang);
@@ -258,105 +271,158 @@ function Inbox({ c, board, startOpen = false }: { c: Ctx; board: OsBoard; startO
   );
 }
 
-function Toolbar({ c, view, setView, who, setWho, tasks, decisions }: { c: Ctx; view: "board" | "list"; setView: (v: "board" | "list") => void; who: "mine" | "kids" | "all"; setWho: (v: "mine" | "kids" | "all") => void; tasks: OsBoardTask[]; decisions: number | null }) {
-  const { t } = c;
-  const filters: ["mine" | "kids" | "all", string][] = c.parent ? [["mine", t.mine], ["kids", t.kids], ["all", t.all]] : [["mine", t.mine], ["all", t.all]];
+/** Filter chips by person (mockup v5): «Все» and each family member. Parents and adults only — a child's board is theirs. */
+function PersonChips({ c, who, setWho, members }: { c: Ctx; who: string | null; setWho: (v: string | null) => void; members: OsBoardMember[] }) {
+  const { t, lang } = c;
   return (
-    <div data-toolbar="" className="mt-6 flex flex-wrap items-center gap-3">
-      <div role="group" aria-label={t.view} className="inline-flex overflow-hidden rounded-lg border border-[var(--border)]">
-        {(["board", "list"] as const).map((v) => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)} className={seg(view === v)}>{v === "board" ? t.board : t.list}</button>)}
-      </div>
-      <div role="group" aria-label={t.filter} className="inline-flex overflow-hidden rounded-lg border border-[var(--border)]">
-        {filters.map(([v, l]) => <button key={v} type="button" aria-pressed={who === v} onClick={() => setWho(v)} className={seg(who === v)}>{l}</button>)}
-      </div>
-      <p data-summary="" className="text-[14px] text-[var(--muted)]">{t.summary(tasks.length, tasks.filter((x) => x.state === "approved").length, decisions)}</p>
+    <div role="group" aria-label={t.filter} data-person-chips="" className="mt-6 flex flex-wrap gap-2">
+      <button type="button" aria-pressed={!who} onClick={() => setWho(null)} className={chip(!who)}>{t.everyone}</button>
+      {members.map((m) => (
+        <button key={m.id} type="button" aria-pressed={who === m.id} onClick={() => setWho(who === m.id ? null : m.id)} className={`${chip(who === m.id)} pl-1.5`}>
+          <Avatar id={m.id} av={c.av} sm />{nameOfM(m, lang)}
+        </button>
+      ))}
     </div>
   );
 }
 
 /**
- * «Кто чем занят» — the one people list (bus 157b D7). Below 1024 px a person's card expands in place into
- * their tasks (self open first), so there is no second per-person list; from 1024 px the lanes table below
- * holds the tasks and the cards stay a summary. Names are the cards' H3, column labels H4 (L6 heading order).
+ * «Кто чем занят» — one summary card per person: what they are doing now, what waits, their routine count. The tasks
+ * themselves are in the columns above at every width (bus 172 P2), so a card no longer expands into a second list.
  */
-function Strip({ c, members, board }: { c: Ctx; members: OsBoardMember[]; board: OsBoard | null }) {
+function Strip({ c, members }: { c: Ctx; members: OsBoardMember[] }) {
   const { t, lang } = c;
-  const [open, setOpen] = useState<Set<string>>(() => new Set(c.me ? [c.me.id] : []));
-  const toggle = (id: string) => setOpen((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const cards = (m: OsBoardMember, k: Col) => (board?.tasks ?? []).filter((x) => parts(x).includes(m.id) && colOf(x.state) === k);
+  if (!members.length) return null;
   return (
     <section aria-labelledby="strip-h" className="mt-10">
       <h2 id="strip-h" className={OS_H2}>{t.strip}</h2>
       <ul data-strip="" className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-        {members.map((m) => {
-          const expandable = Boolean(board) && m.total > 0, isOpen = expandable && open.has(m.id);
-          return (
-          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} data-self={m.id === c.me?.id ? "" : undefined} data-open={isOpen ? "" : undefined}
-            className={`rounded-lg border px-3 py-3 ${isOpen ? "col-span-full lg:col-span-1" : ""} ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"} ${m.id === c.me?.id ? "ring-2 ring-[var(--muted-light)] ring-offset-1 ring-offset-[var(--background)]" : ""}`}>
+        {members.map((m) => (
+          <li key={m.id} data-who={m.current ? "busy" : m.waiting ? "waiting" : "free"} data-self={m.id === c.me?.id ? "" : undefined}
+            className={`rounded-[var(--fos-radius)] border bg-[var(--fos-panel)] px-3 py-3 shadow-[var(--fos-shadow)] ${m.current ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"}`}>
             <div className="flex items-center gap-2"><Avatar id={m.id} av={c.av} /><h3 className={`${OS_H3} min-w-0 flex-1`}>{nameOfM(m, lang)}</h3>{m.id === c.me?.id ? <span data-you="" className="rounded-md border border-[var(--border)] px-2 py-0.5 text-[14px] font-medium text-[var(--text-secondary)]">{lang === "EN" ? "You" : "Ты"}</span> : null}</div>
             <div aria-live="polite">
-            {m.current ? (
-              <>
-                <p className="mt-2 text-[15px] font-semibold leading-snug text-[var(--accent)]"><span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[var(--accent)] align-[1px] motion-safe:animate-pulse" />{m.current.title}</p>
-                <p className="mt-1 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{[m.current.started_at ? `${t.since} ${hhmm(m.current.started_at)}` : "", m.current.co_ids.length ? `${t.with} ${m.current.co_ids.map((x) => nameOfM(c.people.find((p) => p.id === x), lang)).join(", ")}` : "", m.current.kind === "sprint" ? t.tag.sprint.toLowerCase() : ""].filter(Boolean).join(" · ")}</p>
-              </>
-            ) : (
-              <>
-                <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{m.waiting ? t.waitingN(m.waiting) : m.total ? t.nothing : (m.next ? nextText(m, c) : t.noTasks)}</p>
-                {m.waiting > 0 && m.kind === "child" ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.acceptBy}</p> : m.total > 0 ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.doneOf(m.done, m.total)}</p> : null}
-              </>
-            )}
+              {m.current ? (
+                <>
+                  <p className="mt-2 text-[15px] font-semibold leading-snug text-[var(--accent)]"><span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-[var(--accent)] align-[1px] motion-safe:animate-pulse" />{m.current.title}</p>
+                  <p className="mt-1 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{[m.current.started_at ? `${t.since} ${hhmm(m.current.started_at)}` : "", m.current.co_ids.length ? `${t.with} ${m.current.co_ids.map((x) => nameOfM(c.people.find((p) => p.id === x), lang)).join(", ")}` : "", m.current.kind === "sprint" ? t.tag.sprint.toLowerCase() : ""].filter(Boolean).join(" · ")}</p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-[15px] text-[var(--text-secondary)]">{m.waiting ? t.waitingN(m.waiting) : m.total ? t.nothing : nextText(m, c)}</p>
+                  {m.waiting > 0 && m.kind === "child" ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.acceptBy}</p> : m.total > 0 ? <p className="mt-1 text-[14px] text-[var(--muted)]">{t.doneOf(m.done, m.total)}</p> : null}
+                </>
+              )}
             </div>
-            {m.routines && <div className="lg:hidden"><RoutineLine t={t} r={m.routines} /></div>}
-            {expandable && (
-              <div className="lg:hidden">
-                <button type="button" data-strip-toggle="" aria-expanded={isOpen} aria-controls={`strip-tasks-${m.id}`} onClick={() => toggle(m.id)}
-                  className="mt-2 flex min-h-11 w-full items-center justify-between gap-2 border-t border-[var(--border)] pt-2 text-left text-[15px] text-[var(--foreground)]">
-                  {isOpen ? t.hideTasks : t.showTasks(m.total)}
-                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" className={`shrink-0 text-[var(--muted)] transition-transform motion-reduce:transition-none ${isOpen ? "rotate-90" : ""}`}><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </button>
-                {isOpen && (
-                  <div id={`strip-tasks-${m.id}`} data-strip-tasks="" className="grid gap-3 pb-1 pt-2">
-                    {COLS.map((k) => { const list = cards(m, k); return list.length ? (
-                      <div key={k}><h4 className="text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.legend[k]}</h4>
-                        <ul className="mt-1.5 grid gap-2">{list.map((x) => <Card key={x.id} c={c} task={x} lane={m.id} idp="s-" />)}</ul></div>
-                    ) : null; })}
-                  </div>
-                )}
-              </div>
-            )}
+            {m.routines && <RoutineLine t={t} r={m.routines} />}
           </li>
-          );
-        })}
+        ))}
       </ul>
     </section>
   );
 }
 
-/** One card: tag, title, meta; the state in words for screen readers; the card opens the drawer. */
-function Card({ c, task, lane, idp = "" }: { c: Ctx; task: OsBoardTask; lane: string; idp?: string }) {
+/**
+ * The Kanban (bus 172 P2): four columns from family-kanban.mjs. A card moves by drag and drop (native HTML5) or, from the
+ * keyboard, by its «Переместить в…» menu — both through the service's existing task moves, optimistically: the card
+ * moves at once and goes back, with a message, if the service refuses. The card itself opens the side panel.
+ */
+function Kanban({ c, tasks, decisionIds }: { c: Ctx; tasks: OsBoardTask[]; decisionIds: Set<string> }) {
   const { t } = c;
-  const col = colOf(task.state);
-  const mine = parts(task).includes(c.me?.id ?? "");
-  const cls = task.state === "declined" ? "border-[var(--warn-border)] bg-[var(--warn-soft)]"
-    : col === "done" ? "border-[var(--border)] bg-[var(--surface)]"
-    : col === "in_progress" ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]"
-    : task.state === "approved" ? "border-dashed border-[var(--wait-border)]" : "border-[var(--border)]";
+  // Optimistic moves: id → { from: the server's state, to }. Shown only while the server still says `from`.
+  const [over, setOver] = useState<Record<string, { from: OsTaskState; to: OsTaskState }>>({});
+  const [drag, setDrag] = useState<OsBoardTask | null>(null);
+  const [target, setTarget] = useState<KCol | null>(null);
+  const [msg, setMsg] = useState("");
+  const shown = tasks.map((x) => (over[x.id] && over[x.id].from === x.state ? { ...x, state: over[x.id].to } : x));
+  const cols = kanbanColumns(shown, decisionIds) as Record<KCol, OsBoardTask[]>;
+  const pending = (id: string) => Boolean(over[id]) && tasks.find((x) => x.id === id)?.state === over[id].from;
+
+  const move = async (task: OsBoardTask, to: KCol) => {
+    if (pending(task.id)) return;
+    const a = moveAction(task, to, decisionIds) as keyof typeof MOVE_STATE | null;
+    if (!a) { setMsg(t.cantMove); return; }
+    if (a === "decline") { setMsg(""); c.open(task.id, true); return; } // a reason is needed: the panel opens on «Почему не можешь?»
+    setMsg("");
+    setOver((o) => ({ ...o, [task.id]: { from: task.state, to: MOVE_STATE[a] as OsTaskState } }));
+    const r = await osSend("POST", `tasks/${task.id}/${a}`);
+    if (r?.ok) { setMsg(t.moved(task.title, t.kcol[to])); c.onChange(); return; }
+    setOver((o) => { const n = { ...o }; delete n[task.id]; return n; });
+    const j = r ? ((await r.json().catch(() => ({}))) as { error?: string; reason?: string; title?: string }) : {};
+    setMsg(j.error === "one_in_progress" ? t.oneInProgress(j.title ?? "") : j.error === "participant_busy" ? t.busy : r?.status === 403 ? t.notYours : t.error);
+  };
+  const allowed = (k: KCol) => Boolean(drag) && moveAction(drag!, k, decisionIds) !== null;
+
+  return (
+    <section aria-label={t.kanbanAria} className="mt-6">
+      <div data-kanban="" className="grid grid-cols-1 gap-3.5 min-[900px]:grid-cols-2 xl:grid-cols-4">
+        {KANBAN_COLS.map((k) => {
+          const list = cols[k], ok = allowed(k);
+          return (
+            <section key={k} aria-labelledby={`kcol-${k}`} data-kcol={k}
+              onDragOver={(e) => { if (ok) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (target !== k) setTarget(k); } }}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTarget(null); }}
+              onDrop={(e) => { e.preventDefault(); const x = drag; setTarget(null); setDrag(null); if (x) move(x, k); }}
+              className={`min-h-[120px] rounded-[var(--fos-radius)] border bg-[var(--fos-panel-2)] p-3 transition-colors min-[900px]:min-h-[200px] ${target === k && ok ? "border-[var(--accent)] bg-[var(--accent-soft)]" : ok ? "border-dashed border-[var(--accent)]" : "border-[var(--border)]"}`}>
+              <p id={`kcol-${k}`} className="mx-1.5 mb-3 mt-1 flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.07em] text-[var(--muted)]">
+                <i aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: KDOT[k] }} />{t.kcol[k]}
+                <span className="ml-auto rounded-full border border-[var(--border)] bg-[var(--fos-panel)] px-2 text-[12px] font-medium normal-case tracking-normal text-[var(--text-secondary)]">{list.length}</span>
+              </p>
+              {list.length ? (
+                <ul aria-labelledby={`kcol-${k}`} className="grid gap-2.5">
+                  {list.map((x) => <KCard key={x.id} c={c} task={x} col={k} busy={pending(x.id)} onMove={move} decisionIds={decisionIds}
+                    onDragStart={() => setDrag(x)} onDragEnd={() => { setDrag(null); setTarget(null); }} />)}
+                </ul>
+              ) : <p className="px-1.5 py-5 text-center text-[14px] text-[var(--muted)]">{t.emptyCol}</p>}
+            </section>
+          );
+        })}
+      </div>
+      <p role="status" aria-live="polite" data-kanban-status="" className="mt-2 min-h-6 text-[14px] text-[var(--text-secondary)]">{msg}</p>
+    </section>
+  );
+}
+
+/** One Kanban card: tag, title, when and who; the state in words for screen readers; the card opens the side panel. */
+function KCard({ c, task, col, busy, decisionIds, onMove, onDragStart, onDragEnd }: { c: Ctx; task: OsBoardTask; col: KCol; busy: boolean; decisionIds: Set<string>; onMove: (x: OsBoardTask, to: KCol) => void; onDragStart: () => void; onDragEnd: () => void }) {
+  const { t } = c;
+  const movable = canDrag(task, c.me?.id ?? null, c.parent) && !busy;
+  const targets = KANBAN_COLS.filter((k) => k !== col);
   const reviewer = task.reviewed_by ? (t.actor[task.reviewed_by] ?? nameOfM(c.people.find((p) => p.id === task.reviewed_by), c.lang)) : "";
   const meta = task.state === "declined" ? [`«${t.cant}»${task.decline_code ? ` — ${task.decline_code === "other" ? task.decline_reason : t.reasons[task.decline_code]}` : ""}`, t.decide]
-    : task.state === "in_progress" ? [`${t.since} ${hhmm(task.started_at)}`, withText(task, lane, c)]
-    : task.state === "reviewed" ? [reviewer ? t.reviewedBy(reviewer) : t.reviewed, withText(task, lane, c)]
-    : [task.state === "approved" ? t.newT : "", whenText(task, t), withText(task, lane, c), task.needs_review && col !== "done" ? t.needsReview : ""];
-  const descId = `st-${idp}${lane}-${task.id}`; // `idp`: the same card also sits in the strip — ids stay unique
+    : task.why === "not_accepted" || (task.state === "approved" && col === "wait") ? [t.lateWhy]
+    : task.state === "in_progress" ? [task.started_at ? `${t.since} ${hhmm(task.started_at)}` : ""]
+    : task.state === "reviewed" ? [reviewer ? t.reviewedBy(reviewer) : t.reviewed]
+    : [task.state === "approved" ? t.newT : "", whenText(task, t), task.needs_review && col !== "done" ? t.needsReview : ""];
+  const descId = `kst-${task.id}`;
   return (
-    <li data-card={task.state} className={`rounded-lg border px-3 py-2 text-[15px] leading-snug ${cls}`}>
-      <button type="button" onClick={() => c.open(task.id)} aria-describedby={`col-${col} ${descId}`} className="block min-h-11 w-full text-left">
-        <span className={`block ${col === "done" ? "text-[var(--muted)]" : "text-[var(--foreground)]"}`}>{col === "done" && <span aria-hidden="true" className="mr-1 font-bold text-[var(--ok)]">✓</span>}<Tag task={task} t={t} />{ty(task.title, c.lang)}</span>
-        {meta.filter(Boolean).length > 0 && <span className="mt-0.5 block text-[14px] text-[var(--muted)]" suppressHydrationWarning>{meta.filter(Boolean).join(" · ")}</span>}
+    <li data-kcard={task.state} draggable={movable} aria-busy={busy || undefined}
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", task.id); onDragStart(); }} onDragEnd={onDragEnd}
+      className={`rounded-[12px] border bg-[var(--fos-panel)] p-3 text-[15px] leading-snug shadow-[var(--fos-shadow)] transition-[transform,box-shadow] motion-safe:hover:-translate-y-px ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${busy ? "opacity-70" : ""} ${task.state === "declined" ? "border-[var(--warn-border)]" : col === "doing" ? "border-[var(--accent)] shadow-[inset_3px_0_0_var(--accent)]" : "border-[var(--border)]"}`}>
+      <button type="button" onClick={() => c.open(task.id)} aria-describedby={`kcol-${col} ${descId}`} className="block min-h-11 w-full text-left">
+        <span className={`block font-semibold ${col === "done" ? "text-[var(--muted)]" : "text-[var(--foreground)]"}`}>{col === "done" && <span aria-hidden="true" className="mr-1 font-bold text-[var(--ok)]">✓</span>}<Tag task={task} t={t} />{ty(task.title, c.lang)}</span>
+        {meta.filter(Boolean).length > 0 && <span className="mt-1 block text-[13px] text-[var(--muted)]" suppressHydrationWarning>{meta.filter(Boolean).join(" · ")}</span>}
       </button>
       <span id={descId} className="sr-only">{t.stateSr[task.state] ?? ""}</span>
-      {/* in lanes only the compact «Готово» for one's own running task; every other move is in the drawer (bus 85 L6) */}
-      {mine && task.state === "in_progress" && <QuickDone c={c} task={task} />}
+      <div className="mt-1.5 flex items-center gap-2">
+        <span className="flex -space-x-1.5" aria-label={parts(task).map((p) => nameOfM(c.people.find((q) => q.id === p), c.lang)).join(", ")} role="img">
+          {parts(task).map((p) => <Avatar key={p} id={p} av={c.av} sm />)}
+        </span>
+        {movable && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" data-move-menu="" aria-label={t.moveMenu(task.title)} className="ml-auto inline-flex min-h-11 items-center rounded-md px-2.5 text-[14px] font-medium text-[var(--text-secondary)] hover:text-[var(--foreground)]">{t.moveTo}</button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[13rem] rounded-[12px] border-[var(--border)] bg-[var(--fos-panel)] shadow-[var(--fos-shadow-lg)]">
+              {targets.map((k) => (
+                <DropdownMenuItem key={k} disabled={!moveAction(task, k, decisionIds)} onSelect={() => onMove(task, k)} className="min-h-11 text-[15px]">
+                  <i aria-hidden="true" className="h-2 w-2 rounded-full" style={{ background: KDOT[k] }} />{t.kcol[k]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </li>
   );
 }
@@ -385,19 +451,6 @@ function Move({ c, task, compact = false, onDone }: { c: Ctx; task: OsBoardTask;
         </div>
       )}
       {err && <p role="status" className="mt-1 text-[14px] text-[var(--muted)]">{err}</p>}
-    </div>
-  );
-}
-
-/** A compact ✓ inside a lane card: one's own running task → «Готово». Full-size buttons stay on Today. */
-function QuickDone({ c, task }: { c: Ctx; task: OsBoardTask }) {
-  const [err, setErr] = useState(false);
-  const go = async () => { const r = await osSend("POST", `tasks/${task.id}/done`); if (r?.ok) c.onChange(); else setErr(true); };
-  return (
-    <div className="mt-1 flex justify-end">
-      <button type="button" data-quick-done="" onClick={go} aria-label={`${c.t.act.done}: ${task.title}`} title={c.t.act.done}
-        className="grid h-11 w-11 place-items-center rounded-full border border-[var(--accent)] text-[18px] font-bold text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--on-accent)]">✓</button>
-      {err && <p role="status" className="sr-only">{c.t.error}</p>}
     </div>
   );
 }
@@ -446,18 +499,6 @@ function Review({ c, task }: { c: Ctx; task: OsBoardTask }) {
   );
 }
 
-function PersonHead({ c, m }: { c: Ctx; m: OsBoardMember }) {
-  const { t, lang } = c;
-  return (
-    <div className="min-w-0">
-      {/* not a heading: the person's heading is their «Кто чем занят» card above (one H3 per person) */}
-      <p className="text-[15px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</p>
-      <p className="text-[14px] text-[var(--muted)]">{m.kind === "child" ? t.child : t.adult}{m.total ? ` · ${m.done} ${t.of} ${m.total}` : ""}</p>
-      {m.total > 0 && <div aria-hidden="true" className="mt-2 h-1 w-28 overflow-hidden rounded-full bg-[var(--surface)]"><i className="block h-full bg-[var(--ok)]" style={{ width: `${(m.done / m.total) * 100}%` }} /></div>}
-      {m.routines && <RoutineLine t={t} r={m.routines} />}
-    </div>
-  );
-}
 /** A child's routines as one count — only ever present for the child and their routines guardians.
  *  A <div>, not a <p>: the global unlayered `p { text-wrap: pretty }` beats Tailwind's layered `whitespace-nowrap`. */
 function RoutineLine({ t, r }: { t: Dict; r: { done: number; total: number } }) {
@@ -471,69 +512,12 @@ function RoutineLine({ t, r }: { t: Dict; r: { done: number; total: number } }) 
 }
 const nextText = (m: OsBoardMember, c: Ctx) => (m.next ? `${c.t.noTasks} · ${c.t.nearest}: ${m.next.title}, ${shortDate(m.next.date, c.lang)}${whenText(m.next, c.t) ? ` ${whenText(m.next, c.t)}` : ""}` : c.t.noTasks);
 
-function Lanes({ c, board, members }: { c: Ctx; board: OsBoard; members: OsBoardMember[] }) {
-  const { t, lang } = c;
-  const counts = Object.fromEntries(COLS.map((k) => [k, board.tasks.filter((x) => colOf(x.state) === k).length])) as Record<Col, number>;
-  const sorted = [...members].sort((a, b) => (a.id === c.me?.id ? -1 : b.id === c.me?.id ? 1 : 0));
-  const busy = sorted.filter((m) => m.total), idle = sorted.filter((m) => !m.total);
-  const cards = (m: OsBoardMember, k: Col) => board.tasks.filter((x) => parts(x).includes(m.id) && colOf(x.state) === k);
-  return (
-    <section aria-label={t.lanesAria} className="mt-8 hidden lg:block">
-      {/* Wide screens: person × 4 columns; the column header is each card's label (aria-describedby). */}
-      <div data-lanes="" className="overflow-hidden rounded-lg border border-[var(--border)]">
-        <div className="grid grid-cols-[200px_repeat(4,1fr)] border-b border-[var(--border)] bg-[var(--surface)]">
-          <div className="px-3.5 py-2.5 text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.who}</div>
-          {COLS.map((k) => <div key={k} id={`col-${k}`} className="px-3.5 py-2.5 text-[14px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{t.legend[k]} <span className="ml-1 font-medium normal-case tracking-normal">{counts[k]}</span></div>)}
-        </div>
-        {busy.map((m) => (
-          <div key={m.id} data-lane="" className="grid grid-cols-[200px_repeat(4,1fr)] border-b border-[var(--border)] last:border-b-0">
-            <div className="flex items-start gap-2.5 border-r border-[var(--border)] p-3"><Avatar id={m.id} av={c.av} /><PersonHead c={c} m={m} /></div>
-            {COLS.map((k) => { const list = cards(m, k); return (
-              <div key={k} className="border-r border-[var(--border)] p-3 last:border-r-0">
-                {list.length ? <ul aria-label={`${nameOfM(m, lang)} — ${t.legend[k]}`} className="grid gap-2">{list.map((x) => <Card key={x.id} c={c} task={x} lane={m.id} />)}</ul>
-                  : <span className="text-[14px] text-[var(--muted)]" aria-hidden="true">{t.empty}</span>}
-              </div>); })}
-          </div>
-        ))}
-        {/* members with nothing today: one compact full-width row each */}
-        {idle.map((m) => (
-          <div key={m.id} data-lane="idle" className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[var(--border)] px-3 py-2.5 last:border-b-0">
-            <Avatar id={m.id} av={c.av} /><span className="text-[15px] font-semibold text-[var(--foreground)]">{nameOfM(m, lang)}</span>
-            <span className="text-[14px] text-[var(--muted)]">{nextText(m, c)}</span>
-            {m.routines && <RoutineLine t={t} r={m.routines} />}
-          </div>
-        ))}
-      </div>
-      {/* Below 1024 px there is no second list: the «Кто чем занят» cards expand into these tasks (bus 157b D7). */}
-    </section>
-  );
-}
-
-/** «Список»: one row per task, sorted by time (a clock time or a human slot). */
-function ListView({ c, tasks }: { c: Ctx; tasks: OsBoardTask[] }) {
-  const { t, lang } = c;
-  const sorted = [...tasks].sort((a, b) => minuteOf(a) - minuteOf(b));
-  return (
-    <ul data-list="" className="mt-8 divide-y divide-[var(--border)] rounded-lg border border-[var(--border)]">
-      {sorted.map((x) => (
-        <li key={x.id} data-row={x.state}>
-          <button type="button" onClick={() => c.open(x.id)} className="grid min-h-14 w-full grid-cols-[96px_1fr] items-center gap-x-3 gap-y-0.5 px-4 py-2.5 text-left sm:grid-cols-[120px_1fr_200px_140px]">
-            <span className="text-[14px] text-[var(--muted)]">{whenText(x, t) || "—"}</span>
-            <span className="text-[15px] text-[var(--foreground)]"><Tag task={x} t={t} />{x.title}</span>
-            <span className="col-start-2 text-[14px] text-[var(--text-secondary)] sm:col-start-auto">{parts(x).map((p) => nameOfM(c.people.find((q) => q.id === p), lang)).join(", ")}</span>
-            <span className="col-start-2 text-[14px] text-[var(--muted)] sm:col-start-auto">{t.stateSr[x.state] ?? ""}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /** The task drawer: facts, actions, history. Side panel on wide screens, a full sheet on a phone. */
-function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void }) {
+function Drawer({ c, id, decline = false, onClose }: { c: Ctx; id: string; decline?: boolean; onClose: () => void }) {
   const { t, lang } = c;
   const [data, setData] = useState<{ task: OsBoardTask; can: string[]; history: OsTaskHistory; photo?: OsTaskPhoto } | null>(null);
-  const [declining, setDeclining] = useState(false);
+  // bus 172 P2: a card dropped on «Ждёт решения» opens here on «Почему не можешь?» (a decline needs a reason).
+  const [declining, setDeclining] = useState(decline);
   const closeRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
   useEffect(() => { onCloseRef.current = onClose; });
@@ -573,7 +557,7 @@ function Drawer({ c, id, onClose }: { c: Ctx; id: string; onClose: () => void })
             </dl>
             {x.rework_note && <p className="mt-3 text-[15px] text-[var(--text-secondary)]">{t.act.rework}: {x.rework_note}</p>}
             {/* exactly the moves the service allows this viewer (bus 85 #9) */}
-            {declining ? <Decline c={inner} task={x} onCancel={() => setDeclining(false)} /> : <DrawerActions c={inner} task={x} can={can} onDecline={() => setDeclining(true)} />}
+            {declining && can.has("decline") ? <Decline c={inner} task={x} onCancel={() => setDeclining(false)} /> : <DrawerActions c={inner} task={x} can={can} onDecline={() => setDeclining(true)} />}
             {(can.has("review") || can.has("rework")) && <Review c={inner} task={x} />}
             {x.needs_review && <p className={`${META} mt-3`}>{t.drawer.reviewNote}</p>}
             {x.needs_review && data?.photo && (data.photo.can_add || data.photo.has || data.photo.sent) && <TaskPhoto c={inner} task={x} photo={data.photo} onDone={load} />}
