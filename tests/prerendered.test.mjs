@@ -78,8 +78,11 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /href="\/en\/registry"/);
   });
 
-  test("design pass 2026-11-15: sentence-case H1, no drop cap, hero actions", () => {
-    assert.match(html, /<h1[^>]*>Kartel Coat of Arms<\/h1>/);
+  test("design pass 2026-11-15: sentence-case crest heading, no drop cap, hero actions", () => {
+    // bus 172 P5: the family-office hero holds the page's one H1; the crest heading is the H2 that follows it.
+    assert.match(html, /<h1[^>]*>A family business, built for generations\.<\/h1>/);
+    assert.match(html, /<h2 id="crest-title"[^>]*>Kartel Coat of Arms<\/h2>/);
+    assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1);
     assert.doesNotMatch(html, /drop-cap/);
     assert.match(html, /href="#explorer"[^>]*>Explore the coat of arms</);
     assert.match(html, /href="#story"[^>]*>Read the story</);
@@ -88,6 +91,7 @@ describe("/en — Coat of Arms home", () => {
   });
 
   test("design pass type scale: 17/19px reading text, 15px UI, 36/54px H1, 24px lede", () => {
+    // The H1 is the office hero's since bus 172 P5; it still takes the 36/54 scale.
     assert.match(html, /text-\[17px\] leading-\[1\.65\][^"]*lg:text-\[19px\] lg:leading-\[1\.7\]/);
     assert.match(html, /<h1 class="[^"]*text-\[36px\][^"]*lg:text-\[54px\]/);
     assert.match(html, /font-serif text-\[20px\][^"]*text-\[var\(--text-body\)\][^"]*lg:text-\[24px\]/);
@@ -143,8 +147,9 @@ describe("/ru — Coat of Arms home", () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/ru"\/>/);
   });
 
-  test("Russian H1 in sentence case", () => {
-    assert.match(unescape(html), /<h1[^>]*>Фамильный герб Картель<\/h1>/);
+  test("Russian H1 in sentence case (the office hero, bus 172 P5); the crest heading follows as an H2", () => {
+    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>Семейный бизнес, построенный на поколения\.<\/h1>/);
+    assert.match(unescape(html), /<h2 id="crest-title"[^>]*>Фамильный герб Картель<\/h2>/);
   });
 
   test("Russian coat-of-arms body rendered (Cyrillic)", () => {
@@ -521,10 +526,10 @@ describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
     assert.match(h, /"invisible max-h-0 opacity-0 border-t-0"/);
     assert.match(src("app/components/useFocusTrap.ts"), /initialFocus === "container"\) \{\s*container\.focus\(\{ preventScroll: true \}\);/);
   });
-  test("#4 back link points at the crest: 'Back to the coat of arms' / «К гербу»", () => {
+  test("#4 back link points at the home page: 'Back to the home page' / «На главную» (bus 172 P5: the home opens with the office, the crest follows)", () => {
     for (const c of [notice, pending]) {
-      assert.match(c, /back: "Back to the coat of arms",/);
-      assert.match(c, /back: "К гербу",/);
+      assert.match(c, /back: "Back to the home page",/);
+      assert.match(c, /back: "На главную",/);
       assert.doesNotMatch(c, /KARTEL",\n/);
     }
   });
@@ -671,13 +676,13 @@ describe("cycle 9 — markers in both themes, tablet hero, phones held sideways 
     assert.doesNotMatch(markers, /bg-\[var\(--accent\)\]|text-\[var\(--on-accent\)\]/);
     assert.match(markers, /"h-8 w-8 shadow-lg"/);
   });
-  test("#2 hero: one column below 1024px, crest image 380px from 640px, balanced H1", () => {
+  test("#2 crest block: one column below 1024px, crest image 380px from 640px, balanced heading (H2 since bus 172 P5)", () => {
     const h = src("app/components/HomeClient.tsx");
     const hero = h.slice(h.indexOf('<article id="home"'), h.indexOf("</article>"));
     assert.doesNotMatch(hero, /\bmd:(grid-cols|\[grid-template|flex|min-h)/);
     assert.match(hero, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
     assert.match(hero, /sizes="\(max-width: 639px\) 300px, \(max-width: 1023px\) 380px/);
-    assert.match(hero, /\$\{H1\} text-balance/);
+    assert.match(hero, /\$\{H2\} text-balance/);
   });
   test("#3 phones held sideways: short-land variant, two-column hero sized by height, no section row", () => {
     assert.match(src("app/globals.css"), /@custom-variant short-land \(@media \(orientation: landscape\) and \(max-height: 500px\)\);/);

@@ -14,13 +14,13 @@ const copy: Record<Locale, { title: string; heading: string; body: string; back:
     title: "Family Heritage — pending approval",
     heading: "Registration received",
     body: "Your account is signed in but not yet approved to view the Family Heritage area. An administrator reviews access requests; you will be able to enter once approved.",
-    back: "Back to the coat of arms",
+    back: "Back to the home page",
   },
   ru: {
     title: "Семейное наследие — ожидает одобрения",
     heading: "Заявка получена",
     body: "Вы вошли в аккаунт, но доступ к разделу «Семейное наследие» ещё не одобрен. Администратор рассматривает запросы; вы сможете войти после одобрения.",
-    back: "К гербу",
+    back: "На главную",
   },
 };
 
