@@ -16,8 +16,8 @@ test("menu: a child sees «Мой день» and «Календарь» only —
     assert.deepEqual(n.tabs.map((i) => i.href), [`/${lang.toLowerCase()}/family/os`, `/${lang.toLowerCase()}/family/os/calendar`]);
     assert.ok(n.tabs.every((i) => !i.badge));
   }
-  // an adult member keeps the full menu
-  assert.equal(osShellNav({ lang: "RU", admin: false, os: true, member: true, child: false }).groups.flatMap((g) => g.items).length, 7);
+  // an adult member keeps the full menu (bus 172 P6: + «Обзор недели» and «Компании и проекты»)
+  assert.equal(osShellNav({ lang: "RU", admin: false, os: true, member: true, child: false }).groups.flatMap((g) => g.items).length, 9);
   const lay = src("app/[lang]/family/os/layout.tsx");
   assert.match(lay, /child: state\.me\?\.kind === "child"/, "decided on the server, from Family OS");
 });
@@ -26,7 +26,8 @@ test("server: every other OS page sends a child to «Мой день» before it
   const h = src("app/lib/family-child.ts");
   assert.match(h, /if \(me\?\.kind === "child" && !own\) redirect\(`\/\$\{lang === "en" \? "en" : "ru"\}\/family\/os`\);/);
   const before = { "board/page.tsx": "getBoard(session", "council/page.tsx": "getCouncil(session", "people/page.tsx": "getBoard(session", "kodeks/page.tsx": "getKodeks(session",
-    "week/page.tsx": "getPrinciple(session", "access/page.tsx": "getRules(session", "people/[id]/page.tsx": "getPersonPage(session" };
+    "week/page.tsx": "getPrinciple(session", "access/page.tsx": "getRules(session", "people/[id]/page.tsx": "getPersonPage(session",
+    "review/page.tsx": "getBoard(session", "companies/page.tsx": "companyCards(registry" };
   for (const [p, read] of Object.entries(before)) {
     const s = src(`app/[lang]/family/os/${p}`);
     const at = s.indexOf("childHome(lang, state.me");
@@ -61,7 +62,7 @@ test("model: a child's first name for «Привет, Вера!»; no adult bloc
 test("edge: a child is sent to «Мой день» with a real 307 before any page renders; their own page and Календарь stay open", async () => {
   const own = "00000000-0000-4000-8000-00000000000c", other = "00000000-0000-4000-8000-00000000000a";
   for (const p of ["/ru/family/os", "/en/family/os/", "/ru/family/os/calendar", `/ru/family/os/people/${own}`]) assert.equal(childMayOpenPath(p, own), true, p);
-  for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${other}`, "/ru/family/os/kodeks", "/ru/family/os/week", "/ru/family/os/access", "/en/family/os/board?date=2026-11-27"])
+  for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${other}`, "/ru/family/os/kodeks", "/ru/family/os/week", "/ru/family/os/access", "/ru/family/os/review", "/ru/family/os/companies", "/en/family/os/board?date=2026-11-27"])
     assert.equal(childMayOpenPath(p.split("?")[0], own), false, p);
   assert.equal(childMayOpenPath(`/ru/family/os/people/${own}`, null), false, "no id from the service: closed");
   assert.equal(childMayOpenPath("/ru/family", own), true, "heritage is outside Family OS — not decided here");

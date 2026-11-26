@@ -2,7 +2,7 @@
 
 /**
  * The Family OS app shell (bus 171, mockup v5 approved by R0 26.11): a light 248 px sidebar on desktop (brand, «Поиск и
- * команды ⌘K», the sections in three groups, the viewer with theme, language and sign-out), and below 900 px a top bar
+ * команды ⌘K», the sections in four groups, the viewer with theme, language and sign-out), and below 900 px a top bar
  * plus a bottom tab bar (Сегодня · Задачи · Календарь · Решения); the other sections open from the top bar's menu.
  * Rendered once by app/[lang]/family/os/layout.tsx around every Family OS page. Which sections exist is decided on the
  * server (osShellNav); this file only draws them. ⌘K is navigation and search over the sections only (phase 1).
@@ -10,7 +10,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, FileText, Landmark, Lock, LogOut, Menu, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
+import { Briefcase, CalendarDays, ClipboardCheck, FileText, Landmark, Lock, LogOut, Menu, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import ThemeToggle from "./ThemeToggle";
 import SkipToContent from "./SkipToContent";
@@ -19,14 +19,14 @@ import { osShellNav, activeOsSection, searchSections } from "../lib/family-os-sh
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
-type SectionId = "today" | "board" | "calendar" | "council" | "people" | "kodeks" | "heritage" | "access" | "admin";
+type SectionId = "today" | "board" | "calendar" | "council" | "review" | "companies" | "people" | "kodeks" | "heritage" | "access" | "admin";
 type Item = { id: SectionId; href: string; label: string; badge?: number };
 export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean; child?: boolean };
 /** `id`: the viewer's own person page (their keys and letters) — the name in the user block opens it. */
 export type OsShellMe = { name: string | null; id?: string | null; role: "owner" | "editor" | "member" | "child" };
 
 const ICON: Record<SectionId, LucideIcon> = {
-  today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, people: Users, kodeks: FileText,
+  today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, review: ClipboardCheck, companies: Briefcase, people: Users, kodeks: FileText,
   heritage: Landmark, access: Lock, admin: PenLine,
 };
 

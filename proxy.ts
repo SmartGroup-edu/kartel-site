@@ -32,9 +32,9 @@ function sessionEnded(request: NextRequest, lang: string, pathname: string) {
 }
 
 // Family OS sections that only exist for members: the owner who is not a member gets no nav item and a 404 (QA-156 L7).
-const MEMBER_ONLY = /^\/(en|ru)\/family\/os\/(board|council|calendar|kodeks|week)(\/|$)/;
+const MEMBER_ONLY = /^\/(en|ru)\/family\/os\/(board|council|calendar|kodeks|week|review)(\/|$)/;
 // Every family page there is. Anything else under /family is answered here with the 404 page (QA-156 L7).
-const FAMILY_ROUTES = /^\/(en|ru)\/family(\/admin|\/os(\/(access|board|council|calendar|kodeks|week|people(\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?))?)?\/?$/;
+const FAMILY_ROUTES = /^\/(en|ru)\/family(\/admin|\/os(\/(access|board|council|calendar|kodeks|week|review|companies|people(\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?))?)?\/?$/;
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];

@@ -5,6 +5,7 @@
 // `next start` with the same env as family-ended.e2e.mjs. NOT part of `npm test`; CI `e2e` job.
 //   node tests/e2e/family-os-calls.e2e.mjs
 import { createServer } from "node:http";
+import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { SignJWT } from "jose";
 import { createApp } from "../../family-os/server.mjs";
@@ -55,8 +56,9 @@ async function page(who, tok, path, status = 200, location = null) {
 }
 
 for (const p of ["/ru/family", "/ru/family/os", "/ru/family/os/board", "/ru/family/os/people", `/ru/family/os/people/${memberId}`, `/ru/family/os/people/${childId}`,
-  "/ru/family/os/council", "/ru/family/os/calendar", "/ru/family/os/kodeks", "/ru/family/os/week", "/en/family/os/board"]) await page("member", member, p);
-for (const p of ["/ru/family/os", "/ru/family/os/access", "/ru/family/os/people", "/ru/family/admin"]) await page("owner", admin, p);
+  "/ru/family/os/council", "/ru/family/os/calendar", "/ru/family/os/kodeks", "/ru/family/os/week", "/en/family/os/board",
+  "/ru/family/os/review", "/en/family/os/review", "/ru/family/os/companies"]) await page("member", member, p);
+for (const p of ["/ru/family/os", "/ru/family/os/access", "/ru/family/os/people", "/ru/family/admin", "/ru/family/os/companies"]) await page("owner", admin, p);
 // bus 172 P3: a child's Family OS is «Мой день» + «Календарь» (and their own page). Every other section sends them home
 // on the server — before the page reads its data, so no /board, /council or /people/:id call is made for them.
 const kidDay = await page("child", child, "/ru/family/os");
@@ -64,14 +66,22 @@ check("P3 child: «Мой день» in the menu, no Задачи / Решени
 check("P3 child: «Мой день» does not read the family board", !kidDay.calls.includes("/board"), kidDay.calls.join(" "));
 await page("child", child, "/ru/family/os/calendar");
 await page("child", child, `/ru/family/os/people/${childId}`);
-for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${memberId}`, "/ru/family/os/kodeks", "/ru/family/os/week"]) {
+for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${memberId}`, "/ru/family/os/kodeks", "/ru/family/os/week",
+  "/ru/family/os/review", "/ru/family/os/companies"]) {
   const r = await page("child", child, p, 307, "/ru/family/os");
   check(`P3 child ${p}: nothing read past /me, /people, /my-tasks`, r.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), r.calls.join(" "));
 }
 await page("child", child, "/en/family/os/board", 307, "/en/family/os");
 
 // The owner who is not a member: member-only sections and unknown addresses are the family 404 (N3).
-for (const p of ["/ru/family/os/council", "/ru/family/os/board", "/ru/family/os/no-such-page"]) await page("owner", admin, p, 404);
+for (const p of ["/ru/family/os/council", "/ru/family/os/board", "/ru/family/os/review", "/ru/family/os/no-such-page"]) await page("owner", admin, p, 404);
+
+// ── bus 172 P6: «Обзор недели» and «Компании и проекты» ──
+const rv = await page("member", member, "/ru/family/os/review");
+check("P6 review: the three blocks render", ["data-review=\"done\"", "data-review=\"slipped\"", "data-review=\"focus\""].every((x) => rv.html.includes(x)));
+check("P6 review: reads only boards, /sprint and the shell's reads", rv.calls.every((c) => ["/me", "/people", "/my-tasks", "/board", "/sprint"].includes(c)) && rv.calls.filter((c) => c === "/sprint").length === 1, rv.calls.join(" "));
+const co = await page("member", member, "/ru/family/os/companies");
+check("P6 companies: one card per registry project, no Family OS data of its own", (co.html.match(/data-company="/g) ?? []).length === JSON.parse(readFileSync("app/content/registry.public.json", "utf8")).projects.length && co.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), co.calls.join(" "));
 
 // N3: on that 404 the owner's tabs are the same as on every other page — no Доска / Совет / Календарь.
 const nf = await (await fetch(`${B}/ru/family/os/council`, { redirect: "manual", headers: { cookie: `${SESSION}=${admin}` } })).text();
