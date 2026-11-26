@@ -28,6 +28,7 @@ export const familyRefText = {
     error: "Something went wrong on this page. Please try again; if it happens again, give this code:",
     code: "Reference code",
     home: "Today",
+    myDay: "My day",
     heritage: "Heritage",
   },
   ru: {
@@ -36,6 +37,7 @@ export const familyRefText = {
     error: "На этой странице что-то пошло не так. Попробуй ещё раз; если повторится — назови код:",
     code: "Код обращения",
     home: "Сегодня",
+    myDay: "Мой день",
     heritage: "Наследие",
   },
 } as const;

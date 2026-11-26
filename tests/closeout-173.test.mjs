@@ -79,3 +79,17 @@ test("the registry is not widened: no Craft Resin or Eco Lock HD (R0: leave thos
   const all = JSON.stringify(registry) + src("app/content/publicHome.mjs") + src("app/content/federationCopy.ts");
   assert.doesNotMatch(all, /craft.?resin|eco.?lock/i);
 });
+
+test("family 404 for a child: their two tabs, «Мой день» as the way back, no «Наследие» (QA bus 173)", async () => {
+  const { familySubNav } = await import("../app/lib/family-nav.mjs");
+  const child = familySubNav({ lang: "RU", admin: false, os: true, child: true });
+  assert.deepEqual(child.map((x) => [x.label, x.href]), [["Мой день", "/ru/family/os"], ["Календарь", "/ru/family/os/calendar"]]);
+  assert.ok(!familySubNav({ lang: "EN", admin: false, os: true, child: true }).some((x) => x.id === "heritage"));
+  assert.ok(familySubNav({ lang: "RU", admin: false, os: true }).some((x) => x.id === "heritage"), "adults keep heritage");
+  const nf = src("app/[lang]/family/not-found.tsx");
+  assert.match(nf, /child: me\?\.kind === "child"/);
+  const view = src("app/components/NotFoundView.tsx");
+  assert.match(view, /child=\{family\.child \?\? false\}/);
+  assert.match(view, /\{!\(refCode && child\) && \(/, "the heritage button is not drawn for a child");
+  assert.match(src("app/components/FamilyChrome.tsx"), /child=\{nav\.child \?\? false\}/);
+});
