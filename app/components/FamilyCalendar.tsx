@@ -8,7 +8,7 @@
  * person filter: the calendar is the whole family's). Adults add and remove family events. The personal
  * phone-calendar link lives on each person's own page (it is theirs to make or revoke).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -79,7 +79,9 @@ export default function FamilyCalendar({ lang, cal, meId, initialView = "week" }
   const council = cal?.items.find((i) => i.kind === "council");
   const weekDays = cal ? weekOf(weeks[wi]) : [];
   const sub = view === "week" ? (cal ? weekRange(weekDays, lang) : "") : cal ? monthTitle(months[mi], lang) : "";
-  const pickDay = (d: string) => setDay(d);
+  // The panel is opened from a day button, not a Dialog trigger: remember it, so focus goes back there on close.
+  const opener = useRef<HTMLElement | null>(null);
+  const pickDay = (d: string) => { opener.current = document.activeElement as HTMLElement | null; setDay(d); };
   const openWeek = (d: string) => { const k = weeks.indexOf(mondayOf(d)); if (k >= 0) { setWi(k); setView("week"); } setDay(null); };
   const step = (n: number) => (view === "week" ? setWi((x) => Math.min(weeks.length - 1, Math.max(0, x + n))) : setMi((x) => Math.min(months.length - 1, Math.max(0, x + n))));
   const atStart = view === "week" ? wi === 0 : mi === 0, atEnd = view === "week" ? wi === weeks.length - 1 : mi === months.length - 1;
@@ -132,7 +134,7 @@ export default function FamilyCalendar({ lang, cal, meId, initialView = "week" }
         </div>
       </div>
       {cal && <DayPanel t={t} lang={lang} day={day} items={day ? days.get(day) ?? [] : []} known={day ? inWindow(day, today, DAYS) : false} canWrite={cal.can.write && Boolean(day && day >= today)} base={base}
-        showWeek={view === "month"} onWeek={openWeek} onClose={() => setDay(null)} />}
+        showWeek={view === "month"} onWeek={openWeek} onClose={() => setDay(null)} returnFocus={opener} />}
     </>
   );
 }
@@ -156,18 +158,26 @@ function WeekGrid({ t, lang, days, items, today, onDay }: { t: Dict; lang: Lang;
   const untimed = days.map((d) => (items.get(d) ?? []).filter((i) => !i.time));
   const hasUntimed = untimed.some((x) => x.length);
   const nowTop = now && days.includes(now.date) ? (minutesFrom(now.hhmm, H0) * HOUR) / 60 : null;
+  // On a phone the 7 days scroll sideways: bring today's column into view, so the week opens on today.
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current, col = el?.querySelector<HTMLElement>(`[data-cal-head="${today}"]`);
+    if (el && col && el.scrollWidth > el.clientWidth) el.scrollLeft = Math.max(0, col.getBoundingClientRect().left - el.getBoundingClientRect().left + el.scrollLeft - 56);
+  }, [days, today]);
   return (
-    <div data-cal-week="" className="overflow-x-auto rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] shadow-[var(--fos-shadow)]">
+    <div ref={scroller} data-cal-week="" className="overflow-x-auto rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] shadow-[var(--fos-shadow)]">
       <div className="min-w-[720px]">
         <div className="grid grid-cols-[56px_repeat(7,1fr)] border-b border-[var(--border)]">
           <div />
           {days.map((d) => {
             const n = inWindow(d, today, DAYS) ? (items.get(d) ?? []).length : null, isToday = d === today;
             return (
-              <button key={d} type="button" onClick={() => onDay(d)} aria-label={t.dayLabel(dayHead(d, lang), n)} aria-current={isToday ? "date" : undefined}
-                className="min-h-11 px-2 py-2.5 text-center text-[13px] text-[var(--muted)] hover:bg-[var(--fos-panel-2)]">
-                {cap(fmt(d, lang, { weekday: "short" }))}
+              <button key={d} type="button" onClick={() => onDay(d)} aria-current={isToday ? "date" : undefined} data-cal-head={d}
+                className="relative min-h-11 px-2 py-2.5 text-center text-[13px] text-[var(--muted)] hover:bg-[var(--fos-panel-2)]">
+                {/* the visible «Пт 27» stays in the name (WCAG 2.5.3); the full date and the count follow for screen readers */}
+                <span>{cap(fmt(d, lang, { weekday: "short" }))}</span>
                 <b className={`mx-auto mt-0.5 grid h-[34px] w-[34px] place-items-center rounded-full text-[19px] font-semibold ${isToday ? "bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "text-[var(--foreground)]"}`}>{Number(d.slice(8))}</b>
+                <span className="sr-only"> · {t.dayLabel(dayHead(d, lang), n)}</span>
               </button>
             );
           })}
@@ -251,10 +261,10 @@ function MonthGrid({ t, lang, ym, items, today, onDay }: { t: Dict; lang: Lang; 
 }
 
 /** The day's side panel: its items (adults may remove an event), «Открыть неделю» from the month, and add on this day. */
-function DayPanel({ t, lang, day, items, known, canWrite, base, showWeek, onWeek, onClose }: { t: Dict; lang: Lang; day: string | null; items: OsCalItem[]; known: boolean; canWrite: boolean; base: string; showWeek: boolean; onWeek: (d: string) => void; onClose: () => void }) {
+function DayPanel({ t, lang, day, items, known, canWrite, base, showWeek, onWeek, onClose, returnFocus }: { t: Dict; lang: Lang; day: string | null; items: OsCalItem[]; known: boolean; canWrite: boolean; base: string; showWeek: boolean; onWeek: (d: string) => void; onClose: () => void; returnFocus: React.RefObject<HTMLElement | null> }) {
   return (
     <Dialog open={Boolean(day)} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent closeLabel={t.close} data-day-panel="" className="left-auto right-0 top-0 h-dvh w-full max-w-md translate-x-0 translate-y-0 content-start gap-3 overflow-y-auto rounded-none border-0 border-l border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow-lg)] sm:max-w-md">
+      <DialogContent closeLabel={t.close} data-day-panel="" onCloseAutoFocus={(e) => { const el = returnFocus.current; if (el?.isConnected) { e.preventDefault(); el.focus(); } }} className="left-auto right-0 top-0 h-dvh w-full max-w-md translate-x-0 translate-y-0 content-start gap-3 overflow-y-auto rounded-none border-0 border-l border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow-lg)] sm:max-w-md">
         {day && (
           <>
             <p className="text-[13px] font-semibold uppercase tracking-[0.06em] text-[var(--muted)]">{cap(fmt(day, lang, { weekday: "long" }))}</p>

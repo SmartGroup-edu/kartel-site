@@ -225,6 +225,8 @@ export type OsBoardMember = {
   waiting: number; done: number; total: number;
   routines?: { done: number; total: number };
   next?: { date: string; title: string; due_time: string | null; when_slot: OsWhenSlot | null };
+  /** bus 172 P2: on a child's board, someone they do a task together with — a name only, never their lane. */
+  peer?: boolean;
 };
 export type OsProgress = { done: number; in_progress: number; accepted: number; waiting: number; total: number };
 export type OsSprintGoal = { id: string; title: string; done: number; total: number };

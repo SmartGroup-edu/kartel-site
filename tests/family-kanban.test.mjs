@@ -42,10 +42,20 @@ test("moves are only the service's existing task moves, and lead where the servi
   assert.equal(moveAction(task("x", "accepted"), "todo"), null, "same column");
 });
 
-test("dragging: a participant or a parent may try; the service has the last word", () => {
+test("dragging: only someone the service lets move it — participant, a parent for a child's task, the reviewer", () => {
   const t = task("x", "accepted", { assignee_id: "a", co_ids: ["b"] });
   assert.equal(canDrag(t, "a", false), true); assert.equal(canDrag(t, "b", false), true);
-  assert.equal(canDrag(t, "c", false), false); assert.equal(canDrag(t, "c", true), true); assert.equal(canDrag(t, null, false), false);
+  assert.equal(canDrag(t, "c", false, "child"), false); assert.equal(canDrag(t, "c", true, "child"), true); assert.equal(canDrag(t, null, false), false);
+  // QA P2: a parent cannot start/finish/pause another adult's task (board.mjs canMove: assignee_only) — no drag offered
+  assert.equal(canDrag(t, "c", true, "adult"), false);
+  // a done task with a check: the accountable person reviews; without one, a parent who is not doing it
+  const r = task("y", "done", { assignee_id: "a", needs_review: true, accountable_id: "d" });
+  assert.equal(canDrag(r, "d", false, "adult"), true); assert.equal(canDrag(r, "c", true, "child"), false);
+  assert.equal(canDrag({ ...r, accountable_id: null }, "c", true, "adult"), true);
+  // QA P2: no menu whose every item is disabled — the doer of a checked task, and states no single move leaves
+  assert.equal(canDrag(r, "a", false, "child"), false, "not_own_review");
+  for (const s of ["reviewed", "declined"]) assert.equal(canDrag(task("z", s, { assignee_id: "a" }), "a", true, "child"), false, s);
+  assert.equal(canDrag(task("z", "done", { assignee_id: "a" }), "a", false, "adult"), false, "done without a check");
 });
 
 test("person filter and columns", () => {
@@ -63,7 +73,8 @@ test("a child's board: only their own tasks and lane, own progress, no parents-o
   };
   const v = childBoardView(board, "kid");
   assert.deepEqual(v.tasks.map((x) => x.id), ["1", "2"]);
-  assert.deepEqual(v.members.map((m) => m.id), ["kid"]);
+  assert.deepEqual(v.members.map((m) => m.id), ["kid", "mum"], "own lane + the person on a joint task");
+  assert.deepEqual(v.members[1], { id: "mum", name_en: undefined, name_ru: undefined, kind: undefined, current: null, waiting: 0, done: 0, total: 0, peer: true }, "a peer is a name only, no lane data");
   assert.deepEqual(v.progress, { done: 0, in_progress: 1, accepted: 0, waiting: 1, total: 2 });
   assert.ok(!("needs_decision" in v) && !("plan" in v) && !("carry_offer" in v));
   assert.doesNotMatch(JSON.stringify(v), /"dad"/, "nothing of another person's tasks");
@@ -93,4 +104,9 @@ test("drag and drop + keyboard: native DnD, a «Переместить в…» m
   assert.match(b, /<p role="status" aria-live="polite" data-kanban-status=""/, "moves are announced");
   for (const w of ["Нужно сделать", "В работе", "Ждёт решения", "Готово", "Переместить в…"]) assert.ok(b.includes(w), w);
   assert.match(b, /\{!child && <PersonChips /, "person chips for adults; a child's board is theirs");
+  assert.match(b, /<Strip c=\{c\} members=\{board\.members\.filter\(\(m\) => !m\.peer && shown\(m\)\)\} \/>/, "a peer has no card in «Кто чем занят»");
+  assert.match(b, /if \(a === "rework"\) \{ setMsg\(""\); c\.open\(task\.id\); return; \}/, "«Ещё немного» asks «Что доделать» in the panel");
+  // QA P2 regression: an optimistic move is dropped once the server's state leaves `from`, so a later pause in the
+  // panel (back to `from`) cannot bring back the stale target and lock the card
+  assert.match(b, /const stale = Object\.keys\(over\)\.filter\(\(id\) => tasks\.find\(\(x\) => x\.id === id\)\?\.state !== over\[id\]\.from\);/);
 });

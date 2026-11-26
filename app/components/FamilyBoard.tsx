@@ -203,7 +203,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me }: { la
             {/* A child's board holds only their own tasks (server-side, family-kanban.mjs childBoardView): no person chips. */}
             {!child && <PersonChips c={c} who={who} setWho={setWho} members={board.members} />}
             <Kanban c={c} tasks={tasks} decisionIds={new Set((board.needs_decision ?? []).map((x) => x.id))} />
-            <Strip c={c} members={board.members.filter(shown)} />
+            <Strip c={c} members={board.members.filter((m) => !m.peer && shown(m))} />
             {board.carry_offer && board.carry_offer.length > 0 && <CarryOffer c={c} tasks={board.carry_offer} />}
             <div className={`mt-8 grid gap-5 ${parent && board.plan ? "lg:grid-cols-[1.35fr_1fr]" : ""}`}>
               {parent && board.plan && <PlanPanel key={`${board.plan.date}:${board.plan.approved}:${plan?.tasks.length ?? 0}:${plan?.approval?.at ?? ""}`} c={c} summary={board.plan} plan={plan} />}
@@ -337,12 +337,23 @@ function Kanban({ c, tasks, decisionIds }: { c: Ctx; tasks: OsBoardTask[]; decis
   const shown = tasks.map((x) => (over[x.id] && over[x.id].from === x.state ? { ...x, state: over[x.id].to } : x));
   const cols = kanbanColumns(shown, decisionIds) as Record<KCol, OsBoardTask[]>;
   const pending = (id: string) => Boolean(over[id]) && tasks.find((x) => x.id === id)?.state === over[id].from;
+  // An optimistic move is over once the server's state has left `from` (the move landed, or something else moved it):
+  // drop it then, or a later return to `from` (a pause in the panel) would show the stale target and lock the card.
+  // (Adjusted while rendering when the server's states change — the same pattern as `initial` above.)
+  const live = tasks.map((x) => `${x.id}:${x.state}`).join(",");
+  const [liveSeen, setLiveSeen] = useState(live);
+  if (live !== liveSeen) {
+    setLiveSeen(live);
+    const stale = Object.keys(over).filter((id) => tasks.find((x) => x.id === id)?.state !== over[id].from);
+    if (stale.length) { const n = { ...over }; for (const id of stale) delete n[id]; setOver(n); }
+  }
 
   const move = async (task: OsBoardTask, to: KCol) => {
     if (pending(task.id)) return;
     const a = moveAction(task, to, decisionIds) as keyof typeof MOVE_STATE | null;
     if (!a) { setMsg(t.cantMove); return; }
     if (a === "decline") { setMsg(""); c.open(task.id, true); return; } // a reason is needed: the panel opens on «Почему не можешь?»
+    if (a === "rework") { setMsg(""); c.open(task.id); return; } // «Ещё немного» asks «Что доделать» in the panel
     setMsg("");
     setOver((o) => ({ ...o, [task.id]: { from: task.state, to: MOVE_STATE[a] as OsTaskState } }));
     const r = await osSend("POST", `tasks/${task.id}/${a}`);
@@ -386,7 +397,7 @@ function Kanban({ c, tasks, decisionIds }: { c: Ctx; tasks: OsBoardTask[]; decis
 /** One Kanban card: tag, title, when and who; the state in words for screen readers; the card opens the side panel. */
 function KCard({ c, task, col, busy, decisionIds, onMove, onDragStart, onDragEnd }: { c: Ctx; task: OsBoardTask; col: KCol; busy: boolean; decisionIds: Set<string>; onMove: (x: OsBoardTask, to: KCol) => void; onDragStart: () => void; onDragEnd: () => void }) {
   const { t } = c;
-  const movable = canDrag(task, c.me?.id ?? null, c.parent) && !busy;
+  const movable = canDrag(task, c.me?.id ?? null, c.parent, c.people.find((p) => p.id === task.assignee_id)?.kind) && !busy;
   const targets = KANBAN_COLS.filter((k) => k !== col);
   const reviewer = task.reviewed_by ? (t.actor[task.reviewed_by] ?? nameOfM(c.people.find((p) => p.id === task.reviewed_by), c.lang)) : "";
   const meta = task.state === "declined" ? [`«${t.cant}»${task.decline_code ? ` — ${task.decline_code === "other" ? task.decline_reason : t.reasons[task.decline_code]}` : ""}`, t.decide]

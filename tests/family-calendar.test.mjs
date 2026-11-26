@@ -47,6 +47,10 @@ test("wiring: week and month views, now line, day panel, phone bars, ?cal=month,
   assert.match(c, /\{more > 0 && <span className="pl-1 text-\[11px\] text-\[var\(--muted\)\] max-\[899px\]:hidden">\{t\.more\(more\)\}<\/span>\}/);
   assert.match(c, /<Dialog open=\{Boolean\(day\)\}/, "a day opens the side panel");
   assert.match(c, /aria-label=\{t\.dayLabel\(dayHead\(d, lang\), known \? list\.length : null\)\}/, "each cell says the day and its count");
+  assert.match(c, /<span className="sr-only"> · \{t\.dayLabel\(dayHead\(d, lang\), n\)\}<\/span>/, "week day header: visible «Пт 27» stays in the name (WCAG 2.5.3) + the date and count");
+  assert.match(c, /data-cal-head=\{d\}\s*className="relative /, "the sr-only text is contained by its button (no page-wide sideways scroll at 390 px)");
+  assert.match(c, /onCloseAutoFocus=\{\(e\) => \{ const el = returnFocus\.current; if \(el\?\.isConnected\) \{ e\.preventDefault\(\); el\.focus\(\); \} \}\}/, "closing the day panel returns focus to the day");
+  assert.match(c, /el\.scrollLeft = Math\.max\(0, col\.getBoundingClientRect\(\)\.left/, "on a phone the week opens on today's column");
   assert.match(c, /t\.noData/, "a day outside the service's window is never shown as a free day");
   assert.match(c, /href=\{`\$\{base\}\/week`\} data-week-link=""/, "os/week stays reachable from Календарь");
   assert.match(src("app/[lang]/family/os/calendar/page.tsx"), /\(await searchParams\)\.cal === "month" \? "month" : "week"/);

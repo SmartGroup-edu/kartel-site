@@ -50,12 +50,20 @@ export function moveAction(task, to, decisionIds = new Set()) {
 export const MOVE_STATE = { start: "in_progress", done: "done", pause: "accepted", decline: "declined", rework: "in_progress" };
 
 /**
- * May this viewer try to drag `task` at all? A participant, or a parent (the service has the last word).
- * @param {{ assignee_id: string, co_ids?: string[] }} task @param {string | null} meId @param {boolean} parent
+ * May this viewer try to drag `task` at all? Only someone the service lets make one of the board's moves
+ * (family-os/board.mjs canMove): a participant; a parent for a child's task; the reviewer (the accountable person,
+ * else a parent who is not doing it) for a done task with a check. The service still has the last word.
+ * @param {{ assignee_id: string, co_ids?: string[], state?: string, needs_review?: boolean, accountable_id?: string | null }} task
+ * @param {string | null} meId @param {boolean} parent @param {"adult" | "child" | undefined} [assigneeKind]
  */
-export function canDrag(task, meId, parent) {
-  const mine = Boolean(meId) && [task.assignee_id, ...(task.co_ids ?? [])].includes(meId);
-  return mine || parent;
+export function canDrag(task, meId, parent, assigneeKind) {
+  if (!meId) return false;
+  const self = [task.assignee_id, ...(task.co_ids ?? [])].includes(meId);
+  // out of «Готово» only «Ещё немного», and never by the people who did it (canMove: not_own_review)
+  if (task.state === "done" && task.needs_review) return !self && (task.accountable_id ? task.accountable_id === meId : parent);
+  // no single move leaves these (the panel has their steps)
+  if (["done", "reviewed", "declined"].includes(task.state)) return false;
+  return self || (parent && assigneeKind === "child");
 }
 
 /** Tasks of one person (assignee or together with), or all. */
@@ -85,13 +93,16 @@ export function childBoardView(board, meId) {
   if (!board) return board;
   const tasks = tasksOf(board.tasks ?? [], meId);
   const n = (s) => tasks.filter((t) => s.includes(t.state)).length;
+  const peers = new Set(tasks.flatMap((t) => [t.assignee_id, ...(t.co_ids ?? [])]).filter((id) => id !== meId));
   /** @type {any} */
   const rest = { ...board };
   delete rest.needs_decision; delete rest.plan; delete rest.carry_offer;
   return {
     ...rest,
     tasks,
-    members: (board.members ?? []).filter((m) => m.id === meId),
+    // their own lane; the people they do a task together with only as names (so the card can say «с …»), nothing more
+    members: (board.members ?? []).filter((m) => m.id === meId || peers.has(m.id))
+      .map((m) => (m.id === meId ? m : { id: m.id, name_en: m.name_en, name_ru: m.name_ru, kind: m.kind, current: null, waiting: 0, done: 0, total: 0, peer: true })),
     progress: { done: n(["done", "reviewed"]), in_progress: n(["in_progress"]), accepted: n(["accepted"]), waiting: n(["approved", "declined"]), total: tasks.length },
   };
 }
