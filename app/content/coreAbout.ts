@@ -1,6 +1,8 @@
 // Bilingual copy for /[lang]/core — the Public Trust Layer.
 // Goal: a first-time visitor understands KARTEL in ~60 seconds — what it is,
 // which projects exist, what CPIF is, what Canonical Geography is, why federation.
+// «The projects» paragraph is pinned to the registry's project roles: tests/registry-copy.test.mjs
+// fails when they change, until this text is reviewed and the basis re-recorded (bus 168).
 
 export const coreAboutContent = {
   EN: {

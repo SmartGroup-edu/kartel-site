@@ -1,13 +1,16 @@
 // Bilingual copy for the Ecosystem Directory (/[lang]/registry/projects).
 // Data (projects + roles + per-layer status) from registry.public.json.projects.
+import registry from "./registry.public.json";
+import { listJoin, projectNames } from "./registryText.mjs";
+
+const allProjects = projectNames(registry);
 
 export const projectsContent = {
   EN: {
     motto: "Virtus et Potestas",
     copy: "KARTEL Core · public registry of the federation",
     metaTitle: "Projects",
-    metaDescription:
-      "KARTEL ecosystem projects — MoyPolk, RusJAz, Community Group and RusJAzz — with each one's federation role and per-layer status.",
+    metaDescription: `KARTEL ecosystem projects — ${listJoin(allProjects, "EN")} — with each one's federation role and per-layer status.`,
     eyebrow: "Registry",
     title: "Projects",
     intro:
@@ -29,8 +32,7 @@ export const projectsContent = {
     motto: "Virtus et Potestas",
     copy: "Ядро KARTEL · публичный реестр федерации",
     metaTitle: "Проекты",
-    metaDescription:
-      "Проекты экосистемы KARTEL — MoyPolk, RusJAz, Community Group и RusJAzz — с ролью каждого в федерации и статусом по слоям.",
+    metaDescription: `Проекты экосистемы KARTEL — ${listJoin(allProjects, "RU")} — с ролью каждого в федерации и статусом по слоям.`,
     eyebrow: "Реестр",
     title: "Проекты",
     intro:

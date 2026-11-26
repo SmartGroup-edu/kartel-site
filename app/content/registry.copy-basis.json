@@ -1,0 +1,25 @@
+{
+  "_comment": "Registry facts the hand-written copy was reviewed against (coreAbout.ts «The projects», federationCopy.ts overlays). Re-record only after reviewing that copy: node tests/registry-copy.test.mjs --record",
+  "projects": [
+    "moypolk:project:Retired",
+    "rusjaz:project:Consumer",
+    "community-group:project:Steward",
+    "rusjazz:future-module:Planned"
+  ],
+  "summaries": {
+    "moypolk": "9d934619e98e",
+    "rusjaz": "b353975db825",
+    "community-group": "887fe7dc1537",
+    "rusjazz": "5da77c136297"
+  },
+  "gate": {
+    "cpif_authentication": "2843f53e65ac",
+    "canonical_geography": "ae3691477677",
+    "organisation_anchor": "728222c2ef0f",
+    "membership_contract": "cd06644d2eb9",
+    "permission_pattern": "4c1b2614a72f",
+    "event_geo_anchor": "61dcfea9cfcf",
+    "notification_envelope": "5fad8554002e",
+    "audit_envelope": "1a6638d568a6"
+  }
+}

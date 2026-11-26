@@ -11,7 +11,8 @@
 //   gateDescriptions[lang][item.key] ?? item.description
 //
 // so a new key added to the JSON degrades gracefully to English until it is
-// translated here.
+// translated here. A changed English source fails tests/registry-copy.test.mjs until
+// the entries here are reviewed and the basis re-recorded (bus 168).
 
 import type { Lang } from "../components/useLang";
 
