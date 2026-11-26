@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
   return { title: lang === "ru" ? "Календарь · Семья" : "Calendar · Family", robots: { index: false, follow: false } };
 }
 
-export default async function FamilyCalendarPage({ params }: { params: Promise<{ lang: string }> }) {
+export default async function FamilyCalendarPage({ params, searchParams }: { params: Promise<{ lang: string }>; searchParams: Promise<{ cal?: string }> }) {
   const { lang } = await params;
   if (lang !== "en" && lang !== "ru") notFound();
   if (!familyEnv.gateOn()) notFound();
@@ -25,5 +25,7 @@ export default async function FamilyCalendarPage({ params }: { params: Promise<{
   const L = lang === "ru" ? "RU" : "EN";
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.calendar[L]} />;
   if (!state.me && !state.admin) notFound();
-  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} />;
+  // ?cal=month opens the month view (the mockup's deep link); the week is the default.
+  const view = (await searchParams).cal === "month" ? "month" : "week";
+  return <FamilyCalendar lang={lang === "ru" ? "RU" : "EN"} cal={cal} meId={state.me?.id ?? null} initialView={view} />;
 }
