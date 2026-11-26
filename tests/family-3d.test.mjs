@@ -48,10 +48,12 @@ test("Кодекс page: crest thumbnails, motto at the end, the approved status
   const k = src("app/components/FamilyKodeks.tsx");
   assert.match(k, /<CrestThumb element=\{p\.element\}/); assert.match(k, /data-motto=""/); assert.match(k, /approved: \(d: string\) => `Утверждён \$\{d\}`/);
   assert.ok(k.indexOf("data-motto") > k.indexOf("data-kodeks=\"\""), "motto after the principles");
-  assert.match(src("app/components/FamilyOs.tsx"), /<TodayPrinciple /);
+  assert.match(src("app/components/FamilyToday.tsx"), /<TodayPrinciple /);
   assert.match(src("app/components/FamilyCouncil.tsx"), /<CouncilPrinciple /);
   assert.match(src("app/components/FamilyClient.tsx"), /data-kodeks-entry=""[\s\S]*family\/os\/kodeks|family\/os\/kodeks[\s\S]*data-kodeks-entry=""/);
-  assert.doesNotMatch(src("app/content/siteNav.ts") + src("app/lib/family-nav.mjs"), /kodeks/, "no tab for the Кодекс (≤ 6 tabs, bus 84)");
+  assert.doesNotMatch(src("app/content/siteNav.ts") + src("app/lib/family-nav.mjs"), /kodeks/, "no tab for the Кодекс in the old sub-nav (bus 84)");
+  // bus 171 (mockup v5, R0 26.11): the shell lists it under «Семья» as «Документы и правила» — the word «Кодекс» stays off the menu
+  assert.match(src("app/lib/family-os-shell.mjs"), /kodeks: "Документы и правила"/);
   assert.doesNotMatch(k, /likes|leaderboard|рейтинг|лайк/i, "no likes or rankings");
   assert.match(k, /fleurdelis: \{ y: 20, z: 5\.6 \}/, "lilies thumbnail cropped tighter via the table, not by moving the explorer marker");
   assert.match(src("app/components/CrestExplorer.tsx"), /id: "fleurdelis",[\s\S]{0,800}?y: 19,/, "explorer marker unchanged");
@@ -62,10 +64,12 @@ test("Today (bus 95): recognition collapsed behind «Отметить хорош
   assert.match(k, /const \[open, setOpen\] = useState\(false\)/, "the form starts closed");
   assert.match(k, /open: "Отметить хорошее"/); assert.match(k, /allAtCouncil: "Все — на совете"/);
   assert.match(k, /TODAY_RECOGNITIONS = 3/); assert.match(k, /items\.slice\(-TODAY_RECOGNITIONS\)/);
-  const o = src("app/components/FamilyOs.tsx");
+  // bus 171 (mockup v5): my tasks and routine are one list at the top («Мои дела на сегодня»), new tasks right after the
+  // first row of cards; the principle, recognition and documents follow below the cards, in their old order.
+  const o = src("app/components/FamilyToday.tsx");
   const at = (re) => { const i = o.search(re); assert.ok(i > 0, String(re)); return i; };
-  const order = [/<TodayPrinciple /, /<TodayBoard /, /<TodayChecklist /, /<TodayRecognition /, /id="remind-h"/].map(at);
-  assert.deepEqual([...order].sort((a, b) => a - b), order, "principle → tasks → routine → recognition → documents");
+  const order = [/data-my-day=""/, /<TodayBoard /, /<TodayPrinciple /, /<TodayRecognition /, /<TodayDocs /].map(at);
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "my things → new tasks → principle → recognition → documents");
 });
 
 test("heraldic accents: pillar tokens in light, dark and print; used as rules/icons, never fills", () => {

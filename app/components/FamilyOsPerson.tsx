@@ -14,14 +14,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TodayChecklist, Agenda, RoutineList, AddRoutine } from "./FamilyRoutines";
 import Link from "next/link";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
 import FamilyPortrait from "./FamilyPortrait";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { ageOn, expiryState, maskNumber, DOC_LABELS, createRevealTimer, REVEAL_MS, fmtDocDate } from "../lib/family-docs.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, OS_H2 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
@@ -70,9 +64,8 @@ const btn = BTN_SECONDARY;
 const field = "mt-1 block min-h-[46px] w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] leading-6 text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 
-export default function FamilyOsPerson({ passkeys = null, lang, state, profile, documents, routines, prefs = null, pauses = null, editor = false, goals = null, notes = null, ics = null }: { passkeys?: { self: boolean; canAdd: boolean } | null; lang: Lang; state: OsState; editor?: boolean; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null; prefs?: OsPrefs | null; pauses?: OsPause[] | null; goals?: OsGoals | null; notes?: OsNotes | null; ics?: OsIcs | null }) {
+export default function FamilyOsPerson({ passkeys = null, lang, state, profile, documents, routines, prefs = null, pauses = null, goals = null, notes = null, ics = null }: { passkeys?: { self: boolean; canAdd: boolean } | null; lang: Lang; state: OsState; profile: OsProfile; documents: OsDocument[] | null; routines: OsRoutines | null; prefs?: OsPrefs | null; pauses?: OsPause[] | null; goals?: OsGoals | null; notes?: OsNotes | null; ics?: OsIcs | null }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const ok = state.status === "ok";
   const people = ok ? state.people : [];
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
@@ -102,9 +95,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} editor={editor} admin={ok && state.admin} member={!ok || Boolean(state.me)} os active="people" />
+      <div data-fos-page="">
         <div className="pb-8">
           <p className="text-[15px]"><Link prefetch={false} href={`${base}/people`} className="text-[var(--text-secondary)] hover:text-[var(--accent)]">← {t.back}</Link></p>
           <div className="mt-4 flex max-w-4xl items-start gap-5">
@@ -179,8 +170,7 @@ export default function FamilyOsPerson({ passkeys = null, lang, state, profile, 
           </div>
           </div>
         </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }

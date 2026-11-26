@@ -100,7 +100,12 @@ test("L7: the owner who is not a member has no Доска, Совет or Кал�
   assert.deepEqual(ids({ admin: true, os: true, member: false }), ["heritage", "today", "people", "access", "admin"]);
   assert.deepEqual(ids({ admin: true, os: true }), ["heritage", "today", "board", "people", "council", "calendar", "access", "admin"], "a member owner keeps everything");
   assert.deepEqual(ids({ admin: false, os: true }), ["heritage", "today", "board", "people", "council", "calendar"]);
-  for (const f of ["FamilyOs.tsx", "FamilyOsPerson.tsx", "FamilyOsAccess.tsx", "FamilyClient.tsx", "FamilyAdmin.tsx"]) assert.match(src(`app/components/${f}`), /<FamilySubNav [^>]*member=\{/, f);
+  for (const f of ["FamilyClient.tsx", "FamilyAdmin.tsx"]) assert.match(src(`app/components/${f}`), /<FamilySubNav [^>]*member=\{/, f);
+  // bus 171: inside Family OS the shell draws the sections, with the same rule
+  const { osShellNav } = await import("../app/lib/family-os-shell.mjs");
+  const shell = (o) => osShellNav({ lang: "RU", ...o }).groups.flatMap((g) => g.items.map((i) => i.id));
+  assert.deepEqual(shell({ admin: true, os: true, member: false }), ["today", "people", "heritage", "access", "admin"]);
+  assert.match(src("app/[lang]/family/os/layout.tsx"), /member: Boolean\(state\.me\)/);
 });
 
 test("M2 UI: the owner's «Взрослый, 18+» switch appears only when the service sends adult_confirmed", () => {

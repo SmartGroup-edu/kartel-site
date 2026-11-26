@@ -12,14 +12,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
 import Disclosure from "./Disclosure";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { fmtWeekRange } from "../lib/family-docs.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3, RULE_GOALS } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
@@ -148,9 +142,8 @@ function Tag({ task, t }: { task: { kind: string; origin?: string }; t: Dict }) 
 type Ctx = { t: Dict; lang: Lang; me: { id: string; kind: string } | null; people: Person[]; av: Avatars; parent: boolean; onChange: () => void; open: (id: string) => void };
 const withText = (task: OsBoardTask, lane: string | null, c: Ctx) => { const others = parts(task).filter((x) => x !== lane); return others.length ? `${c.t.with} ${others.map((x) => nameOfM(c.people.find((p) => p.id === x), c.lang)).join(", ")}` : ""; };
 
-export default function FamilyBoard({ lang, initial, plan, templates, me, admin, editor = false }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null; admin: boolean; editor?: boolean }) {
+export default function FamilyBoard({ lang, initial, plan, templates, me }: { lang: Lang; initial: OsBoard | null; plan: OsPlan | null; templates: OsTemplate[] | null; me: { id: string; kind: string } | null }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const [board, setBoard] = useState(initial);
   // A server refresh (router.refresh after a write) brings a new `initial`: take it over.
   const [seen, setSeen] = useState(initial);
@@ -180,9 +173,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin,
 
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="board" badge={parent ? decisions : 0} />
+      <div data-fos-page="">
         {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
         {!board ? <div className="max-w-4xl"><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></div> : (
           <div className="pb-8" data-board="">
@@ -208,8 +199,7 @@ export default function FamilyBoard({ lang, initial, plan, templates, me, admin,
           </div>
         )}
         {drawer && board && <Drawer c={c} id={drawer} onClose={() => setDrawer(null)} />}
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }
@@ -910,12 +900,14 @@ function Templates({ c, templates }: { c: Ctx; templates: OsTemplate[] }) {
 
 /** Today: parents' decision line; «Новые задачи» (Принимаю / Не могу / Принять все) above «Мои задачи»
  *  (one primary move; the quiet «Ещё в работе?» only to the person doing it); «Мой распорядок N из M» under them. */
-export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBoard; board: OsBoard | null; me: { id: string; kind: string } | null; routines: { done: number; total: number } | null }) {
+/** `only="new"` (bus 171): «Сегодня» lists my tasks itself and shows the parents' queue as «Ждут решения», so only the
+ *  «Новые задачи» block (accept / can't) comes from here. `people`: names when the family board is not loaded (a child). */
+export function TodayBoard({ lang, data, board, me, only, people: known }: { lang: Lang; data: OsMyBoard; board: OsBoard | null; me: { id: string; kind: string } | null; routines?: { done: number; total: number } | null; only?: "new"; people?: Person[] }) {
   const t = tx(T, lang);
   const router = useRouter();
   const [err, setErr] = useState(false);
   const [cant, setCant] = useState<string | null>(null);
-  const people: Person[] = board?.members ?? [];
+  const people: Person[] = board?.members ?? known ?? [];
   const c: Ctx = { t, lang, me, people, av: avatarsFor(people, lang), parent: Boolean(board?.can.approve), onChange: () => router.refresh(), open: () => {} };
   const done = data.mine.filter((x) => x.state === "done" || x.state === "reviewed").length;
   const L = tx({ EN: { newH: "New tasks", wait: (n: number) => `${n} waiting for you`, all: (n: number) => `Accept all (${n})`, mineH: "My tasks", of: (d: number, n: number) => `${d} of ${n} done`, routine: (d: number, n: number) => `My routine ${d} of ${n}`, chip: { accepted: "Accepted", in_progress: "In progress", done: "Done", reviewed: "Checked", declined: "Parents decide" } },
@@ -924,7 +916,7 @@ export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBo
   const answer = async (id: string, action: "done" | "continue") => { const r = await osSend("POST", `tasks/${id}/${action}`); if (r?.ok) router.refresh(); else setErr(true); };
   return (
     <div data-today-board="">
-      {c.parent && board && <Inbox c={c} board={board} />}
+      {c.parent && board && !only && <Inbox c={c} board={board} />}
       {data.new.length > 0 && (
         <section aria-labelledby="new-h" data-new-tasks="" className="mt-8">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3"><h2 id="new-h" className={OS_H2}>{L.newH}</h2><span className="text-[14px] text-[var(--muted)]">{L.wait(data.new.length)}</span></div>
@@ -942,7 +934,7 @@ export function TodayBoard({ lang, data, board, me }: { lang: Lang; data: OsMyBo
           {data.new.length > 1 && <button type="button" className={`${btn} mt-3 w-full`} onClick={acceptAll}>{L.all(data.new.length)}</button>}
         </section>
       )}
-      {data.mine.length > 0 && (
+      {data.mine.length > 0 && !only && (
         <section aria-labelledby="mine-h" data-my-tasks="" className="mt-8">
           <div className="flex flex-wrap items-baseline justify-between gap-x-3"><h2 id="mine-h" className={OS_H2}>{L.mineH}</h2><span className="text-[14px] text-[var(--muted)]">{L.of(done, data.mine.length)}</span></div>
           <ul className="mt-2 grid gap-3">

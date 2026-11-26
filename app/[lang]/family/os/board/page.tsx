@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
+import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getBoard, getPlan, getTemplates } from "@/app/lib/family-os";
 import FamilyBoard from "@/app/components/FamilyBoard";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
-import { osDownNav, OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
 
 // Gated like every Family OS page. The service decides what each member sees (family tasks only);
 // the plan and templates are parents-only there too, so a member simply gets null for them.
@@ -24,9 +24,9 @@ export default async function FamilyBoardPage({ params, searchParams }: { params
   if (decision !== "allow" || !session) notFound();
   const [state, board] = await Promise.all([getOsState(session), getBoard(session, (await searchParams).date)]);
   const L = lang === "ru" ? "RU" : "EN";
-  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.board[L]} nav={osDownNav(session.cpifSubjectId)} />;
+  if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.board[L]} />;
   if (!state.me && !state.admin) notFound();
   const parent = Boolean(board?.can.approve);
   const [plan, templates] = parent ? await Promise.all([getPlan(session, board!.plan?.date), getTemplates(session)]) : [null, null];
-  return <FamilyBoard lang={lang === "ru" ? "RU" : "EN"} initial={board} plan={plan} templates={templates} me={state.me} admin={state.admin} editor={familyRole(session.cpifSubjectId) === "editor"} />;
+  return <FamilyBoard lang={lang === "ru" ? "RU" : "EN"} initial={board} plan={plan} templates={templates} me={state.me} />;
 }

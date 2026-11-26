@@ -5,6 +5,7 @@
  * (the edge proxy only checks the FAMILY_GATE flag; the page self-guards).
  */
 
+import { cache } from "react";
 import { getSession, type FamilySession } from "@/app/lib/family-auth";
 import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
@@ -13,16 +14,17 @@ import { osSessionState } from "@/app/lib/family-os-session.mjs";
 
 export type GateDecision = "login" | "pending" | "allow";
 
-/** Decide what a request to a gated Family route should do. Fail-closed. */
-export async function familyGateDecision(): Promise<{
+/** Decide what a request to a gated Family route should do. Fail-closed. Asked once per render (bus 171): the
+ *  Family OS layout and its page share the answer through React `cache`, which lives for one request only. */
+export const familyGateDecision = cache(async (): Promise<{
   decision: GateDecision;
   session: FamilySession | null;
-}> {
+}> => {
   const session = await getSession();
   if (!session) return { decision: "login", session: null };
   const approved = await isViewerApproved(session.cpifSubjectId, session.email);
   return { decision: approved ? "allow" : "pending", session };
-}
+});
 
 /**
  * QA-156 H1: has the owner ended this session («Завершить сеансы»)? For /api routes outside Family OS

@@ -1,34 +1,19 @@
 "use client";
 
 /**
- * Family OS shell: navigation, the "Today" view (Stage 2: the member's own routines and chores for
- * the day + the Documents block) and the people list with roles and guardian relations. Data arrives from the server page
- * (family-os service); nothing here talks to the service directly.
+ * «Люди»: the people list with roles and guardian relations, and the documents list that «Сегодня» reuses (DocList).
+ * «Сегодня» itself is FamilyToday (bus 171). Data arrives from the server page; nothing here talks to the service.
  */
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
 import Link from "next/link";
 import { DOC_LABELS, fmtDocDate } from "../lib/family-docs.mjs";
-import FamilySubNav from "./FamilySubNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { familyNav } from "../content/siteNav";
-import { greeting } from "../lib/family-nav.mjs";
 import FamilyPortrait from "./FamilyPortrait";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { OS_H2, RULE_PRIVATE } from "../lib/family-ui";
-import type { OsState, OsPerson, OsGrant, OsReminder, OsRoutines, OsMyBoard, OsBoard } from "../lib/family-os";
-import { TodayChecklist } from "./FamilyRoutines";
-import { TodayCouncil } from "./FamilyCouncil";
-import { TodayBoard } from "./FamilyBoard";
-import { TodayPrinciple, TodayRecognition } from "./FamilyKodeks";
-import FamilyHealth from "./FamilyHealth";
+import type { OsState, OsPerson, OsGrant, OsReminder } from "../lib/family-os";
 import { OsDownNotice } from "./FamilyOsDown";
 import { tx } from "../lib/typograph.mjs";
-import type { OsPrinciple, OsRecognition, OsKodeksPrinciple } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
-type View = "today" | "people";
 
 const T = {
   EN: {
@@ -62,58 +47,23 @@ const T = {
 } as const;
 type Dict = (typeof T)[Lang];
 
-export default function FamilyOs({ lang, view, state, reminders = [], familyReminders = [], mine = null, myBoard = null, board = null, principle = null, recognitions = null, principles = null, editor = false }: { lang: Lang; view: View; state: OsState; editor?: boolean; reminders?: OsReminder[]; familyReminders?: OsReminder[]; mine?: OsRoutines | null; tasks?: { id: string; title: string; due_date: string }[]; myBoard?: OsMyBoard | null; board?: OsBoard | null;
-  principle?: OsPrinciple | null; recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null }) {
+export default function FamilyOs({ lang, state }: { lang: Lang; state: OsState }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const nameOf = (p: { name_en: string; name_ru: string }) => (lang === "EN" ? p.name_en : p.name_ru);
-
   return (
-    <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} editor={editor} admin={state.status === "ok" && state.admin} os={state.status !== "ok" || Boolean(state.me) || state.admin} member={state.status !== "ok" || Boolean(state.me)} active={view} badge={board?.can.approve ? (board.needs_decision?.length ?? 0) + (board.plan && board.plan.ready && !board.plan.approved && board.plan.proposed > 0 ? 1 : 0) : 0} />
-        <div className="max-w-4xl pb-8">
-
-        {state.status !== "ok" ? (
-          <OsDownNotice lang={lang} status={state.status} title={view === "today" ? t.today : t.people} />
-        ) : !state.me && !state.admin ? (
-          // L6: the page keeps its H1 for someone who is signed in but not in Family OS yet
-          <section aria-labelledby="os-outsider-h" className="mt-10">
-            <h1 id="os-outsider-h" className={H1}>{view === "today" ? t.today : t.people}</h1>
-            <p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
-          </section>
-        ) : view === "today" ? (
-          <section aria-labelledby="today-h" className="mt-10">
-            <h1 id="today-h" className={H1}>{greeting(lang, state.me ? nameOf(state.me) : null)}</h1>
-            <p className={`${META} mt-2`} suppressHydrationWarning>{((d) => d.charAt(0).toUpperCase() + d.slice(1))(new Date().toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long" }))}</p>
-            {/* Order (bus 95, 3e-1): principle → new tasks → my tasks → my routine → recognition → health → documents. */}
-            {principle && <TodayPrinciple lang={lang} principle={principle} />}
-            {myBoard && <TodayBoard lang={lang} data={myBoard} board={board} me={state.me} routines={mine ? { done: mine.routines.filter((r) => r.due_today && r.done_today).length, total: mine.paused_today ? 0 : mine.routines.filter((r) => r.due_today).length } : null} />}
-            {mine && <TodayChecklist lang={lang} today={mine.today} routines={mine.routines} canCheck={mine.can.check} headingId="myday-h" heading={t.myDay} paused={mine.paused_today} />}
-            {state.me && principles && recognitions && <TodayRecognition lang={lang} people={state.people} meId={state.me.id} principles={principles} current={principle?.index ?? 0} items={recognitions} />}
-            {state.me && <FamilyHealth lang={lang} />}
-            {reminders.length > 0 && <DocList t={t} lang={lang} id="remind-h" title={t.remindTitle} items={reminders} people={state.people} nameOf={nameOf} />}
-            {familyReminders.length > 0 && <DocList t={t} lang={lang} id="family-remind-h" title={t.familyRemindTitle} items={familyReminders} people={state.people} nameOf={nameOf} />}
-            {state.me && <TodayCouncil lang={lang} tasks={[]} sunday={Boolean(mine?.today && new Date(`${mine.today}T12:00:00Z`).getUTCDay() === 0)} />}
-            {!mine?.paused_today && !(mine?.routines.some((r) => r.due_today)) && !(myBoard?.new.length || myBoard?.mine.length) && (
-              <div data-today-empty="" className="mt-8 rounded-lg border border-dashed border-[var(--border)] px-6 py-8 text-center">
-                <p className="font-serif text-[20px] text-[var(--foreground)]">{mine && mine.routines.length > 0 ? t.noneScheduled : t.todayEmpty}</p>
-                {state.me && <p className="mx-auto mt-3 max-w-[52ch] text-[16px] leading-[1.6] text-[var(--text-secondary)]">
-                  {state.me.kind === "child" ? t.childHint : (
-                    <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${state.me.id}#routines-h`} className="inline-flex min-h-11 items-center underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]">{t.addOwn}</Link>
-                  )}
-                </p>}
-              </div>
-            )}
-          </section>
-        ) : (
-          <People t={t} lang={lang} me={state.me} people={state.people} grants={state.grants} nameOf={nameOf} />
-        )}
-        </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
-    </>
+    <div className="max-w-4xl pb-8">
+      {state.status !== "ok" ? (
+        <OsDownNotice lang={lang} status={state.status} title={t.people} />
+      ) : !state.me && !state.admin ? (
+        // L6: the page keeps its H1 for someone who is signed in but not in Family OS yet
+        <section aria-labelledby="os-outsider-h">
+          <h1 id="os-outsider-h" className={H1}>{t.people}</h1>
+          <p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p>
+        </section>
+      ) : (
+        <People t={t} lang={lang} me={state.me} people={state.people} grants={state.grants} nameOf={nameOf} />
+      )}
+    </div>
   );
 }
 
@@ -124,7 +74,7 @@ function People({ t, lang, me, people, grants, nameOf }: {
   const sorted = (xs: OsPerson[]) => [...xs].sort((a, b) => nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
   const groups: [string, OsPerson[]][] = [[t.adults, sorted(people.filter((p) => p.kind === "adult"))], [t.children, sorted(people.filter((p) => p.kind === "child"))]];
   return (
-    <section aria-labelledby="people-h" className="mt-10">
+    <section aria-labelledby="people-h">
       <h1 id="people-h" className={H1}>{t.people}</h1>
       {people.length === 0 && <p className={`${META} mt-6`}>{t.emptyPeople}</p>}
       {groups.filter(([, xs]) => xs.length).map(([label, xs]) => (
@@ -197,4 +147,11 @@ function DocList({ t, lang, id, title, items, people, nameOf }: {
       </ul>
     </section>
   );
+}
+
+/** «Документы» / «Сроки документов всей семьи» on «Сегодня» (bus 171): the same list, with this file's words. */
+export function TodayDocs({ lang, family = false, items, people }: { lang: Lang; family?: boolean; items: OsReminder[]; people: OsPerson[] }) {
+  const t = tx(T, lang);
+  const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
+  return <DocList t={t} lang={lang} id={family ? "family-remind-h" : "remind-h"} title={family ? t.familyRemindTitle : t.remindTitle} items={items} people={people} nameOf={nameOf} />;
 }

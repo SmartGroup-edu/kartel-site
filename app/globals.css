@@ -177,6 +177,149 @@
   --band-text: #ffffff;
 }
 
+/* Family OS redesign (bus 171; mockup v5 approved by R0 26.11.2026). Scoped to the Family OS shell: [data-fos] sits on
+   the shell and, while a Family OS page is open, on <body> (dialogs render in a portal). The existing token names are
+   re-pointed, so every Family OS component picks the new palette up without a fork; the --fos-* names are the roles the
+   site palette has no slot for. Light and dark follow .dark; «Высокий контраст» keeps its AAA tokens (only the page,
+   panel and shadow roles are mapped onto them). Text tokens ≥ 4.5:1 on --fos-bg, --background and --surface; controls
+   ≥ 3:1 — guarded by tests/family-os-shell.test.mjs. */
+:root:not(.hc) [data-fos] {
+  --fos-bg: #f5f4f0;
+  --fos-panel: #ffffff;
+  --fos-panel-2: #faf9f6;
+  --background: #ffffff;
+  --surface: #faf9f6;
+  --foreground: #141416;
+  --text-body: #3a3a40;
+  --text-secondary: #3a3a40;
+  --text-nav: #3a3a40;
+  --muted: #6b6b74;
+  --muted-light: #6b6b74;
+  --border: #e8e6e0;
+  /* A checkbox or field edge: a control, so ≥ 3:1 on the panel. */
+  --fos-control: #8f8c84;
+  --accent: #1e4d35;
+  --accent-hover: #24603f;
+  --on-accent: #ffffff;
+  --accent-soft: #e6f1ea;
+  /* The brighter green of the mockup: badges, the progress ring, a done checkbox. --fos-on-accent-2 is the text on it. */
+  --fos-accent-2: #2e7d52;
+  --fos-on-accent-2: #ffffff;
+  --ok: #276b46;
+  --ok-soft: #e6f1ea;
+  --fos-amber: #8f5a12;
+  --fos-on-amber: #ffffff;
+  --warn-soft: #fbf0dc;
+  --warn-border: #d9b567;
+  --destructive: #b23a2e;
+  --fos-red-soft: #fae5e2;
+  --fos-blue: #2b5c9e;
+  --fos-blue-soft: #e4ecf8;
+  --fos-plum: #8e4570;
+  --fos-plum-soft: #f4e6ef;
+  --selection-bg: rgba(46, 125, 82, 0.18);
+  --header-bg: #ffffff;
+  --drop-cap: #1e4d35;
+  --fos-shadow: 0 1px 2px rgba(20, 20, 30, 0.04), 0 6px 20px rgba(20, 20, 30, 0.05);
+  --fos-shadow-lg: 0 24px 60px rgba(10, 15, 12, 0.22);
+  /* The day banner: a deep green field; its text is light in both themes. */
+  --fos-brief-from: #24603f;
+  --fos-brief-to: #0f2a1d;
+  --fos-brief-text: #e3efe7;
+  --fos-brief-ring: #8fe0ae;
+}
+
+:root.dark:not(.hc) [data-fos] {
+  --fos-bg: #0e1110;
+  --fos-panel: #161a18;
+  --fos-panel-2: #1b201d;
+  --background: #161a18;
+  --surface: #1b201d;
+  --foreground: #eef1ee;
+  --text-body: #c9cfcb;
+  --text-secondary: #c9cfcb;
+  --text-nav: #c9cfcb;
+  --muted: #8a938e;
+  --muted-light: #8a938e;
+  --border: #262d29;
+  --fos-control: #76817a;
+  /* The mockup's #3e9b68 cannot carry white text (3.4:1), so dark text sits on the green and links use the lighter green. */
+  --accent: #5dbb85;
+  --accent-hover: #74c896;
+  --on-accent: #0e1110;
+  --accent-soft: #18291f;
+  --fos-accent-2: #3e9b68;
+  --fos-on-accent-2: #0e1110;
+  --ok: #5dbb85;
+  --ok-soft: #18291f;
+  --fos-amber: #e0b062;
+  --fos-on-amber: #0e1110;
+  --warn-soft: #2b2213;
+  --warn-border: #6b5528;
+  --destructive: #e88a7f;
+  --destructive-foreground: #0e1110;
+  --fos-red-soft: #2e1a18;
+  --fos-blue: #9cb8e6;
+  --fos-blue-soft: #162233;
+  --fos-plum: #d99bc0;
+  --fos-plum-soft: #2a1824;
+  --selection-bg: rgba(93, 187, 133, 0.25);
+  --header-bg: #161a18;
+  --drop-cap: #5dbb85;
+  --fos-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --fos-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --fos-brief-from: #1d4d33;
+  --fos-brief-to: #0b1f15;
+  --fos-brief-text: #e3efe7;
+  --fos-brief-ring: #8fe0ae;
+}
+
+/* High contrast: the AAA tokens above stay; only the shell's own roles are mapped onto them. */
+:root.hc [data-fos] {
+  --fos-bg: var(--background);
+  --fos-panel: var(--background);
+  --fos-panel-2: var(--surface);
+  --fos-control: var(--border);
+  --fos-accent-2: var(--accent);
+  --fos-on-accent-2: var(--on-accent);
+  --fos-amber: var(--foreground);
+  --fos-on-amber: var(--background);
+  --fos-red-soft: var(--surface);
+  --fos-blue: var(--foreground);
+  --fos-blue-soft: var(--surface);
+  --fos-plum: var(--foreground);
+  --fos-plum-soft: var(--surface);
+  --fos-shadow: none;
+  --fos-shadow-lg: none;
+  --fos-brief-from: var(--surface);
+  --fos-brief-to: var(--surface);
+  --fos-brief-text: var(--foreground);
+  --fos-brief-ring: var(--accent);
+}
+
+/* Radii 14 / 16 (cards 16, controls 14) and the display serif for headings. The site's self-hosted Source Serif
+   variable is re-pointed, so the existing font-serif utility (and every OS_H2/OS_H3) takes the new face. */
+[data-fos] {
+  --radius: 14px;
+  --fos-radius: 16px;
+  --font-source-serif: ui-serif, "New York", "Iowan Old Style", Georgia;
+}
+[data-fos] :is(h1, h2, h3).font-serif {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+body[data-fos] {
+  background: var(--fos-bg);
+}
+/* The page title is ink in the new design (it was burgundy). */
+[data-fos] h1.font-serif {
+  color: var(--foreground);
+}
+/* Focus ring: the brighter green, visible on panels and on the page in both themes. */
+[data-fos] :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: var(--fos-accent-2);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -403,10 +546,18 @@ summary:focus-visible,
     /* bus 101: a fridge sheet needs real margins on every printer (was 16mm 15mm) */
     margin: 14mm 14mm 16mm;
   }
+  :root:not(.hc) [data-fos],
+  :root.dark:not(.hc) [data-fos],
+  :root.hc [data-fos],
   :root,
   .dark,
   :root.hc:not(.dark),
   :root.dark.hc {
+    /* Family OS (bus 171): its page and panels print white too */
+    --fos-bg: #ffffff;
+    --fos-panel: #ffffff;
+    --fos-panel-2: #ffffff;
+    --fos-shadow: none;
     --pillar-rhythm: #000000;
     --pillar-health: #000000;
     --pillar-growth: #000000;

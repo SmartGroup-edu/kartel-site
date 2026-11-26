@@ -10,16 +10,10 @@ import type { OsRecognition, OsKodeksPrinciple } from "../lib/family-os";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
 import Disclosure from "./Disclosure";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { fmtFamilyDate, fmtWeekRange } from "../lib/family-docs.mjs";
 import { Check } from "./FamilyRoutines";
 import { ruPlural } from "../lib/family-routines.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, OS_H2, RULE_VALUES } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
@@ -57,18 +51,15 @@ const send = (method: "POST" | "PUT", path: string, body: unknown) =>
   fetch(`/api/family-os/${path}`, { method, headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "same-origin", cache: "no-store" }).catch(() => null);
 const longDate = (d: string, lang: Lang) => { const s = new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }); return s.charAt(0).toUpperCase() + s.slice(1); };
 
-export default function FamilyCouncil({ lang, council, people, me, admin, sprint = null, recognitions = null, principles = null, editor = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; admin: boolean; sprint?: OsSprint | null;
+export default function FamilyCouncil({ lang, council, people, me, sprint = null, recognitions = null, principles = null }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; sprint?: OsSprint | null;
   recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null; editor?: boolean }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const base = `/${lang === "EN" ? "en" : "ru"}/family/os/council`;
   const nameOf = (id: string) => { const p = people.find((x) => x.id === id); return p ? (lang === "EN" ? p.name_en : p.name_ru) : "—"; };
   const shift = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="council" />
+      <div data-fos-page="">
         <div className="max-w-4xl pb-8">
           {/* L6: the owner who is not a member still gets the page's H1 above the one line */}
           {!council ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.notMember}</p></> : (
@@ -119,8 +110,7 @@ export default function FamilyCouncil({ lang, council, people, me, admin, sprint
             </>
           )}
         </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }

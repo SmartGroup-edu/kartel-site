@@ -11,14 +11,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
 import Disclosure from "./Disclosure";
 import { CREST_MARKERS } from "./CrestExplorer";
-import { useLangToggle } from "./useLang";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
 import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, CARD_LABEL, OS_H2, OS_H3, RULE_VALUES } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
@@ -95,16 +89,13 @@ export function CrestThumb({ element, size = 64 }: { element: string; size?: num
 }
 
 /** The Кодекс page (route /family/os/kodeks). */
-export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = false }: { lang: Lang; kodeks: OsKodeks | null; admin: boolean; principle: OsPrinciple | null; editor?: boolean }) {
+export default function FamilyKodeks({ lang, kodeks, principle }: { lang: Lang; kodeks: OsKodeks | null; principle: OsPrinciple | null }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const cur = kodeks?.current ?? null;
   const name = (b: { name_ru: string; name_en: string } | null) => (b ? (lang === "EN" ? b.name_en : b.name_ru) : t.seed);
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin={admin} editor={editor} os active="kodeks" />
+      <div data-fos-page="">
         <div className="max-w-3xl pb-8">
           {!cur ? <><h1 className={H1}>{t.title}</h1><p role="status" className="mt-6 max-w-[60ch] rounded-lg border border-[var(--border)] px-4 py-3 text-[16px]">{t.empty}</p></> : (
             <>
@@ -153,8 +144,7 @@ export default function FamilyKodeks({ lang, kodeks, admin, principle, editor = 
             </>
           )}
         </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }

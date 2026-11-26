@@ -9,12 +9,6 @@ import { checkEnded } from "../lib/family-ended";
 import Disclosure from "./Disclosure";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import SiteFooter from "./SiteFooter";
-import FamilySubNav from "./FamilySubNav";
-import { familyNav } from "../content/siteNav";
-import { FAMILY_MAIN, FAMILY_HEADER_MAX } from "../lib/family-nav.mjs";
-import { useLangToggle } from "./useLang";
 import { H1, META } from "../lib/typeScale";
 import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/family-ui";
 import { tx } from "../lib/typograph.mjs";
@@ -66,17 +60,14 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, member = true }: { lang: Lang; member?: boolean; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
   const t = tx(T, lang);
-  const toggleLang = useLangToggle(lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
   const sorted = [...people].sort((a, b) => a.kind.localeCompare(b.kind) || nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
   const children = sorted.filter((p) => p.kind === "child"), adults = sorted.filter((p) => p.kind === "adult");
   return (
     <>
-      <SiteHeader lang={lang} toggleLang={toggleLang} navItems={familyNav(lang)} maxWidth={FAMILY_HEADER_MAX} />
-      <main id="main" className={FAMILY_MAIN}>
-        <FamilySubNav lang={lang} admin os member={member} active="access" />
+      <div data-fos-page="">
         <div className="max-w-4xl pb-8">
           <h1 className={H1}>{t.title}</h1>
           <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
@@ -119,8 +110,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
 
           {rules && <FamilyRules lang={lang} rules={rules} />}
         </div>
-      </main>
-      <SiteFooter copy="KARTEL" contactEmail={null} />
+      </div>
     </>
   );
 }
