@@ -16,10 +16,16 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { KeyRound } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn, browserSupportsWebAuthnAutofill } from "@simplewebauthn/browser";
 import AuthShell from "./AuthShell";
 import { H1, EYEBROW, PROSE } from "../lib/typeScale";
 import { typographDict } from "../lib/typograph.mjs";
+
+/** The main action and the fallback (mockup v5 sign-in: one filled button, the rest outlined). */
+const BTN = "inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius)] px-6 text-base font-medium transition-colors disabled:cursor-wait disabled:opacity-60";
+const BTN_FIRST = `${BTN} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`;
+const BTN_SECOND = `${BTN} border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 
 /** Hash the "different email" link carries back to the form, which then focuses the field. */
 const EDIT_HASH = "#family-email";
@@ -34,9 +40,16 @@ function ruMinutes(n: number): string {
 
 const copy = {
   en: {
-    eyebrow: "Family Heritage",
-    heading: "Members only",
-    body: "The Family Heritage area requires sign-in and administrator approval.",
+    eyebrow: "Family area",
+    heading: "Family sign-in",
+    body: "Sign in to open the family area. Access is by invitation and the administrator's approval.",
+    noAccess: "No access yet? Ask the head of the family to invite you.",
+    orCode: "or by email, with a code", orLink: "or by an email link",
+    asideLabel: "About the family area",
+    asideBrand: "Family office",
+    asideTitle: "Family and business, in one calm place.",
+    asideBody: "Tasks, decisions, the calendar and the family's documents. What matters today, and who looks after what, at a glance.",
+    asideFeatures: ["Sign in without a password", "For the family only", "Every link and code works once"],
     label: "Email address",
     placeholder: "you@example.com",
     cta: "Email me a sign-in link",
@@ -46,7 +59,7 @@ const copy = {
     sentTitle: "Check your email",
     sent: (min: number) => `If that address may access this area, an email is on its way. Check your inbox and spam folder. Tap “Sign in” in the email, or type its code below. The link and the code expire in ${min} ${min === 1 ? "minute" : "minutes"}.`,
     again: "Use a different email",
-    back: "Back to the coat of arms",
+    back: "Back to the home page",
     ended: "Your session was ended — this happens when the family's owner closes open sessions, for example after a lost phone. Please sign in again with an email link or a passkey.",
     invalid: () => "That link didn’t work. Ask for a new one here: the email will have a link and a code, and the code can be typed on this page.",
     expired: (min: number) => `That link has expired — a link works for ${min} ${min === 1 ? "minute" : "minutes"}. Ask for a new one here.`,
@@ -72,9 +85,16 @@ const copy = {
     },
   },
   ru: {
-    eyebrow: "Семейное наследие",
-    heading: "Только для участников",
-    body: "Раздел «Семейное наследие» доступен после входа и одобрения администратором.",
+    eyebrow: "Семейный кабинет",
+    heading: "Вход для семьи",
+    body: "Войдите, чтобы открыть семейный кабинет. Доступ — по приглашению и после одобрения администратором.",
+    noAccess: "Нет доступа? Попросите главу семьи пригласить вас.",
+    orCode: "или по письму с кодом", orLink: "или по ссылке на почту",
+    asideLabel: "О семейном кабинете",
+    asideBrand: "Семейный офис",
+    asideTitle: "Семья и бизнес — в одном спокойном месте.",
+    asideBody: "Дела, решения, календарь и документы семьи. Сразу видно, что важно сегодня и кто за что отвечает.",
+    asideFeatures: ["Вход без пароля", "Только для семьи", "Ссылка и код срабатывают один раз"],
     label: "Адрес электронной почты",
     placeholder: "you@example.com",
     cta: "Прислать ссылку для входа",
@@ -84,7 +104,7 @@ const copy = {
     sentTitle: "Проверьте почту",
     sent: (min: number) => `Если у этого адреса есть доступ, письмо уже отправлено. Проверьте входящие и папку «Спам». Нажмите «Войти» в письме или введите код из него ниже. Ссылка и код действуют ${min} ${ruMinutes(min)}.`,
     again: "Указать другой адрес",
-    back: "К гербу",
+    back: "На главную",
     ended: "Сеанс завершён — так бывает, когда владелец семейного раздела закрывает открытые сеансы, например после потери телефона. Войдите снова по ссылке из письма или с ключом доступа.",
     invalid: () => "Ссылка не сработала. Запросите новую здесь: в письме будут ссылка и код, а код можно ввести на этой странице.",
     expired: (min: number) => `Ссылка устарела — она действует ${min} ${ruMinutes(min)}. Запросите новую здесь.`,
@@ -171,6 +191,7 @@ export function FamilyGateNotice({
     return () => { live = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per page
   }, [passkeys, state]);
+  const pkFirst = passkeys && pkOk;
   // Arriving from "Use a different email": put the cursor in the field.
   const emailRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -178,7 +199,7 @@ export function FamilyGateNotice({
   }, []);
 
   return (
-    <AuthShell lang={lang}>
+    <AuthShell lang={lang} aside={<SignInAside c={c} />}>
       <p className={EYEBROW}>{c.eyebrow}</p>
 
       {state === "sent" ? (
@@ -230,10 +251,24 @@ export function FamilyGateNotice({
             </p>
           )}
 
+          {/* bus 172 P5 (mockup v5): the passkey is the main button when this browser can use one; the email — a link
+              and a six-digit code — is the fallback below it. Without passkeys the email form is the main action. */}
+          {pkFirst && (
+            <div data-passkey-signin="" className="mt-8">
+              <button type="button" onClick={() => pkSignIn(false)} className={`w-full ${BTN_FIRST}`}>
+                <KeyRound aria-hidden="true" className="h-[18px] w-[18px]" />
+                {c.pk}
+              </button>
+              <p className="mt-2 text-center text-[14px] leading-relaxed text-[var(--muted)]">{c.pkHint}</p>
+              <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--foreground)]">{pkMsg}</p>
+              <p className="my-5 flex items-center gap-3 text-[14px] text-[var(--muted)]" aria-hidden="true"><span className="h-px flex-1 bg-[var(--border)]" />{codes ? c.orCode : c.orLink}<span className="h-px flex-1 bg-[var(--border)]" /></p>
+            </div>
+          )}
+
           <form
             method="post"
             action="/api/family-auth/request"
-            className="mt-8 flex flex-col gap-3"
+            className={`${pkFirst ? "mt-0" : "mt-8"} flex flex-col gap-3`}
             onSubmit={() => setPending(true)}
             aria-busy={pending}
           >
@@ -259,20 +294,13 @@ export function FamilyGateNotice({
             <button
               type="submit"
               disabled={pending}
-              className="h-12 rounded-lg bg-[var(--accent)] px-6 text-base font-medium text-[var(--on-accent)] transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-wait disabled:opacity-60"
+              className={pkFirst ? BTN_SECOND : BTN_FIRST}
             >
               {pending ? c.sending : state === "elsewhere" ? c.ctaHere : c.cta}
             </button>
           </form>
 
-          {passkeys && pkOk && (
-            <div data-passkey-signin="" className="mt-6">
-              <p className="flex items-center gap-3 text-[14px] text-[var(--muted)]" aria-hidden="true"><span className="h-px flex-1 bg-[var(--border)]" />{c.or}<span className="h-px flex-1 bg-[var(--border)]" /></p>
-              <button type="button" onClick={() => pkSignIn(false)} className="mt-4 h-12 w-full rounded-lg border border-[var(--accent)] px-6 text-base font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/5">{c.pk}</button>
-              <p className="mt-2 text-[14px] leading-relaxed text-[var(--muted)]">{c.pkHint}</p>
-              <p role="status" aria-live="polite" className="mt-2 text-[15px] text-[var(--foreground)]">{pkMsg}</p>
-            </div>
-          )}
+          <p className="mt-6 text-[14px] leading-relaxed text-[var(--muted)]">{c.noAccess}</p>
 
           <p className="mt-8 text-[15px]">
             <a href={`/${lang}`} className="inline-flex min-h-11 items-center rounded-sm text-[var(--text-nav)] hover:text-[var(--accent)]">
@@ -286,6 +314,28 @@ export function FamilyGateNotice({
 }
 
 type Copy = typeof copy.en | typeof COPY_RU;
+
+/** The left panel of the v5 sign-in, from 900 px: what the family area is. Words only — no names, figures or tasks. */
+function SignInAside({ c }: { c: Copy }) {
+  return (
+    <aside
+      aria-label={c.asideLabel}
+      className="hidden flex-col rounded-[var(--fos-radius)] bg-gradient-to-br from-[var(--fos-brief-from)] to-[var(--fos-brief-to)] p-10 text-[var(--fos-brief-text)] min-[900px]:flex lg:p-12"
+    >
+      <p className="flex items-center gap-3">
+        <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-[10px] border border-current font-serif text-[17px] font-semibold">K</span>
+        <span className="flex flex-col leading-tight"><b className="tracking-[0.14em] text-[14px]">KARTEL</b><span className="text-[14px]">{c.asideBrand}</span></span>
+      </p>
+      <p className="mt-auto max-w-[30rem] pt-16 font-serif text-[40px] font-semibold leading-[1.05] tracking-[-0.015em] lg:text-[46px]">{c.asideTitle}</p>
+      <p className="mt-4 max-w-[28rem] text-[16px] leading-[1.5]">{c.asideBody}</p>
+      <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-2 text-[14px]">
+        {c.asideFeatures.map((f) => (
+          <li key={f} className="flex items-center gap-2"><span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--fos-brief-ring)]" />{f}</li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
 type CodeError = keyof Copy["codeErr"];
 
 /**
@@ -344,7 +394,7 @@ function CodeForm({ c, returnTo }: { c: Copy; returnTo: string }) {
       <button
         type="submit"
         disabled={busy}
-        className="h-12 rounded-lg border border-[var(--accent)] px-6 text-base font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/5 disabled:cursor-wait disabled:opacity-60"
+        className={BTN_FIRST}
       >
         {busy ? c.codeBusy : c.codeCta}
       </button>
