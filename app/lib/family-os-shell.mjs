@@ -7,18 +7,24 @@
  * Задачи, Календарь and Решения are for family members; «Доступ и безопасность» for the owner; the heritage editor
  * for the owner and an editor. No dead links.
  *
+ * bus 172 P6: «Обзор недели» (members; built from the week's task boards) joins the main group, after «Решения»; the
+ * phone tab bar keeps the first four. «Компании и проекты» (the registry's projects, no Family OS data) sits in its own
+ * «Бизнес» group, for everyone in Family OS (a member, or the owner).
+ *
  * A child (bus 172 P3) gets two sections only: «Мой день» (the /os address) and «Календарь». The other Family OS pages
  * send a child back to «Мой день» on the server (childHome in app/lib/family-child.ts), so this menu is the whole map.
  */
 const L = {
   RU: {
-    today: "Сегодня", myDay: "Мой день", board: "Задачи", calendar: "Календарь", council: "Решения",
+    today: "Сегодня", myDay: "Мой день", board: "Задачи", calendar: "Календарь", council: "Решения", review: "Обзор недели",
+    companies: "Компании и проекты", business: "Бизнес",
     people: "Люди", kodeks: "Документы и правила", heritage: "Наследие",
     access: "Доступ и безопасность", admin: "Редактор наследия",
     family: "Семья", settings: "Управление", nav: "Разделы семьи", tabs: "Главные разделы",
   },
   EN: {
-    today: "Today", myDay: "My day", board: "Tasks", calendar: "Calendar", council: "Decisions",
+    today: "Today", myDay: "My day", board: "Tasks", calendar: "Calendar", council: "Decisions", review: "Weekly review",
+    companies: "Companies and projects", business: "Business",
     people: "People", kodeks: "Documents and rules", heritage: "Heritage",
     access: "Access and security", admin: "Heritage editor",
     family: "Family", settings: "Settings", nav: "Family sections", tabs: "Main sections",
@@ -27,7 +33,8 @@ const L = {
 
 /** Section id → address under /[lang]/family. `week` has no menu item of its own: it is reached from Календарь. */
 export const OS_PATHS = {
-  today: "/os", board: "/os/board", calendar: "/os/calendar", council: "/os/council", people: "/os/people",
+  today: "/os", board: "/os/board", calendar: "/os/calendar", council: "/os/council", review: "/os/review", people: "/os/people",
+  companies: "/os/companies",
   kodeks: "/os/kodeks", access: "/os/access", heritage: "", admin: "/admin",
 };
 
@@ -36,7 +43,7 @@ export const OS_PATHS = {
  *   `os`: the viewer is in Family OS (a member, or the owner); `member`: a family member (false for the owner who is not
  *   one — no Задачи, Календарь, Решения); `admin`: the owner; `editor`: a heritage editor; `child`: a child member —
  *   «Мой день» and «Календарь», nothing else.
- * @returns {{ groups: { id: "main" | "family" | "settings", label: string | null, items: ShellItem[] }[], tabs: ShellItem[], label: string, tabsLabel: string }}
+ * @returns {{ groups: { id: "main" | "family" | "business" | "settings", label: string | null, items: ShellItem[] }[], tabs: ShellItem[], label: string, tabsLabel: string }}
  * @typedef {{ id: keyof typeof OS_PATHS, href: string, label: string, badge?: number }} ShellItem
  */
 export function osShellNav({ lang, admin, os, editor = false, member = true, child = false, badges = {} }) {
@@ -51,12 +58,13 @@ export function osShellNav({ lang, admin, os, editor = false, member = true, chi
     const n = badges[id];
     return Number.isInteger(n) && n > 0 ? { ...x, badge: n } : x;
   };
-  const main = [], family = [], settings = [];
+  const main = [], family = [], business = [], settings = [];
   if (os) {
     main.push(item("today"));
-    if (member) main.push(item("board"), item("calendar"), item("council"));
+    if (member) main.push(item("board"), item("calendar"), item("council"), item("review"));
     family.push(item("people"));
     if (member) family.push(item("kodeks"));
+    business.push(item("companies"));
   }
   family.push(item("heritage"));
   if (admin && os) settings.push(item("access"));
@@ -64,9 +72,10 @@ export function osShellNav({ lang, admin, os, editor = false, member = true, chi
   const groups = [
     { id: "main", label: null, items: main },
     { id: "family", label: t.family, items: family },
+    { id: "business", label: t.business, items: business },
     { id: "settings", label: t.settings, items: settings },
   ].filter((g) => g.items.length > 0);
-  return { groups, tabs: main, label: t.nav, tabsLabel: t.tabs };
+  return { groups, tabs: main.slice(0, 4), label: t.nav, tabsLabel: t.tabs };
 }
 
 /**

@@ -19,6 +19,8 @@ export const OS_DOWN_TITLE = {
   calendar: { EN: "Calendar", RU: "Календарь" },
   kodeks: { EN: "The Kartel family code", RU: "Кодекс семьи Картель" },
   week: { EN: "Family week", RU: "Неделя семьи" },
+  review: { EN: "Weekly review", RU: "Обзор недели" },
+  companies: { EN: "Companies and projects", RU: "Компании и проекты" },
   person: { EN: "Family", RU: "Семья" },
   access: { EN: "People and access", RU: "Люди и доступы" },
 } as const;
