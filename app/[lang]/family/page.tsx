@@ -6,6 +6,7 @@ import { familyContent, FAMILY_TREE_NODES, FAMILY_TIMELINE_EVENTS } from "@/app/
 import { familyEnv } from "@/app/lib/family-env";
 import { familyGateDecision, isFamilyAdmin, familyRole } from "@/app/lib/family-gate";
 import { getOsNav } from "@/app/lib/family-os";
+import { childHome } from "@/app/lib/family-child";
 import { getPublishedMedia } from "@/app/lib/family-media";
 import { FamilyGateNotice } from "../../components/FamilyGateNotice";
 import { typographDict, typographRuFields } from "@/app/lib/typograph.mjs";
@@ -21,13 +22,13 @@ type Locale = (typeof LOCALES)[number];
 const pageMeta: Record<Locale, { title: string; description: string; ogDescription: string; keywords: string[] }> = {
   // No personal names here (R0 2026-11-14): metadata is emitted before the page guard runs.
   en: {
-    title: "Kartel Family Members — London",
+    title: "Heritage · Family area",
     description: "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
     ogDescription: "Members of the Kartel family. A living line of continuity joined by name, memory, and legacy.",
     keywords: ["Kartel family", "Kartel family London"],
   },
   ru: {
-    title: "Члены семьи Картель — Лондон",
+    title: "Наследие · Семейный кабинет",
     description: "Члены семьи Картель. Живая нить преемственности, связанная именем, памятью и наследием.",
     ogDescription: "Члены семьи Картель. Живая нить преемственности, связанная именем, памятью и наследием.",
     keywords: ["семья Картель", "семья Картель Лондон"],
@@ -237,7 +238,13 @@ export default async function FamilyPage({
     const { decision, session } = await familyGateDecision();
     if (decision !== "allow") return <FamilyGateNotice lang={locale} returnTo={`/${lang}/family`} ttlMinutes={familyEnv.linkTtlMinutes()} />;
     // The family sub-nav and the "Today in the family" entry need to know who this is (bus 63).
-    if (session) nav = { admin: isFamilyAdmin(session.cpifSubjectId), editor: familyRole(session.cpifSubjectId) === "editor", ...(await getOsNav(session)) };
+    if (session) {
+      const { me, ...os } = await getOsNav(session);
+      // bus 173: a child's family area is «Мой день» and «Календарь» (bus 172 P3) — the heritage page is not in their
+      // menu, and its address sends them home too, on the server, before anything of it renders.
+      childHome(lang, me);
+      nav = { admin: isFamilyAdmin(session.cpifSubjectId), editor: familyRole(session.cpifSubjectId) === "editor", ...os };
+    }
   }
 
   const upperLang: "EN" | "RU" = locale === "en" ? "EN" : "RU";

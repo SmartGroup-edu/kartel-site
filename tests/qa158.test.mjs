@@ -41,7 +41,8 @@ test("N2: a 429 from Family OS reads «Слишком много запросо�
 });
 
 test("N3: the family 404 gets `member`, and the chrome passes it to the sub-nav", () => {
-  assert.match(src("app/[lang]/family/not-found.tsx"), /family = \{ admin: isFamilyAdmin\(sub\), editor: familyRole\(sub\) === "editor", \.\.\.\(await getOsNav\(session\)\) \};/);
+  // bus 173: getOsNav also returns `me` (for the heritage page's child check); the 404 takes only os + member
+  assert.match(src("app/[lang]/family/not-found.tsx"), /const \{ os, member \} = await getOsNav\(session\);\s*family = \{ admin: isFamilyAdmin\(sub\), editor: familyRole\(sub\) === "editor", os, member \};/);
   const c = src("app/components/FamilyChrome.tsx");
   assert.match(c, /export type FamilyChromeNav = \{ admin: boolean; editor: boolean; os: boolean; member\?: boolean \};/);
   assert.match(c, /<FamilySubNav [^>]*member=\{nav\.member \?\? true\} \/>/);

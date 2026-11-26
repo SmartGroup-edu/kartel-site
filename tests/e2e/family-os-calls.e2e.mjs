@@ -72,6 +72,11 @@ for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/
   check(`P3 child ${p}: nothing read past /me, /people, /my-tasks`, r.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), r.calls.join(" "));
 }
 await page("child", child, "/en/family/os/board", 307, "/en/family/os");
+// bus 173: the heritage page is not reachable by its address either — a child is sent to «Мой день» on the server.
+for (const [p, home] of [["/ru/family", "/ru/family/os"], ["/en/family", "/en/family/os"]]) {
+  const r = await page("child", child, p, 307, home);
+  check(`bus 173 child ${p}: no heritage in the response, nothing read past /me`, !r.html.includes('"@type":"CollectionPage"') && r.calls.every((c) => c === "/me"), r.calls.join(" "));
+}
 
 // The owner who is not a member: member-only sections and unknown addresses are the family 404 (N3).
 for (const p of ["/ru/family/os/council", "/ru/family/os/board", "/ru/family/os/review", "/ru/family/os/no-such-page"]) await page("owner", admin, p, 404);

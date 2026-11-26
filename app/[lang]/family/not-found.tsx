@@ -22,7 +22,8 @@ export default async function FamilyNotFound() {
     if (decision === "allow" && session) {
       const sub = session.cpifSubjectId;
       // QA-158 N3: `member` too, so the owner who is not a member gets the same tabs here as on every other page.
-      family = { admin: isFamilyAdmin(sub), editor: familyRole(sub) === "editor", ...(await getOsNav(session)) };
+      const { os, member } = await getOsNav(session);
+      family = { admin: isFamilyAdmin(sub), editor: familyRole(sub) === "editor", os, member };
     }
   }
   return <NotFoundView lang={lang} refCode={ref} family={family} />;
