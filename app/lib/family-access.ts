@@ -15,7 +15,7 @@ import { familyEnv } from "@/app/lib/family-env";
 export type FamilyAccessStatus = "pending" | "approved" | "revoked";
 
 /**
- * True iff this viewer may see the Family Heritage area. FAIL-CLOSED.
+ * True iff this viewer may see the family area («Семейный кабинет»). FAIL-CLOSED.
  *
  * Approval sources (any one grants; an explicit Edge Config "revoked" on the email overrides
  * every allow except admin):

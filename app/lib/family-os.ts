@@ -90,14 +90,14 @@ export async function getOsState(session: OsViewer): Promise<OsState> {
 }
 
 /** For pages outside Family OS (heritage, editor): is the viewer in Family OS? Fail-soft: false. */
-export async function getOsNav(session: OsViewer): Promise<{ os: boolean; member: boolean }> {
-  if (!osEnabled()) return { os: false, member: false };
+export async function getOsNav(session: OsViewer): Promise<{ os: boolean; member: boolean; me: { id: string; kind: string } | null }> {
+  if (!osEnabled()) return { os: false, member: false, me: null };
   try {
     const r = await osGet(withSat("/me", session), osActor(session));
-    if (!r.ok) return { os: false, member: false };
-    const { me, admin } = r.json as { me: unknown; admin: boolean };
-    return { os: Boolean(me) || admin, member: Boolean(me) };
-  } catch { return { os: false, member: false }; }
+    if (!r.ok) return { os: false, member: false, me: null };
+    const { me, admin } = r.json as { me: { id: string; kind: string } | null; admin: boolean };
+    return { os: Boolean(me) || admin, member: Boolean(me), me: me ? { id: me.id, kind: me.kind } : null };
+  } catch { return { os: false, member: false, me: null }; }
 }
 
 // ---- Stage 2a: profiles and documents ---------------------------------------------------------

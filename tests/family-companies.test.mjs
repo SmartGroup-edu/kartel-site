@@ -17,7 +17,10 @@ test("one card per registry project, nothing else; active, then retired, then pl
   for (let i = 1; i < cards.length; i++) assert.ok(order[cards[i - 1].state] <= order[cards[i].state]);
   for (const c of cards) {
     const p = registry.projects.find((x) => x.key === c.key);
-    assert.equal(c.name, p.name); assert.equal(c.role, p.role); assert.equal(c.url, p.url ?? null);
+    assert.equal(c.name, p.name); assert.equal(c.role, p.role);
+    // bus 173: the retired MoyPolk card names its successor and links there; every other card keeps its registry url
+    if (c.key === "moypolk") assert.equal(c.url, registry.projects.find((x) => x.key === "community-group").url);
+    else assert.equal(c.url, p.url ?? null);
     assert.deepEqual(c.layers, Object.entries(p.layers ?? {}).map(([key, status]) => ({ key, status })));
   }
 });

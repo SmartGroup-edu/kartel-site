@@ -5,14 +5,14 @@ export const notFoundText = {
     title: "Page not found",
     message: "This page does not exist.",
     hint: "The address may be mistyped, or the page has moved.",
-    home: "Coat of arms",
+    home: "Home page",
     registry: "Registry",
   },
   ru: {
     title: "Страница не найдена",
     message: "Такой страницы нет.",
     hint: "Возможно, в адресе опечатка или страница переехала.",
-    home: "Герб",
+    home: "На главную",
     registry: "Реестр",
   },
 } as const;
@@ -28,6 +28,7 @@ export const familyRefText = {
     error: "Something went wrong on this page. Please try again; if it happens again, give this code:",
     code: "Reference code",
     home: "Today",
+    myDay: "My day",
     heritage: "Heritage",
   },
   ru: {
@@ -36,6 +37,7 @@ export const familyRefText = {
     error: "На этой странице что-то пошло не так. Попробуй ещё раз; если повторится — назови код:",
     code: "Код обращения",
     home: "Сегодня",
+    myDay: "Мой день",
     heritage: "Наследие",
   },
 } as const;

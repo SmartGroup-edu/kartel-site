@@ -56,16 +56,16 @@ const meta: Record<Locale, {
 
 const noscriptContent: Record<Locale, { intro: string; membersHeading: string; members: string }> = {
   en: {
-    // The home is the coat of arms (R0 2026-11-14). No family names here.
+    // The home is KARTEL the family office, with the coat of arms below (bus 172 P5, bus 173). No family names here.
     intro:
-      "The coat of arms of the Kartel family: a griffin, crossed keys, a coronet, swords, fleur-de-lis and wings beneath the Latin motto Virtus et Potestas — Strength and Power.",
+      "KARTEL is a family office in London: the federation projects the family runs in education, culture and communities. Its coat of arms bears the Latin motto Virtus et Potestas — Strength and Power.",
     membersHeading: "KARTEL Core",
     members:
       "The public registry of the KARTEL federation lives at kartel.org.uk/en/core and kartel.org.uk/en/registry.",
   },
   ru: {
     intro:
-      "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья под латинским девизом Virtus et Potestas — «Сила и Власть».",
+      "KARTEL — семейный офис в Лондоне: проекты федерации, которые ведёт семья, — в образовании, культуре и сообществах. Девиз фамильного герба — Virtus et Potestas, «Сила и Власть».",
     membersHeading: "Ядро KARTEL",
     members:
       "Публичный реестр федерации KARTEL — на kartel.org.uk/ru/core и kartel.org.uk/ru/registry.",

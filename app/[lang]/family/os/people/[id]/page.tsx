@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string; id: string }> }): Promise<Metadata> {
   const { lang, id } = await params;
-  // "<display name> · Семья" (bus 68 #5). Only for a signed-in, approved viewer; otherwise generic.
+  // "<display name> · Семейный кабинет" (bus 68 #5). Only for a signed-in, approved viewer; otherwise generic.
   let name: string | null = null;
   if (familyEnv.gateOn()) {
     const { decision, session } = await familyGateDecision();
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       if (page) name = lang === "ru" ? page.profile.person.name_ru : page.profile.person.name_en;
     }
   }
-  const family = lang === "ru" ? "Семья" : "Family";
+  const family = lang === "ru" ? "Семейный кабинет" : "Family area";
   return { title: name ? `${name} · ${family}` : family, robots: { index: false, follow: false } };
 }
 

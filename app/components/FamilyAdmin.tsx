@@ -44,8 +44,8 @@ const EMPTY: Content = { persons: {}, events: {} };
 
 const T = {
   EN: {
-    eyebrow: "Family Heritage", title: "Family editor",
-    intro: "Add portraits and chronicle details. Every change is saved as a draft straight away; it appears in Family Heritage only after you publish.",
+    eyebrow: "Heritage", title: "Family editor",
+    intro: "Add portraits and chronicle details. Every change is saved as a draft straight away; it appears in Heritage only after you publish.",
     off: "The photo and story service is not connected yet, so nothing can be saved.",
     people: "People", entries: "Chronicle", nav: "Sections",
     publish: "Publish", undo: "Undo last change", undoShort: "Undo", publishedAt: "Last published", never: "never", more: "More",
@@ -65,7 +65,7 @@ const T = {
     storyEN: "Short story (EN)", storyRU: "Short story (RU)", storyHint: "Plain text. A blank line starts a new paragraph.",
     photos: "Photos", addPhoto: "Add photo", captionEN: "Caption (EN)", captionRU: "Caption (RU)",
     uploading: "Uploading…", error: "Could not save", loadError: "Could not load the draft",
-    introEditor: "Add portraits and chronicle details. Each change goes to the owner for approval and appears in Family Heritage only once it is approved.",
+    introEditor: "Add portraits and chronicle details. Each change goes to the owner for approval and appears in Heritage only once it is approved.",
     proposalNote: "Changes go for approval", myPending: (n: number) => `Waiting for approval: ${n}`,
     review: "Waiting for approval", reviewBadge: (n: number) => `Waiting for approval (${n})`, approve: "Approve", reject: "Reject", approveAll: "Approve all", rejectComment: "Comment for the editor (optional)", sendReject: "Reject with this comment",
     by: (n: string) => `from ${n}`, anEditor: "an editor", stale: "The draft changed after this was proposed — approving replaces it.", wasEmpty: "was empty", nowEmpty: "removed",
@@ -76,8 +76,8 @@ const T = {
     change: { portrait: "Portrait", photo_added: "Photo added", photo_removed: "Photo removed (proposed)", caption: "Caption" } as Record<string, string>,
   },
   RU: {
-    eyebrow: "Семейное наследие", title: "Редактор семьи",
-    intro: "Добавляй портреты и подробности хроники. Каждое изменение сразу сохраняется как черновик и появляется в «Семейном наследии» только после публикации.",
+    eyebrow: "Наследие", title: "Редактор семьи",
+    intro: "Добавляй портреты и подробности хроники. Каждое изменение сразу сохраняется как черновик и появляется в «Наследии» только после публикации.",
     off: "Сервис фото и историй ещё не подключён, сохранить пока ничего нельзя.",
     people: "Люди", entries: "Хроника", nav: "Разделы",
     publish: "Опубликовать", undo: "Отменить последнее изменение", undoShort: "Отменить", publishedAt: "Последняя публикация", never: "ещё не было", more: "Ещё",
@@ -97,7 +97,7 @@ const T = {
     storyEN: "Короткая история (EN)", storyRU: "Короткая история (RU)", storyHint: "Обычный текст. Пустая строка начинает новый абзац.",
     photos: "Фотографии", addPhoto: "Добавить фото", captionEN: "Подпись (EN)", captionRU: "Подпись (RU)",
     uploading: "Загрузка…", error: "Не удалось сохранить", loadError: "Не удалось загрузить черновик",
-    introEditor: "Добавляй портреты и подробности хроники. Каждое изменение уходит на утверждение и появляется в «Семейном наследии» только после него.",
+    introEditor: "Добавляй портреты и подробности хроники. Каждое изменение уходит на утверждение и появляется в «Наследии» только после него.",
     proposalNote: "Изменения уходят на утверждение", myPending: (n: number) => `На утверждении: ${n}`,
     review: "На утверждении", reviewBadge: (n: number) => `На утверждении (${n})`, approve: "Утвердить", reject: "Отклонить", approveAll: "Утвердить все", rejectComment: "Комментарий для редактора (необязательно)", sendReject: "Отклонить с комментарием",
     by: (n: string) => `от ${n}`, anEditor: "редактора", stale: "Черновик изменился после этого предложения — утверждение заменит его.", wasEmpty: "было пусто", nowEmpty: "убрано",

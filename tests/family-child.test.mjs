@@ -65,7 +65,9 @@ test("edge: a child is sent to «Мой день» with a real 307 before any pa
   for (const p of ["/ru/family/os/board", "/ru/family/os/council", "/ru/family/os/people", `/ru/family/os/people/${other}`, "/ru/family/os/kodeks", "/ru/family/os/week", "/ru/family/os/access", "/ru/family/os/review", "/ru/family/os/companies", "/en/family/os/board?date=2026-11-27"])
     assert.equal(childMayOpenPath(p.split("?")[0], own), false, p);
   assert.equal(childMayOpenPath(`/ru/family/os/people/${own}`, null), false, "no id from the service: closed");
-  assert.equal(childMayOpenPath("/ru/family", own), true, "heritage is outside Family OS — not decided here");
+  // bus 173: the heritage page is closed to a child as well; sign-in and pending stay open
+  for (const p of ["/ru/family", "/en/family/"]) assert.equal(childMayOpenPath(p, own), false, p);
+  for (const p of ["/ru/family/signin", "/en/family/pending"]) assert.equal(childMayOpenPath(p, own), true, p);
   const px = src("proxy.ts");
   assert.match(px, /if \(os\.state === "ok" && os\.child && !childMayOpenPath\(pathname, os\.id\)\) return NextResponse\.redirect\(new URL\(`\/\$\{lang\}\/family\/os`, request\.url\), 307\);/);
   // the edge's /me answer carries the kind and the id
@@ -84,5 +86,5 @@ test("QA: a child's pages carry no dead-end links (Люди, Решения) and
   assert.match(cal, /canWrite=\{canWrite\} base=\{base\} child=\{child\} \/>/);
   assert.match(src("app/components/FamilyKodeks.tsx"), /\{councilLink && items\.length > 0 && <p className="mt-2"><Link prefetch=\{false\} href=\{councilHref\(lang\)\}/);
   assert.match(src("app/components/FamilyToday.tsx"), /items=\{recognitions\} councilLink=\{false\} \/>/);
-  assert.match(src("app/[lang]/family/os/page.tsx"), /child \? \(lang === "ru" \? "Мой день · Семья" : "My day · Family"\)/);
+  assert.match(src("app/[lang]/family/os/page.tsx"), /child \? \(lang === "ru" \? "Мой день · Семейный кабинет" : "My day · Family area"\)/);
 });

@@ -17,7 +17,7 @@ export default function NotFoundView({ lang, refCode, family = null }: { lang: N
   const other = lang === "en" ? "ru" : "en";
   if (family) return (
     <FamilyChrome lang={lang === "en" ? "EN" : "RU"} nav={family} langHref={`/${other}/family/os`}>
-      <NotFoundBody lang={lang} refCode={refCode} left />
+      <NotFoundBody lang={lang} refCode={refCode} child={family.child ?? false} left />
     </FamilyChrome>
   );
   return (
@@ -30,7 +30,7 @@ export default function NotFoundView({ lang, refCode, family = null }: { lang: N
   );
 }
 
-function NotFoundBody({ lang, refCode, left = false }: { lang: NotFoundLang; refCode?: string; left?: boolean }) {
+function NotFoundBody({ lang, refCode, child = false, left = false }: { lang: NotFoundLang; refCode?: string; child?: boolean; left?: boolean }) {
   // Inside the family column it reads left-aligned like every family page; the site 404 stays centred.
   const className = left ? "items-start py-12 text-left" : "items-center px-4 py-24 text-center";
   const t = notFoundText[lang];
@@ -44,11 +44,14 @@ function NotFoundBody({ lang, refCode, left = false }: { lang: NotFoundLang; ref
       {refCode && <RefCode label={f.code} code={refCode} />}
       <div className={`mt-8 flex flex-wrap gap-3 ${left ? "" : "justify-center"}`}>
         <Link prefetch={false} href={refCode ? `/${lang}/family/os` : `/${lang}`} className={`${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`}>
-          {refCode ? f.home : t.home}
+          {refCode ? (child ? f.myDay : f.home) : t.home}
         </Link>
-        <Link prefetch={false} href={refCode ? `/${lang}/family` : `/${lang}/registry`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
-          {refCode ? f.heritage : t.registry}
-        </Link>
+        {/* bus 173: no «Наследие» for a child — that address sends them back to «Мой день». */}
+        {!(refCode && child) && (
+          <Link prefetch={false} href={refCode ? `/${lang}/family` : `/${lang}/registry`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
+            {refCode ? f.heritage : t.registry}
+          </Link>
+        )}
       </div>
     </div>
   );

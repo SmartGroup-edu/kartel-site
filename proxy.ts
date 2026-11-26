@@ -168,7 +168,7 @@ export async function proxy(request: NextRequest) {
     return noindex(NextResponse.next());
   }
 
-  // /en/family and /ru/family — members-only Family Heritage.
+  // /en/family and /ru/family — the members-only family area («Семейный кабинет»).
   //
   // Option A (R0-signed 2026-07-16) specified gated access via CPIF / Keycloak and explicitly
   // "NOT bespoke auth". That is SUPERSEDED by the R0 decision of 2026-11-14 to retire Keycloak:

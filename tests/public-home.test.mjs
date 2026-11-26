@@ -104,8 +104,8 @@ describe("sign-in — v5 two panels, every state kept", () => {
 describe("P5 acceptor QA", () => {
   test("the hero lead calls the registry's projects the ones the family runs, not the family's companies (CEA CIC is the legal entity)", () => {
     const o = src("app/components/PublicOffice.tsx");
-    assert.match(o, /lead: "KARTEL объединяет проекты, которые ведёт семья, /);
-    assert.match(o, /lead: "KARTEL brings together the projects the family runs /);
+    assert.match(o, /lead: "KARTEL объединяет проекты федерации, которые ведёт семья, /);
+    assert.match(o, /lead: "KARTEL brings together the federation projects the family runs /);
     assert.doesNotMatch(o, /компании и проекты семьи|the family's companies/);
   });
   test("the RU sign-in speaks to the visitor as «вы» throughout, the passkey messages included", () => {

@@ -5,19 +5,21 @@
  * nothing to navigate, so the row is hidden.
  */
 const L = {
-  EN: { heritage: "Heritage", today: "Today", board: "Board", people: "People", admin: "Editor", access: "Access", council: "Council", calendar: "Calendar", nav: "Family sections" },
-  RU: { heritage: "Наследие", today: "Сегодня", board: "Доска", people: "Люди", admin: "Редактор", access: "Доступы", council: "Совет", calendar: "Календарь", nav: "Разделы семьи" },
+  EN: { heritage: "Heritage", today: "Today", myDay: "My day", board: "Board", people: "People", admin: "Editor", access: "Access", council: "Council", calendar: "Calendar", nav: "Family sections" },
+  RU: { heritage: "Наследие", today: "Сегодня", myDay: "Мой день", board: "Доска", people: "Люди", admin: "Редактор", access: "Доступы", council: "Совет", calendar: "Календарь", nav: "Разделы семьи" },
 };
 
 /**
- * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean }} o
+ * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean, child?: boolean }} o
  * `editor` (bus 87): a family editor also sees «Редактор» — never «Доступы».
  * `member` (QA-156 L7): false for the owner who is not a family member — no Доска, Совет or Календарь (they are empty
  * for them and the edge answers 404).
+ * `child` (bus 173): a child member — «Мой день» and «Календарь» only, as in the Family OS shell; heritage is closed to them.
  * @returns {{ id: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin", href: string, label: string }[]}
  */
-export function familySubNav({ lang, admin, os, editor = false, member = true }) {
+export function familySubNav({ lang, admin, os, editor = false, member = true, child = false }) {
   const base = `/${lang === "EN" ? "en" : "ru"}/family`, t = L[lang];
+  if (child && os && member) return [{ id: "today", href: `${base}/os`, label: t.myDay }, { id: "calendar", href: `${base}/os/calendar`, label: t.calendar }];
   const items = [{ id: "heritage", href: base, label: t.heritage }];
   if (os) {
     items.push({ id: "today", href: `${base}/os`, label: t.today });

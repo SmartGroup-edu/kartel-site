@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Non-PII fail-closed notice for the gated Family Heritage area (kartel-site).
+ * Non-PII fail-closed notice for the gated family area, «Семейный кабинет» (kartel-site).
  * Rendered by the page guard when a request is not an approved viewer. The edge
  * (proxy.ts) normally redirects first; this is the defense-in-depth fallback that
  * guarantees family PII is never rendered without an approved session.

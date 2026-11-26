@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
   const { lang } = await params;
-  return { title: lang === "ru" ? "Неделя семьи · Семья" : "Family week · Family", robots: { index: false, follow: false } };
+  return { title: lang === "ru" ? "Неделя семьи · Семейный кабинет" : "Family week · Family area", robots: { index: false, follow: false } };
 }
 
 export default async function FamilyWeekPage({ params, searchParams }: { params: Promise<{ lang: string }>; searchParams: Promise<{ rec?: string }> }) {

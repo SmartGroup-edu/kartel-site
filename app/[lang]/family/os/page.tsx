@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     const { decision, session } = await familyGateDecision();
     if (decision === "allow" && session) { const s = await getOsState(session); child = s.status === "ok" && s.me?.kind === "child"; }
   }
-  const title = child ? (lang === "ru" ? "Мой день · Семья" : "My day · Family") : lang === "ru" ? "Сегодня · Семья" : "Today · Family";
+  const title = child ? (lang === "ru" ? "Мой день · Семейный кабинет" : "My day · Family area") : lang === "ru" ? "Сегодня · Семейный кабинет" : "Today · Family area";
   return { title, robots: { index: false, follow: false } };
 }
 

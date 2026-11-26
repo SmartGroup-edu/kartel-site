@@ -15,8 +15,8 @@ import { familySubNav, familySubNavLabel } from "../lib/family-nav.mjs";
 const FADE = 32; // px of fade at an edge that has more tabs behind it
 
 /** `badge`: parents' «Нужно решение» count on the «Доска» tab (bus 84) — shown where the page already has it. */
-export default function FamilySubNav({ lang, admin, os, active, badge = 0, editor = false, member = true }: { lang: "EN" | "RU"; admin: boolean; os: boolean; member?: boolean; active?: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin" | "kodeks"; badge?: number; editor?: boolean }) {
-  const items = familySubNav({ lang, admin, os, editor, member });
+export default function FamilySubNav({ lang, admin, os, active, badge = 0, editor = false, member = true, child = false }: { lang: "EN" | "RU"; admin: boolean; os: boolean; member?: boolean; child?: boolean; active?: "heritage" | "today" | "board" | "people" | "council" | "calendar" | "access" | "admin" | "kodeks"; badge?: number; editor?: boolean }) {
+  const items = familySubNav({ lang, admin, os, editor, member, child });
   const list = useRef<HTMLUListElement>(null);
   const [edge, setEdge] = useState({ left: false, right: false });
   useEffect(() => {

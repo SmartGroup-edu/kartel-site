@@ -3,7 +3,7 @@
 // the date the entry last changed. No sparklines: the registry is one snapshot (a version and a date), not a time
 // series, and nothing else here holds a figure over time. Raw registry tokens stay raw here; the page localises them.
 
-import { projectState } from "../content/publicHome.mjs";
+import { projectState, cardIdentity } from "../content/publicHome.mjs";
 
 const ORDER = { active: 0, retired: 1, planned: 2 };
 
@@ -32,7 +32,7 @@ export function companyCards(registry) {
     .map(({ p, state }) => ({
       key: p.key,
       name: p.name,
-      url: p.url ?? null,
+      ...cardIdentity(registry, p),
       state,
       role: p.role,
       type: p.type,

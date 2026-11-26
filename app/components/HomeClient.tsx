@@ -89,7 +89,7 @@ export default function HomeClient({ lang, office }: { lang: Lang; office: React
         lang={lang}
         toggleLang={toggleLang}
         subNav={sectionNav}
-        subNavLabel={lang === "RU" ? "Разделы страницы герба" : "Coat of arms sections"}
+        subNavLabel={lang === "RU" ? "Разделы главной страницы" : "Home page sections"}
       />
 
       <main id="main">
@@ -280,10 +280,10 @@ export default function HomeClient({ lang, office }: { lang: Lang; office: React
                 {lang === "EN" ? "Explore the coat of arms" : "Исследовать герб"}
               </a>
               <a
-                href={`/${langPath}/family`}
+                href={`/${langPath}/family/os`}
                 className="inline-flex min-h-11 items-center rounded-md border border-[var(--accent)] px-5 text-[15px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
-                {lang === "EN" ? "Family Heritage — members only" : "Семейное наследие — только для членов семьи"}
+                {lang === "EN" ? "Family area — members only" : "Семейный кабинет — только для членов семьи"}
               </a>
             </div>
             <div className="mt-6 print:hidden">

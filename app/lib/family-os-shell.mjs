@@ -103,12 +103,14 @@ export function searchSections(items, query) {
 
 /**
  * bus 172 P3: may a child open this family address? Their Family OS is «Мой день» (/os), «Календарь» (/os/calendar)
- * and their own person page; every other /os page is closed to them. Addresses outside Family OS (heritage, the 404)
- * are not decided here. Used by the edge gate (proxy.ts) for a real redirect, before any page renders.
+ * and their own person page; every other /os page is closed to them, and so is the heritage page (bus 173). Other
+ * addresses outside Family OS (sign-in, pending, the 404) are not decided here. Used by the edge gate (proxy.ts) for a real redirect, before any page renders.
  * @param {string} pathname @param {string | null} ownId
  */
 export function childMayOpenPath(pathname, ownId) {
   const p = String(pathname ?? "").replace(/\/+$/, "");
+  // bus 173: the heritage page (/{lang}/family) is not in a child's menu, and its address is closed to them too.
+  if (/^\/(?:en|ru)\/family$/.test(p)) return false;
   const m = /^\/(?:en|ru)\/family\/os(\/.*)?$/.exec(p);
   if (!m) return true;
   const rest = m[1] ?? "";
