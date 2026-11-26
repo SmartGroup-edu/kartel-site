@@ -16,7 +16,7 @@ export const coreAboutContent = {
     sections: [
       {
         h: "The projects",
-        p: "MoyPolk (Immortal Regiment UK memorial), RusJAz (Russian-language education marketplace and LMS), and Community Group (cultural funding & trust). RusJAzz is planned. Each is a separate platform — federated, not merged.",
+        p: "RusJAz (Russian-language education marketplace and LMS) and Community Group (cultural funding & trust). RusJAzz is planned. Each is a separate platform — federated, not merged. MoyPolk (Immortal Regiment UK memorial) was retired as a brand on 3 November 2026; its initiatives continue in Community Group.",
       },
       {
         h: "CPIF — one identity",
@@ -51,7 +51,7 @@ export const coreAboutContent = {
     sections: [
       {
         h: "Проекты",
-        p: "MoyPolk (мемориал «Бессмертный полк UK»), RusJAz (маркетплейс русскоязычного образования и LMS) и Community Group (культурное финансирование и доверие). RusJAzz — в плане. Каждый — отдельная платформа: федерация, не слияние.",
+        p: "RusJAz (маркетплейс русскоязычного образования и LMS) и Community Group (культурное финансирование и доверие). RusJAzz — в плане. Каждый — отдельная платформа: федерация, не слияние. Бренд MoyPolk (мемориал «Бессмертный полк UK») упразднён 3 ноября 2026 года; его инициативы продолжаются в Community Group.",
       },
       {
         h: "CPIF — одна идентичность",

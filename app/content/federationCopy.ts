@@ -80,6 +80,7 @@ export const stewardLabels: Record<Lang, Record<string, string>> = {
   EN: {},
   RU: {
     membership: "платформы (данные остаются локально)",
+    audit: "не определён (ждёт решения R0)",
   },
 };
 
