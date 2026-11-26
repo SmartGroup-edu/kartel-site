@@ -71,12 +71,12 @@ export default function FamilyWeekReview({ lang, review, sprint }: { lang: Lang;
           <div className="mt-6 grid grid-cols-1 gap-[18px] min-[1100px]:grid-cols-3">
             <div data-review="done" className={CARD}>
               <h2 className={OS_H2}>{t.done}</h2>
-              <p aria-hidden="true" className="mt-1 font-serif text-[34px] font-semibold leading-none text-[var(--ok)]">{review.done.length}</p>
+              <p className="mt-1 font-serif text-[34px] font-semibold leading-none text-[var(--ok)]">{review.done.length}</p>
               <Rows t={t} lang={lang} rows={review.done} empty={t.noneDone} showWhy={false} />
             </div>
             <div data-review="slipped" className={CARD}>
               <h2 className={OS_H2}>{t.slipWait}</h2>
-              <p aria-hidden="true" className="mt-1 font-serif text-[34px] font-semibold leading-none text-[var(--fos-amber)]">{review.slipped.length + review.waiting.length}</p>
+              <p className="mt-1 font-serif text-[34px] font-semibold leading-none text-[var(--fos-amber)]">{review.slipped.length + review.waiting.length}</p>
               {review.slipped.length + review.waiting.length === 0 ? <p className="mt-3 text-[14px] text-[var(--muted)]">{t.noneSlip}</p> : (
                 <>
                   {review.waiting.length > 0 && <><h3 className="mt-4 text-[14px] font-semibold text-[var(--foreground)]">{t.waiting} · {review.waiting.length}</h3><Rows t={t} lang={lang} rows={review.waiting} /></>}
@@ -121,16 +121,18 @@ function Focus({ t, lang, sprint, nextFrom }: { t: Dict; lang: Lang; sprint: OsS
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const lines = [0, 1, 2].map((i) => String(f.get(`focus${i}`) ?? "").trim());
+    const lines = [0, 1, 2].map((i) => String(f.get(`focus${i}`) ?? "").replace(/\s+/g, " ").trim());
     setBusy(true);
     let ok = true, max = false;
     for (let i = 0; i < 3; i++) {
       const g = goals[i], v = lines[i];
-      let r: Response | null = null;
+      // undefined: nothing to send for this line; null: the request itself failed (osSend swallows network errors)
+      let r: Response | null | undefined;
       if (g && v && v !== g.title) r = await osSend("PATCH", `sprint/goals/${g.id}`, { title: v });
       else if (g && !v) r = await osSend("PATCH", `sprint/goals/${g.id}`, { archived: true });
       else if (!g && v) r = await osSend("POST", "sprint/goals", { title: v, week_start: week });
-      if (r && !r.ok) { ok = false; if (r.status === 409) max = true; }
+      if (r === undefined) continue;
+      if (!r?.ok) { ok = false; if (r?.status === 409) max = true; }
     }
     setBusy(false);
     setMsg(ok ? t.saved : max ? t.max : t.error);
@@ -145,7 +147,7 @@ function Focus({ t, lang, sprint, nextFrom }: { t: Dict; lang: Lang; sprint: OsS
           {[0, 1, 2].map((i) => (
             <label key={goals[i]?.id ?? `new${i}`} className="block">
               <span className="sr-only">{t.focusLine(i + 1)}</span>
-              <input name={`focus${i}`} defaultValue={goals[i]?.title ?? ""} maxLength={160} placeholder={t.focusLine(i + 1)} className={field} />
+              <textarea name={`focus${i}`} rows={2} defaultValue={goals[i]?.title ?? ""} maxLength={160} placeholder={t.focusLine(i + 1)} className={`${field} resize-none`} />
             </label>
           ))}
           <button type="submit" disabled={busy} className={`${BTN_PRIMARY} mt-1 justify-self-start`}>{t.focusSave}</button>

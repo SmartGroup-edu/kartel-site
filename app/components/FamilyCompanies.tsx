@@ -21,7 +21,7 @@ export type CompanyCard = {
 
 const T = {
   RU: {
-    title: "Компании и проекты", sub: "Проекты семьи по публичному реестру KARTEL", registry: "Подробный реестр",
+    title: "Компании и проекты", sub: "Публичный реестр KARTEL: проекты, которые ведёт семья", registry: "Подробный реестр",
     state: { active: "Работает", retired: "Бренд упразднён", planned: "В планах" } as Record<State, string>,
     counts: { active: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "работает" : "работают"}`, retired: (n: number) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "упразднён" : "упразднены"}`, planned: (n: number) => `${n} в планах` } as Record<State, (n: number) => string>,
     role: "Роль в федерации", layers: "Слои", site: "Сайт", noSite: "Сайта пока нет",
@@ -30,7 +30,7 @@ const T = {
     empty: "В реестре пока нет проектов.",
   },
   EN: {
-    title: "Companies and projects", sub: "The family's projects, from the public KARTEL registry", registry: "Full registry",
+    title: "Companies and projects", sub: "The public KARTEL registry: the projects the family runs", registry: "Full registry",
     state: { active: "Running", retired: "Brand retired", planned: "Planned" } as Record<State, string>,
     counts: { active: (n: number) => `${n} running`, retired: (n: number) => `${n} retired`, planned: (n: number) => `${n} planned` } as Record<State, (n: number) => string>,
     role: "Federation role", layers: "Layers", site: "Website", noSite: "No website yet",

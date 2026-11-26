@@ -50,3 +50,10 @@ test("the page: server-side registry, no sparkline, no mockup companies or figur
   assert.match(p, /companyCards\(registry\)/);
   assert.doesNotMatch(p, /getBoard|getCalendar|getCouncil|getSprint/, "no Family OS data of its own");
 });
+
+test("P6 acceptor QA: the subtitle says the family runs the projects, not that it owns them (as on the P5 home)", () => {
+  const c = code("app/components/FamilyCompanies.tsx");
+  assert.ok(c.includes("Публичный реестр KARTEL: проекты, которые ведёт семья"));
+  assert.ok(c.includes("The public KARTEL registry: the projects the family runs"));
+  assert.ok(!c.includes("Проекты семьи по") && !c.includes("The family's projects"));
+});

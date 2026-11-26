@@ -65,3 +65,15 @@ test("the focus writes through the existing sprint-goal routes only; no mockup d
   const route = src("app/api/family-os/[...op]/route.ts");
   assert.match(route, /sprint\/goals\|sprint\/goals\/\$\{ID\}\/tasks/, "POST sprint/goals is already forwarded");
 });
+
+test("P6 acceptor QA: a failed request is never reported as «Сохранено.»; the counts reach a screen reader", () => {
+  const c = code("app/components/FamilyWeekReview.tsx");
+  // osSend returns null when fetch itself fails: that is a failure, not "nothing sent"
+  assert.match(c, /if \(r === undefined\) continue;/);
+  assert.match(c, /if \(!r\?\.ok\) \{ ok = false;/);
+  assert.ok(!/if \(r && !r\.ok\)/.test(c), "null (network error) must not count as success");
+  assert.ok(!/aria-hidden="true" className="mt-1 font-serif/.test(c), "the done / slipped counts are not hidden from assistive tech");
+  // a goal is up to 160 characters: two-line fields show it whole; a line break typed into one is folded to a space
+  assert.match(c, /<textarea name=\{`focus\$\{i\}`\} rows=\{2\}/);
+  assert.match(c, /\.replace\(\/\\s\+\/g, " "\)\.trim\(\)/);
+});
