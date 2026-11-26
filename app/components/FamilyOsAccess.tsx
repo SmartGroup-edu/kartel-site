@@ -14,6 +14,7 @@ import { BTN_DANGER, BTN_PRIMARY, BTN_SECONDARY, OS_H2, OS_H3 } from "../lib/fam
 import { tx } from "../lib/typograph.mjs";
 import FamilyJumpNav from "./FamilyJumpNav";
 import type { OsPerson, OsGrant, OsScope, OsRule, OsAdoption } from "../lib/family-os";
+import { avatars as avatarsOf } from "../lib/family-avatars.mjs";
 import FamilyRules from "./FamilyRules";
 import FamilyAdoption from "./FamilyAdoption";
 import FamilyPasskeys from "./FamilyPasskeys";
@@ -23,7 +24,15 @@ type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
 const T = {
   EN: {
-    title: "People and access", jump: "On this page", rulesTab: "Rules", withUs: "Who is with us", intro: "Who is in the family and who may see what.",
+    title: "Access and security", jump: "On this page", rulesTab: "Rules", withUs: "Who is with us", intro: "Who sees what, and how everyone signs in.",
+    roles: "Roles", roleName: { owner: "owner", editor: "heritage editor", member: "family member", child: "child" } as Record<string, string>,
+    sees: { owner: "Everything, including access and security", editor: "Like a family member, plus the heritage editor — every change waits for the owner", parent: "Today, tasks, calendar, decisions, people, documents; decides the children's queue and approves the plan", relative: (x: string) => `Today, tasks, calendar, decisions, people, documents; for ${x}`, adult: "Today, tasks, calendar, decisions, people, documents and rules", child: "My day and the calendar" } as const,
+    noGuest: "There is no guest role: everyone here is an adult or a child of the family.",
+    signin: "Sign-in and protection", readOnly: "Read only: these are set when the site is deployed.",
+    pkOn: "Passkey (Face ID / Touch ID)", pkOnHint: (n: number | null, of: number | null) => (n !== null && of !== null ? `The main way in · ${n} of ${of} have one` : "The main way in"), pkOffHint: "Not switched on yet",
+    code: "A letter with a link and a 6-digit code", codeHint: "The fallback, always on", on: "on", off: "off",
+    letter: "Morning letter", letterHint: "Each person sets their own time on their page",
+    last: "Latest sign-in", lastHint: (n: string, d: string) => `${n} · ${d}`, lastNone: "No one has signed in yet", never: (n: number) => `${n} not signed in yet`, datesOnly: "Family OS keeps the day only — not the time or the device.",
     people: "People", adult: "Adult", child: "Child", edit: "Edit", save: "Save", cancel: "Cancel", nameEn: "Name (English)", nameRu: "Name (Russian)", email: "Email", kind: "Role",
     addPerson: "Add a person", add: "Add", grants: "Guardians and access", noGrants: "No guardians yet.", guardian: "Guardian", relation: "Relation",
     rel: { parent: "Parent", relative: "Relative" }, scope: { routines: "Routines", health: "Health", education: "School", documents: "Documents" },
@@ -31,7 +40,15 @@ const T = {
     errors: { exists: "Already exists.", bad_person: "Check the name, email and role.", bad_scopes: "Choose at least one area.", guardian_not_adult: "A guardian must be an adult.", subject_not_child: "Access is given for a child." } as Record<string, string>,
   },
   RU: {
-    title: "Люди и доступы", jump: "На этой странице", rulesTab: "Правила", withUs: "Кто уже с нами", intro: "Кто в семье и кто что видит.",
+    title: "Доступ и безопасность", jump: "На этой странице", rulesTab: "Правила", withUs: "Кто уже с нами", intro: "Кто что видит и как входит.",
+    roles: "Роли", roleName: { owner: "владелец", editor: "редактор наследия", member: "член семьи", child: "ребёнок" } as Record<string, string>,
+    sees: { owner: "Всё, включая доступ и безопасность", editor: "Как член семьи, плюс редактор наследия — каждая правка ждёт владельца", parent: "Сегодня, задачи, календарь, решения, люди, документы; решает очередь детей и утверждает план", relative: (x: string) => `Сегодня, задачи, календарь, решения, люди, документы; у ${x}`, adult: "Сегодня, задачи, календарь, решения, люди, документы и правила", child: "Мой день и календарь" } as const,
+    noGuest: "Роли «гость» нет: каждый здесь — взрослый или ребёнок семьи.",
+    signin: "Вход и защита", readOnly: "Только просмотр: это настраивается при выпуске сайта.",
+    pkOn: "Ключ доступа (Face ID / Touch ID)", pkOnHint: (n: number | null, of: number | null) => (n !== null && of !== null ? `Основной способ входа · есть у ${n} из ${of}` : "Основной способ входа"), pkOffHint: "Пока не включён",
+    code: "Письмо со ссылкой и 6-значным кодом", codeHint: "Запасной способ, включён всегда", on: "вкл.", off: "выкл.",
+    letter: "Утреннее письмо", letterHint: "Время каждый выбирает на своей странице",
+    last: "Последний вход", lastHint: (n: string, d: string) => `${n} · ${d}`, lastNone: "Пока никто не входил", never: (n: number) => `ещё не входили: ${n}`, datesOnly: "Family OS хранит только день входа — без времени и устройства.",
     people: "Люди", adult: "Взрослый", child: "Ребёнок", edit: "Изменить", save: "Сохранить", cancel: "Отмена", nameEn: "Имя (латиницей)", nameRu: "Имя (кириллицей)", email: "Почта", kind: "Роль",
     addPerson: "Добавить человека", add: "Добавить", grants: "Опекуны и доступ", noGrants: "Опекунов пока нет.", guardian: "Опекун", relation: "Кем приходится",
     rel: { parent: "Родитель", relative: "Родственник" }, scope: { routines: "Распорядок", health: "Здоровье", education: "Учёба", documents: "Документы" },
@@ -60,7 +77,11 @@ function useSave(t: Dict) {
   return { msg, run };
 }
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null }) {
+/** bus 172 P3: built on the server by app/lib/family-people.mjs (roleRows, signinSummary). */
+export type RoleRow = { id: string; name: string; role: "owner" | "editor" | "member" | "child"; rel: "parent" | "relative" | "adult" | "child"; sees: { child: string; scopes: OsScope[] }[] };
+export type SigninSummary = { passkeys: boolean; withKey: number | null; of: number | null; last: { name: string; on: string } | null; never: number | null };
+
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, roles = [], signin = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null; roles?: RoleRow[]; signin?: SigninSummary | null }) {
   const t = tx(T, lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
   const sorted = [...people].sort((a, b) => a.kind.localeCompare(b.kind) || nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
@@ -68,9 +89,11 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
   return (
     <>
       <div data-fos-page="">
-        <div className="max-w-4xl pb-8">
+        <div className="pb-8">
           <h1 className={H1}>{t.title}</h1>
-          <p className={`${META} mt-3 max-w-[60ch]`}>{t.intro}</p>
+          <p className="mt-1 max-w-[60ch] text-[15px] text-[var(--muted)]">{t.intro}</p>
+          <Overview t={t} lang={lang} roles={roles} signin={signin} />
+          <div className="max-w-4xl">
           {/* bus 78 #5: one tap to each part of a long page (the same index as the person page, bus 157b D6) */}
           <FamilyJumpNav kind="access" label={t.jump} items={[...(adoption ? [["#with-us", t.withUs] as [string, string]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab] as [string, string]] : [])]} />
 
@@ -109,9 +132,59 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
           </section>
 
           {rules && <FamilyRules lang={lang} rules={rules} />}
+          </div>
         </div>
       </div>
     </>
+  );
+}
+
+const CARD_H = "text-[15px] font-semibold text-[var(--foreground)]";
+const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow)]";
+const ROW = "flex items-center gap-3 border-t border-[var(--border)] px-1.5 py-2.5 first:border-t-0";
+
+/**
+ * «Роли» and «Вход и защита» (bus 172 P3, mockup v5). Read-only: roles come from the allow-lists and the grants, the
+ * sign-in methods from the deploy settings; the editing below (people, grants, rules) is unchanged.
+ */
+function Overview({ t, lang, roles, signin }: { t: Dict; lang: Lang; roles: RoleRow[]; signin: SigninSummary | null }) {
+  const av = avatarsOf(roles.map((r) => ({ id: r.id, name: r.name }))) as Map<string, { text: string; bg: string }>;
+  const sees = (r: RoleRow) => r.role === "owner" ? t.sees.owner : r.role === "editor" ? t.sees.editor : r.role === "child" ? t.sees.child
+    : r.rel === "parent" ? t.sees.parent : r.rel === "relative" ? t.sees.relative(r.sees.map((s) => `${s.child} — ${s.scopes.map((k) => t.scope[k].toLowerCase()).join(", ")}`).join("; ")) : t.sees.adult;
+  const fmt = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "EN" ? "en-GB" : "ru-RU", { day: "numeric", month: "long", timeZone: "UTC" });
+  const state = (on: boolean) => <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${on ? "bg-[var(--ok-soft)] text-[var(--ok)]" : "bg-[var(--fos-panel-2)] text-[var(--muted)] ring-1 ring-[var(--border)]"}`}>{on ? t.on : t.off}</span>;
+  return (
+    <div data-access-overview="" className="mt-6 grid gap-[18px] min-[900px]:grid-cols-2">
+      <section aria-labelledby="roles-h" data-roles="" className={CARD}>
+        <h2 id="roles-h" className={CARD_H}>{t.roles}</h2>
+        <ul className="mt-2">
+          {roles.map((r) => (
+            <li key={r.id} data-role={r.role} className={ROW}>
+              <span aria-hidden="true" style={{ background: av.get(r.id)?.bg }} className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full text-[12px] font-semibold text-white">{av.get(r.id)?.text}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-medium text-[var(--foreground)]">{r.name} — {t.roleName[r.role]}</p>
+                <p className="text-[13px] text-[var(--muted)]">{sees(r)}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[13px] text-[var(--muted)]">{t.noGuest}</p>
+      </section>
+      <section aria-labelledby="signin-h" data-signin-methods="" className={CARD}>
+        <h2 id="signin-h" className={CARD_H}>{t.signin}</h2>
+        <p className="mt-0.5 text-[13px] text-[var(--muted)]">{t.readOnly}</p>
+        <ul className="mt-2">
+          <li data-method="passkey" className={ROW}><div className="min-w-0 flex-1"><p className="text-[15px] font-medium">{t.pkOn}</p><p className="text-[13px] text-[var(--muted)]">{signin?.passkeys ? t.pkOnHint(signin.withKey, signin.of) : t.pkOffHint}</p></div>{state(Boolean(signin?.passkeys))}</li>
+          <li data-method="code" className={ROW}><div className="min-w-0 flex-1"><p className="text-[15px] font-medium">{t.code}</p><p className="text-[13px] text-[var(--muted)]">{t.codeHint}</p></div>{state(true)}</li>
+          <li data-method="letter" className={ROW}><div className="min-w-0 flex-1"><p className="text-[15px] font-medium">{t.letter}</p><p className="text-[13px] text-[var(--muted)]">{t.letterHint}</p></div></li>
+          {signin && signin.of !== null && (
+            <li data-method="last" className={ROW}><div className="min-w-0 flex-1"><p className="text-[15px] font-medium">{t.last}</p>
+              <p className="text-[13px] text-[var(--muted)]" suppressHydrationWarning>{signin.last ? t.lastHint(signin.last.name, fmt(signin.last.on)) : t.lastNone}{signin.never ? ` · ${t.never(signin.never)}` : ""}</p>
+              <p className="text-[13px] text-[var(--muted)]">{t.datesOnly}</p></div></li>
+          )}
+        </ul>
+      </section>
+    </div>
   );
 }
 

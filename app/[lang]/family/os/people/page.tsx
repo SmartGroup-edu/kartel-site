@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
-import { getOsState } from "@/app/lib/family-os";
-import FamilyOs from "@/app/components/FamilyOs";
+import { getOsState, getBoard } from "@/app/lib/family-os";
+import { peopleCards } from "@/app/lib/family-people.mjs";
+import FamilyOs, { type PersonCard } from "@/app/components/FamilyOs";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
 import { OS_DOWN_TITLE } from "@/app/lib/family-os-down";
+import { childHome } from "@/app/lib/family-child";
 
 // Gated (proxy.ts covers /family/*); never prerendered, never indexed. Data comes from family-os.
 export const dynamic = "force-dynamic";
@@ -24,5 +26,9 @@ export default async function FamilyOsPeoplePage({ params }: { params: Promise<{
   const L = lang === "ru" ? "RU" : "EN";
   const state = await getOsState(session);
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.people[L]} />;
-  return <FamilyOs lang={L} state={state} />;
+  childHome(lang, state.me);
+  // bus 172 P3: the open load on each card is today's board (the same read «Задачи» and «Сегодня» make).
+  const board = state.me || state.admin ? await getBoard(session) : null;
+  const cards = peopleCards({ people: state.people, grants: state.grants, board, meId: state.me?.id ?? null, lang: L }) as PersonCard[];
+  return <FamilyOs lang={L} state={state} cards={cards} />;
 }
