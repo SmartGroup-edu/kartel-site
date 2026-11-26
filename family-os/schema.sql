@@ -657,3 +657,19 @@ ALTER TABLE person ADD COLUMN IF NOT EXISTS adult_confirmed_at timestamptz;
 -- schema.sql runs on every start, so it must always carry the full list (store.mjs LOG_ACTIONS).
 ALTER TABLE access_log DROP CONSTRAINT IF EXISTS access_log_action_check;
 ALTER TABLE access_log ADD CONSTRAINT access_log_action_check CHECK (action IN ('read', 'write', 'reveal', 'copy', 'export', 'delete'));
+
+-- ================= bus 172 P4: invite wizard + first-login onboarding =================
+-- An owner may cancel an invitation: an unsent letter is then never sent, and the invitation leaves «Ждут ответа».
+-- The person row, their grants and the site's access list are untouched (cancelling is not removing access).
+ALTER TABLE invite_request ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE invite_request ADD COLUMN IF NOT EXISTS cancelled_by text;
+-- The day a person finished the first-login onboarding (date only, like the rest of signin_seen).
+ALTER TABLE signin_seen ADD COLUMN IF NOT EXISTS onboarded_on date;
+-- One-time: everyone who had already signed in before onboarding existed counts as onboarded (no welcome tour
+-- for people who have used the area for weeks). Later rows start NULL and get the date when the tour ends.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM schema_migration WHERE name = '2026-11-26-onboarded-backfill') THEN
+    UPDATE signin_seen SET onboarded_on = first_on WHERE onboarded_on IS NULL;
+    INSERT INTO schema_migration (name) VALUES ('2026-11-26-onboarded-backfill');
+  END IF;
+END $$;

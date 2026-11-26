@@ -83,7 +83,7 @@ for (const s of plan) {
   else { out.failed++; await pool.query("DELETE FROM rule_run WHERE rule_id = $1 AND key = $2 AND person_id = $3", [s.rule, s.key, s.person.id]); }
 }
 // «Отправить ссылку ещё раз» (bus 84/97 item 3): the owner's queued invites. Marked sent only on a 202.
-const invitesDue = planInvites(await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND on_date >= $1::date - 2", [date]),
+const invitesDue = planInvites(await q("SELECT id, person_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, sent_at FROM invite_request WHERE sent_at IS NULL AND cancelled_at IS NULL AND on_date >= $1::date - 2", [date]),
   people, new Map(prefRows.map((p) => [p.person_id, p])), now);
 out.invites = 0;
 for (const i of invitesDue) {
