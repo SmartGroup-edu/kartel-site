@@ -65,7 +65,7 @@ test("session_ended in the browser: one calm status on sign-in; autofill never r
   assert.match(n, /\{state === "ended" && \(\s*<p data-session-ended="" role="status"/, "a status line, not an alert");
   assert.match(n, /ended: "Сеанс завершён — /);
   assert.match(n, /if \(!autofill\) setPkMsg\(c\.pkFail\);/, "only the button reports a failure");
-  assert.match(src("app/[lang]/family/signin/page.tsx"), /family_auth === "ended" \? "ended"/);
+  assert.match(src("app/[lang]/family/signin/page.tsx"), /const STATES = \[[^\]]*"ended"[^\]]*\] as const;[\s\S]*STATES\.find\(\(s\) => s === family_auth\)/);
   const proxy = src("app/api/family-os/[...op]/route.ts");
   assert.match(proxy, /return Response\.redirect\(new URL\(endedHref\(/, "a document opened in its own tab goes to sign-in");
 });

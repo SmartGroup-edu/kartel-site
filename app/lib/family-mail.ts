@@ -18,9 +18,10 @@ import { signRelayRequest } from "@/app/lib/relay-signature.mjs";
  * Send a sign-in link. Throws on a non-2xx response so the caller can log it;
  * the caller must swallow the error rather than pass it to the user.
  */
-export async function sendSignInLink(to: string, link: string, lang: "en" | "ru" = "en"): Promise<void> {
+export async function sendSignInLink(to: string, link: string, lang: "en" | "ru" = "en", code: string | null = null): Promise<void> {
   // ttlMinutes: the lifetime the link is signed with, so the email states the real expiry.
-  const body = JSON.stringify({ to, link, ttlMinutes: familyEnv.linkTtlMinutes(), lang });
+  // code (bus 165): the six digits to type in the asking tab; omitted when Family OS could not record it.
+  const body = JSON.stringify({ to, link, ttlMinutes: familyEnv.linkTtlMinutes(), lang, ...(code ? { code } : {}) });
   const ts = String(Math.floor(Date.now() / 1000));
   const sig = await signRelayRequest(familyEnv.mailRelaySecret(), ts, body);
 

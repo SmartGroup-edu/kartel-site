@@ -3,11 +3,13 @@ import { notFound } from "next/navigation";
 import { FamilyGateNotice } from "../../../components/FamilyGateNotice";
 import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 import { familyEnv } from "@/app/lib/family-env";
+import { codesOn } from "@/app/lib/family-signin";
 
 // Public no-PII landing — reachable without a session (excluded from the gate in proxy.ts).
 export const dynamic = "force-dynamic";
 
 const LOCALES = ["en", "ru"] as const;
+const STATES = ["invalid", "ended", "expired", "elsewhere", "superseded", "used"] as const;
 type Locale = (typeof LOCALES)[number];
 
 export function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
@@ -31,9 +33,9 @@ export default async function FamilySignInPage({
   if (!LOCALES.includes(lang as Locale)) notFound();
   const { returnTo, family_auth, sent } = await searchParams;
   const dest = safeReturnTo(returnTo, `/${lang}/family`);
-  // `invalid` comes from /api/family-auth/verify on any failure — expired, wrong browser, or
-  // revoked. It is deliberately one undifferentiated outcome.
-  const state = sent === "1" ? "sent" : family_auth === "invalid" ? "invalid" : family_auth === "ended" ? "ended" : undefined;
+  // From /api/family-auth/verify (bus 165): expired · elsewhere (another browser) · superseded · used for a link we
+  // signed; `invalid` for anything else (forged, revoked). `ended` from the edge gate. Unknown values → no notice.
+  const state = sent === "1" ? "sent" : STATES.find((s) => s === family_auth);
   // The same lifetime the link is signed with (FAMILY_LINK_TTL, default 600 s), shown as text.
-  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} passkeys={familyEnv.passkeysOn()} />;
+  return <FamilyGateNotice lang={lang as Locale} returnTo={dest} state={state} ttlMinutes={familyEnv.linkTtlMinutes()} passkeys={familyEnv.passkeysOn()} codes={codesOn()} />;
 }

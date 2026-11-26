@@ -15,6 +15,15 @@ export function familySessionCookie(env = process.env) {
   return env.NODE_ENV === "production" ? SESSION_COOKIE_PROD : SESSION_COOKIE_DEV;
 }
 
+/**
+ * The sign-in nonce (bus 165): `__Host-` in production like the session, so no sibling *.kartel.org.uk host can
+ * plant or overwrite it. No env override, for the same reason as the session. Renaming at deploy only voids
+ * sign-ins requested in the minutes before it (they ask again). @param {{ NODE_ENV?: string }} [env]
+ */
+export function linkNonceCookie(env = process.env) {
+  return env.NODE_ENV === "production" ? "__Host-kartel_family_link" : "kartel_family_link";
+}
+
 /** The console's own session, host-only on console.kartel.org.uk. @param {{ NODE_ENV?: string }} [env] */
 export function consoleSessionCookie(env = process.env) {
   return env.NODE_ENV === "production" ? "__Host-kartel_console_session" : "kartel_console_session";

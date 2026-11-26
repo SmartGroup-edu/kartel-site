@@ -497,8 +497,8 @@ describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
   test("#2 helper text under the field, linked by aria-describedby, TTL from FAMILY_LINK_TTL", () => {
     assert.match(notice, /aria-describedby="family-email-help"/);
     assert.match(notice, /<p id="family-email-help" className="[^"]*text-\[14px\][^"]*text-\[var\(--muted\)\]">\s*\{c\.helper\(ttlMinutes\)\}/);
-    assert.match(notice, /We'll email you a one-time sign-in link\. It works once, only in this browser, and expires in \$\{min\}/);
-    assert.match(notice, /Мы пришлём одноразовую ссылку для входа\. Она действует \$\{min\} \$\{ruMinutes\(min\)\}/);
+    assert.match(notice, /We'll email you a sign-in link and a six-digit code\. Both work once and expire in \$\{min\}/);
+    assert.match(notice, /Мы пришлём ссылку для входа и шестизначный код\. Они действуют \$\{min\} \$\{ruMinutes\(min\)\}/);
     assert.match(src("app/lib/family-env.ts"), /linkTtlMinutes: \(\): number => \{\s*const m = Math\.round\(Number\(process\.env\.FAMILY_LINK_TTL \?\? 600\) \/ 60\);/);
     assert.match(src("app/[lang]/family/signin/page.tsx"), /ttlMinutes=\{familyEnv\.linkTtlMinutes\(\)\}/);
     assert.doesNotMatch(notice, /10 minutes|10 минут/);
@@ -574,8 +574,8 @@ describe("cycle 7 — share card, print, sign-in email (2026-11-15)", () => {
     assert.match(src("app/components/SiteHeader.tsx"), /<header data-site-header=""/);
   });
   test("#3 the app sends its link lifetime and language to the relay", () => {
-    assert.match(src("app/lib/family-mail.ts"), /JSON\.stringify\(\{ to, link, ttlMinutes: familyEnv\.linkTtlMinutes\(\), lang \}\)/);
-    assert.match(src("app/api/family-auth/request/route.ts"), /sendSignInLink\(addr, url, returnTo\.startsWith\("\/ru"\) \? "ru" : "en"\)/);
+    assert.match(src("app/lib/family-mail.ts"), /JSON\.stringify\(\{ to, link, ttlMinutes: familyEnv\.linkTtlMinutes\(\), lang, \.\.\.\(code \? \{ code \} : \{\}\) \}\)/);
+    assert.match(src("app/api/family-auth/request/route.ts"), /sendSignInLink\(addr, url, returnTo\.startsWith\("\/ru"\) \? "ru" : "en", code\)/);
   });
 });
 

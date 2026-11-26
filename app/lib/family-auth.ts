@@ -9,8 +9,10 @@
  * emailed, and a nonce cookie is set in the requesting browser. Verification requires BOTH the
  * token and the matching nonce, so an intercepted link is useless in another browser.
  *
- * Known limit, stated not hidden: without a datastore a token cannot be marked consumed, so it is
- * replayable inside its 10-minute life *in the same browser*. See docs/standalone-auth-design.md §3.
+ * bus 165: each request is also a pending sign-in in Family OS (app/lib/family-signin.ts), which makes the link
+ * single-use, lets a newer request supersede an older one, and backs the six-digit code typed in the asking tab.
+ * When Family OS does not answer, the link still works as before (replayable inside its 10 minutes in the same
+ * browser — docs/standalone-auth-design.md §3) and the code does not.
  */
 
 import { SignJWT, jwtVerify } from "jose";
@@ -143,30 +145,42 @@ export async function mintSignInLink(
   return url.toString();
 }
 
-export type LinkClaims = { email: string; returnTo: string };
+export type LinkClaims = { email: string; returnTo: string; nonce: string };
 
 /**
- * Verify a sign-in link: signature, expiry, token type, and that the nonce matches the cookie
- * set in THIS browser when the link was requested. null on any failure — callers must not
- * distinguish the reasons to the user.
+ * Why a link did not sign in (bus 165). Only "bad" is undifferentiated: a forged, foreign or malformed token
+ * learns nothing. The others are told to whoever holds a link WE signed — which only reaches the address it
+ * was sent to — so naming them reveals nothing to anyone else:
+ *   expired   — past its lifetime;
+ *   elsewhere — no nonce cookie here: opened in another browser than the one that asked (or by a mail scanner);
+ *   mismatch  — this browser asked again since: the cookie belongs to a newer request.
  */
-export async function verifySignInLink(token: string): Promise<LinkClaims | null> {
+export type LinkCheck =
+  | { ok: true; claims: LinkClaims }
+  | { ok: false; reason: "bad" | "expired" | "elsewhere" | "mismatch"; claims?: LinkClaims };
+
+/** Verify a sign-in link: signature, expiry, token type, and that the nonce matches THIS browser's cookie. */
+export async function checkSignInLink(token: string): Promise<LinkCheck> {
+  let payload;
   try {
-    const { payload } = await jwtVerify(token, linkKey());
-    if (payload.typ !== "link") return null;
-
-    const expected = (await cookies()).get(familyEnv.linkNonceCookie())?.value;
-    const got = typeof payload.nonce === "string" ? payload.nonce : "";
-    if (!expected || !got || expected !== got) return null;
-
-    const email = ((payload.email as string) ?? "").toLowerCase();
-    if (!email) return null;
-
-    const rt = typeof payload.rt === "string" ? payload.rt : "/";
-    return { email, returnTo: rt };
-  } catch {
-    return null;
+    ({ payload } = await jwtVerify(token, linkKey()));
+  } catch (e) {
+    return { ok: false, reason: (e as { code?: string })?.code === "ERR_JWT_EXPIRED" ? "expired" : "bad" };
   }
+  const nonce = typeof payload.nonce === "string" ? payload.nonce : "";
+  const email = typeof payload.email === "string" ? payload.email.toLowerCase() : "";
+  if (payload.typ !== "link" || !nonce || !email) return { ok: false, reason: "bad" };
+  const claims = { email, nonce, returnTo: typeof payload.rt === "string" ? payload.rt : "/" };
+
+  const expected = await readSignInNonce();
+  if (!expected) return { ok: false, reason: "elsewhere", claims };
+  if (expected !== nonce) return { ok: false, reason: "mismatch", claims };
+  return { ok: true, claims };
+}
+
+/** The nonce cookie of THIS browser's latest sign-in request, if any. */
+export async function readSignInNonce(): Promise<string | null> {
+  return (await cookies()).get(familyEnv.linkNonceCookie())?.value || null;
 }
 
 /** Clear the one-time nonce cookie once a link has been consumed. */

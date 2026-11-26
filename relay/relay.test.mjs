@@ -111,12 +111,12 @@ test("ttlMinutes and lang from the site reach the email; bad values fall back", 
   assert.equal((await send({ to: "ttl-a@example.com", link, ttlMinutes: 15, lang: "ru" })).status, 202);
   const ru = brevoCalls.at(-1).body;
   assert.equal(ru.subject, "Ссылка для входа на KARTEL");
-  assert.match(ru.htmlContent, /Ссылка действует 15 минут, срабатывает один раз и только в этом браузере\./);
+  assert.match(ru.htmlContent, /Ссылка действует 15 минут и срабатывает один раз в том браузере, где вы запросили вход\./);
   assert.match(ru.htmlContent, /<html lang="ru">/);
   assert.equal((await send({ to: "ttl-b@example.com", link, ttlMinutes: 999, lang: "xx" })).status, 202);
   const en = brevoCalls.at(-1).body;
   assert.equal(en.subject, "Your KARTEL sign-in link");
-  assert.match(en.htmlContent, /The link works once, only in this browser, and expires in 10 minutes\./);
+  assert.match(en.htmlContent, /The link works once, in the browser where you asked to sign in, and expires in 10 minutes\./);
   assert.match(en.textContent, /expires in 10 minutes/);
 });
 
@@ -130,7 +130,30 @@ test("email on the site's type system: serif accent heading, 16px body, ≥44px 
   assert.match(html, /font-style:italic;color:#7b1e2d;">Virtus et Potestas</);
   assert.doesNotMatch(html, /font-size:1[0-3]px/);
   const ru = renderSignInEmail({ link: PREFIX + "x", ttlMinutes: 21, lang: "ru" }).html;
-  assert.match(ru, /действует 21 минуту,/);
+  assert.match(ru, /действует 21 минуту и/);
+});
+
+// bus 165 — the one-time code beside the button.
+test("a six-digit code reaches the letter, grouped 3+3, in text and HTML; malformed codes are refused", async () => {
+  const link = PREFIX + "abc";
+  brevoCalls = [];
+  assert.equal((await send({ to: "code-a@example.com", link, ttlMinutes: 10, lang: "ru", code: "042917" })).status, 202);
+  const ru = brevoCalls.at(-1).body;
+  assert.match(ru.htmlContent, /<span data-code="" style="[^"]*monospace[^"]*color:#2b2824;">042 917<\/span>/);
+  assert.match(ru.htmlContent, /Если кнопка открылась в другом браузере, введите на странице входа этот код:/);
+  assert.match(ru.htmlContent, /Никому его не сообщайте\./);
+  assert.match(ru.textContent, /Или введите на странице входа этот код: 042 917/);
+  assert.ok(ru.htmlContent.indexOf(">Войти<") < ru.htmlContent.indexOf("042 917"), "the code sits after the button");
+  assert.doesNotMatch(ru.htmlContent, /href="[^"]*042917/, "the code is never part of a link");
+  for (const code of ["12345", "1234567", "12a456", 123456, ""]) {
+    assert.equal((await send({ to: "code-b@example.com", link, code })).status, 400, `refused: ${JSON.stringify(code)}`);
+  }
+  brevoCalls = [];
+  assert.equal((await send({ to: "code-c@example.com", link, lang: "en" })).status, 202);
+  assert.doesNotMatch(brevoCalls.at(-1).body.htmlContent, /data-code=/, "no code field → the link-only letter");
+  const { html } = (await import("./server.mjs")).renderSignInEmail({ link, lang: "en", code: "000123" });
+  assert.match(html, />000 123</);
+  assert.match(html, /type this code on the sign-in page instead:/);
 });
 
 // ── Family OS document reminders (bus 66) ──

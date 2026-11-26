@@ -12,10 +12,11 @@
 // QA-156 M8: the session cookie's name comes from the app (familySessionCookie). `next start` is production, so it
 // is the `__Host-` name. A hard-coded old name made the refusal checks pass without checking anything.
 import { SignJWT } from "jose";
-import { familySessionCookie, SESSION_COOKIE_LEGACY } from "../../app/lib/family-cookie.mjs";
+import { familySessionCookie, SESSION_COOKIE_LEGACY, linkNonceCookie } from "../../app/lib/family-cookie.mjs";
 
 const B = process.env.E2E_BASE ?? "http://localhost:3999";
 const SESSION = familySessionCookie({ NODE_ENV: "production" });
+const NONCE = linkNonceCookie({ NODE_ENV: "production" }); // bus 165: __Host- in production
 const SECRET = process.env.FAMILY_SESSION_SECRET;
 const linkKey = new TextEncoder().encode(`${SECRET}:link`);
 let pass = 0, fail = 0;
@@ -37,8 +38,9 @@ const mint = (email, nonce, ttl = 600, rt = "/en/family", key = linkKey) =>
     .setProtectedHeader({ alg: "HS256" }).setSubject(email).setIssuedAt()
     .setExpirationTime(new Date(Date.now() + ttl * 1000)).sign(key);
 const verify = (tok, nonce) => req(`/api/family-auth/verify?token=${encodeURIComponent(tok)}`,
-  { headers: { cookie: `kartel_family_link=${nonce}` } });
-const invalid = (r) => (r.headers.get("location") ?? "").includes("family_auth=invalid") && !cookieOf(r, SESSION);
+  { headers: { cookie: `${NONCE}=${nonce}` } });
+// bus 165: a refusal now names its reason (the specific ones are checked in family-signin-code.e2e.mjs).
+const invalid = (r, reason = "invalid|expired|elsewhere|superseded|used") => new RegExp(`family_auth=(${reason})(&|$)`).test(r.headers.get("location") ?? "") && !cookieOf(r, SESSION);
 const as = (tok, name = SESSION) => ({ headers: { cookie: `${name}=${tok}` } });
 
 // ── enumeration: body, headers, timing ──
@@ -52,7 +54,7 @@ for (let i = 0; i < 5; i++) {
 }
 const med = (a) => [...a].sort((x, y) => x - y)[2];
 check("body identical for member and stranger", bU === bM);
-const nU = cookieOf(rU, "kartel_family_link"), nM = cookieOf(rM, "kartel_family_link");
+const nU = cookieOf(rU, NONCE), nM = cookieOf(rM, NONCE);
 check("nonce cookie set for stranger too", !!nU);
 check("nonce cookie set for member", !!nM);
 const shape = (r) => r.headers.getSetCookie().map((s) => s.replace(/=[^;]+/, "=X")).join("|");
@@ -67,12 +69,12 @@ const session = cookieOf(vOk, SESSION);
 check("valid link + matching nonce → session", vOk.status === 307 && !!session, `${vOk.status} → ${vOk.headers.get("location")}`);
 check("the session cookie is host-only, Secure, HttpOnly (QA-156 L2)", /; Secure/i.test(setCookie(vOk, SESSION)) && /HttpOnly/i.test(setCookie(vOk, SESSION)) && !/Domain=/i.test(setCookie(vOk, SESSION)));
 check("redirects to returnTo", (vOk.headers.get("location") ?? "").endsWith("/en/family"));
-check("nonce cleared after use", setCookie(vOk, "kartel_family_link").includes("Max-Age=0"));
+check("nonce cleared after use", setCookie(vOk, NONCE).includes("Max-Age=0"));
 check("same link, other browser → refused", invalid(await verify(tokM, "other-browser")));
-check("expired link → refused", invalid(await verify(await mint("member@example.com", nM, -5), nM)));
-check("validly signed link for a NON-member → refused at verify", invalid(await verify(await mint("stranger@example.com", nU), nU)));
+check("expired link → refused", invalid(await verify(await mint("member@example.com", nM, -5), nM), "expired"));
+check("validly signed link for a NON-member → refused at verify", invalid(await verify(await mint("stranger@example.com", nU), nU), "invalid"));
 check("link signed with a foreign key → refused",
-  invalid(await verify(await mint("member@example.com", nM, 600, "/en/family", new TextEncoder().encode("attacker-key-at-least-32-characters-long")), nM)));
+  invalid(await verify(await mint("member@example.com", nM, 600, "/en/family", new TextEncoder().encode("attacker-key-at-least-32-characters-long")), nM), "invalid"));
 const vEvil = await verify(await mint("member@example.com", nM, 600, "https://evil.example"), nM);
 check("off-site returnTo neutralised", !(vEvil.headers.get("location") ?? "").includes("evil.example"), vEvil.headers.get("location"));
 
@@ -82,7 +84,7 @@ check("member session → /en/family passes the edge", fam.status === 200, `${fa
 check("the same session under the old __Secure- name → sign-in (never read)", (await req("/en/family", as(session, SESSION_COOKIE_LEGACY))).status === 307);
 const conM = await req("/console", as(session));
 check("member session → /console refused", conM.status === 307, `${conM.status}`);
-const nA = cookieOf(await post("admin@example.com"), "kartel_family_link");
+const nA = cookieOf(await post("admin@example.com"), NONCE);
 const adminSession = cookieOf(await verify(await mint("admin@example.com", nA), nA), SESSION);
 check("admin signs in (control for the refusals around it)", !!adminSession);
 const conA = await req("/console", as(adminSession));

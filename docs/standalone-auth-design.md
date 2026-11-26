@@ -66,6 +66,33 @@ trade for not needing a revocation store.
 single Edge Config item of consumed nonces, or a KV store — both add the infrastructure this change
 exists to remove.
 
+## 3a. One-time code and named failures (bus 165, 2026-11-26)
+
+Incident 25.11: a family member on iPhone requested twice and tapped «Sign in» in the Gmail app; the
+link opened and failed with the generic message. Which rule fired was not logged (UNKNOWN): an older,
+superseded link, or a link opened in a different cookie jar than the one that asked.
+
+- **Pending sign-in in Family OS.** Every well-formed request (stranger too, with no email) is a row in
+  `signin_pending`: SHA-256 of the nonce, HMAC of the address, HMAC of a six-digit code, attempts,
+  `superseded_at`, `consumed_at`. No code, nonce or stranger's address leaves the site.
+- **The code** is in the letter beside the button. It is typed in the tab that asked (that tab holds the
+  nonce cookie), so it works whatever browser the button opens. Five attempts per request (reserved
+  atomically before the comparison), 20 per client per 10 minutes, constant-time compare, audit row
+  `auth:signin signin.code` without the code. `POST /api/family-auth/verify` — the same path as the
+  link, so the firewall rule on `/verify` covers it.
+- **Single use and supersede.** The link is used up in Family OS when it signs in; a newer request
+  supersedes older links and codes for that address. This closes the replay window in §3 — while
+  Family OS answers. When it does not, the link works as before and no code is sent.
+- **Named failures** for a link we signed: `expired`, `elsewhere` (no cookie — a calm page that sends
+  the person back to the asking tab, never shows the code, and offers a new link here), `superseded`,
+  `used`. A forged or malformed token still gets the plain `invalid`. The reason code is logged.
+  A link opened without its cookie is only *read* in Family OS, so mail scanners use nothing up.
+- **Nonce cookie** is `__Host-kartel_family_link` in production (was unprefixed).
+- **Residual:** anyone can supersede an address's pending link by requesting one for it (bounded by
+  the firewall per IP and the relay's per-address cap). The code-verify per-IP limit at the edge
+  depends on the existing firewall rule matching `POST /api/family-auth/verify` — UNKNOWN until the
+  rule is read.
+
 ## 4. Mail delivery — no new npm dependency
 
 Brevo transactional API, reached through **kartel-mail-relay** (`relay/`). The Brevo account blocks

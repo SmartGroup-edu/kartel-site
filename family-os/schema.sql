@@ -633,6 +633,23 @@ CREATE TABLE IF NOT EXISTS body_key (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 
+-- bus 165: pending sign-ins — the one-time code beside the email link. One row per request (strangers too, with no
+-- email), keyed by the SHA-256 of the requester's nonce cookie. The code and the address key are HMACs under the
+-- site's secret; no code, nonce or stranger's address is stored. A newer request for the same address supersedes
+-- the older ones. The runner deletes rows a day after they expire.
+CREATE TABLE IF NOT EXISTS signin_pending (
+  nonce_hash     text PRIMARY KEY CHECK (nonce_hash ~ '^[0-9a-f]{64}$'),
+  email_key      text NOT NULL CHECK (email_key ~ '^[0-9a-f]{64}$'),
+  email          text CHECK (email IS NULL OR email = lower(email)),
+  code_hash      text NOT NULL CHECK (code_hash ~ '^[0-9a-f]{64}$'),
+  attempts       integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  expires_at     timestamptz NOT NULL,
+  superseded_at  timestamptz,
+  consumed_at    timestamptz
+);
+CREATE INDEX IF NOT EXISTS signin_pending_by_key ON signin_pending (email_key, created_at);
+
 -- QA-156 M2: «Вес и питание» needs a birth date saying 18+, or the owner's one-time confirmation of adulthood.
 ALTER TABLE person ADD COLUMN IF NOT EXISTS adult_confirmed_at timestamptz;
 
