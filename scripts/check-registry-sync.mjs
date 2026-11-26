@@ -8,10 +8,12 @@
 // 2026-06-19 but only reached the public site on 2026-07-15 (~4 weeks),
 // because vendoring is manual and nothing flagged the drift.
 //
-// kartel-core is a SEPARATE PRIVATE repo, so CI (in kartel-site) cannot read
-// it. This check therefore runs locally (pre-push), where both repos live
-// side by side. If the private source is not found it SKIPS with a warning —
-// never a false green.
+// kartel-core is a SEPARATE PRIVATE repo. It runs locally (pre-push), where both
+// repos live side by side, and in CI (job registry-sync), which checks kartel-core
+// out with the kartel-sync-bot App token (bus 169 B4).
+// If the private source is not found it FAILS. To skip on purpose (offline,
+// no kartel-core checkout), set REGISTRY_CHECK_OFFLINE=1: it then warns and
+// exits 0 — a skip, never a green.
 //
 // Resolve the source with, in order:
 //   1. env KARTEL_CORE_DIR = path to the kartel-core repo root
@@ -41,13 +43,24 @@ const warn = (m) => console.warn(`\x1b[33m⚠ registry-sync: ${m}\x1b[0m`);
 const ok = (m) => console.log(`\x1b[32m✔ registry-sync: ${m}\x1b[0m`);
 const fail = (m) => console.error(`\x1b[31m✖ registry-sync: ${m}\x1b[0m`);
 
-if (!existsSync(SOURCE)) {
-  warn(`private source not found at ${SOURCE}`);
-  warn(
-    "SKIPPED — cannot verify public↔private registry parity. " +
-      "Set KARTEL_CORE_DIR to the kartel-core repo root to enable this check.",
+// Bus 169 B4: a missing source used to SKIP with exit 0, so a push from a machine without
+// kartel-core passed unchecked. Now that is a failure unless the skip is asked for.
+const OFFLINE = process.env.REGISTRY_CHECK_OFFLINE === "1";
+const missing = (what, path) => {
+  if (OFFLINE) {
+    warn(`${what} not found at ${path} — SKIPPED because REGISTRY_CHECK_OFFLINE=1 (not a green)`);
+    return;
+  }
+  fail(`${what} not found at ${path}`);
+  console.error(
+    "   Set KARTEL_CORE_DIR to the kartel-core repo root, or REGISTRY_CHECK_OFFLINE=1 to skip on purpose.",
   );
-  process.exit(0); // skip, not a false green
+  process.exit(1);
+};
+
+if (!existsSync(SOURCE)) {
+  missing("private source", SOURCE);
+  process.exit(0); // offline skip, not a green
 }
 
 const parse = (p) => {
@@ -87,7 +100,7 @@ if (existsSync(FED_SOURCE)) {
     fedOk = false;
   }
 } else {
-  warn(`federation snapshot source not found at ${FED_SOURCE} — SKIPPED (not a green)`);
+  missing("federation snapshot source", FED_SOURCE);
 }
 
 if (norm(vend) === norm(src)) {

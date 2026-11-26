@@ -35,6 +35,39 @@ jobs:
       - name: Snapshot tests
         run: npm test
 
+  registry-sync:
+    # Bus 169 B4: the vendored registry and federation snapshot must equal kartel-core main.
+    # kartel-core is private; the kartel-sync-bot App token (read on kartel-core only) checks it out.
+    # This repo is public, so the job prints only versions, dates and key names of public files.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/create-github-app-token@v2
+        id: app
+        with:
+          app-id: ${{ vars.KARTEL_SYNC_APP_ID }}
+          private-key: ${{ secrets.KARTEL_SYNC_APP_KEY }}
+          owner: SmartGroup-edu
+          repositories: kartel-core
+
+      - uses: actions/checkout@v4
+        with:
+          repository: SmartGroup-edu/kartel-core
+          ref: main
+          token: ${{ steps.app.outputs.token }}
+          path: .kartel-core
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Vendored copy equals kartel-core
+        env:
+          KARTEL_CORE_DIR: .kartel-core
+        run: npm run registry:check
+
   e2e:
     # QA-156 M8: the repo e2e against a real `next start` (production cookie names), plus H1 «Завершить сеансы»
     # end to end with the real Family OS app in the test process. Synthetic addresses and test-only secrets.
