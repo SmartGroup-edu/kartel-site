@@ -30,7 +30,7 @@ const meta: Record<Locale, {
       template: "%s | KARTEL",
     },
     description:
-      "The public registry of the KARTEL federation: one identity, one map of countries and regions and one organisation model, shared by MoyPolk, RusJAz and Community Group.",
+      "The public registry of the KARTEL federation: one identity, one map of countries and regions and one organisation model, shared by RusJAz and Community Group.",
     ogTitle: "KARTEL Core — public registry of the KARTEL federation",
     twTitle: "KARTEL Core — public registry of the KARTEL federation",
     twDescription:
@@ -44,7 +44,7 @@ const meta: Record<Locale, {
       template: "%s | KARTEL",
     },
     description:
-      "Публичный реестр федерации KARTEL: единая идентичность, единая карта стран и регионов и единая модель организаций для MoyPolk, RusJAz и Community Group.",
+      "Публичный реестр федерации KARTEL: единая идентичность, единая карта стран и регионов и единая модель организаций для RusJAz и Community Group.",
     ogTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
     twTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
     twDescription:

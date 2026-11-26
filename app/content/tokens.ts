@@ -26,6 +26,8 @@ const RU_STATUS: Record<string, string> = {
   planned: "план",
   connected: "подключено",
   off: "отключено",
+  retiring: "выводится",
+  retired: "упразднено",
   consumed: "потребляется",
   anchored: "закреплено",
   producer: "производитель",

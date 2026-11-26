@@ -325,9 +325,9 @@ describe("cycle 4 — one type system for Core and the registry (2026-11-15)", (
       assert.doesNotMatch(c, /rounded-full border px-2\.5/, f);
     }
   });
-  test("#4 snapshot label wording EN/RU (registry v13 and federation)", () => {
-    assert.ok(read("en/registry.html").includes("Snapshot v13 · data as of 25 November 2026"));
-    assert.ok(read("ru/registry.html").includes("Снимок v13 · данные на 25 ноября 2026"));
+  test("#4 snapshot label wording EN/RU (registry v14 and federation)", () => {
+    assert.ok(read("en/registry.html").includes("Snapshot v14 · data as of 26 November 2026"));
+    assert.ok(read("ru/registry.html").includes("Снимок v14 · данные на 26 ноября 2026"));
     assert.ok(read("en/registry/federation.html").includes("Snapshot · data as of 25 November 2026"));
     assert.ok(read("ru/registry/federation.html").includes("Снимок · данные на 25 ноября 2026"));
     assert.doesNotMatch(read("en/registry.html"), /Updated: 2026/);
@@ -457,6 +457,27 @@ describe("registry v13 rendered (bus 163: community.group identity off, drift fi
   test("integrity: stray nodes back to 1, subjects band Active, band localised on RU", () => {
     assert.ok(text("en/registry/federation.html").includes("Stray nodes 1 Federated subjects on non-canonical nodes Active"));
     assert.ok(text("ru/registry/federation.html").includes("Висячие узлы 1 Федеративные субъекты на неканонических узлах Активно"));
+  });
+});
+
+describe("registry v14 rendered (bus 164: MoyPolk stewards nothing, post-v9 organisation model)", () => {
+  const text = (f) => read(f).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  test("MoyPolk is steward of no layer; audit steward is pending R0 (EN + RU)", () => {
+    for (const l of ["en", "ru"]) assert.doesNotMatch(text(`${l}/registry.html`) + text(`${l}/registry/layers.html`), /Audit Envelope contract MoyPolk|Конверт аудита контракт MoyPolk/, l);
+    assert.ok(text("en/registry.html").includes("Unknown (pending R0)"));
+    assert.ok(text("ru/registry.html").includes("не определён (ждёт решения R0)"));
+    assert.ok(read("ru/registry/projects.html").includes(">Упразднено<"));
+  });
+  test("organisations: the vendored registry carries the post-v9 model, no Foundation tier", () => {
+    const reg = JSON.parse(readFileSync("app/content/registry.public.json", "utf8"));
+    assert.match(reg.organisationRegistry.authority, /one CEA CIC → School/);
+    assert.doesNotMatch(reg.organisationRegistry.authority, /\(per the ratified Org Architecture CEA → Foundation → School\)/);
+    assert.match(reg.layerRegistry.find((l) => l.key === "organisation").purpose, /^One canonical organisation hierarchy: CEA CIC → School → Venue/);
+  });
+  test("/core and the site description no longer list MoyPolk as a live platform (EN + RU)", () => {
+    assert.ok(text("en/core.html").includes("MoyPolk (Immortal Regiment UK memorial) was retired as a brand on 3 November 2026"));
+    assert.ok(text("ru/core.html").includes("Бренд MoyPolk (мемориал «Бессмертный полк UK») упразднён 3 ноября 2026 года"));
+    assert.doesNotMatch(read("en/core.html") + read("ru/core.html"), /shared by MoyPolk, RusJAz|для MoyPolk, RusJAz/);
   });
 });
 

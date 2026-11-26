@@ -1,7 +1,7 @@
 {
   "_comment": "PUBLIC, sanitized projection of registry.yaml for kartel.org.uk. Contains ONLY public fields — no PII, no secrets, no internal IPs/hosts, no review queues. The PUBLIC/PRIVATE firewall between kartel-core (private) and kartel-site (public). Regenerate from registry.yaml on any governance change.",
-  "version": 13,
-  "updated": "2026-11-25",
+  "version": 14,
+  "updated": "2026-11-26",
   "authority": "KARTEL Core owns the canonical layers. Platforms consume or steward; none owns Core.",
   "canonicalLayers": [
     {
@@ -74,8 +74,9 @@
       "name": "Audit Envelope",
       "kind": "contract",
       "owner": "KARTEL Core",
-      "steward": "MoyPolk",
-      "status": "draft"
+      "steward": "Unknown (pending R0)",
+      "status": "draft",
+      "note": "v14 (2026-11-26): MoyPolk is retired (R0 act 2026-11-03) and no longer stewards this contract; no new steward has been named. Was: steward \"MoyPolk\"."
     }
   ],
   "coreServices": [
@@ -83,7 +84,8 @@
       "key": "identity",
       "name": "Identity provider (Keycloak, being retired)",
       "endpoint": "https://auth.kartel.org.uk/realms/kartel-ecosystem",
-      "status": "live"
+      "status": "retiring",
+      "note": "v14 (2026-11-26): retiring by the R0 act of 2026-11-14. The endpoint still runs until every platform has moved; switching it off needs its own R0 act. Was: status \"live\"."
     },
     {
       "key": "geography",
@@ -132,7 +134,7 @@
     {
       "key": "organisation",
       "name": "Organisation Registry",
-      "purpose": "One canonical organisation hierarchy: CEA → Foundation → School → Venue.",
+      "purpose": "One canonical organisation hierarchy: CEA CIC → School → Venue (since v9, 2026-11-14; the Foundation tier is retired). Was: \"CEA → Foundation → School → Venue\".",
       "canonicalKey": "canonicalOrgCode (readable, not UUID)",
       "authority": "KARTEL Core",
       "steward": "KARTEL Core (Core-owned registry)",
@@ -178,14 +180,14 @@
       "url": "https://moypolk.uk",
       "role": "Retired",
       "layers": {
-        "identity": "connected",
+        "identity": "retired",
         "geography": "consumed",
         "organisation": "pending",
         "events": "geo-anchored",
-        "audit": "steward"
+        "audit": "retired"
       },
       "summary": "Immortal Regiment UK memorial platform. Brand retired into Community Group on 2026-11-03 (R0 act); its initiatives continue there and moypolk.uk addresses redirect permanently. The geography taxonomy is now served by community.group.",
-      "note": "v12 (2026-11-25): brand retirement recorded. Was: role \"Producer / Steward\", geography \"producer / steward\", summary \"Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy.\""
+      "note": "v14 (2026-11-26): identity and audit retired — the brand is retired (R0 act 2026-11-03) and Keycloak is leaving the ecosystem (R0 act 2026-11-14); the audit envelope has no steward until R0 names one. Was: identity \"connected\", audit \"steward\". v12 (2026-11-25): brand retirement recorded. Was: role \"Producer / Steward\", geography \"producer / steward\", summary \"Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy.\""
     },
     {
       "key": "rusjaz",
@@ -231,7 +233,7 @@
     }
   ],
   "organisationRegistry": {
-    "authority": "KARTEL Core owns the canonical organisation registry. Platforms consume; they do not author canonical organisations. canonicalOrgCode is a readable key (not a UUID). The registry holds INSTITUTIONS only (per the ratified Org Architecture CEA → Foundation → School). Operating accredited centres are anchored separately in the Campus Registry (campusCode) — orthogonal to, not a child of, the institution. This keeps brand identity (canonicalOrgCode) distinct from operating-centre identity (campusCode).",
+    "authority": "KARTEL Core owns the canonical organisation registry. Platforms consume; they do not author canonical organisations. canonicalOrgCode is a readable key (not a UUID). The registry holds INSTITUTIONS only (per the model published in v9, 2026-11-14: one CEA CIC → School; the Foundation tier and RUSJAZ-FDN are retired — lineage only. Was: \"per the ratified Org Architecture CEA → Foundation → School\"). Operating accredited centres are anchored separately in the Campus Registry (campusCode) — orthogonal to, not a child of, the institution. This keeps brand identity (canonicalOrgCode) distinct from operating-centre identity (campusCode).",
     "key": "canonicalOrgCode",
     "status": "active",
     "organisations": [
