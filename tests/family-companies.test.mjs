@@ -126,3 +126,9 @@ test("P3 public build: no public HTML, RSC payload, client chunk or public file 
   const hits = files.flatMap((f) => { const t = unescape(readFileSync(f, "utf8")); return SECRET.filter((w) => t.includes(w)).map((w) => `${f}: ${w}`); });
   assert.deepEqual(hits, []);
 });
+
+test("P3 acceptor QA: every monogram colour meets AA with its white letters (P3 is the first to use the fifth)", () => {
+  const sq = code("app/components/FamilyCompanies.tsx").match(/const SQ = (\[[^\]]+\])/)[1];
+  const lum = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  for (const h of JSON.parse(sq)) assert.ok(1.05 / (lum(h) + 0.05) >= 4.5, h);
+});

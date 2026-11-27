@@ -51,7 +51,7 @@ const T = {
 const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow)]";
 const PILL: Record<State, string> = { active: "bg-[var(--ok-soft)] text-[var(--ok)]", retired: "bg-[var(--fos-panel-2)] text-[var(--muted)]", planned: "bg-[var(--fos-blue-soft)] text-[var(--fos-blue)]" };
 /** The monogram square: a fixed colour per position, decoration only (aria-hidden). */
-const SQ = ["#2B5C9E", "#8E4570", "#7B1E2D", "#74747E", "#A8691A"];
+const SQ = ["#2B5C9E", "#8E4570", "#7B1E2D", "#74747E", "#9C6118"];
 const monogram = (name: string) => (name.match(/[A-ZА-Я]/g) ?? [name[0] ?? "?"]).slice(0, 2).join("");
 const host = (url: string) => url.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
