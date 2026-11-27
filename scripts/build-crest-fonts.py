@@ -5,8 +5,9 @@
 
 The latin files are Google's latin subset; the cyrillic files add the punctuation, digits and space of running text
 (CORE), so a Russian page needs no Latin file for its spaces and commas: app/lib/crestFonts.ts declares CORE on the
-cyrillic file on /ru only (an English page never fetches Cyrillic for a space). Two tiny "mark" files hold the Latin set in the first screen of /ru (KARTEL, the
-Roman numerals) and the motto «Virtus et Potestas». Axes are limited to the weights the CSS uses.
+cyrillic file on /ru only (an English page never fetches Cyrillic for a space). Small "mark" files hold the other script's few characters: on /ru KARTEL and the Roman
+numerals (Playfair) and the basic Latin letters (Manrope), on /en «Русский» (Manrope), and on both the motto
+«Virtus et Potestas» (Playfair italic). Axes are limited to the weights the CSS uses.
 
   python3 -m venv /tmp/fontenv && /tmp/fontenv/bin/pip install fonttools brotli
   /tmp/fontenv/bin/python scripts/build-crest-fonts.py <dir with the three .ttf>
@@ -46,5 +47,7 @@ build(P, "playfair-latin-v2.woff2", (600, 700), COMMON)
 build(P, "playfair-cyrillic-v2.woff2", (600, 700), f"{CYRILLIC},{CORE}")
 build(P, "playfair-mark-v2.woff2", (600, 700), text="KARTELIVX")
 build(PI, "playfair-italic-mark-v2.woff2", 500, text="Virtus et Potestas")
+build(M, "manrope-latin-basic-v2.woff2", (300, 700), "U+0041-005A,U+0061-007A")  # /ru: the few Latin words (A–Z, a–z)
+build(M, "manrope-ru-mark-v2.woff2", (300, 700), text="Русский")  # /en: the language link
 build(PI, "playfair-italic-latin-v2.woff2", 500, COMMON)
 build(PI, "playfair-italic-cyrillic-v2.woff2", 500, f"{CYRILLIC},{CORE}")

@@ -107,8 +107,8 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
       // the fonts declared for this language: the faces a first screen needs stay ≤ 80 KB
       assert.match(html, /<style>@font-face\{font-family:"Manrope"/);
       const first = lang === "ru"
-        ? ["manrope-cyrillic-v2", "playfair-cyrillic-v2", "playfair-mark-v2", "playfair-italic-mark-v2"]
-        : ["manrope-latin-v2", "playfair-latin-v2", "playfair-italic-mark-v2"];
+        ? ["manrope-cyrillic-v2", "playfair-cyrillic-v2", "playfair-mark-v2", "playfair-italic-mark-v2", "manrope-latin-basic-v2"]
+        : ["manrope-latin-v2", "playfair-latin-v2", "playfair-italic-mark-v2", "manrope-ru-mark-v2"];
       const bytes = first.reduce((n, f) => n + readFileSync(`public/fonts/${f}.woff2`).length, 0);
       assert.ok(bytes <= 80 * 1024, `${bytes} bytes of first-screen fonts`);
     });
@@ -146,11 +146,11 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
     const files = ["playfair-latin", "playfair-cyrillic", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark"];
     for (const lang of ["en", "ru"]) {
       const g = crestFontFaces(lang);
-      for (const f of [...files, ...(lang === "ru" ? ["playfair-mark"] : [])]) {
+      for (const f of [...files, ...(lang === "ru" ? ["playfair-mark", "manrope-latin-basic"] : ["manrope-ru-mark"])]) {
         assert.match(g, new RegExp(`url\\("/fonts/${f}-v2\\.woff2"\\)`), f);
         assert.ok(readFileSync(`public/fonts/${f}-v2.woff2`).subarray(0, 4).toString() === "wOF2", f);
       }
-      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 8 : 7);
+      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 9 : 8);
       // the marks are declared last (later rules win overlapping characters)
       assert.match(g, /playfair-italic-mark-v2\.woff2"\) format\("woff2"\);unicode-range:[^}]*\}$/);
       // /ru: the cyrillic file carries the space; /en: it does not

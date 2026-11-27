@@ -5,13 +5,17 @@ import { preload } from "react-dom";
  *  - the cyrillic files also carry the punctuation, digits and space of running text (CORE); on /ru they are declared
  *    after the latin ones, so they win the shared characters and a Russian page needs no Latin file for its spaces;
  *  - on /en the cyrillic faces cover Cyrillic letters only (an English page never fetches Cyrillic for a space);
- *  - on /ru, «KARTEL» and the Roman numerals come from a 3 KB mark file, not the 30 KB Latin Playfair; the motto
- *    «Virtus et Potestas» (the only italic on the crest pages) comes from a 2 KB mark file on every page.
+ *  - small "mark" files carry the other script's few characters: on /ru «KARTEL» and the Roman numerals (Playfair,
+ *    3 KB, not the 30 KB Latin file) and the basic Latin letters A–Z a–z (Manrope, 7 KB, not 22 KB); on /en
+ *    «Русский» (Manrope, 2 KB, not 21 KB); on both the motto «Virtus et Potestas» (the only italic, 2 KB). A
+ *    character outside a mark falls through to the full file of its script.
  *  Later rules win overlapping characters (CSS Fonts 4 §4.5), so the marks are declared last. */
 const LATIN = "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD";
 const CYRILLIC = "U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116";
 const CORE = "U+0020-0040, U+005B-0060, U+007B-007E, U+00A0, U+00A9, U+00AB, U+00B7, U+00BB, U+00D7, U+2010-2014, U+2018-201E, U+2022, U+2026, U+2039-203A, U+2190-2193, U+2212";
 const MARK = "U+0041, U+0045, U+0049, U+004B-004C, U+0052, U+0054, U+0056, U+0058"; // A E I K L R T V X
+const BASIC = "U+0041-005A, U+0061-007A";
+const RUSSKIY = "U+0420, U+0438, U+0439, U+043A, U+0441, U+0443"; // Русский
 const MOTTO = "U+0020, U+0050, U+0056, U+0061, U+0065, U+0069, U+006F, U+0072-0075"; // Virtus et Potestas
 
 type Face = [family: string, style: "normal" | "italic", weight: string, file: string, range: string];
@@ -26,7 +30,9 @@ function faces(lang: "en" | "ru"): Face[] {
     ["Playfair Display", "normal", "600 700", "playfair-cyrillic-v2", cyr],
     ["Playfair Display", "italic", "500", "playfair-italic-latin-v2", LATIN],
     ["Playfair Display", "italic", "500", "playfair-italic-cyrillic-v2", cyr],
-    ...(ru ? [["Playfair Display", "normal", "600 700", "playfair-mark-v2", MARK] as Face] : []),
+    ...(ru
+      ? ([["Playfair Display", "normal", "600 700", "playfair-mark-v2", MARK], ["Manrope", "normal", "300 700", "manrope-latin-basic-v2", BASIC]] as Face[])
+      : ([["Manrope", "normal", "300 700", "manrope-ru-mark-v2", RUSSKIY]] as Face[])),
     ["Playfair Display", "italic", "500", "playfair-italic-mark-v2", MOTTO],
   ];
 }

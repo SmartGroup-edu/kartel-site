@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import { crestFontFaces } from "../lib/crestFonts";
-import "../globals.css";
+import "../crest-base.css";
 
 // Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
 // Both cover Cyrillic, so EN and RU render in the same faces on every OS.

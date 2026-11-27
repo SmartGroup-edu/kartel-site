@@ -1,0 +1,15 @@
+/* bus 176 P1b: the base CSS of every [lang] page — Tailwind's preflight (the reset the crest pages were built on) and
+   the few utilities the root layout sets on <html> / <body>. The cabinet's full stylesheet (app/globals.css: Tailwind
+   utilities, tokens, the Family OS) is imported by the family, core and registry layouts only, so it no longer blocks
+   the first paint of the public crest home (17 KB gzip of render-blocking CSS). Same layer order as globals.css. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/preflight.css" layer(base);
+
+@layer utilities {
+  .h-full { height: 100%; }
+  .min-h-full { min-height: 100%; }
+  .flex { display: flex; }
+  .flex-col { flex-direction: column; }
+  .antialiased { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  .scroll-smooth { scroll-behavior: smooth; }
+}
