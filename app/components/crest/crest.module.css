@@ -236,8 +236,17 @@
 .crestbox .masked { position: relative; }
 :global(html[data-intro]) .crestbox .crestimg { animation: introIn 1.4s cubic-bezier(.2, .7, .2, 1) both; }
 :global(html[data-intro]) .crestbox .masked::after { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; left: -50%; pointer-events: none; background: linear-gradient(100deg, transparent, rgba(255, 240, 205, .55), transparent); transform: skewX(-16deg); mix-blend-mode: overlay; animation: introSheen 1.2s ease .6s forwards; }
-@keyframes introIn { from { transform: scale(.93); filter: brightness(.25) drop-shadow(0 30px 60px rgba(0, 0, 0, .6)); } to { transform: none; filter: brightness(1) drop-shadow(0 30px 60px rgba(0, 0, 0, .6)); } }
+@keyframes introIn { from { transform: scale(.93); filter: brightness(.25); } to { transform: none; filter: brightness(1); } }
 @keyframes introSheen { to { transform: translateX(485.7%) skewX(-16deg); } }
+/* bus 176 P1b — the first frame of the home is cheap to draw: the LCP is the moment that frame reaches the screen, and
+   a slow raster lets the page script run first (Lighthouse then counts all of it). Until the page has loaded
+   (CrestHome sets html[data-crest-late]) the home leaves out three costly layers it does not need at the top of the
+   page: the film grain (an SVG turbulence filter blended over the whole viewport), the header's backdrop blur (nothing
+   is behind the header before scrolling) and the crest's drop shadow (mostly inside its mask). They come in after
+   load; the sign-in, pending and 404 pages (no data-crest-js) have them from the start. */
+:global(html[data-crest-js]:not([data-crest-late])) .site::after { background-image: none; }
+:global(html[data-crest-js]:not([data-crest-late])) .header { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:global(html[data-crest-js]:not([data-crest-late])) .crestimg { filter: none; }
 @keyframes lift { from { transform: translateY(12px); } to { transform: none; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 

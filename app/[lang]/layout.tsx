@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { latinMotto } from "../lib/latin";
 import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import LateVitals from "../components/LateVitals";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import { crestFontFaces } from "../lib/crestFonts";
 import "../crest-base.css";
@@ -168,8 +167,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         {children}
-        <Analytics />
-        <SpeedInsights />
+        <LateVitals />
         <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js'))`,

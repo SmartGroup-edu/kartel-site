@@ -62,8 +62,8 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
   const n = crestElements.length;
 
   // After load and idle (bus 176 P1b — nothing here may compete with the hero crest): the pointer and motion
-  // preferences switch on tilt / gloss / sheen and the motto light, the explorer crest starts loading, and the intro
-  // flag is cleared once its animation has played (≤ 1.8 s), so a client-side return does not replay it.
+  // preferences switch on tilt / gloss / sheen and the motto light, the explorer crest starts loading, the grain, the
+  // header blur and the crest shadow come in (data-crest-late, see crest.module.css), and the intro flag is cleared once its animation has played (≤ 1.8 s), so a client-side return does not replay it.
   useEffect(() => {
     let id = 0;
     const cancel = afterLoad(() => {
@@ -72,6 +72,7 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
       setFine(mm("(pointer: fine)") && !reduce);
       setTouch(!mm("(pointer: fine)") || reduce);
       setLate(true);
+      document.documentElement.setAttribute("data-crest-late", "");
       id = window.setTimeout(() => document.documentElement.removeAttribute("data-intro"), 1800);
     });
     return () => { cancel(); window.clearTimeout(id); };
