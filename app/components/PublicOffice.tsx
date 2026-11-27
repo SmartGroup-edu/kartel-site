@@ -63,13 +63,13 @@ const COPY = { EN: copy.EN, RU: typographDict(copy.RU) as typeof copy.RU };
 const PLACE_ICONS: LucideIcon[] = [SquareCheckBig, Scale, CalendarDays, FileText];
 
 const STATE_TONE = {
-  active: "bg-[var(--accent-soft)] text-[var(--ok)]",
+  active: "bg-[var(--ok-soft)] text-[var(--ok)]",
   retired: "bg-[var(--surface)] text-[var(--muted)]",
   planned: "bg-[var(--fos-blue-soft)] text-[var(--fos-blue)]",
 } as const;
 
 const BTN = "inline-flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius)] px-5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2";
-const BTN_PRIMARY = `${BTN} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`;
+const BTN_PRIMARY = `${BTN} bg-[var(--fos-primary)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]`;
 const BTN_GHOST = `${BTN} border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] shadow-[var(--fos-shadow)]";
 
@@ -85,7 +85,7 @@ export default function PublicOffice({ lang }: { lang: Lang }) {
       <section id="office" aria-labelledby="office-title" className="scroll-mt-28">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pt-12 pb-10 sm:px-6 lg:grid-cols-[1.2fr_1fr] lg:gap-16 lg:px-10 lg:pt-20 lg:pb-14">
           <div>
-            <span className="inline-flex min-h-7 items-center rounded-full bg-[var(--accent-soft)] px-3 text-[14px] font-medium text-[var(--ok)]">{t.pill}</span>
+            <span className="inline-flex min-h-7 items-center rounded-full bg-[var(--accent-soft)] px-3 text-[14px] font-medium text-[var(--accent)]">{t.pill}</span>
             <h1 className={`mt-5 ${H1} text-balance`} id="office-title">{t.title}</h1>
             <p className="mt-5 max-w-[34rem] text-[17px] leading-[1.55] text-[var(--muted)] lg:text-[19px]">{noDashLineStart(t.lead)}</p>
             <div className="mt-8 flex flex-wrap gap-3 print:hidden">
@@ -104,7 +104,7 @@ export default function PublicOffice({ lang }: { lang: Lang }) {
                 const Icon = PLACE_ICONS[i];
                 return (
                   <li key={p} className="flex min-h-12 items-center gap-3 px-1 text-[15px] font-medium text-[var(--foreground)]">
-                    <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[var(--fos-accent-2)]" />
+                    <Icon aria-hidden="true" className="h-[18px] w-[18px] shrink-0 text-[var(--fos-gold-line)]" />
                     {p}
                   </li>
                 );
@@ -144,7 +144,7 @@ export default function PublicOffice({ lang }: { lang: Lang }) {
               return (
                 <li key={c.key} data-company={c.key} className={`${CARD} flex flex-col p-5`}>
                   <div className="flex items-start justify-between gap-3">
-                    <span aria-hidden="true" className={`grid h-10 w-10 shrink-0 place-items-center rounded-[10px] font-serif text-[17px] font-semibold ${c.state === "active" ? "bg-[var(--accent)] text-[var(--on-accent)]" : "border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"}`}>
+                    <span aria-hidden="true" className={`grid h-10 w-10 shrink-0 place-items-center rounded-[10px] font-serif text-[17px] font-semibold ${c.state === "active" ? "bg-[var(--fos-primary)] text-[var(--fos-on-primary)]" : "border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]"}`}>
                       {c.name.charAt(0)}
                     </span>
                     <span className={`inline-flex min-h-6 items-center rounded-full px-2.5 text-[14px] font-medium ${STATE_TONE[c.state]}`}>

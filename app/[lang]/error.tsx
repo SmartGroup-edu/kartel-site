@@ -41,7 +41,7 @@ export default function Error({
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button
           onClick={reset}
-          className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          className="inline-flex min-h-11 items-center rounded-md bg-[var(--fos-primary)] px-5 text-[15px] font-medium text-[var(--fos-on-primary)] transition-colors hover:bg-[var(--fos-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
         >
           {t.cta}
         </button>

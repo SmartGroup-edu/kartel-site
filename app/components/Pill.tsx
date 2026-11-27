@@ -6,7 +6,7 @@ export type PillTone = "accent" | "solid" | "body" | "muted";
 
 const TONES: Record<PillTone, string> = {
   accent: "border-[var(--accent)] text-[var(--accent)]",
-  solid: "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]",
+  solid: "border-[var(--fos-primary)] bg-[var(--fos-primary)] text-[var(--fos-on-primary)]",
   body: "border-[var(--border)] text-[var(--text-body)]",
   muted: "border-[var(--border)] text-[var(--muted)]",
 };

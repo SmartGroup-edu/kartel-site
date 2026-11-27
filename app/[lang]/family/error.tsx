@@ -41,7 +41,7 @@ export default function FamilyError({ error, reset }: { error: Error & { digest?
         <p className={`mt-4 max-w-md ${PROSE}`}>{f.error}</p>
         {code && <RefCode label={f.code} code={code} />}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button onClick={reset} className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{t.cta}</button>
+          <button onClick={reset} className="inline-flex min-h-11 items-center rounded-md bg-[var(--fos-primary)] px-5 text-[15px] font-medium text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{t.cta}</button>
           <a href={`/${lang}/family/os`} className="inline-flex min-h-11 items-center rounded-md border border-[var(--accent)] px-5 text-[15px] font-medium text-[var(--accent)] hover:bg-[var(--accent)]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{f.home}</a>
         </div>
       </main>

@@ -112,8 +112,8 @@ const T = {
 type Dict = (typeof T)["RU"];
 /** The progress bar's segments (family totals from the service). */
 type Col = "waiting" | "accepted" | "in_progress" | "done";
-/** Column dot colours, as in the mockup: grey · blue · amber · green. */
-const KDOT: Record<KCol, string> = { todo: "var(--muted)", doing: "var(--fos-blue)", wait: "var(--fos-amber)", done: "var(--fos-accent-2)" };
+/** Column dot colours, as in the mockup: grey · slate · amber · olive (bus 174). */
+const KDOT: Record<KCol, string> = { todo: "var(--muted)", doing: "var(--fos-blue)", wait: "var(--fos-amber)", done: "var(--ok)" };
 const parts = (t: OsBoardTask) => [t.assignee_id, ...(t.co_ids ?? [])];
 
 const field = "mt-1 block min-h-11 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-[16px] leading-6 text-[var(--foreground)]";

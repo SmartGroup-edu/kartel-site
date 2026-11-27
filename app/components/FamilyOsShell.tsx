@@ -48,7 +48,7 @@ const T = {
 } as const;
 
 function Logo() {
-  return <span aria-hidden="true" className="grid h-8 w-8 flex-none place-items-center rounded-[9px] bg-[linear-gradient(135deg,#3c8a5c,#163826)] font-serif text-[17px] font-bold text-white">K</span>;
+  return <span aria-hidden="true" className="grid h-8 w-8 flex-none place-items-center rounded-[9px] bg-[#1a1a1a] font-serif text-[17px] font-bold text-[#b08d57] ring-1 ring-[#b08d57]/40">K</span>;
 }
 
 function Badge({ n, lang }: { n: number; lang: Lang }) {
@@ -71,7 +71,7 @@ function NavList({ groups, active, lang, onPick }: { groups: { id: string; label
               return (
                 <li key={x.id}>
                   <Link prefetch={false} href={x.href} onClick={onPick} aria-current={on ? "page" : undefined} data-nav-item={x.id}
-                    className={`flex min-h-10 w-full items-center gap-[11px] rounded-[9px] px-3 py-2 text-[14px] transition-colors ${on ? "bg-[var(--accent-soft)] font-semibold text-[var(--accent)]" : "text-[var(--text-secondary)] hover:bg-[var(--fos-panel-2)]"}`}>
+                    className={`flex min-h-10 w-full items-center gap-[11px] rounded-[9px] px-3 py-2 text-[14px] transition-colors ${on ? "bg-[var(--accent-soft)] font-semibold text-[var(--accent)] shadow-[inset_3px_0_0_var(--fos-accent-2)]" : "text-[var(--text-secondary)] hover:bg-[var(--fos-panel-2)]"}`}>
                     <Icon aria-hidden="true" className="h-[17px] w-[17px] flex-none" strokeWidth={1.8} />
                     <span className="min-w-0 truncate">{x.label}</span>
                     {x.badge ? <Badge n={x.badge} lang={lang} /> : null}
@@ -216,7 +216,7 @@ export default function FamilyOsShell({ lang, nav, badges, me, children }: { lan
               return (
                 <li key={x.id}>
                   <Link prefetch={false} href={x.href} aria-current={on ? "page" : undefined} data-tab={x.id}
-                    className={`relative flex min-h-12 min-w-16 flex-col items-center justify-center gap-[3px] rounded-[10px] px-2 text-[12px] ${on ? "font-semibold text-[var(--accent)]" : "text-[var(--muted)]"}`}>
+                    className={`relative flex min-h-12 min-w-16 flex-col items-center justify-center gap-[3px] rounded-[10px] px-2 text-[12px] ${on ? "font-semibold text-[var(--accent)] shadow-[inset_0_3px_0_var(--fos-accent-2)]" : "text-[var(--muted)]"}`}>
                     <Icon aria-hidden="true" className="h-[22px] w-[22px]" strokeWidth={1.8} />
                     {x.label}
                     {x.badge ? <span className="absolute right-2 top-0.5 inline-grid min-w-5 place-items-center rounded-full bg-[var(--fos-accent-2)] px-1 text-[11px] font-semibold leading-[18px] text-[var(--fos-on-accent-2)]"><span className="sr-only">{t.badge(x.badge)}</span><span aria-hidden="true">{x.badge}</span></span> : null}

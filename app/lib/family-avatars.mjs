@@ -4,7 +4,7 @@
  * keep white text ≥ 5.2:1. Letters: the first letter of the display name in the UI language; two letters
  * only when another member shares that first letter — then the first pair that is unique in the family.
  */
-export const AVATAR_COLOURS = ["#7b1e2d", "#2f6b4f", "#3b4a7a", "#5d4a7a", "#8a5a00", "#1f5f73", "#6b3a5e", "#4a5d23"];
+export const AVATAR_COLOURS = ["#7b1e2d", "#8a4b2a", "#3b4a7a", "#5d4a7a", "#8a5a00", "#5a4636", "#6b3a5e", "#6b5530"];
 
 const hash = (s) => { let h = 2166136261; for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 export const avatarColour = (id) => AVATAR_COLOURS[hash(id) % AVATAR_COLOURS.length];

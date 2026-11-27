@@ -100,7 +100,7 @@ const empty = (): Draft => ({ name_ru: "", name_en: "", email: "", role: "adult"
 const londonToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
 
 function Steps({ n }: { n: number }) {
-  return <div aria-hidden="true" data-invite-steps="" className="flex gap-1.5 pr-8">{[1, 2, 3].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= n ? "bg-[var(--fos-accent-2)]" : "bg-[var(--border)]"}`} />)}</div>;
+  return <div aria-hidden="true" data-invite-steps="" className="flex gap-1.5 pr-8">{[1, 2, 3].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= n ? "bg-[var(--fos-gold-line)]" : "bg-[var(--border)]"}`} />)}</div>;
 }
 
 /** The header button and the 3-step dialog. */
@@ -206,8 +206,8 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                 <legend id="inv-role-l" className={label}>{t.role}</legend>
                 <div id="inv-role" tabIndex={-1} role="radiogroup" aria-labelledby="inv-role-l" className="mt-2 grid gap-2">
                   {(["parent", "relative", "adult", "child"] as Role[]).map((r) => (
-                    <label key={r} data-role-card={r} className={`flex cursor-pointer items-start gap-3 rounded-[14px] border-2 px-3.5 py-3 ${d.role === r ? "border-[var(--fos-accent-2)] bg-[var(--fos-panel-2)]" : "border-[var(--border)]"}`}>
-                      <input type="radio" name="inv-role" value={r} checked={d.role === r} onChange={() => setD((x) => ({ ...x, role: r, scopes: ["routines"] }))} className="mt-1 h-4 w-4 accent-[var(--fos-accent-2)]" />
+                    <label key={r} data-role-card={r} className={`flex cursor-pointer items-start gap-3 rounded-[14px] border-2 px-3.5 py-3 ${d.role === r ? "border-[var(--fos-gold-line)] bg-[var(--fos-panel-2)]" : "border-[var(--border)]"}`}>
+                      <input type="radio" name="inv-role" value={r} checked={d.role === r} onChange={() => setD((x) => ({ ...x, role: r, scopes: ["routines"] }))} className="mt-1 h-4 w-4 accent-[var(--fos-gold-line)]" />
                       <span><b className="block text-[15px] text-[var(--foreground)]">{t.roles[r][0]}</b><small className="text-[13px] text-[var(--muted)]">{t.roles[r][1]}</small></span>
                     </label>
                   ))}
@@ -222,8 +222,8 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                       {(needKids ? kids : adults).map((p) => {
                         const k = needKids ? "children" : "parents", on = (d[k] as string[]).includes(p.id);
                         return (
-                          <label key={p.id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-[15px] ${on ? "border-[var(--fos-accent-2)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
-                            <input type="checkbox" className="h-4 w-4 accent-[var(--fos-accent-2)]" checked={on} onChange={() => toggle(k, p.id)} />{nameOf(p)}
+                          <label key={p.id} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-[15px] ${on ? "border-[var(--fos-gold-line)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
+                            <input type="checkbox" className="h-4 w-4 accent-[var(--fos-gold-line)]" checked={on} onChange={() => toggle(k, p.id)} />{nameOf(p)}
                           </label>
                         );
                       })}
@@ -239,8 +239,8 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                     {(SCOPES as OsScope[]).map((s) => {
                       const fixed = s === "routines" && d.role !== "relative", on = fixed || d.scopes.includes(s);
                       return (
-                        <label key={s} className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-[15px] ${fixed ? "" : "cursor-pointer"} ${on ? "border-[var(--fos-accent-2)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
-                          <input type="checkbox" className="h-4 w-4 accent-[var(--fos-accent-2)]" checked={on} disabled={fixed} onChange={() => toggle("scopes", s)} />
+                        <label key={s} className={`inline-flex min-h-11 items-center gap-2 rounded-md border px-3 text-[15px] ${fixed ? "" : "cursor-pointer"} ${on ? "border-[var(--fos-gold-line)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--text-secondary)]"}`}>
+                          <input type="checkbox" className="h-4 w-4 accent-[var(--fos-gold-line)]" checked={on} disabled={fixed} onChange={() => toggle("scopes", s)} />
                           {t.scope[s]}{fixed && <span className="text-[13px] text-[var(--muted)]">· {t.always}</span>}
                         </label>
                       );
@@ -261,7 +261,7 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
               <ul data-invite-preview="" className="grid grid-cols-1 gap-x-5 gap-y-1.5 text-[15px] sm:grid-cols-2">
                 {prev.sections.map((s) => (
                   <li key={s.key} data-on={s.on ? "1" : "0"} className={`flex items-center gap-2 ${s.on ? "text-[var(--foreground)]" : "text-[var(--muted)]"}`}>
-                    <b aria-hidden="true" className={s.on ? "text-[var(--fos-accent-2)]" : ""}>{s.on ? "✓" : "—"}</b>{t.sections[s.key]}<span className="sr-only">: {s.on ? t.yes : t.no}</span>
+                    <b aria-hidden="true" className={s.on ? "text-[var(--ok)]" : ""}>{s.on ? "✓" : "—"}</b>{t.sections[s.key]}<span className="sr-only">: {s.on ? t.yes : t.no}</span>
                   </li>
                 ))}
               </ul>
@@ -293,7 +293,7 @@ export function InviteWizard({ lang, people, onDone }: { lang: Lang; people: OsP
                   <p className="mt-3 font-serif text-[20px] font-semibold leading-snug text-[var(--foreground)]">{letter.hello}</p>
                   <p className="mt-0.5 text-[14px] text-[var(--muted)]" suppressHydrationWarning>{letter.dateLine}</p>
                   <p className="mt-3 text-[15px] text-[var(--foreground)]">{letter.lead}</p>
-                  <p className="mt-4"><span aria-hidden="true" className="inline-block rounded-md bg-[var(--accent)] px-5 py-2.5 text-[15px] font-semibold text-[var(--on-accent)]">{letter.button}</span></p>
+                  <p className="mt-4"><span aria-hidden="true" className="inline-block rounded-md bg-[var(--fos-primary)] px-5 py-2.5 text-[15px] font-semibold text-[var(--fos-on-primary)]">{letter.button}</span></p>
                   <p className="mt-5 border-t border-[var(--border)] pt-3 text-[13px] text-[var(--muted)]">{letter.off} <u>{letter.offLink}</u></p>
                 </div>
               </div>

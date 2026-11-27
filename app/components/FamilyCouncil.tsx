@@ -101,7 +101,7 @@ const ROW = "flex items-center gap-3 border-t border-[var(--border)] px-1.5 py-2
 const EMPTY = "px-1.5 py-5 text-center text-[14px] text-[var(--muted)]";
 const PILL = { g: "bg-[var(--ok-soft)] text-[var(--ok)]", a: "bg-[var(--warn-soft)] text-[var(--fos-amber)]", b: "bg-[var(--fos-blue-soft)] text-[var(--fos-blue)]" };
 const pill = (tone: keyof typeof PILL) => `whitespace-nowrap rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${PILL[tone]}`;
-const SMALL_PRIMARY = "inline-flex min-h-11 flex-none items-center rounded-[10px] bg-[var(--accent)] px-3.5 text-[14px] font-semibold text-[var(--on-accent)] hover:bg-[var(--accent-hover)]";
+const SMALL_PRIMARY = "inline-flex min-h-11 flex-none items-center rounded-[10px] bg-[var(--fos-primary)] px-3.5 text-[14px] font-semibold text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]";
 
 export default function FamilyCouncil({ lang, council, people, me, sprint = null, recognitions = null, principles = null, pending = null, accepted = [], parent = false }: { lang: Lang; council: OsCouncil | null; people: OsPerson[]; me: { id: string; kind: string } | null; sprint?: OsSprint | null;
   recognitions?: OsRecognition[] | null; principles?: OsKodeksPrinciple[] | null; editor?: boolean;
@@ -140,7 +140,7 @@ export default function FamilyCouncil({ lang, council, people, me, sprint = null
                 <h2 id="council-h" className={OS_H2}>{t.council}</h2>
                 <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[16px] text-[var(--text-secondary)]" suppressHydrationWarning>
                   {longDate(council.date, lang)} {t.at}
-                  <span data-council-status={council.status} className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[14px] ${council.status === "live" ? "bg-[var(--accent)] text-[var(--on-accent)]" : "border border-[var(--border)]"}`}>
+                  <span data-council-status={council.status} className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[14px] ${council.status === "live" ? "bg-[var(--fos-primary)] text-[var(--fos-on-primary)]" : "border border-[var(--border)]"}`}>
                     {council.status === "upcoming" ? t.chip.upcoming(council.days_until) : t.chip[council.status]}
                   </span>
                 </p>
@@ -284,7 +284,7 @@ function Panel({ t, lang, item, people, onDone }: { t: Dict; lang: Lang; item: P
         </div>
       </div>
       <p role="status" aria-live="polite" className="text-[14px] text-[var(--destructive)]">{err}</p>
-      <Link prefetch={false} href={board} className="inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-[var(--ok)] hover:underline hover:underline-offset-4">{lang === "EN" ? "Open the task board" : "Открыть доску задач"}<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></Link>
+      <Link prefetch={false} href={board} className="inline-flex min-h-11 items-center gap-1 text-[14px] font-medium text-[var(--accent)] hover:underline hover:underline-offset-4">{lang === "EN" ? "Open the task board" : "Открыть доску задач"}<ArrowRight aria-hidden="true" className="h-3.5 w-3.5" /></Link>
     </>
   );
 }

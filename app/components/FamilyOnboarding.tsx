@@ -128,8 +128,8 @@ export default function FamilyOnboarding({ lang, me, passkeys }: {
       <DialogContent closeLabel={t.later} data-onboarding="" data-step={step}
         className="left-0 top-0 grid h-dvh w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-y-auto rounded-none border-0 bg-[radial-gradient(90%_70%_at_50%_0%,var(--fos-panel-2),var(--fos-bg))] p-4 sm:max-w-none sm:p-8">
         <div className="flex w-full max-w-[520px] flex-col gap-4 rounded-[24px] border border-[var(--border)] bg-[var(--fos-panel)] p-6 shadow-[var(--fos-shadow-lg)] sm:p-8">
-          <div aria-hidden="true" className="flex gap-1.5">{[0, 1, 2, 3, 4].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= step ? "bg-[var(--fos-accent-2)]" : "bg-[var(--border)]"}`} />)}</div>
-          {step === 0 && <span aria-hidden="true" className="grid h-[52px] w-[52px] place-items-center rounded-[14px] bg-[var(--accent)] font-serif text-[26px] font-semibold text-[var(--on-accent)]">K</span>}
+          <div aria-hidden="true" className="flex gap-1.5">{[0, 1, 2, 3, 4].map((i) => <i key={i} className={`h-1 flex-1 rounded ${i <= step ? "bg-[var(--fos-gold-line)]" : "bg-[var(--border)]"}`} />)}</div>
+          {step === 0 && <span aria-hidden="true" className="grid h-[52px] w-[52px] place-items-center rounded-[14px] bg-[#1a1a1a] font-serif text-[26px] font-semibold text-[#b08d57] ring-1 ring-[#b08d57]/40">K</span>}
           {step === 4 && <span aria-hidden="true" className="mx-auto grid h-[84px] w-[84px] place-items-center rounded-full bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]"><Check size={40} strokeWidth={2.5} /></span>}
           <div>
             <DialogTitle ref={head} tabIndex={-1} className={`font-serif text-[26px] font-semibold leading-[1.15] text-[var(--foreground)] outline-none sm:text-[28px] ${step === 4 ? "text-center" : ""}`}>{title}</DialogTitle>
@@ -144,7 +144,7 @@ export default function FamilyOnboarding({ lang, me, passkeys }: {
 
           {step === 1 && (<>
             <p className="text-[16px] text-[var(--text-secondary)]">{t.pkLead}</p>
-            <span aria-hidden="true" className={`mx-auto grid h-[84px] w-[84px] place-items-center rounded-[24px] text-[34px] ${pk === "done" ? "bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "bg-[var(--fos-panel-2)]"}`}>{pk === "done" ? <Check size={36} strokeWidth={2.5} /> : <KeyRound size={34} strokeWidth={1.75} className="text-[var(--fos-accent-2)]" />}</span>
+            <span aria-hidden="true" className={`mx-auto grid h-[84px] w-[84px] place-items-center rounded-[24px] text-[34px] ${pk === "done" ? "bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "bg-[var(--fos-panel-2)]"}`}>{pk === "done" ? <Check size={36} strokeWidth={2.5} /> : <KeyRound size={34} strokeWidth={1.75} className="text-[var(--fos-gold-line)]" />}</span>
             <p role="status" aria-live="polite" data-ob-passkey={pk || (canMake ? "ready" : "unavailable")} className="text-center text-[14px] text-[var(--text-secondary)]">{pkLine}</p>
             {canMake ? (<>
               <button type="button" data-ob-passkey-make="" disabled={pk === "busy"} onClick={() => void makeKey()} className={`${BTN_PRIMARY} w-full`}>{t.pkMake}</button>
@@ -162,11 +162,11 @@ export default function FamilyOnboarding({ lang, me, passkeys }: {
               <fieldset className="grid gap-3">
                 <legend className={label}>{t.letters}</legend>
                 <label className="flex min-h-11 items-center gap-3 text-[15px] text-[var(--foreground)]">
-                  <input type="checkbox" className="h-5 w-5 accent-[var(--fos-accent-2)]" checked={p.email_on} onChange={(e) => setP({ ...p, email_on: e.target.checked })} />{t.morning}
+                  <input type="checkbox" className="h-5 w-5 accent-[var(--fos-gold-line)]" checked={p.email_on} onChange={(e) => setP({ ...p, email_on: e.target.checked })} />{t.morning}
                 </label>
                 {p.email_on && <label className={label}>{t.morningAt}<select className={field} value={p.digest_time} onChange={(e) => setP({ ...p, digest_time: e.target.value })}>{[...new Set([p.digest_time, ...TIMES])].sort().map((x) => <option key={x}>{x}</option>)}</select></label>}
                 <label className="flex min-h-11 items-center gap-3 text-[15px] text-[var(--foreground)]">
-                  <input type="checkbox" className="h-5 w-5 accent-[var(--fos-accent-2)]" checked={p.evening_on} onChange={(e) => setP({ ...p, evening_on: e.target.checked })} />{t.evening}
+                  <input type="checkbox" className="h-5 w-5 accent-[var(--fos-gold-line)]" checked={p.evening_on} onChange={(e) => setP({ ...p, evening_on: e.target.checked })} />{t.evening}
                 </label>
                 {p.evening_on && <label className={label}>{t.eveningAt}<select className={field} value={p.evening_time} onChange={(e) => setP({ ...p, evening_time: e.target.value })}>{[...new Set([p.evening_time, ...TIMES])].sort().map((x) => <option key={x}>{x}</option>)}</select></label>}
                 <label className={label}>{t.lang}<select className={field} value={p.lang} onChange={(e) => setP({ ...p, lang: e.target.value === "en" ? "en" : "ru" })}><option value="ru">{t.ru}</option><option value="en">{t.en}</option></select></label>

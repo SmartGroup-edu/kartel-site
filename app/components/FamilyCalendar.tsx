@@ -48,7 +48,7 @@ const primary = BTN_PRIMARY;
 const ICON_BTN = "grid h-11 w-11 place-items-center rounded-md border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40";
 /** Kind colours (text on its soft fill is ≥ 4.5:1 in both themes; high contrast maps them to ink). */
 const TONE: Record<OsCalItem["kind"], { fg: string; bg: string }> = {
-  council: { fg: "var(--ok)", bg: "var(--ok-soft)" },
+  council: { fg: "var(--accent)", bg: "var(--accent-soft)" },
   event: { fg: "var(--fos-blue)", bg: "var(--fos-blue-soft)" },
   birthday: { fg: "var(--fos-plum)", bg: "var(--fos-plum-soft)" },
 };

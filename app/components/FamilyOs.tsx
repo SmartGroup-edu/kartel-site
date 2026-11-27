@@ -127,7 +127,7 @@ function People({ t, lang, cards, invite, people }: { t: Dict; lang: Lang; cards
                     <>
                       <p><b className="font-semibold text-[var(--foreground)]">{x.load.open}</b> {t.openToday(x.load.open)}{x.load.total > 0 ? ` · ${t.doneOf(x.load.done, x.load.total)}` : ""}</p>
                       <div aria-hidden="true" className="mt-1.5 h-[7px] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--fos-panel-2)]">
-                        <i className="block h-full rounded-lg bg-[var(--fos-accent-2)]" style={{ width: `${x.load.total ? Math.round((x.load.done / x.load.total) * 100) : 0}%` }} />
+                        <i className="block h-full rounded-lg bg-[var(--fos-gold-line)]" style={{ width: `${x.load.total ? Math.round((x.load.done / x.load.total) * 100) : 0}%` }} />
                       </div>
                       {x.load.current && <p className="mt-1.5 truncate">{t.now}: {x.load.current}</p>}
                       {x.load.routines && x.load.routines.total > 0 && <p className="mt-0.5">{t.routineOf(x.load.routines.done, x.load.routines.total)}</p>}

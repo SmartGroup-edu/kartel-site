@@ -194,7 +194,7 @@ test("bus 159 #4: WOOP reads as label/value pairs — <dl>, small muted <dt>, bo
 test("D3: one button scale — ≥ 44 px, primary filled for a form's submit, secondary outline elsewhere", () => {
   const ui = src("app/lib/family-ui.ts");
   assert.match(ui, /const BTN = "inline-flex min-h-11 items-center justify-center rounded-md px-4 text-\[15px\] font-medium/);
-  assert.match(ui, /BTN_PRIMARY = `\$\{BTN\} bg-\[var\(--accent\)\]/); assert.match(ui, /BTN_SECONDARY = `\$\{BTN\} border border-\[var\(--border\)\]/);
+  assert.match(ui, /BTN_PRIMARY = `\$\{BTN\} bg-\[var\(--fos-primary\)\]/); assert.match(ui, /BTN_SECONDARY = `\$\{BTN\} border border-\[var\(--border\)\]/);
   const body = comp("FamilyBody.tsx");
   assert.match(body, /<button type="submit" data-body-save="" className=\{BTN_PRIMARY\}>/, "«Сохранить» in «Вес и питание» is primary, as in «Письма и паузы»");
   assert.match(body, /<button type="submit" data-body-goal-save="" className=\{BTN_PRIMARY\}>/);
