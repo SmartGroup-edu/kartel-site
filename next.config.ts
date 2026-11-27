@@ -100,6 +100,10 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/crest-mark.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
         source: "/crest.webp",
         headers: [
           {

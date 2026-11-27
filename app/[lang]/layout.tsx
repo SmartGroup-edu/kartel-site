@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Source_Serif_4 } from "next/font/google";
+import { crestFontFaces } from "../lib/crestFonts";
 import "../globals.css";
 
 // Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
@@ -160,6 +161,8 @@ export default async function RootLayout({
             __html: `(function(){try{var c=localStorage.getItem('kartel-contrast');if(c==='high'||(c!=='normal'&&matchMedia('(prefers-contrast: more)').matches))document.documentElement.classList.add('hc');var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#ffffff')}catch(e){}})()`,
           }}
         />
+        {/* The crest faces, declared for this language (bus 176 P1b) — see app/lib/crestFonts.ts. */}
+        <style dangerouslySetInnerHTML={{ __html: crestFontFaces(lang as Locale) }} />
         <link rel="author" href="/humans.txt" />
         <meta name="color-scheme" content="light dark" />
       </head>

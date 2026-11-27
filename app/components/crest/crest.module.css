@@ -85,7 +85,8 @@
 .hero { position: relative; overflow: hidden; background: radial-gradient(70% 60% at 70% 40%, #1a1510 0%, var(--bg0) 70%); }
 .hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(420px circle at var(--mx) var(--my), rgba(224, 183, 110, .10), transparent 60%); }
 .hgrid { position: relative; display: grid; grid-template-columns: 1.05fr 1fr; gap: 40px; align-items: center; min-height: min(calc(100vh - 70px), 860px); padding: 40px 0 70px; }
-.rise { animation: rise .9s cubic-bezier(.2, .7, .2, 1) both; }
+/* The hero text rises by transform only — never hidden at first paint (bus 176 P1b: the H1 is painted in frame one). */
+.rise { animation: lift .9s cubic-bezier(.2, .7, .2, 1) both; }
 .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-size: 12.5px; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); font-weight: 500; }
 .eyebrow::before { content: ""; width: 28px; height: 1px; background: var(--metal); }
 .h1 { font-family: var(--fd); font-weight: 600; color: #f8f2e8; font-size: clamp(44px, 6.2vw, 88px); letter-spacing: -.025em; line-height: 1; margin: 18px 0 22px; }
@@ -138,6 +139,8 @@
 .frame { position: relative; border-radius: 22px; overflow: hidden; border: 1px solid var(--line); background: #0b0a09; }
 .zoom { position: relative; transition: transform .7s cubic-bezier(.2, .7, .2, 1); transform: scale(1.14); }
 .zoom img { width: 100%; height: auto; display: block; }
+/* the explorer crest is fetched after the hero has loaded (CrestHome); this keeps its box until then */
+.zoomPh { aspect-ratio: 900 / 1000; }
 .dim { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at var(--fx, 50%) var(--fy, 50%), transparent 0, transparent 11%, rgba(6, 5, 4, .62) 26%); }
 .halo { position: absolute; width: 22%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; box-shadow: 0 0 0 1px rgba(224, 183, 110, .7), 0 0 40px 8px rgba(224, 183, 110, .25), inset 0 0 30px rgba(224, 183, 110, .18); transition: left .5s, top .5s; }
 .hot { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; display: grid; place-items: center; }
@@ -224,15 +227,16 @@
 .ftlinks a { min-height: 44px; display: inline-flex; align-items: center; }
 .ftlinks a:hover { color: var(--gold3); }
 
-/* ---------- intro: once per session (sessionStorage), never under reduced motion ---------- */
-.intro { display: none; }
-:global(html[data-intro]) .intro { position: fixed; inset: 0; z-index: 99; background: radial-gradient(50% 50% at 50% 50%, #15110c, #030303 70%); display: grid; place-items: center; cursor: pointer; animation: introOut .8s ease 1.9s forwards; }
-.introC { position: relative; width: min(320px, 62vw); }
-.introC img { width: 100%; height: auto; display: block; opacity: 0; transform: scale(.93); filter: brightness(.25); animation: introIn 1.4s cubic-bezier(.2, .7, .2, 1) forwards; }
-.introC::after { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; left: -50%; background: linear-gradient(100deg, transparent, rgba(255, 240, 205, .55), transparent); transform: skewX(-16deg); mix-blend-mode: overlay; animation: introSheen 1.2s ease .6s forwards; }
-@keyframes introIn { to { opacity: 1; transform: none; filter: brightness(1); } }
+/* ---------- intro: once per session (sessionStorage), never under reduced motion ----------
+   bus 176 P1b: played by the hero crest itself, not by a second image over a black screen. The crest is painted from
+   the first frame (opacity 1 — it is the LCP element) and comes up out of the dark: scale .93 → 1, brightness .25 → 1,
+   with the gold sheen passing over it; the H1 and the rest of the hero are never covered. */
+.crestbox .masked { position: relative; }
+:global(html[data-intro]) .crestbox .crestimg { animation: introIn 1.4s cubic-bezier(.2, .7, .2, 1) both; }
+:global(html[data-intro]) .crestbox .masked::after { content: ""; position: absolute; top: 0; bottom: 0; width: 35%; left: -50%; pointer-events: none; background: linear-gradient(100deg, transparent, rgba(255, 240, 205, .55), transparent); transform: skewX(-16deg); mix-blend-mode: overlay; animation: introSheen 1.2s ease .6s forwards; }
+@keyframes introIn { from { transform: scale(.93); filter: brightness(.25) drop-shadow(0 30px 60px rgba(0, 0, 0, .6)); } to { transform: none; filter: brightness(1) drop-shadow(0 30px 60px rgba(0, 0, 0, .6)); } }
 @keyframes introSheen { to { left: 120%; } }
-@keyframes introOut { to { opacity: 0; visibility: hidden; pointer-events: none; } }
+@keyframes lift { from { transform: translateY(12px); } to { transform: none; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 /* ================= sign-in / pending (signin-v2, centred) ================= */
@@ -357,6 +361,5 @@
   :global(html[data-crest-js]) .reveal { opacity: 1; transform: none; }
   :global(html[data-crest-js]) .orn path { stroke-dashoffset: 0; }
   :global(html[data-crest-js]) .orn .gem { opacity: 1; }
-  :global(html[data-intro]) .intro { display: none; }
   .zoom { transform: none; }
 }
