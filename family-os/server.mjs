@@ -1571,8 +1571,11 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const today = localDate(clock()), qw = url.searchParams.get("week");
       const week = weekStart(qw && DATE_RE.test(qw) ? qw : today);
       if (req.method === "GET" && path === "/sprint") {
-        const [goals, rows] = await Promise.all([store.sprintGoals(week), store.boardTasks(week, addDays(week, 6))]);
-        return reply(res, 200, { week_start: week, can: { write: canWriteCouncil(me) }, goals: sprintProgress(goals, rows) });
+        const [goals, rows, everyone] = await Promise.all([store.sprintGoals(week), store.boardTasks(week, addDays(week, 6)), guest ? store.listPeople() : []]);
+        // bus 176 P4 (acceptor): a guest's counts cover the adults' tasks only, as on /board.
+        const adults = new Set(everyone.filter((p) => p.kind === "adult").map((p) => p.id));
+        const seen = guest ? rows.filter((t) => participants(t).every((x) => adults.has(x))) : rows;
+        return reply(res, 200, { week_start: week, can: { write: canWriteCouncil(me) }, goals: sprintProgress(goals, seen) });
       }
       if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
       if (req.method === "POST" && path === "/sprint/goals") {

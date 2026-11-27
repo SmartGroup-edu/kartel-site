@@ -137,6 +137,16 @@ test("guest board («Обзор недели»): adults' tasks only — no child
   assert.deepEqual(log.slice(0, 3).map((x) => [x.section, x.route]), [["review", "/sprint"], ["review", "/board"], ["calendar", "/calendar"]], "reads logged by section and route class");
 });
 
+test("acceptor: a guest's sprint counts leave out the tasks a child takes part in (/sprint as /board)", async () => {
+  const goal = (await call("POST", "/sprint/goals", { body: { title: "QA sprint goal" }, actor: `member:${E.a}` })).json.id;
+  for (const assignee_id of [P.a, P.c])
+    assert.equal((await call("POST", `/sprint/goals/${goal}/tasks`, { body: { title: "QA sprint task", assignee_id, plan_date: TODAY }, actor: `member:${E.a}` })).status, 201);
+  const count = (r) => r.json.goals.find((g) => g.id === goal)?.total;
+  assert.equal(count(await call("GET", "/sprint", { actor: `member:${E.a}` })), 2, "the parent counts both (fixture check)");
+  assert.equal(count(await call("GET", "/sprint", { actor: asGuest() })), 1);
+  assert.equal((await call("GET", "/board", { actor: asGuest() })).json.sprint.goals.find((g) => g.id === goal)?.total, 1);
+});
+
 test("the log fails closed: no log row, no read", async () => {
   store.failLog = true;
   try {
