@@ -1,19 +1,31 @@
 // Shared pieces of the public crest surface (bus 176 P1): the crest image, the RU/EN switch, the sign-in icon,
 // the hatching ornament with its cursor light, and the compact header of the sign-in, pending and 404 pages.
 // Server-safe (no hooks).
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import s from "./crest.module.css";
 import type { CrestLang } from "../../content/crestHome";
 
 export { s as crestStyles };
 
-/** The crest (public/crest.jpeg, 900×1000), served by next/image as AVIF / WebP at the size the slot needs.
- *  `lcp`: the first-screen crest — eager, high fetch priority (Next 16: `priority` is deprecated). `eager`: load now,
- *  normal priority (the sign-in aside, hidden below 900 px). */
-export function CrestImg({ alt = "", sizes, lcp = false, eager = false, className, width = 900, height = 1000 }: { alt?: string; sizes: string; lcp?: boolean; eager?: boolean; className?: string; width?: number; height?: number }) {
-  return <Image src="/crest.jpeg" alt={alt} width={width} height={height} sizes={sizes} loading={lcp || eager ? "eager" : "lazy"} fetchPriority={lcp ? "high" : undefined} className={className} />;
+type CrestImgOpts = { alt?: string; sizes: string; lcp?: boolean; eager?: boolean; className?: string; width?: number; height?: number };
+
+/** The <img> props of the crest (public/crest.jpeg, 900×1000), served by the image optimiser as AVIF / WebP at the size
+ *  the slot needs. `lcp`: the first-screen crest — eager, high fetch priority. `eager`: load now, normal priority (the
+ *  sign-in aside, hidden below 900 px). Otherwise lazy with low fetch priority. bus 176 P1b: getImageProps, not the
+ *  <Image> component — the same markup without the client component's 11 KB of script on the crest home. */
+export function crestImgProps({ alt = "", sizes, lcp = false, eager = false, className, width = 900, height = 1000 }: CrestImgOpts) {
+  return getImageProps({ src: "/crest.jpeg", alt, width, height, sizes, loading: lcp || eager ? "eager" : "lazy", fetchPriority: lcp ? "high" : eager ? undefined : "low", className }).props;
 }
+
+export function CrestImg(opts: CrestImgOpts) {
+  // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- getImageProps: the optimiser's srcset and sizes, alt included
+  return <img {...crestImgProps(opts)} />;
+}
+
+/** The hero crest's `sizes` (bus 176 P1b): any other first-screen copy of the crest uses the same value, so the browser
+ *  picks the same srcset entry — one download, not two. */
+export const HERO_SIZES = "(max-width: 900px) min(340px, 86vw), 520px";
 
 /** RU / EN. Links, not buttons: each language is its own address. `hrefs` per language. */
 export function LangSwitch({ lang, hrefs, label, className = "" }: { lang: CrestLang; hrefs: Record<CrestLang, string>; label: string; className?: string }) {
@@ -36,10 +48,13 @@ export function SignInIcon() {
   );
 }
 
+/** The wordmark. Its crest is a dedicated 3 KB file (public/crest-mark.webp, 102×114 — 3× the 34 px slot), not a
+ *  next/image variant of the full crest, so the header adds nothing to the first screen's weight (bus 176 P1b). */
 export function Brand({ href, label, small = false }: { href: string; label: string; small?: boolean }) {
   return (
     <Link className={s.brand} href={href} prefetch={false} aria-label={label}>
-      <CrestImg width={small ? 26 : 34} height={small ? 30 : 38} sizes={small ? "26px" : "34px"} />
+      {/* eslint-disable-next-line @next/next/no-img-element -- a fixed 3 KB asset; next/image would only re-encode it */}
+      <img src="/crest-mark.webp" alt="" width={small ? 26 : 34} height={small ? 30 : 38} decoding="async" />
       <b>KARTEL</b>
     </Link>
   );

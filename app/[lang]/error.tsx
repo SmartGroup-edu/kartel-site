@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import CrestNotFound from "../components/crest/CrestNotFound";
-import { crestStyles as s } from "../components/crest/CrestChrome";
+import s from "../components/crest/crest.module.css";
+
+// bus 176 P1b: this boundary's chunk ships with every [lang] page, the crest home included — the frame loads only
+// when an error is actually shown.
+const CrestNotFound = dynamic(() => import("../components/crest/CrestNotFound"));
 
 // Route error boundary (bus 176 P1): the crest frame of the public 404 — a retry button, «Войти», no site menu.
 // The family area has its own boundary (app/[lang]/family/error.tsx) with a reference code.

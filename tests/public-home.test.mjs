@@ -95,18 +95,48 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
       // the two faces of the first screen in the page's script only — nothing else competes with the LCP crest
       const pre = [...html.matchAll(/<link rel="preload" href="([^"]+\.woff2)" as="font" crossorigin="" type="font\/woff2"\/>/g)].map((m) => m[1]);
       const script = lang === "ru" ? "cyrillic" : "latin";
-      assert.deepEqual(pre, [`/fonts/manrope-${script}.woff2`, `/fonts/playfair-${script}.woff2`]);
+      assert.deepEqual(pre, [`/fonts/manrope-${script}-v2.woff2`, `/fonts/playfair-${script}-600-v2.woff2`]);
       assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/);
+    });
+    test(`${lang}: bus 176 P1b — one crest download before the LCP: the hero only; the explorer crest waits, the logo is a tiny file`, () => {
+      const crests = [...html.matchAll(/<img[^>]*src="\/_next\/image\?url=%2Fcrest\.jpeg[^>]*>/gi)].map((m) => m[0]);
+      assert.equal(crests.length, 1, "the server HTML carries one next/image crest: the hero (the explorer's comes after load)");
+      assert.match(crests[0], /fetchPriority="high"/);
+      assert.match(html, /<img[^>]*src="\/crest-mark\.webp"/, "the wordmark uses the dedicated small crest");
+      assert.doesNotMatch(html, /data-intro=|class="[^"]*intro/, "no intro overlay element");
+      // the fonts declared for this language: the faces a first screen needs stay ≤ 80 KB
+      assert.match(html, /<style>@font-face\{font-family:"Manrope"/);
+      const first = lang === "ru"
+        ? ["manrope-cyrillic-v2", "playfair-cyrillic-600-v2", "playfair-mark-600-v2", "playfair-italic-mark-v2", "manrope-latin-basic-v2"]
+        : ["manrope-latin-v2", "playfair-latin-600-v2", "playfair-italic-mark-v2", "manrope-ru-mark-v2"];
+      const bytes = first.reduce((n, f) => n + readFileSync(`public/fonts/${f}.woff2`).length, 0);
+      assert.ok(bytes <= 80 * 1024, `${bytes} bytes of first-screen fonts`);
     });
     test(`${lang}: no mockup controls (note bar, switchers, test code)`, () => {
       assert.doesNotMatch(html, /Макет|Mockup|123456|Компьютер|Телефон|data-font=|ornbar/);
     });
   }
-  test("the intro runs once per session and never under reduced motion; it fades out by CSS alone", () => {
+  test("the intro runs once per session and never under reduced motion; it is played by the hero crest and hides nothing (P1b)", () => {
     const h = src("app/components/crest/CrestHome.tsx"), css = src("app/components/crest/crest.module.css");
     assert.match(h, /sessionStorage\.getItem\('kartel-intro'\)&&!matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/);
-    assert.match(css, /:global\(html\[data-intro\]\) \.intro \{[^}]*animation: introOut \.8s ease 1\.9s forwards;/);
-    assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*:global\(html\[data-intro\]\) \.intro \{ display: none; \}/);
+    assert.match(css, /:global\(html\[data-intro\]\) \.crestbox \.crestimg \{ animation: introIn /);
+    // the LCP crest and the H1 are painted in the first frame: no opacity in the intro or the hero rise
+    const kf = (n) => css.match(new RegExp(`@keyframes ${n} \\{[^\\n]*`))[0];
+    assert.doesNotMatch(kf("introIn"), /opacity/);
+    assert.doesNotMatch(kf("lift"), /opacity/);
+    assert.match(css, /\.rise \{ animation: lift /);
+    assert.doesNotMatch(css, /\.intro \{|introOut/);
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\n  \.site \*, \.site \*::before, \.site \*::after \{ animation: none;/);
+  });
+  test("P1b: hero effects, the explorer crest and the intro timer wait for load + idle; the explorer crest is lazy and low", () => {
+    const h = src("app/components/crest/CrestHome.tsx"), c = src("app/components/crest/CrestChrome.tsx");
+    assert.match(h, /const cancel = afterLoad\(\(\) => \{[\s\S]*setFine\([\s\S]*setLate\(true\)[\s\S]*removeAttribute\("data-intro"\)/);
+    assert.match(h, /\{late \? <CrestImg alt=\{t\.altEx\}/);
+    assert.match(c, /loading: lcp \|\| eager \? "eager" : "lazy", fetchPriority: lcp \? "high" : eager \? undefined : "low"/);
+    // getImageProps, not the <Image> client component; the hero is preloaded from the page at high priority
+    assert.doesNotMatch(c, /import Image from "next\/image"/);
+    assert.match(src("app/[lang]/page.tsx"), /preload\(hero\.src, \{ as: "image", imageSrcSet: hero\.srcSet, imageSizes: hero\.sizes, fetchPriority: "high" \}\)/);
+    assert.ok(readFileSync("public/crest-mark.webp").length < 4 * 1024, "the logo asset is under 4 KB");
   });
   test("tilt, gloss and sheen only with a fine pointer and no reduced motion; the motto light breathes on touch", () => {
     const h = src("app/components/crest/CrestHome.tsx");
@@ -114,13 +144,23 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
     assert.match(h, /if \(!fine\) return;/);
     assert.match(src("app/components/crest/crest.module.css"), /\.touch \.lit \{[^}]*animation: ornBreath/);
   });
-  test("fonts: Playfair Display 600/700 + italic 500 and variable Manrope, Latin + Cyrillic woff2, swap", () => {
-    const g = src("app/globals.css");
-    for (const f of ["playfair-latin", "playfair-cyrillic", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic"]) {
-      assert.match(g, new RegExp(`url\\("/fonts/${f}\\.woff2"\\)`), f);
-      assert.ok(readFileSync(`public/fonts/${f}.woff2`).subarray(0, 4).toString() === "wOF2", f);
+  test("fonts: Playfair Display 600/700 + italic 500 and variable Manrope, Latin + Cyrillic woff2 (+ the two marks), swap, per language", () => {
+    const crestFontFaces = (lang) => read(`${lang}.html`).match(/<style>(@font-face[\s\S]*?)<\/style>/)[1];
+    const files = ["playfair-latin-600", "playfair-cyrillic-600", "playfair-latin-700", "playfair-cyrillic-700", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark", "playfair-roman-700"];
+    for (const lang of ["en", "ru"]) {
+      const g = crestFontFaces(lang);
+      for (const f of [...files, ...(lang === "ru" ? ["playfair-mark-600", "manrope-latin-basic"] : ["manrope-ru-mark"])]) {
+        assert.match(g, new RegExp(`url\\("/fonts/${f}-v2\\.woff2"\\)`), f);
+        assert.ok(readFileSync(`public/fonts/${f}-v2.woff2`).subarray(0, 4).toString() === "wOF2", f);
+      }
+      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 12 : 11);
+      // the marks are declared last (later rules win overlapping characters)
+      assert.match(g, /playfair-italic-mark-v2\.woff2"\) format\("woff2"\);unicode-range:[^}]*\}$/);
+      // /ru: the cyrillic file carries the space; /en: it does not
+      const cyr = g.match(/manrope-cyrillic-v2\.woff2"\) format\("woff2"\);unicode-range:([^}]*)\}/)[1];
+      assert.equal(cyr.includes("U+0020"), lang === "ru");
     }
-    assert.equal((g.match(/font-display: swap/g) ?? []).length >= 6, true);
+    assert.doesNotMatch(src("app/globals.css"), /@font-face/);
     const css = src("app/components/crest/crest.module.css");
     assert.match(css, /font-weight: 350;/); assert.match(css, /\.lead \{[^}]*font-weight: 300;/);
   });

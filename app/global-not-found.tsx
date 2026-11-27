@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import CrestNotFound from "./components/crest/CrestNotFound";
 import { notFoundText, type NotFoundLang } from "./content/notFound";
+import { crestFontFaces } from "./lib/crestFonts";
 import "./globals.css";
 
 // bus 176 P1: not preloaded — the public crest pages use Playfair Display + Manrope (preloaded per page), so these
@@ -35,6 +36,7 @@ export default async function GlobalNotFound() {
             __html: `(function(){try{var c=localStorage.getItem('kartel-contrast');if(c==='high'||(c!=='normal'&&matchMedia('(prefers-contrast: more)').matches))document.documentElement.classList.add('hc');var t=localStorage.getItem('kartel-theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
+        <style dangerouslySetInnerHTML={{ __html: crestFontFaces(lang) }} />
       </head>
       <body className="flex min-h-full flex-col bg-[#0a0908] text-[var(--foreground)]">
         <CrestNotFound lang={lang} />

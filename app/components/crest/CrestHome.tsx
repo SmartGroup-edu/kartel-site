@@ -5,13 +5,15 @@
  * bus/assets/2026-11-27-home-crest-v6-APPROVED.html — intro, header, hero, crest explorer, four colours, the motto
  * over the heraldic hatching, FAQ, the «Для членов семьи» card and the footer. Heraldry only; nothing here names a
  * business, a project or a person (R0 2026-11-27). Everything renders on the server (SEO); this file only adds the
- * motion: intro skip, tilt / gloss (fine pointer, no reduced motion), the explorer, the cursor light, scroll reveals.
+ * motion: tilt / gloss (fine pointer, no reduced motion), the explorer, the cursor light, scroll reveals.
+ * bus 176 P1b (LCP < 2.5 s): the hero crest and the H1 are painted in the first frame — the intro is played by the hero
+ * crest itself (CSS), the hero effects and the explorer crest wait until the page has loaded (afterLoad).
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { latinMotto } from "../../lib/latin";
-import { crestHome, crestColours, crestFaq, crestElements, ROMAN, type CrestLang } from "../../content/crestHome";
-import { CrestImg, LangSwitch, SignInIcon, Brand, Hatching, crestStyles as s } from "./CrestChrome";
+import type { CrestHomeContent, CrestLang } from "../../content/crestHome";
+import { CrestImg, HERO_SIZES, LangSwitch, SignInIcon, Brand, Hatching, crestStyles as s } from "./CrestChrome";
 
 const SECTIONS = ["explore", "colours", "motto", "faq"] as const;
 
@@ -26,12 +28,23 @@ function Orn() {
   );
 }
 
+/** Runs `fn` once the page has loaded (the hero crest included) and the main thread is idle — never before the LCP.
+ *  Returns a cancel function for the effect cleanup. */
+function afterLoad(fn: () => void): () => void {
+  let idle = 0, timer = 0;
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
+  const go = () => { if (w.requestIdleCallback) idle = w.requestIdleCallback(fn, { timeout: 1500 }); else timer = window.setTimeout(fn, 200); };
+  if (document.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
+  return () => { window.removeEventListener("load", go); if (idle) w.cancelIdleCallback?.(idle); window.clearTimeout(timer); };
+}
+
 /** Runs before the first paint (inline, in the HTML): marks JS on (reveals may hide) and decides the intro —
- *  once per browser session, never under reduced motion. The intro fades out by CSS alone, so it cannot stick. */
+ *  once per browser session, never under reduced motion. The intro is a CSS animation of the hero crest; it cannot
+ *  hide anything (bus 176 P1b). */
 const BOOT = `(function(){var d=document.documentElement;d.setAttribute('data-crest-js','');try{if(!sessionStorage.getItem('kartel-intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){d.setAttribute('data-intro','');sessionStorage.setItem('kartel-intro','1')}}catch(e){}})()`;
 
-export default function CrestHome({ lang }: { lang: CrestLang }) {
-  const t = crestHome[lang];
+export default function CrestHome({ lang, content }: { lang: CrestLang; content: CrestHomeContent }) {
+  const { t, colours, faq, elements } = content;
   const signinHref = `/${lang}/family/signin`;
   const other: CrestLang = lang === "ru" ? "en" : "ru";
   const langHrefs = { ru: "/ru", en: "/en" };
@@ -40,27 +53,29 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
   const [scrolled, setScrolled] = useState(false);
   const [fine, setFine] = useState(false);
   const [touch, setTouch] = useState(false);
+  const [late, setLate] = useState(false);
   const heroRef = useRef<HTMLElement>(null);
   const tiltRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const mottoRef = useRef<HTMLElement>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const n = crestElements.length;
+  const n = elements.length;
 
-  // The intro: skip on click, and clear the flag once it has played, so a client-side return does not replay it.
-  const endIntro = useCallback(() => document.documentElement.removeAttribute("data-intro"), []);
+  // After load and idle (bus 176 P1b — nothing here may compete with the hero crest): the pointer and motion
+  // preferences switch on tilt / gloss / sheen and the motto light, the explorer crest starts loading, the grain, the
+  // header blur and the crest shadow come in (data-crest-late, see crest.module.css), and the intro flag is cleared once its animation has played (≤ 1.8 s), so a client-side return does not replay it.
   useEffect(() => {
-    const id = window.setTimeout(endIntro, 2800);
-    return () => window.clearTimeout(id);
-  }, [endIntro]);
-
-  // Pointer and motion preferences (known only in the browser).
-  useEffect(() => {
-    const mm = (q: string) => window.matchMedia(q).matches;
-    const reduce = mm("(prefers-reduced-motion: reduce)");
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a device capability, known only after mount
-    setFine(mm("(pointer: fine)") && !reduce);
-    setTouch(!mm("(pointer: fine)") || reduce);
+    let id = 0;
+    const cancel = afterLoad(() => {
+      const mm = (q: string) => window.matchMedia(q).matches;
+      const reduce = mm("(prefers-reduced-motion: reduce)");
+      setFine(mm("(pointer: fine)") && !reduce);
+      setTouch(!mm("(pointer: fine)") || reduce);
+      setLate(true);
+      document.documentElement.setAttribute("data-crest-late", "");
+      id = window.setTimeout(() => document.documentElement.removeAttribute("data-intro"), 1800);
+    });
+    return () => { cancel(); window.clearTimeout(id); };
   }, []);
 
   // Header border after the first 10 px of scroll.
@@ -123,15 +138,11 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
     e.preventDefault();
     pick(k, true);
   };
-  const el = crestElements[act];
-  const label = (x: (typeof crestElements)[number]) => (lang === "ru" ? x.labelRU : x.labelEN);
+  const el = elements[act];
 
   return (
     <div className={s.site}>
       <script dangerouslySetInnerHTML={{ __html: BOOT }} />
-      <div className={s.intro} aria-hidden="true" onClick={endIntro}>
-        <div className={`${s.introC} ${s.masked}`}><CrestImg sizes="(max-width: 520px) 62vw, 320px" /></div>
-      </div>
       <a className={s.skip} href="#main">{t.skip}</a>
 
       <header className={`${s.header} ${scrolled ? s.scrolled : ""}`}>
@@ -175,7 +186,7 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
             <div className={s.crestbox} ref={boxRef}>
               <div className={s.tilt} ref={tiltRef}>
                 <div className={s.masked}>
-                  <CrestImg alt={t.alt} lcp className={s.crestimg} sizes="(max-width: 900px) min(340px, 86vw), 520px" />
+                  <CrestImg alt={t.alt} lcp className={s.crestimg} sizes={HERO_SIZES} />
                 </div>
                 <div className={s.gloss} />
                 <div className={s.shine} />
@@ -197,13 +208,14 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
               <div className={`${s.exstage} ${s.reveal}`} data-reveal="">
                 <div className={`${s.frame} ${s.corners}`}>
                   <div className={s.zoom} style={{ transformOrigin: `${el.x}% ${el.y}%`, ["--fx" as string]: `${el.x}%`, ["--fy" as string]: `${el.y}%` }}>
-                    <CrestImg alt={t.altEx} sizes="(max-width: 900px) 92vw, 540px" />
+                    {/* Lazy, low priority, and only after the hero has loaded: never a second download before the LCP. */}
+                    {late ? <CrestImg alt={t.altEx} sizes="(max-width: 900px) 92vw, 540px" /> : <div className={s.zoomPh} />}
                     <div className={s.dim} />
                     <div className={s.halo} style={{ left: `${el.x}%`, top: `${el.y}%` }} />
                     {/* Pointer shortcut only: the tabs carry keyboard and screen-reader access, so the points stay out
                         of the tab order and the accessibility tree (the explorer's rule since cycle 8). */}
                     <div aria-hidden="true">
-                      {crestElements.map((x, i) => (
+                      {elements.map((x, i) => (
                         <button key={x.id} type="button" tabIndex={-1} className={`${s.hot} ${i === act ? s.on : ""}`} style={{ left: `${x.x}%`, top: `${x.y}%` }} onClick={() => pick(i)} data-hot={x.id}>
                           <i />
                         </button>
@@ -214,17 +226,17 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
               </div>
               <div className={s.reveal} data-reveal="">
                 <div className={s.tabs} role="tablist" aria-label={t.exTabs}>
-                  {crestElements.map((x, i) => (
+                  {elements.map((x, i) => (
                     <button key={x.id} ref={(node) => { tabRefs.current[i] = node; }} type="button" role="tab" id={`tab-${x.id}`} aria-selected={i === act} aria-controls="crest-panel" tabIndex={i === act ? 0 : -1} className={s.tab} onClick={() => pick(i)} onKeyDown={(e) => onTabKey(e, i)}>
-                      {label(x)}
+                      {x.label}
                     </button>
                   ))}
                 </div>
                 <div className={`${s.panel} ${s.corners}`} role="tabpanel" id="crest-panel" aria-labelledby={`tab-${el.id}`} tabIndex={0}>
                   <div className={s.fade} key={el.id}>
-                    <div className={s.k}><b>{ROMAN[act]}</b> · {ROMAN[n - 1]}</div>
-                    <h3>{label(el)}</h3>
-                    <p>{latinMotto(lang === "ru" ? el.descRU : el.descEN)}</p>
+                    <div className={s.k}><b>{el.roman}</b> · {elements[n - 1].roman}</div>
+                    <h3>{el.label}</h3>
+                    <p>{latinMotto(el.desc)}</p>
                     <div className={s.pnav}>
                       <button type="button" onClick={() => pick((act + n - 1) % n, true)}>{t.prev}</button>
                       <button type="button" onClick={() => pick((act + 1) % n, true)}>{t.next}</button>
@@ -244,7 +256,7 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
               <h2 className={s.h2} id="colours-h">{t.colTitle}</h2>
             </div>
             <ul className={s.cols}>
-              {crestColours[lang].map((c) => (
+              {colours.map((c) => (
                 <li key={c.tincture} className={`${s.col} ${s.reveal}`} data-reveal="">
                   <div className={`${s.sw} ${c.sheen ? s.sheen : ""}`} style={{ background: c.swatch }} aria-hidden="true" />
                   <div className={s.colt}><b>{c.name}</b><small lang="fr">{c.tincture}</small><p>{c.meaning}</p></div>
@@ -274,7 +286,7 @@ export default function CrestHome({ lang }: { lang: CrestLang }) {
               <h2 className={s.h2} id="faq-h">{t.faqTitle}</h2>
             </div>
             <div className={`${s.faq} ${s.reveal}`} data-reveal="">
-              {crestFaq[lang].map((f, i) => (
+              {faq.map((f, i) => (
                 <details key={f.q} open={i === 0}>
                   <summary><span>{latinMotto(f.q)}</span></summary>
                   <p>{latinMotto(f.a)}</p>
