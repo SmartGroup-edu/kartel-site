@@ -11,7 +11,7 @@
  */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BookMarked, Briefcase, CalendarDays, Check, ClipboardCheck, FileText, Landmark, Lock, LogOut, Menu, Monitor, Moon, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import ThemeToggle from "./ThemeToggle";
@@ -125,8 +125,8 @@ function MeBlock({ me, lang, theme }: { me: OsShellMe; lang: Lang; theme: Theme 
 const CMD_ICON: Record<Theme, LucideIcon> = { light: Sun, dark: Moon, system: Monitor };
 
 /** ⌘K: a combobox over the sections, then the theme commands. Arrow keys move, Enter opens or runs, Escape closes
- *  (Radix returns the focus). */
-function Palette({ open, setOpen, items, lang, theme, setTheme }: { open: boolean; setOpen: (o: boolean) => void; items: Item[]; lang: Lang; theme: Theme; setTheme: (t: Theme) => void }) {
+ *  (`onCloseAutoFocus` returns the focus to where it was: these dialogs have no Radix trigger to return it to). */
+function Palette({ open, setOpen, items, lang, theme, setTheme, onCloseAutoFocus }: { open: boolean; setOpen: (o: boolean) => void; items: Item[]; lang: Lang; theme: Theme; setTheme: (t: Theme) => void; onCloseAutoFocus: (e: Event) => void }) {
   const t = tx(T, lang), router = useRouter();
   const [q, setQ] = useState("");
   const [i, setI] = useState(0);
@@ -143,7 +143,7 @@ function Palette({ open, setOpen, items, lang, theme, setTheme }: { open: boolea
   useEffect(() => { if (activeId) document.getElementById(`fos-pal-${activeId}`)?.scrollIntoView({ block: "nearest" }); }, [activeId]);
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setQ(""); setI(0); } }}>
-      <DialogContent closeLabel={t.close} className="top-[18%] max-w-md translate-y-0 gap-3 rounded-[var(--fos-radius)] border-[var(--border)] bg-[var(--fos-panel)] p-4 shadow-[var(--fos-shadow-lg)]">
+      <DialogContent closeLabel={t.close} onCloseAutoFocus={onCloseAutoFocus} className="top-[18%] max-w-md translate-y-0 gap-3 rounded-[var(--fos-radius)] border-[var(--border)] bg-[var(--fos-panel)] p-4 shadow-[var(--fos-shadow-lg)]">
         <DialogTitle className="text-[17px] font-semibold">{t.paletteTitle}</DialogTitle>
         <DialogDescription className="sr-only">{t.paletteHint}</DialogDescription>
         <input autoFocus role="combobox" aria-expanded="true" aria-controls="fos-palette-list" aria-autocomplete="list"
@@ -183,6 +183,11 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
   const all = useMemo(() => groups.flatMap((g) => g.items as Item[]), [groups]);
   const [palette, setPalette] = useState(false);
   const [menu, setMenu] = useState(false);
+  // Opened from a button or ⌘K, the palette and the menu have no Radix trigger, so Radix sent the focus to <body> on
+  // close. The element that had the focus when one opened gets it back.
+  const opener = useRef<HTMLElement | null>(null);
+  const remember = () => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; };
+  const giveBack = (e: Event) => { const el = opener.current; if (el?.isConnected && el !== document.body) { e.preventDefault(); el.focus(); } };
   const home = `/${lang === "EN" ? "en" : "ru"}/family/os`;
 
   // Dialogs render in a portal under <body>: the Family OS tokens must reach them too, so <body> carries the scope
@@ -193,13 +198,13 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
   }, []);
   useEffect(() => { document.body.setAttribute("data-theme", theme); }, [theme]);
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setMenu(false); setPalette((o) => !o); } };
+    const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setMenu(false); if (!document.getElementById("fos-palette-list")) remember(); setPalette((o) => !o); } };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const searchBtn = (
-    <button type="button" onClick={() => setPalette(true)} aria-keyshortcuts="Meta+K Control+K" data-cmdk=""
+    <button type="button" onClick={() => { remember(); setPalette(true); }} aria-keyshortcuts="Meta+K Control+K" data-cmdk=""
       className="mx-1 mb-2.5 flex min-h-10 items-center gap-2 rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel-2)] px-2.5 text-[13px] text-[var(--muted)] hover:border-[var(--fos-control)]">
       <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2} />{t.search}
       <kbd className="ml-auto rounded-[5px] border border-[var(--border)] bg-[var(--fos-panel)] px-1.5 font-sans text-[11px]">⌘K</kbd>
@@ -224,10 +229,10 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
         <div className="min-w-0">
           <header data-fos-topbar="" className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--border)] bg-[var(--fos-panel)] px-4 py-2 min-[900px]:hidden print:hidden">
             <Link prefetch={false} href={home} className="flex items-center gap-2 rounded-[10px] py-1"><Logo /><b className="text-[13px] tracking-[0.14em]">KARTEL</b></Link>
-            <button type="button" onClick={() => setPalette(true)} aria-label={t.searchShort} className="ml-auto grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--text-secondary)]">
+            <button type="button" onClick={() => { remember(); setPalette(true); }} aria-label={t.searchShort} className="ml-auto grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--text-secondary)]">
               <Search aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </button>
-            <button type="button" onClick={() => setMenu(true)} aria-label={t.menu} aria-haspopup="dialog" className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--text-secondary)]">
+            <button type="button" onClick={() => { remember(); setMenu(true); }} aria-label={t.menu} aria-haspopup="dialog" className="grid h-11 w-11 place-items-center rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--text-secondary)]">
               <Menu aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
             </button>
           </header>
@@ -258,14 +263,14 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
       )}
 
       <Dialog open={menu} onOpenChange={setMenu}>
-        <DialogContent closeLabel={t.close} className="left-auto right-0 top-0 h-dvh max-w-[320px] translate-x-0 translate-y-0 content-start gap-1 overflow-y-auto rounded-none border-0 border-l border-[var(--border)] bg-[var(--fos-panel)] px-3 py-5">
+        <DialogContent closeLabel={t.close} onCloseAutoFocus={giveBack} className="left-auto right-0 top-0 h-dvh max-w-[320px] translate-x-0 translate-y-0 content-start gap-1 overflow-y-auto rounded-none border-0 border-l border-[var(--border)] bg-[var(--fos-panel)] px-3 py-5">
           <DialogTitle className="px-2.5 pb-2 text-[17px] font-semibold">{label}</DialogTitle>
           <DialogDescription className="sr-only">{t.brand}</DialogDescription>
           <nav aria-label={label} className="grid gap-0.5"><NavList groups={groups} active={active} lang={lang} onPick={() => setMenu(false)} /></nav>
           <div className="mt-4"><MeBlock me={me} lang={lang} theme={theme} /></div>
         </DialogContent>
       </Dialog>
-      <Palette open={palette} setOpen={setPalette} items={all} lang={lang} theme={theme} setTheme={setTheme} />
+      <Palette open={palette} setOpen={setPalette} items={all} lang={lang} theme={theme} setTheme={setTheme} onCloseAutoFocus={giveBack} />
     </div>
   );
 }

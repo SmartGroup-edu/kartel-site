@@ -322,7 +322,9 @@
   --fos-brief-to: #4a1520;
   --fos-brief-text: #f3ede4;
   --fos-brief-ring: #e0b76e;
-  --fos-primary-img: linear-gradient(135deg, #8a6a33 0%, #c9964e 22%, #f6dca0 42%, #e0b76e 55%, #b08048 75%, #7a5a2a 100%);
+  /* The mockup's metal, with the two corner stops lightened (#8a6a33 → #9e7a3e, #7a5a2a → #a07a3c): the dark ink label
+     runs close to the corners on short buttons, and every stop now meets 4.5:1 with it (QA 176 P2). */
+  --fos-primary-img: linear-gradient(135deg, #9e7a3e 0%, #c9964e 22%, #f6dca0 42%, #e0b76e 55%, #b08048 75%, #a07a3c 100%);
   color-scheme: dark;
 }
 

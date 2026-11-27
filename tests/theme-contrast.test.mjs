@@ -118,6 +118,18 @@ test("QA 176 P2 (acceptor): the sidebar keeps the theme menu, the user's name an
   // ⌘K: the list scrolls inside the dialog and follows the active row.
   assert.match(s, /role="listbox"[^>]*max-h-\[min\(28rem,calc\(78dvh-7rem\)\)\][^>]*overflow-y-auto/);
   assert.match(s, /scrollIntoView\(\{ block: "nearest" \}\)/);
+  // No Radix trigger: the palette and the menu give the focus back to the element that opened them.
+  assert.match(s, /<Palette [^>]*onCloseAutoFocus=\{giveBack\} \/>/);
+  assert.match(s, /<DialogContent closeLabel=\{t\.close\} onCloseAutoFocus=\{giveBack\} className="left-auto/);
+  assert.equal((s.match(/onClick=\{\(\) => \{ remember\(\); set(Palette|Menu)\(true\); \}\}/g) ?? []).length, 3);
+});
+
+test("QA 176 P2 (acceptor): every stop of the dark cabinet's metal gradient meets AA with the button ink", () => {
+  const g = css.match(/--fos-primary-img: linear-gradient\(135deg,([^;]+)\);/);
+  assert.ok(g, "metal gradient present");
+  const stops = [...g[1].matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0]);
+  assert.equal(stops.length, 6);
+  for (const s of stops) assert.ok(ratio(s, "#1a1206") >= 4.5, `${s} on #1a1206: ${ratio(s, "#1a1206").toFixed(2)}`);
 });
 
 test("print beats high contrast: the print block also targets the .hc selectors (same specificity, later in the file)", () => {

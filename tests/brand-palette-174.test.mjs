@@ -45,7 +45,7 @@ test("dark (bus 176 P2): the heraldic mockup palette — #0a0908 page, warm pane
   assert.equal(t["fos-bg"], "#0a0908"); assert.deepEqual([t["fos-panel"], t["fos-panel-2"]], ["#12100e", "#17130f"]);
   assert.equal(t.foreground, "#f3ede4"); assert.equal(t.border, "#2b2520");
   assert.equal(t.accent, "#e0b76e"); assert.equal(t["fos-primary"], "#c9964e"); assert.equal(t["fos-wine"], "#7b1e2d");
-  assert.match(css.slice(css.indexOf(':root:not(.hc) [data-fos][data-theme="dark"] {')), /--fos-primary-img: linear-gradient\(135deg, #8a6a33 0%, #c9964e 22%, #f6dca0 42%/);
+  assert.match(css.slice(css.indexOf(':root:not(.hc) [data-fos][data-theme="dark"] {')), /--fos-primary-img: linear-gradient\(135deg, #9e7a3e 0%, #c9964e 22%, #f6dca0 42%/);
   for (const [fg, bg] of [["on-accent", "accent"], ["fos-on-primary", "fos-primary"], ["fos-on-accent-2", "fos-accent-2"]]) assert.ok(ratio(t[fg], t[bg]) >= 4.5, `${fg}/${bg}`);
 });
 
