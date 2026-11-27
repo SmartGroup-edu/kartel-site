@@ -26,7 +26,9 @@ test("naming: «Семейный кабинет» / “Family area” in the men
   assert.match(nav, /\{ label: "Семейный кабинет", path: "family\/os" \}/);
   assert.match(nav, /\{ label: "Family area", path: "family\/os" \}/);
   assert.doesNotMatch(nav, /label: "(Герб|Coat of Arms|Семейное наследие|Family Heritage)"/);
-  assert.match(src("app/[lang]/family/signin/page.tsx"), /"Семейный кабинет — вход" : "Family area — sign in"/);
+  // bus 176 P1: the sign-in's title is the mockup's «Вход для семьи — KARTEL»; the page itself says «Семейный кабинет».
+  assert.match(src("app/[lang]/family/signin/page.tsx"), /"Вход для семьи — KARTEL" : "Family sign-in — KARTEL"/);
+  assert.match(src("app/components/FamilyGateNotice.tsx"), /eyebrow: "Семейный кабинет",/);
   assert.match(src("app/[lang]/family/pending/page.tsx"), /title: "Семейный кабинет — ожидает одобрения"/);
   assert.match(src("app/[lang]/family/page.tsx"), /title: "Наследие · Семейный кабинет",/, "heritage keeps its name inside the cabinet");
   for (const p of ["os/page.tsx", "os/board/page.tsx", "os/calendar/page.tsx", "os/council/page.tsx", "os/people/page.tsx", "os/review/page.tsx", "os/companies/page.tsx", "os/kodeks/page.tsx", "os/access/page.tsx", "os/week/page.tsx", "[...missing]/page.tsx"]) {
@@ -35,24 +37,21 @@ test("naming: «Семейный кабинет» / “Family area” in the men
     assert.doesNotMatch(t, / · Семья"| · Family"/, p);
   }
   // nothing user-facing says «Семейное наследие» / "Family Heritage" any more
-  for (const f of ["app/components/HomeClient.tsx", "app/components/FamilyAdmin.tsx", "app/[lang]/family/pending/page.tsx", "app/[lang]/family/signin/page.tsx", "app/content/siteNav.ts"]) {
+  for (const f of ["app/components/crest/CrestHome.tsx", "app/content/crestHome.ts", "app/components/FamilyAdmin.tsx", "app/[lang]/family/pending/page.tsx", "app/[lang]/family/signin/page.tsx", "app/content/siteNav.ts"]) {
     assert.doesNotMatch(src(f), /Семейное наследие|Семейном наследии|Family Heritage/, f);
   }
 });
 
-test("home: the H1 «Семья KARTEL — дело на поколения.», a lead about the federation projects; the share card and JSON-LD name the family office", () => {
-  const o = src("app/components/PublicOffice.tsx");
-  assert.match(o, /title: "Семья KARTEL — дело на поколения\.",/);
-  assert.match(o, /title: "The KARTEL family — work that lasts for generations\.",/);
-  assert.doesNotMatch(o, /Семейный бизнес|family business/);
+// bus 176 P1 supersedes the bus 173 family-office home: the public home is the coat of arms only (R0 2026-11-27).
+test("home (bus 176 supersedes 173): the coat of arms; the share card and JSON-LD name the crest, never the family office", () => {
   const og = src("app/lib/ogCard.tsx");
-  assert.match(og, /headline: \["Семейный офис", "в Лондоне"\]/);
-  assert.match(og, /headline: \["Family office", "in London"\]/);
-  assert.doesNotMatch(og, /headline: \[[^\]]*(Coat of Arms|герб)/);
-  const page = src("app/[lang]/page.tsx");
-  assert.match(page, /title: "KARTEL — семейный офис в Лондоне",/);
-  assert.match(page, /"mainEntity": \{ "@id": "https:\/\/kartel\.org\.uk\/#organization" \}/);
-  assert.doesNotMatch(page, /"@type": "Article"/);
+  assert.match(og, /headline: \["Фамильный герб", "Картель"\]/);
+  assert.match(og, /headline: \["The Kartel", "Coat of Arms"\]/);
+  assert.doesNotMatch(og, /headline: \[[^\]]*(Family office|Семейный офис)/);
+  const page = src("app/[lang]/page.tsx") + src("app/content/crestHome.ts");
+  assert.match(page, /title: "Фамильный герб Картель — Virtus et Potestas",/);
+  assert.match(page, /"@type": "ImageObject"/);
+  assert.doesNotMatch(page, /семейный офис|family office|#organization/i);
 });
 
 test("MoyPolk: «MoyPolkUK — теперь часть Community Group», linked to the registry's Community Group url — never moypolk.uk", () => {
@@ -71,7 +70,6 @@ test("MoyPolk: «MoyPolkUK — теперь часть Community Group», linked
   }
   // an active project is never re-pointed, even if it were in the merged list
   assert.equal(cardIdentity(registry, { key: "moypolk", name: "MoyPolk", role: "Consumer", type: "project", url: "https://moypolk.uk" }).url, "https://moypolk.uk");
-  assert.match(src("app/components/PublicOffice.tsx"), /\{c\.title\[lang\]\}<\/h3>/);
   assert.match(src("app/components/FamilyCompanies.tsx"), /\{c\.title\[lang\]\}<\/h2>/);
 });
 
@@ -90,6 +88,6 @@ test("family 404 for a child: their two tabs, «Мой день» as the way bac
   assert.match(nf, /child: me\?\.kind === "child"/);
   const view = src("app/components/NotFoundView.tsx");
   assert.match(view, /child=\{family\.child \?\? false\}/);
-  assert.match(view, /\{!\(refCode && child\) && \(/, "the heritage button is not drawn for a child");
+  assert.match(view, /\{refCode && !child && \(/, "the heritage button is not drawn for a child");
   assert.match(src("app/components/FamilyChrome.tsx"), /child=\{nav\.child \?\? false\}/);
 });

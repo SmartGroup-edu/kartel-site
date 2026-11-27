@@ -1,17 +1,21 @@
 // Global 404 for any URL that matches no route (design audit #2). Rendered outside the [lang]
 // layout, so it brings its own <html>, styles and fonts. It receives no route params: proxy.ts
 // passes the locale of the requested path in the `x-kartel-locale` request header, and the page
-// renders entirely in that language (cycle 5 #1). Status stays 404. SiteHeader (inside
-// NotFoundView) brings the skip link, nav, theme toggle and language switch.
-import type { Metadata } from "next";
+// renders entirely in that language (cycle 5 #1). Status stays 404. bus 176 P1: the crest 404
+// (NotFoundView → CrestNotFound) — dark heraldic page with the home and sign-in buttons.
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import NotFoundView from "./components/NotFoundView";
 import { notFoundText, type NotFoundLang } from "./content/notFound";
 import "./globals.css";
 
-const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter" });
-const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif" });
+// bus 176 P1: not preloaded — the public crest pages use Playfair Display + Manrope (preloaded per page), so these
+// cabinet faces must not compete with the crest for the first paint (LCP). They still load, with swap, where used.
+const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter", preload: false });
+const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif", preload: false });
+
+export const viewport: Viewport = { themeColor: "#0a0908", colorScheme: "dark" };
 
 async function locale(): Promise<NotFoundLang> {
   return (await headers()).get("x-kartel-locale") === "ru" ? "ru" : "en";
@@ -32,7 +36,7 @@ export default async function GlobalNotFound() {
           }}
         />
       </head>
-      <body className="flex min-h-full flex-col bg-[var(--background)] text-[var(--foreground)]">
+      <body className="flex min-h-full flex-col bg-[#0a0908] text-[var(--foreground)]">
         <NotFoundView lang={lang} />
       </body>
     </html>

@@ -56,7 +56,7 @@ test("Кодекс page: crest thumbnails, motto at the end, the approved status
   assert.match(src("app/lib/family-os-shell.mjs"), /kodeks: "Документы и правила"/);
   assert.doesNotMatch(k, /likes|leaderboard|рейтинг|лайк/i, "no likes or rankings");
   assert.match(k, /fleurdelis: \{ y: 20, z: 5\.6 \}/, "lilies thumbnail cropped tighter via the table, not by moving the explorer marker");
-  assert.match(src("app/components/CrestExplorer.tsx"), /id: "fleurdelis",[\s\S]{0,800}?y: 19,/, "explorer marker unchanged");
+  assert.match(src("app/content/crest.ts"), /id: "fleurdelis",[\s\S]{0,800}?y: 19,/, "explorer marker unchanged");
 });
 
 test("Today (bus 95): recognition collapsed behind «Отметить хорошее», ≤ 3 items + «Все — на совете»; section order", () => {

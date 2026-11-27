@@ -64,11 +64,11 @@ const b = await ask(M);
 const other = await openLink(b.path, null);
 check("link in a different browser → «elsewhere»", reason(other) === "elsewhere" && !cookieOf(other, SESSION), reason(other));
 const page = await (await req(new URL(other.headers.get("location"), B).pathname + new URL(other.headers.get("location"), B).search)).text();
-check("the helper page says so calmly and offers a new link here", page.includes("This link opened in a different browser") && page.includes("Email me a new link here") && !page.includes('role="alert"'));
+check("the helper page says so calmly and offers a new link here", page.includes("This link opened in a different browser") && page.includes("Send a new email here") && !page.includes('role="alert"'));
 check("the helper page never shows the code", !page.includes(b.letter.code) && !page.includes(`${b.letter.code.slice(0, 3)} ${b.letter.code.slice(3)}`));
 const otherRu = await openLink((await ask(M, "ru")).path, null);
 const pageRu = await (await req(new URL(otherRu.headers.get("location"), B).pathname + new URL(otherRu.headers.get("location"), B).search)).text();
-check("…and in Russian", pageRu.replace(/ /g, " ").includes("Эта ссылка открылась в другом браузере"));
+check("…and in Russian", pageRu.replace(/ /g, " ").includes("Ссылка открылась в другом браузере"));
 
 // ── code in the original tab → OK ──
 const c = await ask(M);
@@ -117,7 +117,7 @@ check("code without Origin → 403", (await req("/api/family-auth/verify", { met
 check("not six digits → format", (await (await typeCode("12345", a.nonce)).json()).error === "format");
 // The RU typographer binds short words with NBSP; compare with plain spaces.
 const sentPage = await req("/ru/family/signin?sent=1&returnTo=%2Fru%2Ffamily"), sentHtml = (await sentPage.text()).replace(/ /g, " ");
-check("the sent page shows the code field (RU)", sentHtml.includes('id="family-code"') && sentHtml.includes("Или введите код из письма"), `${sentPage.status}`);
+check("the sent page shows the code field (RU)", sentHtml.includes('id="family-code"') && sentHtml.includes("Код из письма") && sentHtml.includes('autoComplete="one-time-code"'), `${sentPage.status}`);
 
 os.close(); relay.close();
 console.log(`\n${pass} passed, ${fail} failed`);

@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { H1, PROSE } from "../lib/typeScale";
-import SiteHeader from "../components/SiteHeader";
-import SiteFooter from "../components/SiteFooter";
-import { homeContent } from "../content/home";
+import { useParams } from "next/navigation";
+import CrestNotFound from "../components/crest/CrestNotFound";
+import { crestStyles as s } from "../components/crest/CrestChrome";
 
-// Route error boundary, on the site's type system (cycle 11): H1 from the scale, reading text,
-// a sentence-case retry button and a way back to the crest. The [lang] layout renders no chrome
-// (each page draws its own), so the boundary brings the site header and footer itself (bus 92 L2).
+// Route error boundary (bus 176 P1): the crest frame of the public 404 — a retry button, «Войти», no site menu.
+// The family area has its own boundary (app/[lang]/family/error.tsx) with a reference code.
 const text = {
-  en: { heading: "Something went wrong", message: "The page could not be shown. Please try again.", cta: "Try again", home: "Back to the home page" },
-  ru: { heading: "Что-то пошло не так", message: "Страницу не удалось показать. Пожалуйста, попробуйте ещё раз.", cta: "Повторить", home: "На главную" },
+  en: { heading: "Something went wrong", message: "The page could not be shown. Please try again.", cta: "Try again" },
+  ru: { heading: "Что-то пошло не так", message: "Страницу не удалось показать. Пожалуйста, попробуйте ещё раз.", cta: "Повторить" },
 };
 
 export default function Error({
@@ -23,37 +20,20 @@ export default function Error({
   reset: () => void;
 }) {
   const params = useParams<{ lang: string }>();
-  const lang = (params?.lang === "ru" ? "ru" : "en") as keyof typeof text;
+  const lang = params?.lang === "ru" ? "ru" : "en";
   const t = text[lang];
-  const router = useRouter();
-  const other = lang === "en" ? "ru" : "en";
 
   useEffect(() => {
     console.error("Runtime error:", error);
   }, [error]);
 
   return (
-    <>
-    <SiteHeader lang={lang === "en" ? "EN" : "RU"} toggleLang={() => router.push(`/${other}`)} />
-    <main id="main" className="flex flex-1 flex-col items-center justify-center bg-[var(--background)] px-4 text-center">
-      <h1 className={H1}>{t.heading}</h1>
-      <p className={`mt-4 max-w-md ${PROSE}`}>{t.message}</p>
-      <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <button
-          onClick={reset}
-          className="inline-flex min-h-11 items-center rounded-md bg-[var(--fos-primary)] px-5 text-[15px] font-medium text-[var(--fos-on-primary)] transition-colors hover:bg-[var(--fos-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-        >
-          {t.cta}
-        </button>
-        <a
-          href={`/${lang}`}
-          className="inline-flex min-h-11 items-center rounded-md border border-[var(--accent)] px-5 text-[15px] font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-        >
-          {t.home}
-        </a>
-      </div>
-    </main>
-    <SiteFooter copy={homeContent[lang === "en" ? "EN" : "RU"].footerCopy} contactEmail={null} />
-    </>
+    <CrestNotFound
+      lang={lang}
+      code={null}
+      title={t.heading}
+      hint={t.message}
+      action={<button type="button" onClick={reset} className={`${s.btn} ${s.gold} ${s.sheen}`}>{t.cta}</button>}
+    />
   );
 }

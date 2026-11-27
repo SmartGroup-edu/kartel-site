@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SiteHeader from "./SiteHeader";
 import FamilyChrome, { type FamilyChromeNav } from "./FamilyChrome";
+import CrestNotFound from "./crest/CrestNotFound";
 import { notFoundText, familyRefText, type NotFoundLang } from "../content/notFound";
 import { typographDict } from "../lib/typograph.mjs";
 
@@ -11,7 +12,8 @@ const FAMILY_REF_RU = typographDict(familyRefText.ru); // QA-158 N5
 
 /** The 404 body + the site header (nav, theme toggle, language switch). The address itself does
  *  not exist in either language, so the language switch goes to the other language's home.
- *  `family` (bus 157b D11): a signed-in family viewer gets the family layout instead — sub-nav and «Выйти». */
+ *  `family` (bus 157b D11): a signed-in family viewer gets the family layout instead — sub-nav and «Выйти».
+ *  bus 176 P1: the public 404 (no reference code) is the crest page — «На главную» and «Войти», no site menu. */
 export default function NotFoundView({ lang, refCode, family = null }: { lang: NotFoundLang; refCode?: string; family?: FamilyChromeNav | null }) {
   const router = useRouter();
   const other = lang === "en" ? "ru" : "en";
@@ -20,6 +22,7 @@ export default function NotFoundView({ lang, refCode, family = null }: { lang: N
       <NotFoundBody lang={lang} refCode={refCode} child={family.child ?? false} left />
     </FamilyChrome>
   );
+  if (!refCode) return <CrestNotFound lang={lang} />;
   return (
     <>
       <SiteHeader lang={lang === "en" ? "EN" : "RU"} toggleLang={() => router.push(`/${other}`)} />
@@ -47,9 +50,9 @@ function NotFoundBody({ lang, refCode, child = false, left = false }: { lang: No
           {refCode ? (child ? f.myDay : f.home) : t.home}
         </Link>
         {/* bus 173: no «Наследие» for a child — that address sends them back to «Мой день». */}
-        {!(refCode && child) && (
-          <Link prefetch={false} href={refCode ? `/${lang}/family` : `/${lang}/registry`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
-            {refCode ? f.heritage : t.registry}
+        {refCode && !child && (
+          <Link prefetch={false} href={`/${lang}/family`} className={`${btn} border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)]/5`}>
+            {f.heritage}
           </Link>
         )}
       </div>

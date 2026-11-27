@@ -62,9 +62,11 @@ test("session_ended in the browser: one calm status on sign-in; autofill never r
   assert.match(ended, /if \(b\?\.error === "session_ended"\) window\.location\.assign\(endedHref\(window\.location\.pathname\)\);/);
   for (const f of ["app/components/FamilyOsPerson.tsx", "app/components/FamilyOsAccess.tsx", "app/components/FamilyPasskeys.tsx"]) assert.match(src(f), /\.then\(checkEnded\)/, `${f} sends an ended session to sign-in`);
   const n = src("app/components/FamilyGateNotice.tsx");
-  assert.match(n, /\{state === "ended" && \(\s*<p data-session-ended="" role="status"/, "a status line, not an alert");
-  assert.match(n, /ended: "Сеанс завершён — /);
-  assert.match(n, /if \(!autofill\) setPkMsg\(c\.pkFail\);/, "only the button reports a failure");
+  // bus 176 P1: an info box (role=status, the mockup's «Сеанс завершён»), not an alert
+  assert.match(n, /\{state === "ended" && <Alert kind="info" data-session-ended="">\{c\.ended\}<\/Alert>\}/, "a status line, not an alert");
+  assert.match(n, /role=\{kind === "err" \? "alert" : "status"\}/);
+  assert.match(n, /ended: "Сеанс завершён\. /);
+  assert.match(n, /if \(!autofill\) setPk\(aborted \? "idle" : "fail"\);/, "only the button reports a failure");
   assert.match(src("app/[lang]/family/signin/page.tsx"), /const STATES = \[[^\]]*"ended"[^\]]*\] as const;[\s\S]*STATES\.find\(\(s\) => s === family_auth\)/);
   const proxy = src("app/api/family-os/[...op]/route.ts");
   assert.match(proxy, /return Response\.redirect\(new URL\(endedHref\(/, "a document opened in its own tab goes to sign-in");

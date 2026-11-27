@@ -10,7 +10,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, CalendarDays, ClipboardCheck, FileText, Landmark, Lock, LogOut, Menu, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
+import { BookMarked, Briefcase, CalendarDays, ClipboardCheck, FileText, Landmark, Lock, LogOut, Menu, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import ThemeToggle from "./ThemeToggle";
 import SkipToContent from "./SkipToContent";
@@ -19,14 +19,14 @@ import { osShellNav, activeOsSection, searchSections } from "../lib/family-os-sh
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
-type SectionId = "today" | "board" | "calendar" | "council" | "review" | "companies" | "people" | "kodeks" | "heritage" | "access" | "admin";
+type SectionId = "today" | "board" | "calendar" | "council" | "review" | "companies" | "registry" | "people" | "kodeks" | "heritage" | "access" | "admin";
 type Item = { id: SectionId; href: string; label: string; badge?: number };
 export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean; child?: boolean };
 /** `id`: the viewer's own person page (their keys and letters) — the name in the user block opens it. */
 export type OsShellMe = { name: string | null; id?: string | null; role: "owner" | "editor" | "member" | "child" };
 
 const ICON: Record<SectionId, LucideIcon> = {
-  today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, review: ClipboardCheck, companies: Briefcase, people: Users, kodeks: FileText,
+  today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, review: ClipboardCheck, companies: Briefcase, registry: BookMarked, people: Users, kodeks: FileText,
   heritage: Landmark, access: Lock, admin: PenLine,
 };
 

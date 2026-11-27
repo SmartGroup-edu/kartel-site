@@ -16,8 +16,8 @@ test("menu: a child sees «Мой день» and «Календарь» only —
     assert.deepEqual(n.tabs.map((i) => i.href), [`/${lang.toLowerCase()}/family/os`, `/${lang.toLowerCase()}/family/os/calendar`]);
     assert.ok(n.tabs.every((i) => !i.badge));
   }
-  // an adult member keeps the full menu (bus 172 P6: + «Обзор недели» and «Компании и проекты»)
-  assert.equal(osShellNav({ lang: "RU", admin: false, os: true, member: true, child: false }).groups.flatMap((g) => g.items).length, 9);
+  // an adult member keeps the full menu (bus 172 P6: + «Обзор недели» and «Компании и проекты»; bus 176: + «Реестр и KARTEL Core»)
+  assert.equal(osShellNav({ lang: "RU", admin: false, os: true, member: true, child: false }).groups.flatMap((g) => g.items).length, 10);
   const lay = src("app/[lang]/family/os/layout.tsx");
   assert.match(lay, /child: state\.me\?\.kind === "child"/, "decided on the server, from Family OS");
 });
