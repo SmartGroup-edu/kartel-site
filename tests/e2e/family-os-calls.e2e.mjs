@@ -86,7 +86,12 @@ const rv = await page("member", member, "/ru/family/os/review");
 check("P6 review: the three blocks render", ["data-review=\"done\"", "data-review=\"slipped\"", "data-review=\"focus\""].every((x) => rv.html.includes(x)));
 check("P6 review: reads only boards, /sprint and the shell's reads", rv.calls.every((c) => ["/me", "/people", "/my-tasks", "/board", "/sprint"].includes(c)) && rv.calls.filter((c) => c === "/sprint").length === 1, rv.calls.join(" "));
 const co = await page("member", member, "/ru/family/os/companies");
-check("P6 companies: one card per registry project, no Family OS data of its own", (co.html.match(/data-company="/g) ?? []).length === JSON.parse(readFileSync("app/content/registry.public.json", "utf8")).projects.length && co.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), co.calls.join(" "));
+check("P6 companies: one card per registry project, no Family OS data of its own", (co.html.match(/data-source="registry"/g) ?? []).length === JSON.parse(readFileSync("app/content/registry.public.json", "utf8")).projects.length && co.calls.every((c) => ["/me", "/people", "/my-tasks"].includes(c)), co.calls.join(" "));
+// bus 176 P3: Craft Resin, Eco Lock HD and KARTEL — three Vault cards, signed in only; signed out, the page is the gate's 307.
+check("176 P3 companies: the three Vault cards render for a member", (co.html.match(/data-source="vault"/g) ?? []).length === 3 && ["Craft Resin", "Eco Lock HD", 'data-company="kartel-org-uk"'].every((x) => co.html.includes(x)));
+const anon = await fetch(`${B}/ru/family/os/companies`, { redirect: "manual" });
+const anonBody = await anon.text();
+check("176 P3 companies: signed out → 307 to sign-in, no company name in the response", anon.status === 307 && /\/ru\/family\/signin/.test(anon.headers.get("location") ?? "") && !/Craft Resin|Eco Lock/.test(anonBody), `${anon.status} ${anon.headers.get("location")}`);
 
 // N3: on that 404 the owner's tabs are the same as on every other page — no Доска / Совет / Календарь.
 const nf = await (await fetch(`${B}/ru/family/os/council`, { redirect: "manual", headers: { cookie: `${SESSION}=${admin}` } })).text();

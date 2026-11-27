@@ -41,6 +41,22 @@ export function companyCards(registry) {
     }));
 }
 
+/**
+ * Bus 176 P3: the companies outside the public registry (app/content/companies-private.ts, server-only), as cards.
+ * Name, a one-line lead, the state, the website and the date the Vault recorded the project's state; no role and no
+ * layers (they are registry terms), no figures. The page passes the private list in, so this module stays pure.
+ * @param {{ key: string, name: string, lead: { EN: string, RU: string }, status: "active", url: string | null, recorded: string }[]} list
+ */
+export function privateCompanyCards(list) {
+  return list.map((c) => ({ key: c.key, name: c.name, title: { EN: c.name, RU: c.name }, lead: c.lead, url: c.url, state: c.status, source: "vault", recorded: c.recorded }));
+}
+
+/** One grid: the registry cards and the private ones, active first, then retired, then planned; registry first within a state. */
+export function mergeCards(registryCards, privateCards) {
+  const all = [...registryCards.map((c) => ({ ...c, source: "registry" })), ...privateCards];
+  return all.map((c, i) => ({ c, i })).sort((a, b) => ORDER[a.c.state] - ORDER[b.c.state] || a.i - b.i).map(({ c }) => c);
+}
+
 /** The state counts for the line under the title: «2 работают · 1 упразднён · 1 в планах». Zero counts are left out. */
 export function stateCounts(cards) {
   const n = { active: 0, retired: 0, planned: 0 };

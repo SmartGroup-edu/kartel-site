@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState } from "@/app/lib/family-os";
-import { companyCards } from "@/app/lib/family-companies.mjs";
+import { companyCards, mergeCards, privateCompanyCards } from "@/app/lib/family-companies.mjs";
+import { PRIVATE_COMPANIES } from "@/app/content/companies-private";
 import registry from "@/app/content/registry.public.json";
 import FamilyCompanies, { type CompanyCard } from "@/app/components/FamilyCompanies";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
@@ -19,7 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
 }
 
 /**
- * «Компании и проекты» (bus 172 P6). The cards come from the vendored registry (registry.public.json) on the server,
+ * «Компании и проекты» (bus 172 P6). The cards come from the vendored registry (registry.public.json) and, since
+ * bus 176 P3, the server-only companies-private.ts (Craft Resin, Eco Lock HD, KARTEL), both on the server,
  * so the page reads no Family OS data of its own: /me and /people (who may see it), /my-tasks (the shell's badge).
  * Members and the owner; a child is sent back to «Мой день».
  */
@@ -34,5 +36,5 @@ export default async function FamilyCompaniesPage({ params }: { params: Promise<
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.companies[L]} />;
   if (!state.me && !state.admin) notFound();
   childHome(lang, state.me);
-  return <FamilyCompanies lang={L} cards={companyCards(registry) as CompanyCard[]} registry={{ version: registry.version, updated: registry.updated }} />;
+  return <FamilyCompanies lang={L} cards={mergeCards(companyCards(registry), privateCompanyCards(PRIVATE_COMPANIES)) as CompanyCard[]} registry={{ version: registry.version, updated: registry.updated }} />;
 }
