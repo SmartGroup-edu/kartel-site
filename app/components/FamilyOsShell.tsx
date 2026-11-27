@@ -99,21 +99,25 @@ function MeBlock({ me, lang, theme }: { me: OsShellMe; lang: Lang; theme: Theme 
   const t = tx(T, lang), toggleLang = useLangToggle(lang);
   const initial = (me.name?.trim().charAt(0) || "·").toLocaleUpperCase("ru");
   return (
-    <div data-me="" className="flex items-center gap-2 border-t border-[var(--border)] pt-3">
+    // The name and role keep at least 140 px: when the controls do not fit beside them (the 248 px sidebar), the
+    // controls wrap to a row of their own, right-aligned. `relative`: the theme menu opens above the whole block.
+    <div data-me="" className="relative flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-[var(--border)] pt-3">
       <span aria-hidden="true" className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full bg-[var(--fos-accent-2)] text-[12px] font-semibold text-[var(--fos-on-accent-2)]">{initial}</span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-[140px]">
         {me.name && (me.id
           ? <Link prefetch={false} href={`/${lang === "EN" ? "en" : "ru"}/family/os/people/${me.id}`} data-me-link="" aria-label={t.myPage(me.name)} className="block min-h-6 truncate rounded-sm text-[13px] leading-6 font-semibold text-[var(--foreground)] underline decoration-transparent underline-offset-4 hover:decoration-[var(--accent)]">{me.name}</Link>
           : <p className="truncate text-[13px] font-semibold text-[var(--foreground)]">{me.name}</p>)}
         <p className="truncate text-[12px] text-[var(--muted)]">{t.role[me.role]}</p>
       </div>
-      <ThemeToggle placement="up" initial={theme} />
-      <button type="button" onClick={toggleLang} aria-label={t.lang} className="inline-flex h-11 w-9 items-center justify-center rounded-md text-[13px] font-semibold text-[var(--accent)] hover:opacity-80">{t.langShort}</button>
-      <form method="post" action="/api/family-auth/logout" className="contents">
-        <button type="submit" aria-label={t.signOut} title={t.signOut} className="inline-flex h-11 w-9 items-center justify-center rounded-md text-[var(--text-secondary)] hover:text-[var(--foreground)]">
-          <LogOut aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
-        </button>
-      </form>
+      <div className="ml-auto flex items-center gap-2">
+        <ThemeToggle placement="up" initial={theme} />
+        <button type="button" onClick={toggleLang} aria-label={t.lang} className="inline-flex h-11 w-9 items-center justify-center rounded-md text-[13px] font-semibold text-[var(--accent)] hover:opacity-80">{t.langShort}</button>
+        <form method="post" action="/api/family-auth/logout" className="contents">
+          <button type="submit" aria-label={t.signOut} title={t.signOut} className="inline-flex h-11 w-9 items-center justify-center rounded-md text-[var(--text-secondary)] hover:text-[var(--foreground)]">
+            <LogOut aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -134,6 +138,9 @@ function Palette({ open, setOpen, items, lang, theme, setTheme }: { open: boolea
     setOpen(false); setQ(""); setI(0);
     if ("theme" in x) setTheme(x.theme); else router.push(x.href);
   };
+  // The list scrolls (sections plus the theme commands do not fit a laptop screen): keep the active row in view.
+  const activeId = found[i]?.id;
+  useEffect(() => { if (activeId) document.getElementById(`fos-pal-${activeId}`)?.scrollIntoView({ block: "nearest" }); }, [activeId]);
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setQ(""); setI(0); } }}>
       <DialogContent closeLabel={t.close} className="top-[18%] max-w-md translate-y-0 gap-3 rounded-[var(--fos-radius)] border-[var(--border)] bg-[var(--fos-panel)] p-4 shadow-[var(--fos-shadow-lg)]">
@@ -148,7 +155,7 @@ function Palette({ open, setOpen, items, lang, theme, setTheme }: { open: boolea
             else if (e.key === "Enter") { e.preventDefault(); go(found[i]); }
           }}
           className="min-h-11 w-full rounded-[10px] border border-[var(--fos-control)] bg-[var(--fos-panel-2)] px-3 text-[15px] text-[var(--foreground)] placeholder:text-[var(--muted)]" />
-        <ul id="fos-palette-list" role="listbox" aria-label={t.paletteTitle} className="grid gap-0.5">
+        <ul id="fos-palette-list" role="listbox" aria-label={t.paletteTitle} className="-mx-1 grid max-h-[min(28rem,calc(78dvh-7rem))] gap-0.5 overflow-y-auto overscroll-contain px-1">
           {found.length === 0 && <li role="presentation" className="px-3 py-3 text-[14px] text-[var(--muted)]">{t.noMatch}</li>}
           {found.map((x, n) => {
             const cmd = "theme" in x, Icon = cmd ? CMD_ICON[x.theme] : ICON[x.id], on = cmd && x.theme === theme;

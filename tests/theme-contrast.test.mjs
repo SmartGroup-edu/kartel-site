@@ -106,6 +106,20 @@ test("⌘K (bus 176 P2): «Тема: светлая / тёмная / как в �
   assert.deepEqual(searchSections(cmds, "темн").map((x) => x.label), ["Тема: тёмная"], "ё-insensitive");
 });
 
+test("QA 176 P2 (acceptor): the sidebar keeps the theme menu, the user's name and the ⌘K commands in view", () => {
+  const m = readFileSync("app/components/ThemeToggle.tsx", "utf8");
+  // "up": positioned against the user block and as wide as it, not a 224 px menu anchored to the button (clipped).
+  assert.match(m, /<div ref=\{wrap\} className=\{placement === "up" \? undefined : "relative"\}>/);
+  assert.match(m, /placement === "up" \? "inset-x-0 bottom-full mb-2" : "right-0 top-full mt-2 w-56"/);
+  const s = readFileSync("app/components/FamilyOsShell.tsx", "utf8");
+  assert.match(s, /<div data-me="" className="relative flex flex-wrap /);
+  assert.match(s, /<div className="min-w-0 flex-1 basis-\[140px\]">/);
+  assert.match(s, /<div className="ml-auto flex items-center gap-2">\s*<ThemeToggle placement="up"/);
+  // ⌘K: the list scrolls inside the dialog and follows the active row.
+  assert.match(s, /role="listbox"[^>]*max-h-\[min\(28rem,calc\(78dvh-7rem\)\)\][^>]*overflow-y-auto/);
+  assert.match(s, /scrollIntoView\(\{ block: "nearest" \}\)/);
+});
+
 test("print beats high contrast: the print block also targets the .hc selectors (same specificity, later in the file)", () => {
   const p = css.indexOf("@media print");
   assert.ok(p > css.indexOf(":root.dark.hc {"), "print comes after the HC blocks");

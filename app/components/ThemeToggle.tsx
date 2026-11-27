@@ -25,7 +25,9 @@ function Check({ on }: { on: boolean }) {
   );
 }
 
-/** `placement`: "up" opens the menu above the button (the Family OS sidebar keeps it at the bottom of the screen). */
+/** `placement`: "up" opens the menu above the button (the Family OS sidebar keeps it at the bottom of the screen). There
+ *  the menu is positioned against the nearest positioned ancestor (the user block, which is `relative`) and spans its
+ *  width: anchored to the button, a 224 px menu ran past the 248 px sidebar, whose overflow clipped it. */
 export default function ThemeToggle({ placement = "down", initial }: { placement?: "down" | "up"; initial?: Theme } = {}) {
   const { theme, resolved, setTheme, contrast, setContrast } = useTheme(initial);
   const t = L[useUiLang() === "ru" ? "ru" : "en"];
@@ -57,7 +59,7 @@ export default function ThemeToggle({ placement = "down", initial }: { placement
 
   const radios: [Theme, string][] = [["light", t.light], ["dark", t.dark], ["system", t.system]];
   return (
-    <div ref={wrap} className="relative">
+    <div ref={wrap} className={placement === "up" ? undefined : "relative"}>
       <button
         ref={btn}
         type="button"
@@ -95,7 +97,7 @@ export default function ThemeToggle({ placement = "down", initial }: { placement
           role="menu"
           aria-label={t.open}
           onKeyDown={onKey}
-          className={`absolute z-50 w-56 rounded-lg border ${placement === "up" ? "bottom-full left-0 mb-2" : "right-0 top-full mt-2"} border-[var(--border)] bg-[var(--background)] p-1 shadow-lg`}
+          className={`absolute z-50 rounded-lg border ${placement === "up" ? "inset-x-0 bottom-full mb-2" : "right-0 top-full mt-2 w-56"} border-[var(--border)] bg-[var(--background)] p-1 shadow-lg`}
         >
           {radios.map(([v, label]) => (
             <button key={v} type="button" role="menuitemradio" aria-checked={theme === v} tabIndex={-1} className={item} onClick={() => { setTheme(v); close(); }}>
