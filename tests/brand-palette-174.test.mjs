@@ -40,16 +40,17 @@ test("light: the brand values — cream page, ink text and primary fills, burgun
   for (const k of ["foreground", "text-body", "text-secondary", "text-nav", "muted", "accent"]) assert.notEqual(t[k], "#b08d57", k);
 });
 
-test("dark: warm charcoal page and panels, gold accent with dark text on gold fills", () => {
-  const t = block(":root.dark:not(.hc) [data-fos]");
-  assert.equal(t["fos-bg"], "#141210"); assert.equal(t["fos-panel"], "#1c1916");
-  assert.equal(t.accent, "#c9964e"); assert.equal(t["accent-hover"], "#daa85e");
-  assert.equal(t["fos-primary"], "#c9964e");
+test("dark (bus 176 P2): the heraldic mockup palette — #0a0908 page, warm panels, gold accent, wine soft fills, dark text on gold fills", () => {
+  const t = block(':root:not(.hc) [data-fos][data-theme="dark"]');
+  assert.equal(t["fos-bg"], "#0a0908"); assert.deepEqual([t["fos-panel"], t["fos-panel-2"]], ["#12100e", "#17130f"]);
+  assert.equal(t.foreground, "#f3ede4"); assert.equal(t.border, "#2b2520");
+  assert.equal(t.accent, "#e0b76e"); assert.equal(t["fos-primary"], "#c9964e"); assert.equal(t["fos-wine"], "#7b1e2d");
+  assert.match(css.slice(css.indexOf(':root:not(.hc) [data-fos][data-theme="dark"] {')), /--fos-primary-img: linear-gradient\(135deg, #9e7a3e 0%, #c9964e 22%, #f6dca0 42%/);
   for (const [fg, bg] of [["on-accent", "accent"], ["fos-on-primary", "fos-primary"], ["fos-on-accent-2", "fos-accent-2"]]) assert.ok(ratio(t[fg], t[bg]) >= 4.5, `${fg}/${bg}`);
 });
 
 test("no green as a brand colour: in the shell palettes only --ok / --ok-soft (status pills and checkmarks) may lean green, and they are olive", () => {
-  for (const sel of [":root:not(.hc) [data-fos]", ":root.dark:not(.hc) [data-fos]", ":root", ".dark", ":root.hc:not(.dark)", ":root.dark.hc"]) {
+  for (const sel of [":root:not(.hc) [data-fos]", ':root:not(.hc) [data-fos][data-theme="dark"]', ":root", ".dark", ":root.hc:not(.dark)", ":root.dark.hc"]) {
     const t = block(sel);
     for (const [k, v] of Object.entries(t)) if (!["ok", "ok-soft"].includes(k)) assert.ok(!isGreen(v), `${sel} --${k} ${v} is green`);
     for (const k of ["ok", "ok-soft"]) if (t[k]) assert.ok(hue(t[k]) === null || hue(t[k]) < 90, `${sel} --${k} ${t[k]} is olive, not green`);

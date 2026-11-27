@@ -5,16 +5,12 @@
 // (CrestNotFound) — dark heraldic page with the home and sign-in buttons.
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { Inter, Source_Serif_4 } from "next/font/google";
 import CrestNotFound from "./components/crest/CrestNotFound";
 import { notFoundText, type NotFoundLang } from "./content/notFound";
 import { crestFontFaces } from "./lib/crestFonts";
+import { themeBootScript } from "./lib/theme.mjs";
 import "./globals.css";
 
-// bus 176 P1: not preloaded — the public crest pages use Playfair Display + Manrope (preloaded per page), so these
-// cabinet faces must not compete with the crest for the first paint (LCP). They still load, with swap, where used.
-const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter", preload: false });
-const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif", preload: false });
 
 export const viewport: Viewport = { themeColor: "#0a0908", colorScheme: "dark" };
 
@@ -29,11 +25,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GlobalNotFound() {
   const lang = await locale();
   return (
-    <html lang={lang} className={`${sans.variable} ${serif.variable} h-full antialiased`}>
+    <html lang={lang} className="h-full antialiased">
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var c=localStorage.getItem('kartel-contrast');if(c==='high'||(c!=='normal'&&matchMedia('(prefers-contrast: more)').matches))document.documentElement.classList.add('hc');var t=localStorage.getItem('kartel-theme');if(t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})()`,
+            __html: themeBootScript(false),
           }}
         />
         <style dangerouslySetInnerHTML={{ __html: crestFontFaces(lang) }} />

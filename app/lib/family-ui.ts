@@ -16,7 +16,8 @@ export const OS_H3 = "font-serif text-[18px] leading-[1.25] text-[var(--foregrou
 export const CARD_LABEL = "text-[14px] font-medium text-[var(--muted)]";
 
 const BTN = "inline-flex min-h-11 items-center justify-center rounded-md px-4 text-[15px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60";
-export const BTN_PRIMARY = `${BTN} bg-[var(--fos-primary)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]`;
+// bus 176 P2: in the dark cabinet the fill is metal gold (--fos-primary-img); elsewhere the token is none or unset.
+export const BTN_PRIMARY = `${BTN} bg-[var(--fos-primary)] bg-[image:var(--fos-primary-img)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)] hover:bg-none`;
 export const BTN_SECONDARY = `${BTN} border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 export const BTN_DANGER = `${BTN} border border-[var(--destructive)] bg-[var(--background)] text-[var(--destructive)] hover:underline hover:underline-offset-4`;
 /**

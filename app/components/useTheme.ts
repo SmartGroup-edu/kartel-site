@@ -1,53 +1,40 @@
 "use client";
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { CONTRAST_COOKIE, THEME_COLOR, THEME_COOKIE, parseContrast, parseTheme, themeCookie } from "../lib/theme.mjs";
 
 export type Theme = "light" | "dark" | "system";
 
 export type Contrast = "normal" | "high";
 
 const THEME_EVENT = "kartel-theme-change";
-const CONTRAST_KEY = "kartel-contrast";
+
+// bus 176 P2: both choices are cookies (app/lib/theme.mjs), so the server can render the cabinet in the chosen theme.
+function readCookie(name: string): string | null {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return m ? m[1] : null;
+}
+function writeCookie(name: string, value: string) {
+  document.cookie = themeCookie(name, value, location.protocol === "https:");
+}
 
 function applyTheme(resolved: "light" | "dark") {
-  const root = document.documentElement;
-  if (resolved === "dark") {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) {
-    meta.setAttribute("content", resolved === "dark" ? "#1a1816" : "#ffffff");
-  }
+  document.documentElement.classList.toggle("dark", resolved === "dark");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[resolved]);
 }
 
 function subscribeTheme(callback: () => void) {
   window.addEventListener(THEME_EVENT, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(THEME_EVENT, callback);
-    window.removeEventListener("storage", callback);
-  };
+  return () => window.removeEventListener(THEME_EVENT, callback);
 }
 
 function getThemeSnapshot(): Theme {
-  try {
-    const stored = localStorage.getItem("kartel-theme");
-    if (stored === "light" || stored === "dark" || stored === "system") return stored;
-  } catch {}
-  return "system";
+  return parseTheme(readCookie(THEME_COOKIE));
 }
 
-const getThemeServerSnapshot = (): Theme => "system";
-
-/** «Высокий контраст» (bus 84/97): per device. Without a stored choice, follow the OS `prefers-contrast: more`. */
+/** «Высокий контраст» (bus 84/97): without a stored choice, follow the OS `prefers-contrast: more`. */
 function getContrastSnapshot(): Contrast {
-  try {
-    const stored = localStorage.getItem(CONTRAST_KEY);
-    if (stored === "high" || stored === "normal") return stored;
-  } catch {}
-  return window.matchMedia("(prefers-contrast: more)").matches ? "high" : "normal";
+  return parseContrast(readCookie(CONTRAST_COOKIE)) ?? (window.matchMedia("(prefers-contrast: more)").matches ? "high" : "normal");
 }
 const getContrastServerSnapshot = (): Contrast => "normal";
 
@@ -67,12 +54,9 @@ function getSystemSnapshot(): "light" | "dark" {
 
 const getSystemServerSnapshot = (): "light" | "dark" => "light";
 
-export function useTheme() {
-  const theme = useSyncExternalStore(
-    subscribeTheme,
-    getThemeSnapshot,
-    getThemeServerSnapshot
-  );
+/** `initial`: the theme the server rendered with (the cookie it read), so hydration agrees with the server HTML. */
+export function useTheme(initial: Theme = "system") {
+  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, () => initial);
   const system = useSyncExternalStore(
     subscribeSystem,
     getSystemSnapshot,
@@ -89,12 +73,12 @@ export function useTheme() {
   }, [contrast]);
 
   const setTheme = useCallback((t: Theme) => {
-    try { localStorage.setItem("kartel-theme", t); } catch {}
+    writeCookie(THEME_COOKIE, t);
     window.dispatchEvent(new Event(THEME_EVENT));
   }, []);
 
   const setContrast = useCallback((c: Contrast) => {
-    try { localStorage.setItem(CONTRAST_KEY, c); } catch {}
+    writeCookie(CONTRAST_COOKIE, c);
     window.dispatchEvent(new Event(THEME_EVENT));
   }, []);
 
