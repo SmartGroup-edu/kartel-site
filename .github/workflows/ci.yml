@@ -106,6 +106,7 @@ jobs:
           node tests/e2e/family-ended.e2e.mjs
           node tests/e2e/family-os-calls.e2e.mjs
           node tests/e2e/family-signin-code.e2e.mjs
+          node tests/e2e/family-guest.e2e.mjs
 
   family-os-postgres:
     # schema.sql re-applied to a populated database, then a runner tick (QA-156 C1).

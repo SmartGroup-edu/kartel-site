@@ -12,13 +12,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookMarked, Briefcase, CalendarDays, Check, ClipboardCheck, FileText, Landmark, Lock, LogOut, Menu, Monitor, Moon, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
+import { BookMarked, Briefcase, CalendarDays, Check, ClipboardCheck, Eye, FileText, Landmark, Lock, LogOut, Menu, Monitor, Moon, PenLine, Scale, Search, SquareCheckBig, Sun, Users, type LucideIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import ThemeToggle from "./ThemeToggle";
 import { useTheme, type Theme } from "./useTheme";
 import SkipToContent from "./SkipToContent";
 import { useLangToggle } from "./useLang";
 import { osShellNav, activeOsSection, searchSections } from "../lib/family-os-shell.mjs";
+import { guestBarText, guestHome } from "../lib/family-guest.mjs";
 import { tx } from "../lib/typograph.mjs";
 
 type Lang = "EN" | "RU";
@@ -26,9 +27,10 @@ type SectionId = "today" | "board" | "calendar" | "council" | "review" | "compan
 type Item = { id: SectionId; href: string; label: string; badge?: number };
 /** A ⌘K command (not a section): sets the theme. */
 type Cmd = { id: `theme-${Theme}`; label: string; theme: Theme };
-export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean; child?: boolean };
+/** `guest` (bus 176 P4): a read-only guest — only their sections, the blue «Только чтение · доступ до …» bar. */
+export type OsShellNav = { admin: boolean; editor: boolean; os: boolean; member: boolean; child?: boolean; guest?: { sections: string[]; until: string } | null };
 /** `id`: the viewer's own person page (their keys and letters) — the name in the user block opens it. */
-export type OsShellMe = { name: string | null; id?: string | null; role: "owner" | "editor" | "member" | "child" };
+export type OsShellMe = { name: string | null; id?: string | null; role: "owner" | "editor" | "member" | "child" | "guest" };
 
 const ICON: Record<SectionId, LucideIcon> = {
   today: Sun, board: SquareCheckBig, calendar: CalendarDays, council: Scale, review: ClipboardCheck, companies: Briefcase, registry: BookMarked, people: Users, kodeks: FileText,
@@ -42,7 +44,7 @@ const T = {
     commands: "Команды", current: "выбрана",
     theme: { light: "Тема: светлая", dark: "Тема: тёмная", system: "Тема: как в системе" },
     close: "Закрыть", signOut: "Выйти", lang: "EN — переключить язык на английский", langShort: "EN",
-    role: { owner: "Владелец", editor: "Редактор", member: "Член семьи", child: "Ребёнок" }, badge: (n: number) => `открытых задач: ${n}`,
+    role: { owner: "Владелец", editor: "Редактор", member: "Член семьи", child: "Ребёнок", guest: "Гость · только чтение" }, badge: (n: number) => `открытых задач: ${n}`,
     myPage: (n: string) => `${n} — моя страница`,
   },
   EN: {
@@ -51,7 +53,7 @@ const T = {
     commands: "Commands", current: "current",
     theme: { light: "Theme: light", dark: "Theme: dark", system: "Theme: match system" },
     close: "Close", signOut: "Sign out", lang: "RU — switch language to Russian", langShort: "RU",
-    role: { owner: "Owner", editor: "Editor", member: "Family member", child: "Child" }, badge: (n: number) => `open tasks: ${n}`,
+    role: { owner: "Owner", editor: "Editor", member: "Family member", child: "Child", guest: "Guest · read only" }, badge: (n: number) => `open tasks: ${n}`,
     myPage: (n: string) => `${n} — my page`,
   },
 } as const;
@@ -179,7 +181,7 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
   const { theme, setTheme } = useTheme(serverTheme);
   const pathname = usePathname() ?? "";
   const active = activeOsSection(pathname) as SectionId | null;
-  const { groups, tabs, label, tabsLabel } = useMemo(() => osShellNav({ lang, ...nav, badges }), [lang, nav, badges]);
+  const { groups, tabs, label, tabsLabel } = useMemo(() => osShellNav({ lang, ...nav, badges, guest: nav.guest?.sections ?? null }), [lang, nav, badges]);
   const all = useMemo(() => groups.flatMap((g) => g.items as Item[]), [groups]);
   const [palette, setPalette] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -188,7 +190,7 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
   const opener = useRef<HTMLElement | null>(null);
   const remember = () => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; };
   const giveBack = (e: Event) => { const el = opener.current; if (el?.isConnected && el !== document.body) { e.preventDefault(); el.focus(); } };
-  const home = `/${lang === "EN" ? "en" : "ru"}/family/os`;
+  const home = nav.guest ? guestHome(lang, nav.guest.sections) : `/${lang === "EN" ? "en" : "ru"}/family/os`;
 
   // Dialogs render in a portal under <body>: the Family OS tokens must reach them too, so <body> carries the scope
   // while a Family OS page is open.
@@ -237,6 +239,11 @@ export default function FamilyOsShell({ lang, nav, badges, me, theme: serverThem
             </button>
           </header>
           <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[1280px] px-4 pb-28 pt-5 outline-none min-[640px]:px-5 min-[900px]:px-10 min-[900px]:pb-16 min-[900px]:pt-7 print:p-0">
+            {nav.guest && (
+              <p role="note" data-guest-bar="" className="mb-5 flex items-center gap-2 rounded-[10px] bg-[var(--fos-blue-soft)] px-3.5 py-2.5 text-[13px] font-semibold text-[var(--fos-blue)]">
+                <Eye aria-hidden="true" className="h-4 w-4 flex-none" strokeWidth={2} />{guestBarText(nav.guest.until, lang)}
+              </p>
+            )}
             {children}
           </main>
         </div>

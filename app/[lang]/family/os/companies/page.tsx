@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, guestMay } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState } from "@/app/lib/family-os";
 import { companyCards, mergeCards, privateCompanyCards } from "@/app/lib/family-companies.mjs";
@@ -30,11 +30,12 @@ export default async function FamilyCompaniesPage({ params }: { params: Promise<
   if (lang !== "en" && lang !== "ru") notFound();
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
-  if (decision !== "allow" || !session) notFound();
+  // bus 176 P4: a guest whose sections include «Компании и проекты» reads the cards (site data; the edge logged the view).
+  if (!session || !(decision === "allow" || (decision === "guest" && guestMay(session, "companies")))) notFound();
   const L = lang === "ru" ? "RU" : "EN";
   const state = await getOsState(session);
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.companies[L]} />;
-  if (!state.me && !state.admin) notFound();
+  if (!state.me && !state.admin && !session.guest) notFound();
   childHome(lang, state.me);
   return <FamilyCompanies lang={L} cards={mergeCards(companyCards(registry), privateCompanyCards(PRIVATE_COMPANIES)) as CompanyCard[]} registry={{ version: registry.version, updated: registry.updated }} />;
 }

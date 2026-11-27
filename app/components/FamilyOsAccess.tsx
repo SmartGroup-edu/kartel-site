@@ -19,6 +19,8 @@ import FamilyRules from "./FamilyRules";
 import FamilyAdoption from "./FamilyAdoption";
 import FamilyPasskeys from "./FamilyPasskeys";
 import { addedSensitive, confirmGrantText } from "../lib/family-access.mjs";
+import FamilyOsGuests from "./FamilyOsGuests";
+import type { OsGuests } from "../lib/family-os";
 
 type Lang = "EN" | "RU";
 const SCOPES: OsScope[] = ["routines", "health", "education", "documents"];
@@ -27,7 +29,7 @@ const T = {
     title: "Access and security", jump: "On this page", rulesTab: "Rules", withUs: "Who is with us", intro: "Who sees what, and how everyone signs in.",
     roles: "Roles", roleName: { owner: "owner", editor: "heritage editor", member: "family member", child: "child" } as Record<string, string>,
     sees: { owner: "Everything, including access and security", editor: "Like a family member, plus the heritage editor — every change waits for the owner", parent: "Today, tasks, calendar, decisions, people, documents; decides the children's queue and approves the plan", relative: (x: string) => `Today, tasks, calendar, decisions, people, documents; for ${x}`, adult: "Today, tasks, calendar, decisions, people, documents and rules", child: "My day and the calendar" } as const,
-    noGuest: "There is no guest role: everyone here is an adult or a child of the family.",
+    noGuest: "Guests read only the sections you open, until a date you set: see «Guests» below.", guests: "Guests",
     signin: "Sign-in and protection", readOnly: "Read only: these are set when the site is deployed.",
     pkOn: "Passkey (Face ID / Touch ID)", pkOnHint: (n: number | null, of: number | null) => (n !== null && of !== null ? `The main way in · ${n} of ${of} have one` : "The main way in"), pkOffHint: "Not switched on yet",
     code: "A letter with a link and a 6-digit code", codeHint: "The fallback, always on", on: "on", off: "off",
@@ -43,7 +45,7 @@ const T = {
     title: "Доступ и безопасность", jump: "На этой странице", rulesTab: "Правила", withUs: "Кто уже с нами", intro: "Кто что видит и как входит.",
     roles: "Роли", roleName: { owner: "владелец", editor: "редактор наследия", member: "член семьи", child: "ребёнок" } as Record<string, string>,
     sees: { owner: "Всё, включая доступ и безопасность", editor: "Как член семьи, плюс редактор наследия — каждая правка ждёт владельца", parent: "Сегодня, задачи, календарь, решения, люди, документы; решает очередь детей и утверждает план", relative: (x: string) => `Сегодня, задачи, календарь, решения, люди, документы; доступ: ${x}`, adult: "Сегодня, задачи, календарь, решения, люди, документы и правила", child: "Мой день и календарь" } as const,
-    noGuest: "Роли «гость» нет: каждый здесь — взрослый или ребёнок семьи.",
+    noGuest: "Гость читает только открытые тобой разделы и только до выбранной даты: ниже, в «Гости».", guests: "Гости",
     signin: "Вход и защита", readOnly: "Только просмотр: это настраивается при выпуске сайта.",
     pkOn: "Ключ доступа (Face ID / Touch ID)", pkOnHint: (n: number | null, of: number | null) => (n !== null && of !== null ? `Основной способ входа · есть у ${n} из ${of}` : "Основной способ входа"), pkOffHint: "Пока не включён",
     code: "Письмо со ссылкой и 6-значным кодом", codeHint: "Запасной способ, включён всегда", on: "вкл.", off: "выкл.",
@@ -81,7 +83,7 @@ function useSave(t: Dict) {
 export type RoleRow = { id: string; name: string; role: "owner" | "editor" | "member" | "child"; rel: "parent" | "relative" | "adult" | "child"; sees: { child: string; scopes: OsScope[] }[] };
 export type SigninSummary = { passkeys: boolean; withKey: number | null; of: number | null; last: { name: string; on: string } | null; never: number | null };
 
-export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, roles = [], signin = null }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null; roles?: RoleRow[]; signin?: SigninSummary | null }) {
+export default function FamilyOsAccess({ lang, people, grants, rules = null, adoption = null, ownKeys = null, roles = [], signin = null, guests }: { lang: Lang; people: OsPerson[]; grants: OsGrant[]; rules?: OsRule[] | null; adoption?: OsAdoption | null; ownKeys?: { canAdd: boolean } | null; roles?: RoleRow[]; signin?: SigninSummary | null; guests?: OsGuests | null }) {
   const t = tx(T, lang);
   const nameOf = (p: OsPerson) => (lang === "EN" ? p.name_en : p.name_ru);
   const sorted = [...people].sort((a, b) => a.kind.localeCompare(b.kind) || nameOf(a).localeCompare(nameOf(b), lang === "EN" ? "en" : "ru"));
@@ -95,7 +97,7 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
           <Overview t={t} lang={lang} roles={roles} signin={signin} />
           <div className="max-w-4xl">
           {/* bus 78 #5: one tap to each part of a long page (the same index as the person page, bus 157b D6) */}
-          <FamilyJumpNav kind="access" label={t.jump} items={[...(adoption ? [["#with-us", t.withUs] as [string, string]] : []), ["#people", t.people], ["#grants", t.grants], ...(rules ? [["#rules", t.rulesTab] as [string, string]] : [])]} />
+          <FamilyJumpNav kind="access" label={t.jump} items={[...(adoption ? [["#with-us", t.withUs] as [string, string]] : []), ["#people", t.people], ["#grants", t.grants], ...(guests !== undefined ? [["#guests", t.guests] as [string, string]] : []), ...(rules ? [["#rules", t.rulesTab] as [string, string]] : [])]} />
 
           {adoption && <FamilyAdoption lang={lang} data={adoption} />}
           {/* the owner who is not a person row: their own passkeys live here (bus 98/100) */}
@@ -130,6 +132,8 @@ export default function FamilyOsAccess({ lang, people, grants, rules = null, ado
               </div>
             ))}
           </section>
+
+          {guests !== undefined && <FamilyOsGuests lang={lang} data={guests} />}
 
           {rules && <FamilyRules lang={lang} rules={rules} />}
           </div>

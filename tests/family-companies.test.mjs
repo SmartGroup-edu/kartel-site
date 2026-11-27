@@ -52,7 +52,9 @@ test("the page: server-side registry, no sparkline, no mockup companies or figur
   // bus 176 P3: the company names live in the server-only data file, never in the component
   for (const w of ["Craft Resin", "Eco Lock", "+12%", "заказов", "участник", "релиз"]) assert.ok(!c.includes(w), w);
   const p = src("app/[lang]/family/os/companies/page.tsx");
-  assert.match(p, /if \(!state\.me && !state\.admin\) notFound\(\);\n  childHome\(lang, state\.me\);/);
+  assert.match(p, /if \(!state\.me && !state\.admin && !session\.guest\) notFound\(\);\n  childHome\(lang, state\.me\);/);
+  // bus 176 P4: a read-only guest only when «Компании и проекты» is one of their sections
+  assert.match(p, /decision === "guest" && guestMay\(session, "companies"\)/);
   assert.match(p, /mergeCards\(companyCards\(registry\), privateCompanyCards\(PRIVATE_COMPANIES\)\)/);
   assert.doesNotMatch(p, /getBoard|getCalendar|getCouncil|getSprint/, "no Family OS data of its own");
 });

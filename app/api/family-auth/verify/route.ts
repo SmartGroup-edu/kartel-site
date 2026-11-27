@@ -1,7 +1,8 @@
 import { NextResponse, after } from "next/server";
 import { decodeJwt } from "jose";
 import { checkSignInLink, readSignInNonce, clearSignInNonce, createSession } from "@/app/lib/family-auth";
-import { isViewerApproved } from "@/app/lib/family-access";
+import { signInAs } from "@/app/lib/family-access";
+import { guestSignedIn } from "@/app/lib/family-guest.mjs";
 import { familyEnv } from "@/app/lib/family-env";
 import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 import { noteSignIn } from "@/app/lib/family-os";
@@ -61,7 +62,8 @@ export async function GET(request: Request): Promise<Response> {
   const lang = langOf(claims.returnTo);
 
   // Re-check at consumption time, not only at issue time.
-  if (!(await isViewerApproved(claims.email, claims.email))) return fail(lang);
+  const as = await signInAs(claims.email);
+  if (!as) return fail(lang);
 
   // Single use (bus 165). Family OS not answering, or a request it never recorded, leaves the link working as
   // before — the cookie and the signed token are still both required.
@@ -74,7 +76,8 @@ export async function GET(request: Request): Promise<Response> {
   await createSession({ email: claims.email, name: null });
   await clearSignInNonce();
   // «Кто уже с нами» (bus 97 item 3): the sign-in DATE, after the response, so it never slows or blocks sign-in.
-  after(() => noteSignIn(claims.email));
+  // bus 176 P4: a guest's sign-in goes to the guest log instead (who and when).
+  after(() => (as === "guest" ? guestSignedIn(claims.email) : noteSignIn(claims.email)));
 
   return NextResponse.redirect(new URL(safeReturnTo(claims.returnTo), url.origin));
 }
@@ -108,10 +111,11 @@ export async function POST(request: Request): Promise<Response> {
   if (r.status !== 200 || !r.state) { console.error("[family-auth/verify] code unavailable"); return cjson(503, { error: "unavailable" }); }
   console.info(`[family-auth/verify] code ${r.state}`);
 
-  if (r.state === "ok" && r.email && (await isViewerApproved(r.email, r.email))) {
+  const as = r.state === "ok" && r.email ? await signInAs(r.email) : null;
+  if (as && r.email) {
     await createSession({ email: r.email, name: null });
     await clearSignInNonce();
-    after(() => noteSignIn(r.email!));
+    after(() => (as === "guest" ? guestSignedIn(r.email!) : noteSignIn(r.email!)));
     return cjson(200, { ok: true, returnTo });
   }
   const error = r.state === "wrong" || r.state === "locked" || r.state === "superseded" || r.state === "expired" || r.state === "used" ? r.state : "invalid";

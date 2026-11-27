@@ -37,7 +37,12 @@ export type FamilySession = {
   /** How this session was minted (bus 100 (a)): "link" = email link, "pk" = passkey. Older tokens: "link". */
   amr: "link" | "pk";
   issuedAt: Date;
+  /** bus 176 P4: set by familyGateDecision when this address is a read-only guest (never read from the cookie). */
+  guest?: FamilyGuest;
 };
+
+/** A read-only guest's grant, as Family OS reports it (no address, no inviter). `until` is inclusive. */
+export type FamilyGuest = { id: string; label: string; sections: ("calendar" | "kodeks" | "companies" | "review")[]; until: string };
 
 // ── Session ────────────────────────────────────────────────────────────────
 

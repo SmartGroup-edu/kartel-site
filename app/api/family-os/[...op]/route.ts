@@ -10,6 +10,7 @@ import { destroySession } from "@/app/lib/family-auth";
 import { endedHref } from "@/app/lib/family-ended";
 import { signMediaRequest } from "@/app/lib/media-signature.mjs";
 import { childBoardView, childMayOpen } from "@/app/lib/family-kanban.mjs";
+import { accessListState } from "@/app/lib/family-access";
 
 export const dynamic = "force-dynamic";
 const ID = "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
@@ -66,6 +67,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ op: stri
   // bus 172 P4: the first-login tour loads the viewer's own letter settings here (the service allows only self or a parent).
   if (new RegExp(`^/people/${ID}/prefs$`).test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(health|evening)$/.test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
+  // bus 176 P4: a guest's log for the owner (the service refuses anyone else) — JSON only.
+  if (new RegExp(`^/guests/${ID}/log$`).test(path)) { const r = await forward("GET", path, g); return json(r.status, await r.json().catch(() => ({}))); }
   if (/^\/(board|my-tasks|plan|sprint)$/.test(path)) {
     const q = new URL(req.url).searchParams, d = q.get("date") ?? q.get("week");
     const key = q.has("week") ? "week" : "date";
@@ -113,7 +116,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ op: str
     const r = await forward("POST", path, g, buf, { "x-file-name": name });
     return json(r.status, await r.json().catch(() => ({})));
   }
-  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|pause|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all|onboarding|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g);
+  // bus 176 P4: inviting a guest — an address on the family list is a member, never a guest (the list wins at sign-in,
+  // so such a grant could never be used). Family OS checks its own people; the list lives here.
+  if (path === "/guests") {
+    const text = await req.text();
+    if (text.length > 16 * 1024) return json(413, { error: "too_large" });
+    const email = (() => { try { const b = JSON.parse(text) as { email?: unknown }; return typeof b.email === "string" ? b.email : ""; } catch { return ""; } })();
+    // Only for the owner: anyone else is refused by the service, and must not learn who is on the list from a 409.
+    if (g.actor.startsWith("admin:") && email && (await accessListState(email)) === "listed") return json(409, { error: "is_member" });
+    const r = await forward("POST", path, g, text, { "content-type": "application/json" });
+    return ended(r.status, await r.json().catch(() => ({})));
+  }
+  if (new RegExp(`^/(people/${ID}/(documents|routines|pauses|goals|notes|ics)|guests/${ID}/revoke|documents/${ID}/(reveal|copied)|(routines|rotations)/${ID}/check|people|grants|rotations|events|council/\\d{4}-\\d{2}-\\d{2}/tasks|goals/${ID}/checkins|tasks/accept-all|tasks/${ID}/(accept|decline|start|pause|done|continue|review|rework|reassign|cancel|carry)|plan/\\d{4}-\\d{2}-\\d{2}/(build|tasks)|templates|templates/activate|sprint/goals|sprint/goals/${ID}/tasks|kodeks|recognitions|people/${ID}/invite|passkeys/${ID}/(revoke|clear-flag)|people/${ID}/end-sessions|sessions/end-all|onboarding|health/tick)$`).test(path)) return forwardJson(req, "POST", path, g);
   return json(404, { error: "not_found" });
 }
 

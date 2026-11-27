@@ -19,17 +19,21 @@ export type OsState =
   | { status: "error" }
   /** QA-158 N2: the service answered 429 — it is up, the family's read budget is spent for now. */
   | { status: "busy" }
-  /** `onboarded` (bus 172 P4): has this member finished the first-login tour? undefined = a service from before P4. */
-  | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[]; onboarded?: boolean };
+  /** `onboarded` (bus 172 P4): has this member finished the first-login tour? undefined = a service from before P4.
+   *  `guest` (bus 176 P4): the viewer is a read-only guest — `me` is null, `people` and `grants` are empty. */
+  | { status: "ok"; admin: boolean; me: Omit<OsPerson, "email"> | null; people: OsPerson[]; grants: OsGrant[]; onboarded?: boolean; guest?: OsGuest };
+export type OsGuest = { id: string; label: string; sections: ("calendar" | "kodeks" | "companies" | "review")[]; until: string };
 
-/** The signed-in viewer. `issuedAt` travels as `sat` on every call (QA-156 H1); missing = 0 = refused after a cut-off. */
-export type OsViewer = { email?: string | null; cpifSubjectId: string; issuedAt?: Date | null };
+/** The signed-in viewer. `issuedAt` travels as `sat` on every call (QA-156 H1); missing = 0 = refused after a cut-off.
+ *  `guest` (bus 176 P4): set by familyGateDecision for a read-only guest; the actor is then "guest:<grant id>". */
+export type OsViewer = { email?: string | null; cpifSubjectId: string; issuedAt?: Date | null; guest?: { id: string } };
 
 export function osEnabled(): boolean {
   return Boolean(process.env.FAMILY_OS_URL && process.env.FAMILY_OS_SECRET);
 }
 
 export function osActor(session: OsViewer): string {
+  if (session.guest) return `guest:${session.guest.id}`;
   const email = (session.email ?? session.cpifSubjectId).toLowerCase();
   return `${isFamilyAdmin(session.cpifSubjectId) ? "admin" : "member"}:${email}`;
 }
@@ -78,7 +82,9 @@ export async function getOsState(session: OsViewer): Promise<OsState> {
   try {
     const meRes = await osGet(withSat("/me", session), actor);
     if (!meRes.ok) return { status: meRes.status === 429 ? "busy" : "error" };
-    const { me, admin, onboarded } = meRes.json as { me: OsPerson | null; admin: boolean; onboarded?: unknown };
+    const { me, admin, onboarded, guest } = meRes.json as { me: OsPerson | null; admin: boolean; onboarded?: unknown; guest?: OsGuest };
+    // bus 176 P4: a guest is never a person — no /people read (the service refuses it anyway).
+    if (session.guest) return { status: "ok", admin: false, me: null, people: [], grants: [], ...(guest ? { guest } : {}) };
     if (!me && !admin) return { status: "ok", admin, me: null, people: [], grants: [] };
     const pRes = await osGet(withSat("/people", session), actor);
     if (!pRes.ok) return { status: pRes.status === 429 ? "busy" : "error" };
@@ -264,6 +270,18 @@ export async function getAdoption(session: OsViewer): Promise<OsAdoption | null>
   if (!osEnabled()) return null;
   try { return await getJson<OsAdoption>("/adoption", session); } catch { return null; }
 }
+// ---- bus 176 P4: read-only guests (the owner's list in «Доступ и безопасность») ----------------------------------
+export type OsGuestRow = OsGuest & {
+  email: string; active: boolean; created_at: string | null; revoked_at: string | null;
+  last_signin: string | null; last_read: string | null; reads_30d: number;
+};
+export type OsGuests = { today: string; guests: OsGuestRow[] };
+/** null = not the owner, or a service from before P4 / down (the page then says the list cannot be read). */
+export async function getGuests(session: OsViewer): Promise<OsGuests | null> {
+  if (!osEnabled()) return null;
+  try { return await getJson<OsGuests>("/guests", session); } catch { return null; }
+}
+
 /** After a completed sign-in: record the DATE (first/last) for «Кто уже с нами». Never blocks sign-in. */
 export async function noteSignIn(email: string): Promise<void> {
   if (!osEnabled()) return;
