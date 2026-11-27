@@ -101,7 +101,7 @@ const block = (sel) => {
   return Object.fromEntries([...body.matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\b/gi)].map((m) => [m[1], m[2].toLowerCase()]));
 };
 
-for (const [sel, name] of [[":root:not(.hc) [data-fos]", "light"], [":root.dark:not(.hc) [data-fos]", "dark"]]) {
+for (const [sel, name] of [[":root:not(.hc) [data-fos]", "light"], [':root:not(.hc) [data-fos][data-theme="dark"]', "dark"]]) {
   test(`Family OS palette (${name}): text ≥ 4.5:1 (AA) on the page, panels and soft fills; controls ≥ 3:1`, () => {
     const t = block(sel);
     const fails = [];
@@ -119,8 +119,10 @@ for (const [sel, name] of [[":root:not(.hc) [data-fos]", "light"], [":root.dark:
   });
 }
 
-test("Family OS palette: radii 14/16, the display serif re-pointed for headings, high contrast keeps its AAA tokens", () => {
-  assert.match(css, /\[data-fos\] \{\s*--radius: 14px;\s*--fos-radius: 16px;\s*--font-source-serif: ui-serif, "New York", "Iowan Old Style", Georgia;/);
+test("Family OS palette: radii 14/16, Playfair + Manrope (text 350, lead 300), high contrast keeps its AAA tokens", () => {
+  assert.match(css, /\[data-fos\] \{\s*--radius: 14px;\s*--fos-radius: 16px;\s*font-weight: 350;\s*\}/);
+  assert.match(css, /\[data-fos\] h1 \+ p:not\(\[role\]\) \{\s*font-weight: 300;/);
+  assert.match(css, /--font-serif: "Playfair Display", Georgia/); assert.match(css, /--font-sans: "Manrope", /);
   const hc = css.slice(css.indexOf(":root.hc [data-fos] {"), css.indexOf("}", css.indexOf(":root.hc [data-fos] {")));
   assert.doesNotMatch(hc, /--(foreground|accent|muted|background|border):/, "HC text tokens are not overridden");
 });

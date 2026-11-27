@@ -3,16 +3,12 @@ import { latinMotto } from "../lib/latin";
 import { ogAlt, ogImagePath } from "../lib/ogCard";
 import { notFound } from "next/navigation";
 import LateVitals from "../components/LateVitals";
-import { Inter, Source_Serif_4 } from "next/font/google";
 import { crestFontFaces } from "../lib/crestFonts";
+import { THEME_COLOR, themeBootScript } from "../lib/theme.mjs";
 import "../crest-base.css";
 
-// Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
-// Both cover Cyrillic, so EN and RU render in the same faces on every OS.
-// bus 176 P1: not preloaded — the public crest pages use Playfair Display + Manrope (preloaded per page), so these
-// cabinet faces must not compete with the crest for the first paint (LCP). They still load, with swap, where used.
-const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter", preload: false });
-const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif", preload: false });
+// bus 176 P2: no next/font faces any more — the cabinet uses the same self-hosted Playfair Display + Manrope as the crest
+// pages (app/lib/crestFonts.ts; Latin + Cyrillic; CSP font-src 'self' holds).
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
@@ -56,11 +52,11 @@ export async function generateStaticParams() {
 
 // Next 16 split viewport (incl. themeColor) out of metadata. Static across
 // locales; media-aware so the SSR theme-color matches prefers-color-scheme
-// (the inline head script additionally honours the manual localStorage toggle).
+// (the inline head script additionally honours the theme cookie, bus 176 P2).
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a1816" },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
   ],
   width: "device-width",
   initialScale: 1,
@@ -153,11 +149,11 @@ export default async function RootLayout({
   const ns = noscriptContent[lang as Locale];
 
   return (
-    <html lang={lang} className={`${sans.variable} ${serif.variable} h-full antialiased scroll-smooth`}>
+    <html lang={lang} className="h-full antialiased scroll-smooth">
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var c=localStorage.getItem('kartel-contrast');if(c==='high'||(c!=='normal'&&matchMedia('(prefers-contrast: more)').matches))document.documentElement.classList.add('hc');var t=localStorage.getItem('kartel-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark');var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#1a1816':'#ffffff')}catch(e){}})()`,
+            __html: themeBootScript(),
           }}
         />
         {/* The crest faces, declared for this language (bus 176 P1b) — see app/lib/crestFonts.ts. */}

@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { familyGateDecision, familyRole } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
@@ -5,12 +6,14 @@ import { getOsState, getMyBoard } from "@/app/lib/family-os";
 import { osDownNav } from "@/app/lib/family-os-down";
 import { openTaskCount } from "@/app/lib/family-os-shell.mjs";
 import FamilyOsShell, { type OsShellMe, type OsShellNav } from "@/app/components/FamilyOsShell";
+import { THEME_COOKIE, parseTheme } from "@/app/lib/theme.mjs";
 
 /**
  * The Family OS shell around every /[lang]/family/os/* page (bus 171). Same gate as each page (the page still guards
  * itself); the gate answer and every Family OS read are shared with the page through React `cache` for this one
  * request, so the shell adds at most one read (/my-tasks, for the «Задачи» badge) on pages that do not already ask it.
  * Which sections exist is decided here, on the server, from the same rules as before (owner, editor, member).
+ * bus 176 P2: the theme cookie is read here too, so the shell is rendered in the chosen theme (no flash, no script).
  */
 export const dynamic = "force-dynamic";
 
@@ -38,5 +41,6 @@ export default async function FamilyOsLayout({ children, params }: { children: R
     };
     if (state.me) board = openTaskCount(await getMyBoard(session));
   }
-  return <FamilyOsShell lang={L} nav={nav} badges={{ board }} me={me}>{children}</FamilyOsShell>;
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  return <FamilyOsShell lang={L} nav={nav} badges={{ board }} me={me} theme={theme}>{children}</FamilyOsShell>;
 }

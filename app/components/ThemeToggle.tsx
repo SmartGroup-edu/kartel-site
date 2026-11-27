@@ -1,14 +1,15 @@
 "use client";
 
-// Theme menu (bus 84/97 item 2): Светлая / Тёмная / Системная + «Высокий контраст» (AAA tokens).
-// Both choices are stored per device (localStorage), applied before paint by the boot script in the layout.
+// Theme menu (bus 84/97 item 2; bus 176 P2): Светлая / Тёмная / Как в системе + «Высокий контраст» (AAA tokens).
+// Both choices are stored per browser in cookies (app/lib/theme.mjs), applied before paint by the boot script in the
+// layout and, in the Family OS, already in the server HTML.
 import { useEffect, useId, useRef, useState } from "react";
 import { useTheme, type Theme } from "./useTheme";
 import { useUiLang } from "./useLang";
 
 const L = {
-  ru: { on: "включён высокий контраст", open: "Тема оформления", light: "Светлая", dark: "Тёмная", system: "Системная", hc: "Высокий контраст" },
-  en: { on: "high contrast on", open: "Appearance", light: "Light", dark: "Dark", system: "System", hc: "High contrast" },
+  ru: { on: "включён высокий контраст", open: "Тема оформления", light: "Светлая", dark: "Тёмная", system: "Как в системе", hc: "Высокий контраст" },
+  en: { on: "high contrast on", open: "Appearance", light: "Light", dark: "Dark", system: "Match system", hc: "High contrast" },
 } as const;
 
 const item =
@@ -25,8 +26,8 @@ function Check({ on }: { on: boolean }) {
 }
 
 /** `placement`: "up" opens the menu above the button (the Family OS sidebar keeps it at the bottom of the screen). */
-export default function ThemeToggle({ placement = "down" }: { placement?: "down" | "up" } = {}) {
-  const { theme, resolved, setTheme, contrast, setContrast } = useTheme();
+export default function ThemeToggle({ placement = "down", initial }: { placement?: "down" | "up"; initial?: Theme } = {}) {
+  const { theme, resolved, setTheme, contrast, setContrast } = useTheme(initial);
   const t = L[useUiLang() === "ru" ? "ru" : "en"];
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);

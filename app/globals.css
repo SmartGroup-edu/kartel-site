@@ -63,29 +63,28 @@
   --pillar-kodeks: #5d6670;
 }
 
+/* Dark (bus 176 P2): the heraldic palette of the approved crest mockups — near-black #0a0908, warm ink, metal gold. */
 .dark {
   --pillar-rhythm: #d6d0c6;
   --pillar-health: #e8867a;
   --pillar-growth: #d4a65a;
   --pillar-kodeks: #b4bcc6;
-  --background: #1a1816;
-  --foreground: #e8e4dd;
+  --background: #0a0908;
+  --foreground: #f3ede4;
   --accent: #c9964e;
-  --accent-hover: #daa85e;
-  /* White on the lighter dark-mode gold was 2.6:1 (fail). Charcoal on #c9964e = 6.7:1. */
-  --on-accent: #1a1816;
-  --muted: #9a9488;
-  /* In dark mode --muted-light was #6f685c (3.16:1 on #1a1816) — failed AA.
-     Lightened so small hint text meets 4.5:1. */
-  --muted-light: #918878;
-  --border: #332e28;
-  --surface: #231f1b;
+  --accent-hover: #e0b76e;
+  /* Dark ink on the gold: 7.0:1 on #c9964e. */
+  --on-accent: #1a1206;
+  --muted: #9a9084;
+  --muted-light: #9a9084;
+  --border: #2b2520;
+  --surface: #17130f;
   --sable: #2b2722;
-  --text-body: #c4bfb5;
-  --text-secondary: #b8b2a6;
-  --text-nav: #9a9488;
+  --text-body: #cfc6b8;
+  --text-secondary: #cfc6b8;
+  --text-nav: #9a9084;
   --selection-bg: rgba(201, 150, 78, 0.25);
-  --header-bg: rgba(26, 24, 22, 0.95);
+  --header-bg: rgba(10, 9, 8, 0.95);
   --drop-cap: #c9964e;
   /* Motto band stays charcoal in dark mode too (it used --foreground, which turned it
      light, with gold on cream at 2.1:1). Gold on #2b2824 = 5.6:1. */
@@ -101,9 +100,9 @@
   --sprint-soft: #22263a;
   --wait-border: #5a5048;
 
-  /* shadcn/ui — dark destructive (lighter red for the charcoal canvas). */
+  /* shadcn/ui — dark destructive (lighter red for the near-black canvas). */
   --destructive: #e5645b;
-  --destructive-foreground: #1a1816;
+  --destructive-foreground: #0a0908;
 }
 
 /* High contrast («Высокий контраст», bus 84/97): per device (localStorage kartel-contrast = "high"), set as
@@ -258,56 +257,73 @@
   --fos-brief-to: #3a1018;
   --fos-brief-text: #f3ece2;
   --fos-brief-ring: #b08d57;
+  --fos-primary-img: none;
 }
 
-:root.dark:not(.hc) [data-fos] {
-  --fos-bg: #141210;
-  --fos-panel: #1c1916;
-  --fos-panel-2: #221e1a;
-  --background: #1c1916;
-  --surface: #221e1a;
-  --foreground: #efe9e1;
-  --text-body: #cfc7bc;
-  --text-secondary: #cfc7bc;
-  --text-nav: #cfc7bc;
-  --muted: #a39a8d;
-  --muted-light: #a39a8d;
-  --border: #2e2924;
-  --fos-control: #857b6e;
-  /* Gold: links, active nav, primary fills; text on a gold fill is dark (7.1:1). */
-  --accent: #c9964e;
-  --accent-hover: #daa85e;
-  --on-accent: #141210;
-  --accent-soft: #2a2218;
+:root.dark:not(.hc) [data-fos],
+:root:not(.hc) [data-fos][data-theme="dark"] {
+  /* bus 176 P2: the heraldic palette of the approved crest mockups (bus/assets/2026-11-27-*-APPROVED.html): page
+     #0a0908, panels #12100e / #17130f, lines #2b2520, ink #f3ede4, metal gold for primary fills, wine in the soft
+     fills and the day banner. The second selector is the server-rendered choice (data-theme on the shell), so the
+     page is dark before any script runs; the first one is the boot script's class (also «как в системе»). */
+  --fos-bg: #0a0908;
+  --fos-panel: #12100e;
+  --fos-panel-2: #17130f;
+  --background: #12100e;
+  --surface: #17130f;
+  --foreground: #f3ede4;
+  --text-body: #cfc6b8;
+  --text-secondary: #cfc6b8;
+  --text-nav: #cfc6b8;
+  --muted: #9a9084;
+  --muted-light: #9a9084;
+  --border: #2b2520;
+  --fos-control: #6f6455;
+  /* Light gold: links, active nav text. 9.8:1 on the panels. */
+  --accent: #e0b76e;
+  --accent-hover: #f6dca0;
+  --on-accent: #1a1206;
+  /* Wine-dark: the active nav row, council chips, the ⌘K highlight. */
+  --accent-soft: #2a1519;
+  /* Primary buttons: metal gold (the gradient in --fos-primary-img, the solid gold under it); dark ink text (7.0:1). */
   --fos-primary: #c9964e;
-  --fos-primary-hover: #daa85e;
-  --fos-on-primary: #141210;
+  --fos-primary-hover: #e0b76e;
+  --fos-on-primary: #1a1206;
   --fos-accent-2: #c9964e;
-  --fos-on-accent-2: #141210;
+  --fos-on-accent-2: #1a1206;
   --fos-gold-line: #c9964e;
+  --fos-wine: #7b1e2d;
   --ok: #a3b46b;
-  --ok-soft: #262a1c;
-  --fos-on-ok: #141210;
+  --ok-soft: #1f2216;
+  --fos-on-ok: #0a0908;
   --fos-amber: #e0b062;
-  --fos-on-amber: #141210;
-  --warn-soft: #2b2213;
+  --fos-on-amber: #0a0908;
+  --warn-soft: #251c10;
   --warn-border: #6b5528;
   --destructive: #e88a7f;
-  --destructive-foreground: #141210;
-  --fos-red-soft: #2e1a18;
+  --destructive-foreground: #0a0908;
+  --fos-red-soft: #2a1513;
   --fos-blue: #9fb3d1;
-  --fos-blue-soft: #1d2430;
+  --fos-blue-soft: #161c26;
   --fos-plum: #d99bc0;
-  --fos-plum-soft: #2a1824;
+  --fos-plum-soft: #24141e;
+  --sprint: #a9b6e6;
+  --sprint-soft: #1a1e2e;
+  --pillar-rhythm: #d6d0c6;
+  --pillar-health: #e8867a;
+  --pillar-growth: #d4a65a;
+  --pillar-kodeks: #b4bcc6;
   --selection-bg: rgba(201, 150, 78, 0.3);
-  --header-bg: #1c1916;
+  --header-bg: #12100e;
   --drop-cap: #c9964e;
-  --fos-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --fos-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
-  --fos-brief-from: #201c18;
-  --fos-brief-to: #3a1018;
-  --fos-brief-text: #f3ece2;
-  --fos-brief-ring: #daa85e;
+  --fos-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --fos-shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.6);
+  --fos-brief-from: #17130f;
+  --fos-brief-to: #4a1520;
+  --fos-brief-text: #f3ede4;
+  --fos-brief-ring: #e0b76e;
+  --fos-primary-img: linear-gradient(135deg, #8a6a33 0%, #c9964e 22%, #f6dca0 42%, #e0b76e 55%, #b08048 75%, #7a5a2a 100%);
+  color-scheme: dark;
 }
 
 /* High contrast: the AAA tokens above stay; only the shell's own roles are mapped onto them. */
@@ -333,14 +349,26 @@
   --fos-brief-to: var(--surface);
   --fos-brief-text: var(--foreground);
   --fos-brief-ring: var(--accent);
+  --fos-primary-img: none;
 }
 
-/* Radii 14 / 16 (cards 16, controls 14) and the display serif for headings. The site's self-hosted Source Serif
-   variable is re-pointed, so the existing font-serif utility (and every OS_H2/OS_H3) takes the new face. */
+/* Radii 14 / 16 (cards 16, controls 14). bus 176 P2: the approved faces in both themes — Playfair Display for
+   headings (font-serif), Manrope for text at weight 350 (the @theme fonts below); a page's lead paragraph (the one
+   right under its H1) at 300, as in the mockups. */
 [data-fos] {
   --radius: 14px;
   --fos-radius: 16px;
-  --font-source-serif: ui-serif, "New York", "Iowan Old Style", Georgia;
+  font-weight: 350;
+}
+[data-fos] h1 + p:not([role]) {
+  font-weight: 300;
+}
+/* bus 176 P2: Playfair Display ships 600 and 700 (and the italic 500) only; a serif line without its own weight is set
+   at 600, the approved heading weight (base layer, so font-bold and friends still win). */
+@layer base {
+  .font-serif {
+    font-weight: 600;
+  }
 }
 [data-fos] :is(h1, h2, h3).font-serif {
   font-weight: 600;
@@ -361,10 +389,10 @@ body[data-fos] {
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Self-hosted via next/font in app/[lang]/layout.tsx (Latin + Cyrillic). Georgia/system remain
-     as fallbacks so text renders before the font arrives. */
-  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", Times, serif;
-  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  /* bus 176 P2: Playfair Display + Manrope, self-hosted from public/fonts (Latin + Cyrillic, woff2, swap), declared in
+     the page head per language by app/lib/crestFonts.ts. Georgia/system remain as fallbacks while a face loads. */
+  --font-serif: "Playfair Display", Georgia, "Times New Roman", Times, serif;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
   /* shadcn/ui semantic tokens → editorial palette. Additive: existing components use
      raw [var(--x)] arbitrary values, so registering these --color-* names doesn't touch
@@ -408,6 +436,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-weight: 350;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s ease, color 0.3s ease;
@@ -586,6 +615,7 @@ summary:focus-visible,
   }
   :root:not(.hc) [data-fos],
   :root.dark:not(.hc) [data-fos],
+  :root:not(.hc) [data-fos][data-theme="dark"],
   :root.hc [data-fos],
   :root,
   .dark,
