@@ -1,18 +1,26 @@
 // Shared pieces of the public crest surface (bus 176 P1): the crest image, the RU/EN switch, the sign-in icon,
 // the hatching ornament with its cursor light, and the compact header of the sign-in, pending and 404 pages.
 // Server-safe (no hooks).
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Link from "next/link";
 import s from "./crest.module.css";
 import type { CrestLang } from "../../content/crestHome";
 
 export { s as crestStyles };
 
-/** The crest (public/crest.jpeg, 900×1000), served by next/image as AVIF / WebP at the size the slot needs.
- *  `lcp`: the first-screen crest — eager, high fetch priority (Next 16: `priority` is deprecated). `eager`: load now,
- *  normal priority (the sign-in aside, hidden below 900 px). Otherwise lazy with low fetch priority. */
-export function CrestImg({ alt = "", sizes, lcp = false, eager = false, className, width = 900, height = 1000 }: { alt?: string; sizes: string; lcp?: boolean; eager?: boolean; className?: string; width?: number; height?: number }) {
-  return <Image src="/crest.jpeg" alt={alt} width={width} height={height} sizes={sizes} loading={lcp || eager ? "eager" : "lazy"} fetchPriority={lcp ? "high" : eager ? undefined : "low"} className={className} />;
+type CrestImgOpts = { alt?: string; sizes: string; lcp?: boolean; eager?: boolean; className?: string; width?: number; height?: number };
+
+/** The <img> props of the crest (public/crest.jpeg, 900×1000), served by the image optimiser as AVIF / WebP at the size
+ *  the slot needs. `lcp`: the first-screen crest — eager, high fetch priority. `eager`: load now, normal priority (the
+ *  sign-in aside, hidden below 900 px). Otherwise lazy with low fetch priority. bus 176 P1b: getImageProps, not the
+ *  <Image> component — the same markup without the client component's 11 KB of script on the crest home. */
+export function crestImgProps({ alt = "", sizes, lcp = false, eager = false, className, width = 900, height = 1000 }: CrestImgOpts) {
+  return getImageProps({ src: "/crest.jpeg", alt, width, height, sizes, loading: lcp || eager ? "eager" : "lazy", fetchPriority: lcp ? "high" : eager ? undefined : "low", className }).props;
+}
+
+export function CrestImg(opts: CrestImgOpts) {
+  // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- getImageProps: the optimiser's srcset and sizes, alt included
+  return <img {...crestImgProps(opts)} />;
 }
 
 /** The hero crest's `sizes` (bus 176 P1b): any other first-screen copy of the crest uses the same value, so the browser

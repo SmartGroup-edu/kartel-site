@@ -110,3 +110,15 @@ export const crestFaqPlain = FAQ;
 export const crestElements = typographRuFields(CREST_ELEMENTS);
 
 export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+
+/** Everything the home's client component shows, for one language (bus 176 P1b): built on the server and passed as
+ *  props, so the browser gets one language's text and neither the other language nor the typographer. */
+export function crestHomeContent(lang: CrestLang) {
+  return {
+    t: crestHome[lang],
+    colours: crestColours[lang],
+    faq: crestFaq[lang],
+    elements: crestElements.map((e, i) => ({ id: e.id, x: e.x, y: e.y, roman: ROMAN[i], label: lang === "ru" ? e.labelRU : e.labelEN, desc: lang === "ru" ? e.descRU : e.descEN })),
+  };
+}
+export type CrestHomeContent = ReturnType<typeof crestHomeContent>;

@@ -1,11 +1,13 @@
 "use client";
 
-// bus 176 P1b: Vercel Web Analytics and Speed Insights start after the page has loaded and the main thread is idle, so
-// their scripts never compete with the crest (LCP) for the first paint. Speed Insights still reports LCP / CLS / INP:
-// web-vitals reads the buffered performance entries.
+// bus 176 P1b: Vercel Web Analytics and Speed Insights start after the page has loaded and the main thread is idle —
+// their code is fetched only then (next/dynamic), so it never competes with the crest (LCP) for the first paint. Speed
+// Insights still reports LCP / CLS / INP: web-vitals reads the buffered performance entries.
 import { useEffect, useState } from "react";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import dynamic from "next/dynamic";
+
+const Analytics = dynamic(() => import("@vercel/analytics/next").then((m) => m.Analytics), { ssr: false });
+const SpeedInsights = dynamic(() => import("@vercel/speed-insights/next").then((m) => m.SpeedInsights), { ssr: false });
 
 export default function LateVitals() {
   const [on, setOn] = useState(false);

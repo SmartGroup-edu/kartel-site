@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
+import { preload } from "react-dom";
 import { preloadCrestFonts } from "../lib/crestFonts";
+import { crestImgProps, HERO_SIZES } from "../components/crest/CrestChrome";
 import { ogAlt, ogImagePath } from "../lib/ogCard";
 import CrestHome from "../components/crest/CrestHome";
-import { CREST_META, crestFaqPlain, type CrestLang } from "../content/crestHome";
+import { CREST_META, crestFaqPlain, crestHomeContent, type CrestLang } from "../content/crestHome";
 
 // HOME = the coat of arms page and nothing else (bus 176 P1, R0 2026-11-27; mockup
 // bus/assets/2026-11-27-home-crest-v6-APPROVED.html). No business, family-office, project or people information here:
@@ -64,10 +66,13 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
   const { lang } = await params;
   if (!LOCALES.includes(lang as CrestLang)) notFound();
   preloadCrestFonts(lang as CrestLang);
+  // The hero crest (the LCP element), fetched from the <head> at high priority — the same srcset entry the <img> picks.
+  const hero = crestImgProps({ sizes: HERO_SIZES, lcp: true });
+  preload(hero.src, { as: "image", imageSrcSet: hero.srcSet, imageSizes: hero.sizes, fetchPriority: "high" });
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData(lang as CrestLang)) }} />
-      <CrestHome lang={lang as CrestLang} />
+      <CrestHome lang={lang as CrestLang} content={crestHomeContent(lang as CrestLang)} />
     </>
   );
 }

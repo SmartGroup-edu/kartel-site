@@ -95,7 +95,7 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
       // the two faces of the first screen in the page's script only — nothing else competes with the LCP crest
       const pre = [...html.matchAll(/<link rel="preload" href="([^"]+\.woff2)" as="font" crossorigin="" type="font\/woff2"\/>/g)].map((m) => m[1]);
       const script = lang === "ru" ? "cyrillic" : "latin";
-      assert.deepEqual(pre, [`/fonts/manrope-${script}-v2.woff2`, `/fonts/playfair-${script}-v2.woff2`]);
+      assert.deepEqual(pre, [`/fonts/manrope-${script}-v2.woff2`, `/fonts/playfair-${script}-600-v2.woff2`]);
       assert.doesNotMatch(html, /fonts\.googleapis|fonts\.gstatic/);
     });
     test(`${lang}: bus 176 P1b — one crest download before the LCP: the hero only; the explorer crest waits, the logo is a tiny file`, () => {
@@ -107,8 +107,8 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
       // the fonts declared for this language: the faces a first screen needs stay ≤ 80 KB
       assert.match(html, /<style>@font-face\{font-family:"Manrope"/);
       const first = lang === "ru"
-        ? ["manrope-cyrillic-v2", "playfair-cyrillic-v2", "playfair-mark-v2", "playfair-italic-mark-v2", "manrope-latin-basic-v2"]
-        : ["manrope-latin-v2", "playfair-latin-v2", "playfair-italic-mark-v2", "manrope-ru-mark-v2"];
+        ? ["manrope-cyrillic-v2", "playfair-cyrillic-600-v2", "playfair-mark-600-v2", "playfair-italic-mark-v2", "manrope-latin-basic-v2"]
+        : ["manrope-latin-v2", "playfair-latin-600-v2", "playfair-italic-mark-v2", "manrope-ru-mark-v2"];
       const bytes = first.reduce((n, f) => n + readFileSync(`public/fonts/${f}.woff2`).length, 0);
       assert.ok(bytes <= 80 * 1024, `${bytes} bytes of first-screen fonts`);
     });
@@ -132,7 +132,10 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
     const h = src("app/components/crest/CrestHome.tsx"), c = src("app/components/crest/CrestChrome.tsx");
     assert.match(h, /const cancel = afterLoad\(\(\) => \{[\s\S]*setFine\([\s\S]*setLate\(true\)[\s\S]*removeAttribute\("data-intro"\)/);
     assert.match(h, /\{late \? <CrestImg alt=\{t\.altEx\}/);
-    assert.match(c, /loading=\{lcp \|\| eager \? "eager" : "lazy"\} fetchPriority=\{lcp \? "high" : eager \? undefined : "low"\}/);
+    assert.match(c, /loading: lcp \|\| eager \? "eager" : "lazy", fetchPriority: lcp \? "high" : eager \? undefined : "low"/);
+    // getImageProps, not the <Image> client component; the hero is preloaded from the page at high priority
+    assert.doesNotMatch(c, /import Image from "next\/image"/);
+    assert.match(src("app/[lang]/page.tsx"), /preload\(hero\.src, \{ as: "image", imageSrcSet: hero\.srcSet, imageSizes: hero\.sizes, fetchPriority: "high" \}\)/);
     assert.ok(readFileSync("public/crest-mark.webp").length < 4 * 1024, "the logo asset is under 4 KB");
   });
   test("tilt, gloss and sheen only with a fine pointer and no reduced motion; the motto light breathes on touch", () => {
@@ -143,14 +146,14 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
   });
   test("fonts: Playfair Display 600/700 + italic 500 and variable Manrope, Latin + Cyrillic woff2 (+ the two marks), swap, per language", () => {
     const crestFontFaces = (lang) => read(`${lang}.html`).match(/<style>(@font-face[\s\S]*?)<\/style>/)[1];
-    const files = ["playfair-latin", "playfair-cyrillic", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark"];
+    const files = ["playfair-latin-600", "playfair-cyrillic-600", "playfair-latin-700", "playfair-cyrillic-700", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark"];
     for (const lang of ["en", "ru"]) {
       const g = crestFontFaces(lang);
-      for (const f of [...files, ...(lang === "ru" ? ["playfair-mark", "manrope-latin-basic"] : ["manrope-ru-mark"])]) {
+      for (const f of [...files, ...(lang === "ru" ? ["playfair-mark-600", "manrope-latin-basic"] : ["manrope-ru-mark"])]) {
         assert.match(g, new RegExp(`url\\("/fonts/${f}-v2\\.woff2"\\)`), f);
         assert.ok(readFileSync(`public/fonts/${f}-v2.woff2`).subarray(0, 4).toString() === "wOF2", f);
       }
-      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 9 : 8);
+      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 11 : 10);
       // the marks are declared last (later rules win overlapping characters)
       assert.match(g, /playfair-italic-mark-v2\.woff2"\) format\("woff2"\);unicode-range:[^}]*\}$/);
       // /ru: the cyrillic file carries the space; /en: it does not

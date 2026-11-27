@@ -7,7 +7,7 @@ The latin files are Google's latin subset; the cyrillic files add the punctuatio
 (CORE), so a Russian page needs no Latin file for its spaces and commas: app/lib/crestFonts.ts declares CORE on the
 cyrillic file on /ru only (an English page never fetches Cyrillic for a space). Small "mark" files hold the other script's few characters: on /ru KARTEL and the Roman
 numerals (Playfair) and the basic Latin letters (Manrope), on /en «Русский» (Manrope), and on both the motto
-«Virtus et Potestas» (Playfair italic). Axes are limited to the weights the CSS uses.
+«Virtus et Potestas» (Playfair italic). Axes are limited to the weights the CSS uses (Playfair: static 600 and 700 files).
 
   python3 -m venv /tmp/fontenv && /tmp/fontenv/bin/pip install fonttools brotli
   /tmp/fontenv/bin/python scripts/build-crest-fonts.py <dir with the three .ttf>
@@ -43,9 +43,13 @@ def build(src, out, wght, unicodes=None, text=None):
 M, P, PI = "Manrope[wght].ttf", "PlayfairDisplay[wght].ttf", "PlayfairDisplay-Italic[wght].ttf"
 build(M, "manrope-latin-v2.woff2", (300, 700), COMMON)
 build(M, "manrope-cyrillic-v2.woff2", (300, 700), f"{CYRILLIC},{CORE}")
-build(P, "playfair-latin-v2.woff2", (600, 700), COMMON)
-build(P, "playfair-cyrillic-v2.woff2", (600, 700), f"{CYRILLIC},{CORE}")
-build(P, "playfair-mark-v2.woff2", (600, 700), text="KARTELIVX")
+# Playfair as static 600 (every heading) and 700 (the explorer numeral, the 404 code — fetched only where set):
+# a static instance is a third smaller than the 600–700 variable file.
+build(P, "playfair-latin-600-v2.woff2", 600, COMMON)
+build(P, "playfair-cyrillic-600-v2.woff2", 600, f"{CYRILLIC},{CORE}")
+build(P, "playfair-latin-700-v2.woff2", 700, COMMON)
+build(P, "playfair-cyrillic-700-v2.woff2", 700, f"{CYRILLIC},{CORE}")
+build(P, "playfair-mark-600-v2.woff2", 600, text="KARTELIVX")
 build(PI, "playfair-italic-mark-v2.woff2", 500, text="Virtus et Potestas")
 build(M, "manrope-latin-basic-v2.woff2", (300, 700), "U+0041-005A,U+0061-007A")  # /ru: the few Latin words (A–Z, a–z)
 build(M, "manrope-ru-mark-v2.woff2", (300, 700), text="Русский")  # /en: the language link
