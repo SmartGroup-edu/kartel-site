@@ -6,69 +6,47 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import "../globals.css";
-import registry from "../content/registry.public.json";
-import { listJoin, projectNames } from "../content/registryText.mjs";
 
 // Self-hosted at build time (no request to Google from the browser; CSP font-src 'self' holds).
 // Both cover Cyrillic, so EN and RU render in the same faces on every OS.
-const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter" });
-const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif" });
+// bus 176 P1: not preloaded — the public crest pages use Playfair Display + Manrope (preloaded per page), so these
+// cabinet faces must not compete with the crest for the first paint (LCP). They still load, with swap, where used.
+const sans = Inter({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-inter", preload: false });
+const serif = Source_Serif_4({ subsets: ["latin", "cyrillic"], display: "swap", variable: "--font-source-serif", preload: false });
 
 const LOCALES = ["en", "ru"] as const;
 type Locale = (typeof LOCALES)[number];
 
+// bus 176 P1 (R0 2026-11-27): the public site is the coat of arms; KARTEL Core and the registry are family-only. The
+// site defaults (a page without its own title, the noscript text) name the coat of arms, nothing else.
 const meta: Record<Locale, {
   title: { default: string; template: string };
   description: string;
-  ogTitle: string;
-  twTitle: string;
-  twDescription: string;
   locale: string;
   altLocale: string;
 }> = {
   en: {
-    title: {
-      default: "KARTEL Core — public registry of the KARTEL federation",
-      template: "%s | KARTEL",
-    },
-    description: `The public registry of the KARTEL federation: one identity, one map of countries and regions and one organisation model, shared by ${listJoin(projectNames(registry, "active"), "EN")}.`,
-    ogTitle: "KARTEL Core — public registry of the KARTEL federation",
-    twTitle: "KARTEL Core — public registry of the KARTEL federation",
-    twDescription:
-      "The public registry of the KARTEL federation — layers, projects and the rules every platform follows.",
+    title: { default: "The Kartel Coat of Arms — Virtus et Potestas", template: "%s | KARTEL" },
+    description: "The Kartel family coat of arms: a griffin, crossed keys, coronet, swords, fleur-de-lis and wings, with the Latin motto Virtus et Potestas (Strength and Power).",
     locale: "en_GB",
     altLocale: "ru_RU",
   },
   ru: {
-    title: {
-      default: "Ядро KARTEL — публичный реестр федерации KARTEL",
-      template: "%s | KARTEL",
-    },
-    description: `Публичный реестр федерации KARTEL: единая идентичность, единая карта стран и регионов и единая модель организаций для ${listJoin(projectNames(registry, "active"), "RU")}.`,
-    ogTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
-    twTitle: "Ядро KARTEL — публичный реестр федерации KARTEL",
-    twDescription:
-      "Публичный реестр федерации KARTEL — слои, проекты и правила, общие для всех платформ.",
+    title: { default: "Фамильный герб Картель — Virtus et Potestas", template: "%s | KARTEL" },
+    description: "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья, латинский девиз Virtus et Potestas (Сила и Власть).",
     locale: "ru_RU",
     altLocale: "en_GB",
   },
 };
 
-const noscriptContent: Record<Locale, { intro: string; membersHeading: string; members: string }> = {
+const noscriptContent: Record<Locale, { intro: string; signin: string }> = {
   en: {
-    // The home is KARTEL the family office, with the coat of arms below (bus 172 P5, bus 173). No family names here.
-    intro:
-      "KARTEL is a family office in London: the federation projects the family runs in education, culture and communities. Its coat of arms bears the Latin motto Virtus et Potestas — Strength and Power.",
-    membersHeading: "KARTEL Core",
-    members:
-      "The public registry of the KARTEL federation lives at kartel.org.uk/en/core and kartel.org.uk/en/registry.",
+    intro: "The Kartel family coat of arms: a griffin, crossed keys, coronet, swords, fleur-de-lis and wings, with the Latin motto Virtus et Potestas — Strength and Power.",
+    signin: "Family sign-in",
   },
   ru: {
-    intro:
-      "KARTEL — семейный офис в Лондоне: проекты федерации, которые ведёт семья, — в образовании, культуре и сообществах. Девиз фамильного герба — Virtus et Potestas, «Сила и Власть».",
-    membersHeading: "Ядро KARTEL",
-    members:
-      "Публичный реестр федерации KARTEL — на kartel.org.uk/ru/core и kartel.org.uk/ru/registry.",
+    intro: "Фамильный герб Картель: грифон, скрещённые ключи, корона, мечи, лилии и крылья, латинский девиз Virtus et Potestas — «Сила и Власть».",
+    signin: "Вход для семьи",
   },
 };
 
@@ -114,7 +92,7 @@ export async function generateMetadata({
       locale: m.locale,
       alternateLocale: m.altLocale,
       siteName: "KARTEL",
-      title: m.ogTitle,
+      title: m.title.default,
       description: m.description,
       url: `https://kartel.org.uk/${lang}`,
       // EN keeps the long-standing /opengraph-image; RU gets its own card (cycle 7 #1).
@@ -122,8 +100,8 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: m.twTitle,
-      description: m.twDescription,
+      title: m.title.default,
+      description: m.description,
       images: [{ url: ogImagePath(lang), alt: ogAlt(lang === "ru" ? "ru" : "en") }],
     },
     icons: {
@@ -202,10 +180,9 @@ export default async function RootLayout({
             <p style={{ fontSize: "18px", lineHeight: "1.8", marginBottom: "16px" }}>
               {latinMotto(ns.intro)}
             </p>
-            <h2 style={{ color: "#7b1e2d", fontSize: "24px", marginBottom: "12px" }}>
-              {ns.membersHeading}
-            </h2>
-            <p style={{ fontSize: "16px", lineHeight: "1.9" }}>{ns.members}</p>
+            <p style={{ fontSize: "16px", lineHeight: "1.9" }}>
+              <a href={`/${lang}/family/signin`} style={{ color: "#7b1e2d" }}>{ns.signin}</a>
+            </p>
             <p style={{ fontSize: "14px", color: "#6f685c", marginTop: "24px" }}>
               &copy; kartel.org.uk — <span lang="la">Virtus et Potestas</span>
             </p>

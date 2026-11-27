@@ -76,8 +76,8 @@ describe("family page", () => {
     assert.doesNotMatch(fp, /description: "\\u041d|description: "Новое поколение\."/);
     assert.doesNotMatch(fp, /Representative of the older generation of the Kartel family\./);
   });
-  test("auth pages use the neutral footer, not the registry line", () => {
-    assert.doesNotMatch(src("app/components/AuthShell.tsx"), /public registry of the federation|публичный реестр федерации/);
+  test("auth pages carry no registry line (bus 176: the crest sign-in and pending pages)", () => {
+    for (const f of ["app/components/FamilyGateNotice.tsx", "app/[lang]/family/pending/page.tsx", "app/components/crest/CrestChrome.tsx", "app/components/crest/CrestAside.tsx"]) assert.doesNotMatch(src(f), /public registry of the federation|публичный реестр федерации/, f);
   });
 });
 

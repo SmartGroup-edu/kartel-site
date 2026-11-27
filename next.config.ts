@@ -80,6 +80,12 @@ const nextConfig: NextConfig = {
       { source: "/:lang(en|ru)/family", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/:lang(en|ru)/family/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/console", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // bus 176 P1: KARTEL Core and the registry are family-only (proxy.ts) — never indexed.
+      { source: "/:lang(en|ru)/core", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/:lang(en|ru)/registry", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: "/:lang(en|ru)/registry/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      // bus 176 P1: the self-hosted Playfair Display and Manrope (OFL) of the crest pages, cached for a year.
+      { source: "/fonts/:file", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
       // Council mockup (bus 126): never indexed, never sends a referrer.
       { source: "/m/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Referrer-Policy", value: "no-referrer" }] },
       // Its self-hosted fonts (the site's own Inter + Source Serif 4, OFL): same-origin, cached for a year.

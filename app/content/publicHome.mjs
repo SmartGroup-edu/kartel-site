@@ -1,5 +1,7 @@
 // Public home (bus 172 P5): the companies and the counts strip, derived from the vendored registry only.
-// Plain .mjs so the node tests share it (tests must not import .ts). Imported by the server component PublicOffice only, so the registry JSON stays off the client.
+// Plain .mjs so the node tests share it (tests must not import .ts). bus 176 P1: the public home no longer shows them
+// (the public site is the coat of arms only); the cabinet's «Компании и проекты» (app/lib/family-companies.mjs) reads
+// projectState and cardIdentity from here, on the server, so the registry JSON stays off the client.
 // No invented numbers: every figure here is a count over registry.public.json, and the strip says which version.
 
 import { plural } from "../lib/family-today.mjs";

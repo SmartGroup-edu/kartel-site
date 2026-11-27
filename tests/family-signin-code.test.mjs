@@ -98,28 +98,31 @@ describe("sign-in page (bus 165)", () => {
   const n = src("app/components/FamilyGateNotice.tsx");
 
   test("after «Email me a link»: the code field in the same tab, RU and EN", () => {
-    assert.match(n, /\{codes && <CodeForm c=\{c\} returnTo=\{returnTo\} \/>\}/);
-    assert.match(n, /codeLabel: "Или введите код из письма"/);
-    assert.match(n, /codeLabel: "Or type the code from the email"/);
-    assert.match(n, /autoComplete="one-time-code"/);
+    // bus 176 P1: the mockup's six cells — the first carries the phone's one-time-code autofill
+    assert.match(n, /\{codes && <CodeForm c=\{c\} returnTo=\{returnTo\} onSuccess=\{\(to\) => goWelcome\(setWelcome, to\)\} \/>\}/);
+    assert.match(n, /codeLabel: "Код из письма"/);
+    assert.match(n, /codeLabel: "Code from the email"/);
+    assert.match(n, /autoComplete=\{i === 0 \? "one-time-code" : "off"\}/);
+    assert.match(n, /useState<string\[\]>\(\["", "", "", "", "", ""\]\)/);
+    assert.match(n, /onPaste=/);
     assert.match(n, /inputMode="numeric"/);
     assert.match(n, /fetch\("\/api\/family-auth\/verify", \{\s*method: "POST"/);
   });
 
   test("another browser: a calm page that never shows a code, and a new link offered here", () => {
-    const block = n.slice(n.indexOf('state === "elsewhere" ? ('), n.indexOf('{state === "ended"'));
+    const block = n.slice(n.indexOf('} else if (state === "elsewhere") {'), n.indexOf('{state === "ended"'));
     assert.match(block, /c\.elsewhereTitle/);
     assert.doesNotMatch(block, /role="alert"|destructive/, "not an error");
     assert.doesNotMatch(block, /CodeForm|\{code\}/);
-    assert.match(n, /elsewhereTitle: "Эта ссылка открылась в другом браузере"/);
-    assert.match(n, /elsewhere: \(\) => "Вернитесь во вкладку, где запрашивали вход, и введите там код из письма/);
-    assert.match(n, /ctaHere: "Запросить новую ссылку здесь"/);
+    assert.match(n, /elsewhereTitle: "Ссылка открылась в другом браузере"/);
+    assert.match(n, /elsewhere: "Вернитесь во вкладку, где запрашивали вход, и введите там код из письма/);
+    assert.match(n, /ctaHere: "Прислать новое письмо сюда"/);
   });
 
   test("superseded, expired and used each have their own words", () => {
-    assert.match(n, /superseded: \(\) => "Это не последняя ссылка — откройте самое новое письмо\./);
+    assert.match(n, /superseded: "Это не последняя ссылка — откройте самое новое письмо\./);
     assert.match(n, /expired: \(min: number\) => `Ссылка устарела/);
-    assert.match(n, /used: \(\) => "Эта ссылка уже сработала/);
+    assert.match(n, /used: "Эта ссылка уже сработала/);
     for (const k of ["wrong", "locked", "superseded", "expired", "used", "no_request", "format", "rate_limited", "other"]) {
       assert.equal((n.match(new RegExp(`\\b${k}: `, "g")) ?? []).length >= 2, true, `codeErr.${k} in both languages`);
     }

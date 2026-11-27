@@ -1,4 +1,4 @@
-# kartel.org.uk — public registry of the KARTEL federation & Kartel family heritage
+# kartel.org.uk — the Kartel family coat of arms
 #
 # NOTE: Cloudflare's managed robots.txt feature may PREPEND a block that sets
 # Content-Signal: ai-train=no and Disallow for ClaudeBot/GPTBot/Google-Extended/

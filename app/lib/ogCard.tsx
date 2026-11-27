@@ -2,7 +2,8 @@
 // app/opengraph-image.tsx (EN, the long-standing URL) and app/[lang]/opengraph-image.tsx.
 // Crest full height on the left; wordmark, headline, motto and domain on the right, sized to
 // stay legible as a 400px feed thumbnail. No family names — the crest and the surname only.
-// bus 173: the card names KARTEL the family office; the crest stays as its emblem, the motto as its words.
+// bus 176 P1 (R0 2026-11-27): the public site is the coat of arms only, so the card names the coat of arms — no
+// family-office or business wording on anything a visitor sees, share cards included.
 import { ImageResponse } from "next/og";
 import { readFile } from "fs/promises";
 import { join } from "path";
@@ -10,8 +11,8 @@ import { join } from "path";
 export const OG_SIZE = { width: 1200, height: 630 };
 
 const COPY = {
-  en: { headline: ["Family office", "in London"], motto: "Virtus et Potestas", translation: "Strength and Power", alt: "KARTEL — a family office in London. Virtus et Potestas — Strength and Power." },
-  ru: { headline: ["Семейный офис", "в Лондоне"], motto: "Virtus et Potestas", translation: "Сила и Власть", alt: "KARTEL — семейный офис в Лондоне. Virtus et Potestas — Сила и Власть." },
+  en: { headline: ["The Kartel", "Coat of Arms"], motto: "Virtus et Potestas", translation: "Strength and Power", alt: "The Kartel coat of arms. Virtus et Potestas — Strength and Power." },
+  ru: { headline: ["Фамильный герб", "Картель"], motto: "Virtus et Potestas", translation: "Сила и Власть", alt: "Фамильный герб Картель. Virtus et Potestas — Сила и Власть." },
 } as const;
 
 export type OgLang = keyof typeof COPY;

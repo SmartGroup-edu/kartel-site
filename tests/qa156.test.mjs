@@ -104,7 +104,7 @@ test("L7: the owner who is not a member has no Доска, Совет or Кал�
   // bus 171: inside Family OS the shell draws the sections, with the same rule
   const { osShellNav } = await import("../app/lib/family-os-shell.mjs");
   const shell = (o) => osShellNav({ lang: "RU", ...o }).groups.flatMap((g) => g.items.map((i) => i.id));
-  assert.deepEqual(shell({ admin: true, os: true, member: false }), ["today", "people", "heritage", "companies", "access", "admin"]);
+  assert.deepEqual(shell({ admin: true, os: true, member: false }), ["today", "people", "heritage", "companies", "registry", "access", "admin"]);
   assert.match(src("app/[lang]/family/os/layout.tsx"), /member: Boolean\(state\.me\)/);
 });
 

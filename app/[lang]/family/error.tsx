@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import { H1, PROSE } from "@/app/lib/typeScale";
-import SiteHeader from "@/app/components/SiteHeader";
+import dynamic from "next/dynamic";
 import SiteFooter from "@/app/components/SiteFooter";
 import { RefCode } from "@/app/components/NotFoundView";
 import { familyRefText } from "@/app/content/notFound";
 import { typographDict } from "@/app/lib/typograph.mjs";
 import { newRef, refFromDigest, routeClass } from "@/app/lib/family-ref.mjs";
+
+// bus 176 P1 QA: own chunk, so the public sign-in (same /family segment) does not ship the registry menu.
+const SiteHeader = dynamic(() => import("@/app/components/SiteHeader"));
 
 // Family OS error boundary (bus 97 item 6): «Код обращения» on the page. A server error's code is a prefix of
 // Next's digest, which the server already logged with the error. A client error has no digest: we make a

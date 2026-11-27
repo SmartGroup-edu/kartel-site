@@ -13,23 +13,25 @@ test("route mapping: the old addresses, the new names (RU and EN)", () => {
   assert.deepEqual(all.map((i) => [i.href, i.label]), [
     ["/ru/family/os", "Сегодня"], ["/ru/family/os/board", "Задачи"], ["/ru/family/os/calendar", "Календарь"], ["/ru/family/os/council", "Решения"], ["/ru/family/os/review", "Обзор недели"],
     ["/ru/family/os/people", "Люди"], ["/ru/family/os/kodeks", "Документы и правила"], ["/ru/family", "Наследие"],
-    ["/ru/family/os/companies", "Компании и проекты"], ["/ru/family/os/access", "Доступ и безопасность"], ["/ru/family/admin", "Редактор наследия"],
+    ["/ru/family/os/companies", "Компании и проекты"], ["/ru/registry", "Реестр и KARTEL Core"], ["/ru/family/os/access", "Доступ и безопасность"], ["/ru/family/admin", "Редактор наследия"],
   ]);
   const en = osShellNav({ lang: "EN", admin: true, os: true, member: true }).groups.flatMap((g) => g.items);
-  assert.deepEqual(en.map((i) => i.label), ["Today", "Tasks", "Calendar", "Decisions", "Weekly review", "People", "Documents and rules", "Heritage", "Companies and projects", "Access and security", "Heritage editor"]);
-  assert.ok(en.every((i) => i.href.startsWith("/en/family")));
+  assert.deepEqual(en.map((i) => i.label), ["Today", "Tasks", "Calendar", "Decisions", "Weekly review", "People", "Documents and rules", "Heritage", "Companies and projects", "Registry and KARTEL Core", "Access and security", "Heritage editor"]);
+  // bus 176 P1: the registry item is the one address outside /family (KARTEL Core and the registry moved behind sign-in)
+  assert.ok(en.every((i) => i.href.startsWith("/en/family") || (i.id === "registry" && i.href === "/en/registry")));
 });
 
 test("no technical labels on screen: no Kodeks, Council, Board, Week, Access, registry or layers as a name", () => {
   for (const lang of ["RU", "EN"]) {
     const n = osShellNav({ lang, admin: true, os: true, editor: true, member: true });
     const words = [...n.groups.flatMap((g) => [g.label ?? "", ...g.items.map((i) => i.label)]), n.label, n.tabsLabel];
-    for (const w of words) assert.doesNotMatch(w, /^(Access|Board|Council|Week)$|kodeks|кодекс|council|совет|доска|registry|реестр|layers?|сло[йи]/i, w);
+    // bus 176 P1: «Реестр и KARTEL Core» is the one registry name the approved sitemap mockup puts in «Бизнес»
+    for (const w of words.filter((x) => !/^(Реестр и KARTEL Core|Registry and KARTEL Core)$/.test(x))) assert.doesNotMatch(w, /^(Access|Board|Council|Week)$|kodeks|кодекс|council|совет|доска|registry|реестр|layers?|сло[йи]/i, w);
   }
 });
 
 test("groups: main (Сегодня · Задачи · Календарь · Решения · Обзор недели), Семья, Бизнес, Управление; the phone tab bar is the main group's first four", () => {
-  assert.deepEqual(ids({ admin: true, os: true, member: true }), [["main", ["today", "board", "calendar", "council", "review"]], ["family", ["people", "kodeks", "heritage"]], ["business", ["companies"]], ["settings", ["access", "admin"]]]);
+  assert.deepEqual(ids({ admin: true, os: true, member: true }), [["main", ["today", "board", "calendar", "council", "review"]], ["family", ["people", "kodeks", "heritage"]], ["business", ["companies", "registry"]], ["settings", ["access", "admin"]]]);
   const n = osShellNav({ lang: "RU", admin: false, os: true, member: true });
   assert.deepEqual(n.tabs.map((t) => t.id), ["today", "board", "calendar", "council"]);
   assert.deepEqual(n.groups.map((g) => g.label), [null, "Семья", "Бизнес"]);
@@ -37,10 +39,10 @@ test("groups: main (Сегодня · Задачи · Календарь · Ре
 
 test("hidden, never dead: a section shows only when its page exists for this viewer", () => {
   // a member: no «Доступ и безопасность», no editor
-  assert.deepEqual(ids({ admin: false, os: true, member: true }).flatMap(([, x]) => x), ["today", "board", "calendar", "council", "review", "people", "kodeks", "heritage", "companies"]);
+  assert.deepEqual(ids({ admin: false, os: true, member: true }).flatMap(([, x]) => x), ["today", "board", "calendar", "council", "review", "people", "kodeks", "heritage", "companies", "registry"]);
   // the owner who is not a member: those pages answer 404 (QA-156 L7), Кодекс and «Обзор недели» too; the registry's
   // companies need no Family OS data, so the owner keeps them (bus 172 P6)
-  assert.deepEqual(ids({ admin: true, os: true, member: false }).flatMap(([, x]) => x), ["today", "people", "heritage", "companies", "access", "admin"]);
+  assert.deepEqual(ids({ admin: true, os: true, member: false }).flatMap(([, x]) => x), ["today", "people", "heritage", "companies", "registry", "access", "admin"]);
   // an editor: the heritage editor, never access
   assert.ok(ids({ admin: false, os: true, editor: true }).flatMap(([, x]) => x).includes("admin"));
   assert.ok(!ids({ admin: false, os: true, editor: true }).flatMap(([, x]) => x).includes("access"));

@@ -46,7 +46,11 @@ const DEFAULT_LOCALE: Locale = "en";
 // content — the 2026-07-17 leak). NextResponse.redirect at the edge runs before any
 // render, so it cannot leak. Approval = FAMILY_ADMIN_EMAILS + the email allowlist
 // (Edge Config / env seed); everyone else → pending. Mirrors app/lib/family-* contracts.
-async function familyEdgeGate(request: NextRequest, pathname: string) {
+//
+// bus 176 P1: KARTEL Core and the registry (`area: "business"`) pass the same gate — session, approval, ended
+// sessions — and then open for every approved viewer except a child, who goes to «Мой день». They are not family
+// pages, so the family route list and the owner/member rules below do not apply to them.
+async function familyEdgeGate(request: NextRequest, pathname: string, area: "family" | "business" = "family") {
   const lang = pathname.startsWith("/ru") ? "ru" : "en";
   // No/invalid session → a PUBLIC sign-in landing (no PII). The form there posts an address to
   // /api/family-auth/request, which emails a short-lived link. No upstream IdP is involved.
@@ -74,6 +78,12 @@ async function familyEdgeGate(request: NextRequest, pathname: string) {
   // QA-156 H1: a session older than the owner's «Завершить сеансы» cut-off ends here, on every family page.
   const os = await osSessionState({ email: email || sub, admin: owner, iat });
   if (os.state === "ended") return sessionEnded(request, lang, pathname);
+  if (area === "business") {
+    if (os.state === "ok" && os.child) return NextResponse.redirect(new URL(`/${lang}/family/os`, request.url), 307);
+    const forwarded = new Headers(request.headers);
+    forwarded.set("x-kartel-locale", lang);
+    return NextResponse.next({ request: { headers: forwarded } });
+  }
   if (!FAMILY_ROUTES.test(pathname)) return familyNotFound(request, lang, pathname);
   // The family editor is for the owner and editors only (bus 87: FAMILY_EDITOR_EMAILS — their changes wait for
   // the owner's approval). Refused here, at the edge, with a real 404: a page-level notFound() in a streamed
@@ -186,6 +196,15 @@ export async function proxy(request: NextRequest) {
     // Public, no-PII landings reachable without a session:
     if (/^\/(en|ru)\/family\/(pending|signin)\/?$/.test(pathname)) return noindex(NextResponse.next());
     return noindex(await familyEdgeGate(request, pathname));
+  }
+
+  // bus 176 P1 (R0 2026-11-27): the public site is the coat of arms and the sign-in only. KARTEL Core and the
+  // registry are family-only: no session → 307 to the family sign-in with returnTo (familyEdgeGate). With the family
+  // gate off there is no sign-in, so they close to everyone (→ home), the same as /family. Never indexed.
+  if (/^\/(en|ru)\/(core|registry)(\/|$)/.test(pathname)) {
+    const lang = pathname.startsWith("/ru") ? "ru" : "en";
+    if (process.env.FAMILY_GATE !== "on") return noindex(NextResponse.redirect(new URL(`/${lang}`, request.url)));
+    return noindex(await familyEdgeGate(request, pathname, "business"));
   }
 
   // If the path already starts with a known locale, leave it alone.

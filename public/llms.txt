@@ -1,30 +1,25 @@
-# KARTEL — public registry of the KARTEL federation
+# Kartel — the family coat of arms
 
-> kartel.org.uk opens on the coat of arms of the Kartel family, and is the public registry of the KARTEL federation of cultural and educational platforms (KARTEL Core). Based in London, United Kingdom. Motto: "Virtus et Potestas" (Strength and Power). Bilingual: English and Russian.
+> kartel.org.uk is the home of the coat of arms of the Kartel family: a griffin, crossed keys, coronet, swords, fleur-de-lis and wings, with the Latin motto "Virtus et Potestas" (Strength and Power). Based in London, United Kingdom. Bilingual: English and Russian.
 
-## KARTEL Core
+## The coat of arms
 
-Cultural and educational platforms share one identity, one map of countries and regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. The registry observes; it is not a workflow, a database, or a runtime dependency.
-
-- **Canonical layers**: Identity (CPIF — one person, one identity across every platform), Geography (countries ISO 3166-1, and within them regions — ITL1 in the UK, ISO 3166-2 elsewhere), Organisations (CEA → Foundation → School → Venue), Federation (the integration gate).
-- **Federation Integration Gate**: eight requirements every project joining the federation passes before production (authentication, canonical geography, organisation anchor, membership contract, permission pattern, event geo-anchor, notification envelope, audit envelope). Each platform signs its users in by its own sound method; no shared sign-in service is required.
-- **Ecosystem projects**:
-  - MoyPolk (moypolk.uk) — Immortal Regiment UK memorial platform; produces and serves the canonical geography taxonomy.
-  - RusJAz (rusjaz.com) — Russian-language education marketplace and LMS; consumes geography, organisation and campus anchors.
-  - Community Group (community.group) — cultural funding and trust platform (CEA); consumes geography.
-  - RusJAzz — a separate future module; builds against the Federation Integration Gate from day one.
+- **Griffin** — strength, protection and foresight; the lion and the eagle in one form.
+- **Staff** — service, not dominion: spiritual authority as responsibility.
+- **Crossed keys** — knowledge and the union of reason and faith; every person holds the keys to their own destiny.
+- **Wings and mantling** — protection, freedom of spirit, loyalty to duty.
+- **Coronet and fleur-de-lis** — authority granted by merit, not by blood; purity of intention.
+- **Swords** — readiness to stand between danger and what is dear.
+- **Motto** — "Virtus et Potestas": strength is the ability to go all the way; power is the measure of maturity.
+- **Colours** — gold and sable, silver and gules.
 
 ## Pages
 
-- [Home — Coat of Arms of the Kartel family](https://kartel.org.uk/en) — Heraldry, meaning and the motto Virtus et Potestas
-- [What is KARTEL Core?](https://kartel.org.uk/en/core) — Shared layers and rules
-- [Registry](https://kartel.org.uk/en/registry) — Canonical layers, projects, Federation Integration Gate
-- [Organisations](https://kartel.org.uk/en/registry/organisations) — Canonical institution registry
-- [Campuses](https://kartel.org.uk/en/registry/campuses) — Canonical accredited-centre registry
-- [Federation Map](https://kartel.org.uk/en/registry/federation) — Read-only federation snapshot
+- [Home — the Kartel coat of arms (English)](https://kartel.org.uk/en) — Heraldry, meaning, colours and the motto
+- [Главная — фамильный герб Картель (Russian)](https://kartel.org.uk/ru) — Символика, цвета и девиз
 - [Full content for LLMs](https://kartel.org.uk/llms-full.txt) — Complete text of the public pages
 
-The Family Heritage area (/en/family) is members-only: family members sign in with a link sent to their approved email address.
+The family area is members-only: family members sign in at https://kartel.org.uk/en/family/signin. Its content is not published.
 
 ## Key facts
 
@@ -38,4 +33,4 @@ The Family Heritage area (/en/family) is members-only: family members sign in wi
 
 - Website: https://kartel.org.uk
 - Email: gor@kartel.org.uk
-- Last updated: 2026-11-24
+- Last updated: 2026-11-27

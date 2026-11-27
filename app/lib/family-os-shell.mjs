@@ -11,20 +11,24 @@
  * phone tab bar keeps the first four. «Компании и проекты» (the registry's projects, no Family OS data) sits in its own
  * «Бизнес» group, for everyone in Family OS (a member, or the owner).
  *
+ * bus 176 P1: KARTEL Core and the registry (/{lang}/core, /{lang}/registry/*) are family-only now (the edge gate in
+ * proxy.ts); they join «Бизнес» as «Реестр и KARTEL Core», after «Компании и проекты». Their address is outside
+ * /family, so the item carries its own (REGISTRY_PATH).
+ *
  * A child (bus 172 P3) gets two sections only: «Мой день» (the /os address) and «Календарь». The other Family OS pages
  * send a child back to «Мой день» on the server (childHome in app/lib/family-child.ts), so this menu is the whole map.
  */
 const L = {
   RU: {
     today: "Сегодня", myDay: "Мой день", board: "Задачи", calendar: "Календарь", council: "Решения", review: "Обзор недели",
-    companies: "Компании и проекты", business: "Бизнес",
+    companies: "Компании и проекты", registry: "Реестр и KARTEL Core", business: "Бизнес",
     people: "Люди", kodeks: "Документы и правила", heritage: "Наследие",
     access: "Доступ и безопасность", admin: "Редактор наследия",
     family: "Семья", settings: "Управление", nav: "Разделы семьи", tabs: "Главные разделы",
   },
   EN: {
     today: "Today", myDay: "My day", board: "Tasks", calendar: "Calendar", council: "Decisions", review: "Weekly review",
-    companies: "Companies and projects", business: "Business",
+    companies: "Companies and projects", registry: "Registry and KARTEL Core", business: "Business",
     people: "People", kodeks: "Documents and rules", heritage: "Heritage",
     access: "Access and security", admin: "Heritage editor",
     family: "Family", settings: "Settings", nav: "Family sections", tabs: "Main sections",
@@ -38,13 +42,16 @@ export const OS_PATHS = {
   kodeks: "/os/kodeks", access: "/os/access", heritage: "", admin: "/admin",
 };
 
+/** «Реестр и KARTEL Core»: the registry overview, under /{lang} (not /family); KARTEL Core is one click from it. */
+export const REGISTRY_PATH = "/registry";
+
 /**
  * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean, child?: boolean, badges?: { board?: number } }} o
  *   `os`: the viewer is in Family OS (a member, or the owner); `member`: a family member (false for the owner who is not
  *   one — no Задачи, Календарь, Решения); `admin`: the owner; `editor`: a heritage editor; `child`: a child member —
  *   «Мой день» and «Календарь», nothing else.
  * @returns {{ groups: { id: "main" | "family" | "business" | "settings", label: string | null, items: ShellItem[] }[], tabs: ShellItem[], label: string, tabsLabel: string }}
- * @typedef {{ id: keyof typeof OS_PATHS, href: string, label: string, badge?: number }} ShellItem
+ * @typedef {{ id: keyof typeof OS_PATHS | "registry", href: string, label: string, badge?: number }} ShellItem
  */
 export function osShellNav({ lang, admin, os, editor = false, member = true, child = false, badges = {} }) {
   const t = L[lang], base = `/${lang === "EN" ? "en" : "ru"}/family`;
@@ -64,7 +71,7 @@ export function osShellNav({ lang, admin, os, editor = false, member = true, chi
     if (member) main.push(item("board"), item("calendar"), item("council"), item("review"));
     family.push(item("people"));
     if (member) family.push(item("kodeks"));
-    business.push(item("companies"));
+    business.push(item("companies"), { id: "registry", href: `/${lang === "EN" ? "en" : "ru"}${REGISTRY_PATH}`, label: t.registry });
   }
   family.push(item("heritage"));
   if (admin && os) settings.push(item("access"));

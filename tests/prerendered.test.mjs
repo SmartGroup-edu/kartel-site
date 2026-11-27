@@ -42,16 +42,6 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /<html[^>]*\blang="en"/);
   });
 
-  test("family-office title (bus 173)", () => {
-    assert.match(html, /<title>KARTEL — a family office in London<\/title>/);
-  });
-
-  test("share card names the family office (og:title + og:image)", () => {
-    assert.match(html, /<meta property="og:title" content="KARTEL — a family office in London"\/>/);
-    assert.match(html, /<meta property="og:image:alt" content="KARTEL — a family office in London\. Virtus et Potestas — Strength and Power\."\/>/);
-    assert.match(html, /<meta property="og:image" content="https:\/\/kartel\.org\.uk\/opengraph-image"\/>/);
-  });
-
   test("canonical points at /en", () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/en"\/>/);
   });
@@ -62,65 +52,13 @@ describe("/en — Coat of Arms home", () => {
     assert.match(html, /hrefLang="x-default"/);
   });
 
-  test("JSON-LD WebSite + Organization + FAQPage present, no Person", () => {
-    assert.match(html, /"@type":"WebSite"/);
-    assert.match(html, /"@type":"Organization"/);
-    // bus 173: the page is about KARTEL the family office, not an article about the crest
-    assert.match(html, /"description":"A family office in London\./);
-    assert.match(html, /"mainEntity":\{"@id":"https:\/\/kartel\.org\.uk\/#organization"\}/);
-    assert.doesNotMatch(html, /"@type":"Article"/);
-    assert.match(html, /"@type":"FAQPage"/);
-    assert.doesNotMatch(html, /"@type":"Person"/);
-  });
-
   test("coat-of-arms content rendered", () => {
     assert.match(html, /griffin/i);
     assert.match(html, /Virtus et Potestas/);
   });
 
-  test("KARTEL Core is one click away (main menu)", () => {
-    assert.match(html, /href="\/en\/core"/);
-    assert.match(html, /href="\/en\/registry"/);
-  });
-
-  test("design pass 2026-11-15: sentence-case crest heading, no drop cap, hero actions", () => {
-    // bus 172 P5: the family-office hero holds the page's one H1; the crest heading is the H2 that follows it.
-    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>The KARTEL family — work that lasts for generations\.<\/h1>/);
-    assert.match(html, /<h2 id="crest-title"[^>]*>Kartel Coat of Arms<\/h2>/);
-    assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1);
-    assert.doesNotMatch(html, /drop-cap/);
-    assert.match(html, /href="#explorer"[^>]*>Explore the coat of arms</);
-    assert.match(html, /href="#story"[^>]*>Read the story</);
-    assert.match(html, /id="explorer"/);
-    assert.match(html, /id="story"/);
-  });
-
-  test("design pass type scale: 17/19px reading text, 15px UI, 36/54px H1, 24px lede", () => {
-    // The H1 is the office hero's since bus 172 P5; it still takes the 36/54 scale.
-    assert.match(html, /text-\[17px\] leading-\[1\.65\][^"]*lg:text-\[19px\] lg:leading-\[1\.7\]/);
-    assert.match(html, /<h1 class="[^"]*text-\[36px\][^"]*lg:text-\[54px\]/);
-    assert.match(html, /font-serif text-\[20px\][^"]*text-\[var\(--text-body\)\][^"]*lg:text-\[24px\]/);
-    assert.match(html, /role="tab"[^>]*class="[^"]*text-\[15px\]|class="[^"]*text-\[15px\][^"]*"[^>]*role="tab"/);
-  });
-
-  test("UI/UX audit 2026-11-14: no section dots, no justified text, lede present", () => {
-    assert.doesNotMatch(html, /aria-label="Section navigation"/);
-    assert.doesNotMatch(html, /text-justify/);
-    assert.match(html, /Below: what each element means and the legacy it carries\./);
-  });
-
-  test("crest explorer is a WAI-ARIA tablist: exactly one selected tab, roving tabindex", () => {
-    assert.equal((html.match(/aria-selected="true"/g) ?? []).length, 1);
-    assert.equal((html.match(/role="tab"/g) ?? []).length, 8);
-    assert.match(html, /role="tabpanel"[^>]*aria-labelledby="crest-tab-/);
-  });
-
   test("primary nav has no Projects item (it lives in the registry subnav)", () => {
     assert.doesNotMatch(html, />Projects</);
-  });
-
-  test("light theme-color is white", () => {
-    assert.match(html, /<meta name="theme-color" content="#ffffff" media="\(prefers-color-scheme: light\)"\/>/);
   });
 
   test("no family names in the public home HTML", () => {
@@ -144,17 +82,8 @@ describe("/ru — Coat of Arms home", () => {
     assert.match(html, /<html[^>]*\blang="ru"/);
   });
 
-  test("Russian family-office title (bus 173)", () => {
-    assert.match(unescape(html), /<title>KARTEL — семейный офис в Лондоне<\/title>/);
-  });
-
   test("canonical points at /ru", () => {
     assert.match(html, /<link rel="canonical" href="https:\/\/kartel\.org\.uk\/ru"\/>/);
-  });
-
-  test("Russian H1 in sentence case (the office hero, bus 172 P5); the crest heading follows as an H2", () => {
-    assert.match(unescape(html).replace(/\u00a0/g, " "), /<h1[^>]*>Семья KARTEL — дело на поколения\.<\/h1>/);
-    assert.match(unescape(html), /<h2 id="crest-title"[^>]*>Фамильный герб Картель<\/h2>/);
   });
 
   test("Russian coat-of-arms body rendered (Cyrillic)", () => {
@@ -165,103 +94,6 @@ describe("/ru — Coat of Arms home", () => {
     assert.doesNotMatch(unescape(html), FAMILY_NAMES);
   });
 
-  test("RU image alts say «Фамильный герб Картель», never «Герб семьи Картель»", () => {
-    const u = unescape(html);
-    assert.match(u, /alt="Фамильный герб Картель — Virtus et Potestas"/);
-    assert.doesNotMatch(u, /alt="Герб семьи Картель/);
-  });
-
-  test("RU JSON-LD: the crest is the KARTEL emblem («Фамильный герб Картель»); the organisation is the family office (bus 173)", () => {
-    const u = unescape(html);
-    assert.match(u, /"caption":"Эмблема KARTEL — фамильный герб Картель"/);
-    assert.doesNotMatch(u, /"Герб семьи Картель"/);
-    assert.match(u, /"description":"Семейный офис в Лондоне\./);
-    assert.doesNotMatch(u, /"@type":"Article"/);
-  });
-});
-
-describe("crest explorer hotspots (design pass 2026-11-15)", () => {
-  test("coordinates match the grid-verified table (% of the 900×1000 crest)", () => {
-    const src = readFileSync("app/components/CrestExplorer.tsx", "utf8");
-    const want = { coronet: [50, 29], fleurdelis: [50, 19], swords: [22, 57], griffin: [47, 55], staff: [35, 42], wings: [20, 22], keys: [50, 73], motto: [28, 72] };
-    for (const [id, [x, y]] of Object.entries(want)) {
-      assert.match(src, new RegExp(`id: "${id}",[\\s\\S]*?\\n    x: ${x},\\n    y: ${y},`), id);
-    }
-    assert.match(src, /width=\{900\}\s*height=\{1000\}/);
-  });
-});
-
-describe("home cycle 1 (2026-11-15)", () => {
-  const en = read("en.html"), ru = read("ru.html");
-  const src = (f) => readFileSync(f, "utf8");
-  test("#1 explorer: panel first below 1024px (CSS order only), scroll only when out of view", () => {
-    const ex = src("app/components/CrestExplorer.tsx");
-    assert.match(ex, /role="tabpanel"[\s\S]*?max-lg:order-first/);
-    assert.ok(en.indexOf('role="tablist"') < en.indexOf('role="tabpanel"'), "DOM keeps tablist before tabpanel");
-    assert.match(ex, /\[data-section-nav\]/);
-    assert.match(ex, /prefers-reduced-motion: reduce\)"\)\.matches;\s*window\.scrollBy\(\{ top: delta, behavior: reduce \? "auto" : "smooth" \}\)/);
-    assert.match(src("app/components/SiteHeader.tsx"), /data-section-nav=""/);
-  });
-  test("#2 back-to-top: past two viewports and only while scrolling up", () => {
-    const b = src("app/components/BackToTop.tsx");
-    assert.match(b, /y > window\.innerHeight \* 2/);
-    assert.match(b, /else if \(y < last - 4\) setShow\(true\);\s*else if \(y > last \+ 4\) setShow\(false\);/);
-    assert.doesNotMatch(b, /scrollY > 600/);
-  });
-  test("#3 text floors: no 12px/13px/text-xs left in the home's caption sources", () => {
-    for (const f of ["app/components/HeraldicPalette.tsx", "app/components/SiteFooter.tsx", "app/components/MottoBanner.tsx"]) {
-      assert.doesNotMatch(src(f), /text-\[1[23]px\]|\btext-xs\b/, f);
-    }
-    assert.doesNotMatch(src("app/components/CrestExplorer.tsx"), /text-\[13px\]/);
-  });
-  test("#4 palette: four open cards, no toggles, equal height, toned argent", () => {
-    const pal = src("app/components/HeraldicPalette.tsx");
-    assert.doesNotMatch(pal, /aria-expanded|useState|<button/);
-    assert.match(pal, /grid auto-rows-fr/);
-    assert.match(pal, /color: "#d9d6cf"/);
-    assert.doesNotMatch(pal, /\bcolor: "#e8e4dd"|backgroundColor: "#e8e4dd"/);
-    for (const m of ["Truth, virtue", "Courage, determination", "Willpower, endurance", "Nobility, wisdom"]) assert.ok(en.includes(m), m);
-  });
-  test("#5 closing block: motto, explorer + members links, copy link (EN/RU)", () => {
-    for (const [h, l, a, b, t] of [[en, "en", "Explore the coat of arms", "Family area — members only", "Strength and Power"], [ru, "ru", "Исследовать герб", "Семейный кабинет — только для членов семьи", "Сила и Власть"]]) {
-      const i = h.indexOf('data-closing=""');
-      assert.ok(i > 0, l);
-      const sec = h.slice(i, h.indexOf("</section>", i));
-      assert.match(sec, /lang="la"[^>]*>Virtus et Potestas</);
-      for (const s of [t, `href="#explorer"`, a, `href="/${l}/family/os"`, b]) assert.ok(sec.includes(s), `${l}: ${s}`);
-      assert.match(sec, /<button/);
-    }
-  });
-  test("#6 story heading above the first story paragraph", () => {
-    assert.match(en, /id="story"[\s\S]*?<h2[^>]*>The story<\/h2>\s*<p/);
-    assert.match(ru, /id="story"[\s\S]*?<h2[^>]*>История<\/h2>\s*<p/);
-  });
-});
-
-describe("home cycle 2 (2026-11-15)", () => {
-  const en = read("en.html"), ru = read("ru.html");
-  const src = (f) => readFileSync(f, "utf8");
-  test("#1 RU palette subtitles do not repeat the colour name", () => {
-    const pal = src("app/components/HeraldicPalette.tsx");
-    for (const [n, h] of [["Золото", "жёлтый"], ["Чернь", "чёрный"], ["Серебро", "белый"], ["Червлень", "красный"]]) {
-      assert.match(pal, new RegExp(`nameRU: "${n}",[\\s\\S]*?heraldRU: "${h}",`), n);
-    }
-    assert.match(pal, /heraldEN: "Or \(Yellow\)"/);
-  });
-  test("#2 home footer carries no motto line; the closing block does", () => {
-    for (const h of [en, ru]) {
-      const foot = h.slice(h.lastIndexOf("<footer"), h.lastIndexOf("</footer>"));
-      assert.doesNotMatch(foot, /Virtus et Potestas/);
-      assert.match(h, /data-closing=""/);
-    }
-    assert.match(src("app/components/SiteFooter.tsx"), /motto\?: string;/);
-  });
-  test("#3 one separator after an ornament: no rule on Legacy or the closing block", () => {
-    for (const h of [en, ru]) {
-      assert.match(h, /<section id="legacy">/);
-      assert.match(h, /<section data-closing="" aria-label="(Motto|Девиз)">/);
-    }
-  });
 });
 
 describe("family area type scale (cycle 2 #4)", () => {
@@ -291,21 +123,13 @@ describe("cycle 3 (2026-11-15)", () => {
     assert.match(tree, /isHovered=\{hoveredId === node\.id\}/);
     assert.doesNotMatch(tree, /hoveredId === "/);
   });
-  test("#3 sable swatch: token lifted in dark mode, 1px edge", () => {
-    const css = src("app/globals.css");
-    assert.match(css, /:root \{[\s\S]*?--sable: #1a1816;/);
-    assert.match(css, /\.dark \{[\s\S]*?--sable: #2b2722;/);
-    const pal = src("app/components/HeraldicPalette.tsx");
-    assert.match(pal, /color: "var\(--sable\)"/);
-    assert.match(pal, /border-b border-\[var\(--border\)\] px-4 py-3/);
-  });
 });
 
 describe("cycle 4 — one type system for Core and the registry (2026-11-15)", () => {
   const src = (f) => readFileSync(f, "utf8");
   const scale = src("app/lib/typeScale.ts");
   const PAGES = ["CoreAbout", "RegistryDashboard", "LayersDashboard", "ProjectsDirectory", "FederationMap", "CampusRegistry", "OrganisationsRegistry"].map((n) => `app/components/${n}.tsx`);
-  const SITE = [...PAGES, ...["HomeClient", "FamilyClient", "FamilyTree", "FamilyTimeline", "HeraldicPalette", "CrestExplorer"].map((n) => `app/components/${n}.tsx`)];
+  const SITE = [...PAGES, ...["FamilyClient", "FamilyTree", "FamilyTimeline"].map((n) => `app/components/${n}.tsx`)];
   test("#1 one source: H1 36/44/54 accent, H2 28/35 accent, H3 22/24 foreground", () => {
     assert.match(scale, /export const H1 = "font-serif text-\[36px\] leading-\[1\.1\] tracking-\[-0\.01em\] text-\[var\(--accent\)\] md:text-\[44px\] lg:text-\[54px\]"/);
     assert.match(scale, /export const H2 = "font-serif text-\[28px\] leading-\[1\.15\] text-\[var\(--accent\)\] lg:text-\[35px\]"/);
@@ -392,11 +216,12 @@ describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11
     const g = src("app/global-not-found.tsx");
     assert.match(g, /\.get\("x-kartel-locale"\) === "ru" \? "ru" : "en"/);
     assert.match(g, /<html lang=\{lang\}/);
-    assert.match(g, /<NotFoundView lang=\{lang\} \/>/);
+    assert.match(g, /<CrestNotFound lang=\{lang\} \/>/);
     assert.doesNotMatch(g, /lang="ru"|На главную|Return home/);
+    // bus 176 P1: the public 404 is the crest page — «На главную» and «Войти», no registry link
     const v = src("app/components/NotFoundView.tsx");
-    assert.match(v, /<SiteHeader /);
-    assert.match(src("app/content/notFound.ts"), /home: "Home page",[\s\S]*registry: "Registry",[\s\S]*home: "На главную",[\s\S]*registry: "Реестр",/);
+    assert.match(v, /if \(!refCode\) return <CrestNotFound lang=\{lang\} \/>;/);
+    assert.match(src("app/content/notFound.ts"), /home: "Home page",[\s\S]*signin: "Sign in",[\s\S]*home: "На главную",[\s\S]*signin: "Войти",/);
   });
   test("#2 tab-title brand is KARTEL in both locales", () => {
     assert.doesNotMatch(src("app/[lang]/layout.tsx"), /КАРТЕЛЬ/);
@@ -494,33 +319,6 @@ describe("registry v14 rendered (bus 164: MoyPolk stewards nothing, post-v9 orga
 
 describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
   const src = (f) => readFileSync(f, "utf8");
-  const notice = src("app/components/FamilyGateNotice.tsx");
-  const pending = src("app/[lang]/family/pending/page.tsx");
-  test("#1 AuthShell pages use the heading system: H1 from the scale, 14px eyebrow", () => {
-    for (const [f, c] of [["FamilyGateNotice", notice], ["pending", pending]]) {
-      const h1s = [...c.matchAll(/<h1 className=([^>]*)>/g)].map((m) => m[1]);
-      assert.ok(h1s.length > 0, f);
-      for (const h of h1s) assert.match(h, /^\{H1\}$|\$\{H1\}/, `${f}: ${h}`);
-      assert.doesNotMatch(c, /\btext-xs\b|text-3xl|text-\[1[0-3]px\]/, f);
-    }
-    assert.match(notice, /<p className=\{EYEBROW\}>\{c\.eyebrow\}<\/p>/);
-  });
-  test("#2 helper text under the field, linked by aria-describedby, TTL from FAMILY_LINK_TTL", () => {
-    assert.match(notice, /aria-describedby="family-email-help"/);
-    assert.match(notice, /<p id="family-email-help" className="[^"]*text-\[14px\][^"]*text-\[var\(--muted\)\]">\s*\{c\.helper\(ttlMinutes\)\}/);
-    assert.match(notice, /We'll email you a sign-in link and a six-digit code\. Both work once and expire in \$\{min\}/);
-    assert.match(notice, /Мы пришлём ссылку для входа и шестизначный код\. Они действуют \$\{min\} \$\{ruMinutes\(min\)\}/);
-    assert.match(src("app/lib/family-env.ts"), /linkTtlMinutes: \(\): number => \{\s*const m = Math\.round\(Number\(process\.env\.FAMILY_LINK_TTL \?\? 600\) \/ 60\);/);
-    assert.match(src("app/[lang]/family/signin/page.tsx"), /ttlMinutes=\{familyEnv\.linkTtlMinutes\(\)\}/);
-    assert.doesNotMatch(notice, /10 minutes|10 минут/);
-  });
-  test("#2 link-sent: inbox + spam, and 'Use a different email' returns to the focused field", () => {
-    assert.match(notice, /Check your inbox and spam folder/);
-    assert.match(notice, /Проверьте входящие и папку «Спам»/);
-    assert.match(notice, /again: "Use a different email"/);
-    assert.match(notice, /href=\{`\$\{signinHref\}\$\{EDIT_HASH\}`\}/);
-    assert.match(notice, /if \(window\.location\.hash === EDIT_HASH\) emailRef\.current\?\.focus\(\);/);
-  });
   test("#3 mobile menu: container focus, no ring, 17px rows ≥48px, current bar, closes on route change", () => {
     const h = src("app/components/SiteHeader.tsx");
     assert.match(h, /useFocusTrap<HTMLDivElement>\(menuOpen, \{ initialFocus: "container" \}\)/);
@@ -531,13 +329,6 @@ describe("cycle 6 — sign-in pages and the mobile menu (2026-11-15)", () => {
     assert.match(h, /if \(menuPath !== pathname\) \{\s*setMenuPath\(pathname\);\s*setMenuOpen\(false\);/);
     assert.match(h, /"invisible max-h-0 opacity-0 border-t-0"/);
     assert.match(src("app/components/useFocusTrap.ts"), /initialFocus === "container"\) \{\s*container\.focus\(\{ preventScroll: true \}\);/);
-  });
-  test("#4 back link points at the home page: 'Back to the home page' / «На главную» (bus 172 P5: the home opens with the office, the crest follows)", () => {
-    for (const c of [notice, pending]) {
-      assert.match(c, /back: "Back to the home page",/);
-      assert.match(c, /back: "На главную",/);
-      assert.doesNotMatch(c, /KARTEL",\n/);
-    }
   });
 });
 
@@ -597,7 +388,8 @@ describe("cycle 8 — accessible language, hreflang, heading outline (2026-11-15
   const body = (h) => h.slice(h.indexOf("<body")).replace(/<script[\s\S]*?<\/script>/g, "").replace(/<noscript>[\s\S]*?<\/noscript>/g, "");
   const decode = (v) => v.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
   // Names allowed to be Latin on a Russian page: the brand, the motto, project names, codes.
-  const LATIN_OK = /^(KARTEL|Virtus et Potestas|MoyPolk|RusJAz|RusJAzz|Community Group|community\.group|[a-z0-9.:/_-]+|[A-Za-z]+[A-Z][A-Za-z0-9]*)$/;
+  // bus 176: alt="" is a decorative crest (the wordmark, the intro) — empty, not English
+  const LATIN_OK = /^(|KARTEL|Virtus et Potestas|MoyPolk|RusJAz|RusJAzz|Community Group|community\.group|[a-z0-9.:/_-]+|[A-Za-z]+[A-Z][A-Za-z0-9]*)$/;
   test("#1 RU pages: every aria-label / title / alt is Russian (server HTML)", () => {
     const bad = [];
     for (const p of PAGES) {
@@ -634,7 +426,7 @@ describe("cycle 8 — accessible language, hreflang, heading outline (2026-11-15
   test("#3 sitemap: every page URL carries en, ru and x-default alternates", () => {
     const xml = readFileSync(`${APP}/sitemap.xml.body`, "utf8");
     const urls = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map((m) => m[1]).filter((u) => !/llms/.test(u));
-    assert.equal(urls.length, 16);
+    assert.equal(urls.length, 2, "bus 176 P1: only /en and /ru are public");
     for (const u of urls) for (const l of ["en", "ru", "x-default"]) assert.match(u, new RegExp(`hreflang="${l}"`), u.slice(0, 80));
   });
   test("#4 heading outline: exactly one H1, no skipped levels (EN + RU)", () => {
@@ -651,12 +443,8 @@ describe("cycle 8 — axe serious findings fixed (2026-11-15)", () => {
   const src = (f) => readFileSync(f, "utf8");
   test("language switch: accessible name starts with the visible RU/EN (label in name)", () => {
     assert.match(src("app/components/SiteHeader.tsx"), /aria-label=\{lang === "EN" \? "RU — switch language to Russian" : "EN — переключить язык на английский"\}/);
-    assert.match(read("ru.html"), /aria-label="EN — переключить язык на английский"/);
-  });
-  test("crest markers inside the aria-hidden layer are out of the tab order", () => {
-    assert.match(src("app/components/CrestExplorer.tsx"), /aria-pressed=\{activeId === el\.id\}[\s\S]{0,260}tabIndex=\{-1\}/);
-    const h = read("en.html"); const layer = h.slice(h.indexOf('class="absolute inset-0" aria-hidden="true"'));
-    assert.ok(layer.length > 0 && !/<button(?![^>]*tabindex="-1")[^>]*>/.test(layer.slice(0, layer.indexOf("</div>"))));
+    // bus 176 P1: the crest pages' RU / EN are links whose name is their visible text (no aria-label to drift)
+    assert.match(read("ru.html"), /<a hrefLang="en" lang="en"[^>]*href="\/en"[^>]*>EN<\/a>|<a[^>]*hrefLang="en"[^>]*>EN<\/a>/);
   });
   test("scrolling table wrappers are focusable, named regions", () => {
     for (const f of ["CampusRegistry", "OrganisationsRegistry", "ProjectsDirectory", "RegistryDashboard", "FederationMap"]) {
@@ -670,71 +458,6 @@ describe("cycle 8 — axe serious findings fixed (2026-11-15)", () => {
     const t = src("app/components/FamilyTree.tsx");
     assert.doesNotMatch(t, /role="button"|role="img"|tabIndex=\{0\}/);
     assert.match(t, /data-tree-card=""/);
-  });
-});
-
-describe("cycle 9 — markers in both themes, tablet hero, phones held sideways (2026-11-15)", () => {
-  const src = (f) => readFileSync(f, "utf8");
-  test("#1 crest markers: fixed burgundy, white 2px ring and numeral, never the theme accent", () => {
-    const ex = src("app/components/CrestExplorer.tsx");
-    const markers = ex.slice(ex.indexOf("{/* Hotspot dots overlay */}"), ex.indexOf("{/* Element list"));
-    assert.match(markers, /rounded-full bg-\[#7b1e2d\] text-white ring-2 ring-white/);
-    assert.doesNotMatch(markers, /bg-\[var\(--accent\)\]|text-\[var\(--on-accent\)\]/);
-    assert.match(markers, /"h-8 w-8 shadow-lg"/);
-  });
-  test("#2 crest block: one column below 1024px, crest image 380px from 640px, balanced heading (H2 since bus 172 P5)", () => {
-    const h = src("app/components/HomeClient.tsx");
-    const hero = h.slice(h.indexOf('<article id="home"'), h.indexOf("</article>"));
-    assert.doesNotMatch(hero, /\bmd:(grid-cols|\[grid-template|flex|min-h)/);
-    assert.match(hero, /lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,1fr\)\]/);
-    assert.match(hero, /sizes="\(max-width: 639px\) 300px, \(max-width: 1023px\) 380px/);
-    assert.match(hero, /\$\{H2\} text-balance/);
-  });
-  test("#3 phones held sideways: short-land variant, two-column hero sized by height, no section row", () => {
-    assert.match(src("app/globals.css"), /@custom-variant short-land \(@media \(orientation: landscape\) and \(max-height: 500px\)\);/);
-    const h = src("app/components/HomeClient.tsx");
-    assert.match(h, /short-land:grid-cols-\[auto_minmax\(0,1fr\)\]/);
-    assert.match(h, /short-land:h-\[calc\(100svh-5\.5rem\)\] short-land:w-auto/);
-    const hd = src("app/components/SiteHeader.tsx");
-    assert.match(hd, /border-t border-\[var\(--border\)\] short-land:hidden max-md:absolute/);
-    assert.match(hd, /className="h-11 md:hidden short-land:hidden"/);
-    assert.match(src("app/components/CrestExplorer.tsx"), /short-land:max-w-\[calc\(\(100svh-5\.5rem\)\*0\.9\)\]/);
-  });
-});
-
-describe("cycle 10 — scannable Meaning essay, tablet hero axis (2026-11-15)", () => {
-  const src = (f) => readFileSync(f, "utf8");
-  const meaning = (h) => h.slice(h.indexOf('<section id="meaning"'), h.indexOf('<section id="explorer"'));
-  const groups = (h) => [...meaning(h).matchAll(/<h3[^>]*>([^<]+)<\/h3>([\s\S]*?)(?=<h3|$)/g)].map((m) => ({ h: m[1], link: (m[2].match(/href="#explorer-([a-z]+)"/) ?? [])[1] ?? null, text: m[2].replace(/<[^>]+>/g, " ") }));
-  const CASES = {
-    en: [["Staff", "staff", /staff/i], ["Crossed keys", "keys", /keys/i], ["Wings", "wings", /wings/i], ["Mantling", null, /mantling/i], ["Coronet", "coronet", /coronet/i], ["Fleur-de-lis", "fleurdelis", /fleur-de-lis/i], ["Swords", "swords", /swords/i], ["Motto", "motto", /motto/i]],
-    ru: [["Жезл", "staff", /жезл/i], ["Скрещённые ключи", "keys", /ключ/i], ["Крылья", "wings", /крыл/i], ["Намёт", null, /намёт/i], ["Корона", "coronet", /корон/i], ["Лилии", "fleurdelis", /лили/i], ["Мечи", "swords", /меч/i], ["Девиз", "motto", /девиз/i]],
-  };
-  test("#1 the essay sits under 8 element H3s, each over its own paragraphs; 7 link to the crest", () => {
-    for (const lang of ["en", "ru"]) {
-      const g = groups(read(`${lang}.html`));
-      assert.deepEqual(g.map((x) => x.h), CASES[lang].map((c) => c[0]), lang);
-      CASES[lang].forEach(([, link, kw], i) => {
-        assert.equal(g[i].link, link, `${lang} ${g[i].h} link`);
-        assert.match(g[i].text, kw, `${lang} ${g[i].h}: paragraph matches its heading`);
-      });
-      // all ten paragraphs still there, unchanged in count
-      assert.equal((meaning(read(`${lang}.html`)).match(/<p class="mb-5 text-left">/g) ?? []).length, 10, lang);
-    }
-  });
-  test("#1 deep links: hashchange + load, explicit offset, reduced motion, focus to the tab", () => {
-    const ex = src("app/components/CrestExplorer.tsx");
-    assert.match(ex, /\/\^#explorer-\(\[a-z\]\+\)\$\/\.exec\(window\.location\.hash\)/);
-    assert.match(ex, /window\.addEventListener\("hashchange", apply\)/);
-    assert.match(ex, /behavior: reduce \? "auto" : "smooth"/);
-    assert.match(ex, /tabRefs\.current\[i\]\?\.focus\(\{ preventScroll: true \}\)/);
-  });
-  test("#2 hero 640–1023: title, lede and actions centred on the crest's axis; phones and lg+ left", () => {
-    const h = src("app/components/HomeClient.tsx");
-    const C = "sm:text-center lg:text-left short-land:text-left";
-    assert.ok(h.includes(`[grid-area:title] ${C}`) && h.includes(`[grid-area:text] ${C}`));
-    assert.match(h, /sm:mx-auto lg:mx-0/);
-    assert.match(h, /sm:justify-center lg:justify-start/);
   });
 });
 
@@ -811,33 +534,6 @@ describe("cycle 12 — chronicle memorial block (2026-11-15)", () => {
   });
 });
 
-describe("cycle 11 — residuals: explorer heading case, error page on the scale (2026-11-15)", () => {
-  const src = (f) => readFileSync(f, "utf8");
-  test("explorer heading in sentence case (EN)", () => {
-    assert.ok(read("en.html").includes(">Explore the coat of arms</h3>"));
-    assert.ok(!read("en.html").includes("Explore the Coat of Arms"));
-  });
-  test("route error page: H1 and reading text from the scale, sentence-case actions, a way back", () => {
-    const e = src("app/[lang]/error.tsx");
-    assert.match(e, /<h1 className=\{H1\}>/);
-    assert.match(e, /\$\{PROSE\}/);
-    assert.doesNotMatch(e, /TRY AGAIN|ПОВТОРИТЬ|tracking-\[0\.1em\]|hover:text-white/);
-    assert.match(e, /cta: "Try again", home: "Back to the home page"/);
-    assert.match(e, /cta: "Повторить", home: "На главную"/);
-  });
-  test("explorer element labels in sentence case (bus 92 L1)", () => {
-    const c = src("app/components/CrestExplorer.tsx");
-    const labels = [...c.matchAll(/labelEN: "([^"]+)"/g)].map((m) => m[1]);
-    assert.ok(labels.includes("Crossed keys"));
-    for (const l of labels) assert.doesNotMatch(l, /\s[A-Z]/, `Title Case label: ${l}`);
-  });
-  test("route error page renders inside the site chrome: header + footer (bus 92 L2)", () => {
-    const e = src("app/[lang]/error.tsx");
-    assert.match(e, /<SiteHeader lang=/);
-    assert.match(e, /<SiteFooter /);
-    assert.match(e, /contactEmail=\{null\}/);
-  });
-});
 
 describe("client static files — no family names", () => {
   test("no file under .next/static contains a family name", () => {
@@ -881,17 +577,6 @@ describe("sitemap.xml", () => {
   test("does NOT list /family (hidden until registration + admin approval)", () => {
     assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/family<\/loc>/);
     assert.doesNotMatch(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/family<\/loc>/);
-  });
-
-  test("lists every public page: /core, /registry/layers, /registry/projects (EN + RU)", () => {
-    for (const l of ["en", "ru"]) for (const p of ["core", "registry/layers", "registry/projects"]) {
-      assert.match(xml, new RegExp(`<loc>https://kartel\\.org\\.uk/${l}/${p.replace("/", "\\/")}</loc>`));
-    }
-  });
-
-  test("lists the Core Registry", () => {
-    assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/en\/registry<\/loc>/);
-    assert.match(xml, /<loc>https:\/\/kartel\.org\.uk\/ru\/registry<\/loc>/);
   });
 
   test("does NOT list the coat-of-arms (/family/crest) while family is hidden", () => {

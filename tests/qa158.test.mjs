@@ -78,7 +78,7 @@ test("N5: heritage content — only the RU fields are typographed, nothing else 
 
 test("N5: sign-in, the family 404 and error, the editor, the week sheet and recognitions read through the typographer", () => {
   assert.match(src("app/components/FamilyGateNotice.tsx"), /const COPY_RU = typographDict\(copy\.ru\);/);
-  assert.match(src("app/components/FamilyGateNotice.tsx"), /const c = lang === "ru" \? COPY_RU : copy\.en;/);
+  assert.match(src("app/components/FamilyGateNotice.tsx"), /const c: Copy = lang === "ru" \? COPY_RU : copy\.en;/);
   assert.match(src("app/components/NotFoundView.tsx"), /const f = lang === "ru" \? FAMILY_REF_RU : familyRefText\.en;/);
   assert.match(src("app/[lang]/family/error.tsx"), /f = lang === "ru" \? FAMILY_REF_RU : familyRefText\.en;/);
   assert.match(src("app/components/FamilyAdmin.tsx"), /const t = tx\(T, lang\);/);

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Disclosure from "./Disclosure";
-import { CREST_MARKERS } from "./CrestExplorer";
+import { CREST_MARKERS } from "../content/crest";
 import { H1, META } from "../lib/typeScale";
 import { BTN_PRIMARY, BTN_SECONDARY, CARD_LABEL, OS_H2, OS_H3, RULE_VALUES } from "../lib/family-ui";
 import { tx, typograph } from "../lib/typograph.mjs";
