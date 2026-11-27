@@ -56,3 +56,8 @@ GRANT SELECT, INSERT, UPDATE (wrapped_key, goal_ct), DELETE ON body_goal TO kfo_
 GRANT SELECT, INSERT, DELETE ON body_key TO kfo_app;
 -- bus 165: pending sign-ins are never deleted by the app (the runner purges expired rows as the owner).
 GRANT SELECT, INSERT, UPDATE (attempts, superseded_at, consumed_at) ON signin_pending TO kfo_app;
+-- bus 176 P4: guests. The owner invites (INSERT) and revokes (revoked_*); grants are never deleted by the app. The
+-- guest log is append-only for the app; the runner (owner) deletes rows after 12 months.
+GRANT SELECT, INSERT, UPDATE (revoked_at, revoked_by) ON guest_grant TO kfo_app;
+GRANT SELECT, INSERT ON guest_access_log TO kfo_app;
+GRANT USAGE ON SEQUENCE guest_access_log_id_seq TO kfo_app;

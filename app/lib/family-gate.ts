@@ -11,8 +11,11 @@ import { isViewerApproved } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
 import { familyRoleOf, mediaActorFor } from "@/app/lib/family-roles.mjs";
 import { osSessionState } from "@/app/lib/family-os-session.mjs";
+import { guestLookup } from "@/app/lib/family-guest.mjs";
 
-export type GateDecision = "login" | "pending" | "allow";
+/** "guest" (bus 176 P4): a read-only guest. Every caller that checks `decision !== "allow"` keeps refusing them; only
+ *  the guest's section pages and the Family OS shell accept "guest" by name. */
+export type GateDecision = "login" | "pending" | "allow" | "guest";
 
 /** Decide what a request to a gated Family route should do. Fail-closed. Asked once per render (bus 171): the
  *  Family OS layout and its page share the answer through React `cache`, which lives for one request only. */
@@ -23,8 +26,14 @@ export const familyGateDecision = cache(async (): Promise<{
   const session = await getSession();
   if (!session) return { decision: "login", session: null };
   const approved = await isViewerApproved(session.cpifSubjectId, session.email);
-  return { decision: approved ? "allow" : "pending", session };
+  if (approved) return { decision: "allow", session };
+  const g = await guestLookup({ email: session.email, sat: Math.floor(session.issuedAt.getTime() / 1000) });
+  return g.state === "active" ? { decision: "guest", session: { ...session, guest: g.guest as FamilySession["guest"] } } : { decision: "pending", session };
 });
+
+/** A guest's page: their section only. The edge already sent them home from anything else; this is the second wall. */
+export const guestMay = (session: FamilySession | null, section: "calendar" | "kodeks" | "companies" | "review") =>
+  Boolean(session?.guest?.sections.includes(section));
 
 /**
  * QA-156 H1: has the owner ended this session («Завершить сеансы»)? For /api routes outside Family OS

@@ -1,6 +1,6 @@
 import { NextResponse, after } from "next/server";
 import { issueSignInNonce, mintSignInLink } from "@/app/lib/family-auth";
-import { isViewerApproved } from "@/app/lib/family-access";
+import { signInAs } from "@/app/lib/family-access";
 import { familyEnv } from "@/app/lib/family-env";
 import { safeReturnTo } from "@/app/lib/family-safe-return.mjs";
 import { sendSignInLink } from "@/app/lib/family-mail";
@@ -55,8 +55,8 @@ export async function POST(request: Request): Promise<Response> {
   after(async () => {
     if (!looksLikeEmail) return;
     try {
-      // The allowlist IS the user list: admins, Edge Config, or the founder seed.
-      const member = await isViewerApproved(addr, addr);
+      // The allowlist IS the user list: admins, Edge Config, or the founder seed — or (bus 176 P4) an active guest.
+      const member = (await signInAs(addr)) !== null;
       // bus 165: every well-formed request is a pending sign-in in Family OS — a stranger's too, so a code typed
       // against it behaves exactly like a member's. It also supersedes older requests for the same address.
       const code = await recordPending(nonce, addr, member);

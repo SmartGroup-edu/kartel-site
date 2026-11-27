@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { familyGateDecision } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { canRegister } from "@/app/lib/family-passkey-rules.mjs";
-import { getOsState, getRules, getAdoption } from "@/app/lib/family-os";
+import { getOsState, getRules, getAdoption, getGuests } from "@/app/lib/family-os";
 import FamilyOsAccess, { type RoleRow, type SigninSummary } from "@/app/components/FamilyOsAccess";
 import { roleRows, signinSummary } from "@/app/lib/family-people.mjs";
 import FamilyOsDown from "@/app/components/FamilyOsDown";
@@ -30,9 +30,10 @@ export default async function FamilyOsAccessPage({ params }: { params: Promise<{
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.access[L]} />;
   if (!state.admin) notFound();
   childHome(lang, state.me);
-  const [rules, adoption] = await Promise.all([getRules(session), getAdoption(session)]);
+  // bus 176 P4: the guest list (owner only) — one more read; the page stays under the call cap.
+  const [rules, adoption, guests] = await Promise.all([getRules(session), getAdoption(session), getGuests(session)]);
   // bus 172 P3: «Роли» and «Вход и защита» — read off the allow-lists, the grants and «Кто уже с нами»; no new read.
   const roles = roleRows({ people: state.people, grants: state.grants, owners: familyEnv.adminEmails(), editors: familyEnv.editorEmails(), lang: L }) as RoleRow[];
   const signin = signinSummary({ adoption, passkeysOn: familyEnv.passkeysOn(), lang: L }) as SigninSummary;
-  return <FamilyOsAccess lang={L} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} roles={roles} signin={signin} />;
+  return <FamilyOsAccess lang={L} people={state.people} grants={state.grants} rules={rules} adoption={adoption} ownKeys={familyEnv.passkeysOn() && !state.me ? { canAdd: canRegister(session) } : null} roles={roles} signin={signin} guests={guests} />;
 }

@@ -74,8 +74,9 @@ describe("verify route (bus 165)", () => {
     assert.match(post, /request\.headers\.get\("origin"\) !== familyEnv\.siteOrigin\(\)\) return cjson\(403/);
     assert.match(post, /startsWith\("application\/json"\)\) return cjson\(415/);
     assert.match(post, /const nonce = await readSignInNonce\(\);\s*if \(!nonce\) return cjson\(400, \{ error: "no_request" \}\)/);
-    assert.match(post, /r\.state === "ok" && r\.email && \(await isViewerApproved\(r\.email, r\.email\)\)/);
-    assert.ok(post.indexOf("isViewerApproved") < post.indexOf("createSession"));
+    // bus 176 P4: the list, or an active read-only guest (signInAs), re-checked before the session
+    assert.match(post, /const as = r\.state === "ok" && r\.email \? await signInAs\(r\.email\) : null;/);
+    assert.ok(post.indexOf("signInAs") < post.indexOf("createSession"));
     assert.match(post, /safeReturnTo\(rt,/, "returnTo is sanitised");
   });
 

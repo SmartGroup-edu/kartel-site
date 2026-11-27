@@ -7,6 +7,7 @@ import { routeClass } from "@/app/lib/family-ref.mjs";
 import { familySessionCookie, consoleSessionCookie } from "@/app/lib/family-cookie.mjs";
 import { osSessionState } from "@/app/lib/family-os-session.mjs";
 import { childMayOpenPath } from "@/app/lib/family-os-shell.mjs";
+import { guestLookup, guestHome, guestMayOpenPath, guestSectionOfPath } from "@/app/lib/family-guest.mjs";
 import { verifyConsoleToken, consoleAdmins } from "@/app/lib/console-auth.mjs";
 import { ENDED_PARAM } from "@/app/lib/family-ended";
 
@@ -73,7 +74,16 @@ async function familyEdgeGate(request: NextRequest, pathname: string, area: "fam
   }
   // Approval = admin OR Edge Config `familyAccess[sub]`/`familyAccessEmails[email]` approved OR the
   // founder email seed (FAMILY_APPROVED_EMAILS), fail-closed. R0 approves/revokes without redeploy.
-  if (!sub || !(await isViewerApproved(sub, email))) return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url));
+  if (!sub) return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url));
+  if (!(await isViewerApproved(sub, email))) {
+    // bus 176 P4: not on the family list — perhaps a read-only guest. Asked on every request, never cached, so
+    // «Отозвать» and the end date take effect on the next page. Unknown, revoked, expired or a silent service → the
+    // same «pending» as any address that is not on the list (fail-closed).
+    const g = await guestLookup({ email: email || sub, sat: iat, section: area === "family" ? guestSectionOfPath(pathname) : null });
+    if (g.state === "ended") return sessionEnded(request, lang, pathname);
+    if (g.state !== "active") return NextResponse.redirect(new URL(`/${lang}/family/pending`, request.url));
+    return guestEdge(request, lang, pathname, area, g.guest.sections);
+  }
   const owner = list(process.env.FAMILY_ADMIN_EMAILS).includes(sub.toLowerCase());
   // QA-156 H1: a session older than the owner's «Завершить сеансы» cut-off ends here, on every family page.
   const os = await osSessionState({ email: email || sub, admin: owner, iat });
@@ -101,6 +111,22 @@ async function familyEdgeGate(request: NextRequest, pathname: string, area: "fam
   // The family not-found page gets no params (bus 97 item 6): pass the language and a route CLASS
   // (no ids) so it can render in the right language and log its reference code. Always overwritten,
   // so a client cannot inject either header.
+  const forwarded = new Headers(request.headers);
+  forwarded.set("x-kartel-locale", lang);
+  forwarded.set("x-family-route", routeClass(pathname));
+  return NextResponse.next({ request: { headers: forwarded } });
+}
+
+/**
+ * bus 176 P4: a guest opens only their sections. Anything else — heritage, «Сегодня», people, the editor, Core and the
+ * registry — is a real 307 to their first section, before any page renders; an address no family route matches is the
+ * family 404, as for everyone.
+ */
+function guestEdge(request: NextRequest, lang: string, pathname: string, area: "family" | "business", sections: string[]) {
+  const home = new URL(guestHome(lang, sections), request.url);
+  if (area === "business") return NextResponse.redirect(home, 307);
+  if (!FAMILY_ROUTES.test(pathname)) return familyNotFound(request, lang, pathname);
+  if (!guestMayOpenPath(pathname, sections)) return NextResponse.redirect(home, 307);
   const forwarded = new Headers(request.headers);
   forwarded.set("x-kartel-locale", lang);
   forwarded.set("x-family-route", routeClass(pathname));

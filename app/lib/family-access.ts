@@ -11,6 +11,7 @@
 
 import { get } from "@vercel/edge-config";
 import { familyEnv } from "@/app/lib/family-env";
+import { guestLookup } from "@/app/lib/family-guest.mjs";
 
 export type FamilyAccessStatus = "pending" | "approved" | "revoked";
 
@@ -47,6 +48,17 @@ export async function isViewerApproved(subject: string, email?: string): Promise
   if (fae?.[em] === "revoked") return false;
   if (fae?.[em] === "approved") return true;
   return familyEnv.approvedEmails().includes(em);
+}
+
+/**
+ * bus 176 P4: who may sign in with this address — a family member (the list above), or else an active read-only guest
+ * (the owner's grant in Family OS). null = neither, or Family OS silent for a guest (fail-closed). The list wins: an
+ * address on it is a member, whatever Family OS holds.
+ */
+export async function signInAs(email: string): Promise<"member" | "guest" | null> {
+  const em = email.trim().toLowerCase();
+  if (await isViewerApproved(em, em)) return "member";
+  return (await guestLookup({ email: em })).state === "active" ? "guest" : null;
 }
 
 /**

@@ -62,11 +62,11 @@ test("wiring: «Люди» reads the board once more and nothing else; «Дос�
   assert.match(ap, /if \(!state\.admin\) notFound\(\);/);
   assert.match(ap, /roleRows\(\{ people: state\.people, grants: state\.grants, owners: familyEnv\.adminEmails\(\), editors: familyEnv\.editorEmails\(\)/);
   assert.doesNotMatch(ap.slice(ap.indexOf("const roles = roleRows")), /await get/, "no new Family OS read for the overview");
-  assert.equal((ap.match(/await /g) ?? []).length, 5, "the same five awaits as before (params ×2, gate, state, rules + adoption)");
+  assert.equal((ap.match(/await /g) ?? []).length, 5, "the same five awaits as before (params ×2, gate, state, rules + adoption + bus 176 P4 guests in one Promise.all)");
   const a = readFileSync("app/components/FamilyOsAccess.tsx", "utf8");
   const overview = a.slice(a.indexOf("function Overview("), a.indexOf("function PersonRow("));
   assert.doesNotMatch(overview, /onClick|onChange|<input|<form|send\(/, "the overview cards change nothing");
-  assert.match(a, /noGuest: "Роли «гость» нет/);
+  assert.match(a, /noGuest: "Гость читает только открытые тобой разделы/, "bus 176 P4: the guest role exists now");
 });
 
 // bus 172 P3 QA (acceptor): Tailwind v4 emits arbitrary min-[…] queries before `sm:`, so `sm:` would win at every

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { familyGateDecision } from "@/app/lib/family-gate";
+import { familyGateDecision, guestMay } from "@/app/lib/family-gate";
 import { familyEnv } from "@/app/lib/family-env";
 import { getOsState, getBoard, getSprint } from "@/app/lib/family-os";
 import { reviewDays, nextMonday, weekReview } from "@/app/lib/family-week-review.mjs";
@@ -29,16 +29,19 @@ export default async function FamilyReviewPage({ params }: { params: Promise<{ l
   if (lang !== "en" && lang !== "ru") notFound();
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
-  if (decision !== "allow" || !session) notFound();
+  // bus 176 P4: a guest whose sections include «Обзор недели» reads it — the adults' tasks only (the service cuts the
+  // boards); names come from the boards, since a guest has no /people.
+  if (!session || !(decision === "allow" || (decision === "guest" && guestMay(session, "review")))) notFound();
   const L = lang === "ru" ? "RU" : "EN";
   const state = await getOsState(session);
   if (state.status !== "ok") return <FamilyOsDown lang={L} status={state.status} title={OS_DOWN_TITLE.review[L]} />;
-  if (!state.me) notFound();
+  if (!state.me && !session.guest) notFound();
   childHome(lang, state.me);
   const todayBoard = await getBoard(session);
   if (!todayBoard) return <FamilyWeekReview lang={L} review={null} sprint={null} />;
   const today = todayBoard.today, days = reviewDays(today);
   const [sprint, ...past] = await Promise.all([getSprint(session, nextMonday(today)), ...days.slice(0, -1).map((d) => getBoard(session, d))]);
-  const review = weekReview({ boards: [...past, todayBoard], days, today, people: state.people, lang: L }) as WeekReview;
+  const people = session.guest ? todayBoard.members.map(({ id, name_en, name_ru, kind }) => ({ id, name_en, name_ru, kind })) : state.people;
+  const review = weekReview({ boards: [...past, todayBoard], days, today, people, lang: L }) as WeekReview;
   return <FamilyWeekReview lang={L} review={review} sprint={sprint} />;
 }

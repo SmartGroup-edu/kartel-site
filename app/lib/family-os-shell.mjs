@@ -46,15 +46,26 @@ export const OS_PATHS = {
 export const REGISTRY_PATH = "/registry";
 
 /**
- * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean, child?: boolean, badges?: { board?: number } }} o
+ * @param {{ lang: "EN" | "RU", admin: boolean, os: boolean, editor?: boolean, member?: boolean, child?: boolean, badges?: { board?: number }, guest?: string[] | null }} o
  *   `os`: the viewer is in Family OS (a member, or the owner); `member`: a family member (false for the owner who is not
  *   one — no Задачи, Календарь, Решения); `admin`: the owner; `editor`: a heritage editor; `child`: a child member —
- *   «Мой день» and «Календарь», nothing else.
+ *   «Мой день» and «Календарь», nothing else; `guest` (bus 176 P4): a read-only guest's sections, and nothing else.
  * @returns {{ groups: { id: "main" | "family" | "business" | "settings", label: string | null, items: ShellItem[] }[], tabs: ShellItem[], label: string, tabsLabel: string }}
  * @typedef {{ id: keyof typeof OS_PATHS | "registry", href: string, label: string, badge?: number }} ShellItem
  */
-export function osShellNav({ lang, admin, os, editor = false, member = true, child = false, badges = {} }) {
+export function osShellNav({ lang, admin, os, editor = false, member = true, child = false, badges = {}, guest = null }) {
   const t = L[lang], base = `/${lang === "EN" ? "en" : "ru"}/family`;
+  // bus 176 P4: a read-only guest gets exactly the sections the owner opened — no «Сегодня», people, heritage, registry
+  // or settings. The groups keep their usual names; the phone tab bar holds them all (four at most).
+  if (Array.isArray(guest)) {
+    const has = (id) => guest.includes(id), it = (id) => ({ id, href: `${base}${OS_PATHS[id]}`, label: t[id] });
+    const groups = [
+      { id: "main", label: null, items: ["calendar", "review"].filter(has).map(it) },
+      { id: "family", label: t.family, items: ["kodeks"].filter(has).map(it) },
+      { id: "business", label: t.business, items: ["companies"].filter(has).map(it) },
+    ].filter((g) => g.items.length > 0);
+    return { groups, tabs: groups.flatMap((g) => g.items).slice(0, 4), label: t.nav, tabsLabel: t.tabs };
+  }
   if (child && os && member) {
     const tabs = [{ id: "today", href: `${base}${OS_PATHS.today}`, label: t.myDay }, { id: "calendar", href: `${base}${OS_PATHS.calendar}`, label: t.calendar }];
     return { groups: [{ id: "main", label: null, items: tabs }], tabs, label: t.nav, tabsLabel: t.tabs };

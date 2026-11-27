@@ -22,12 +22,17 @@ export default async function FamilyOsLayout({ children, params }: { children: R
   if (lang !== "en" && lang !== "ru") notFound();
   if (!familyEnv.gateOn()) notFound();
   const { decision, session } = await familyGateDecision();
-  if (decision !== "allow" || !session) notFound();
+  // bus 176 P4: a read-only guest gets the shell too — their sections only, the «Только чтение» bar, no badge read.
+  if ((decision !== "allow" && decision !== "guest") || !session) notFound();
   const L = lang === "ru" ? "RU" : "EN";
   const role = familyRole(session.cpifSubjectId);
   const state = await getOsState(session);
   let nav: OsShellNav, me: OsShellMe, board = 0;
-  if (state.status !== "ok") {
+  if (session.guest) {
+    const g = state.status === "ok" && state.guest ? state.guest : session.guest;
+    nav = { admin: false, editor: false, os: true, member: false, child: false, guest: { sections: g.sections, until: g.until } };
+    me = { name: g.label || null, role: "guest" };
+  } else if (state.status !== "ok") {
     // Family OS silent: the member sections all lead to the same calm «не отвечает» (QA-156 M7).
     const down = osDownNav(session.cpifSubjectId);
     nav = { admin: down.admin, editor: down.editor, os: true, member: true, child: false };

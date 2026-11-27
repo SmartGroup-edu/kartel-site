@@ -19,6 +19,7 @@ import { stripHeifMetadata } from "./heif.mjs";
 import { familyWeek, adoptionRows } from "./adoption.mjs";
 import { canAddPhoto, canSeePhoto, deleteAfter, photoFile } from "./photo.mjs";
 import { addPending, pendingStatus, consumePending, checkCode } from "./signin.mjs";
+import { GUEST_SECTIONS, guestSectionOf, guestActive, cleanGuestInvite, guestView } from "./guest.mjs";
 import { pkConfig, registerOptions, registerVerify, authOptions, authVerify, keyView, cleanLabel } from "./passkeys.mjs";
 import { KODEKS_V1, KODEKS_V1_APPROVED_ON, validKodeks, mondayOf, principleOfWeek, weekCount, countModeFor, canSeeRecognition, RECOGNITION_MAX, RECOGNITIONS_PER_DAY, cleanWoop, cleanAnchor } from "./kodeks.mjs";
 import { bodyAllowed, cleanWeight, cleanKcal, cleanGoal, weightTrend, gpLine } from "./body.mjs";
@@ -173,6 +174,28 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       if (sp === "/signin/consume" || sp === "/signin/code") console.log(`[os] ${sp.slice(1).replace("/", ".")} ${r.body.state ?? r.status}`);
       return reply(res, r.status, r.body);
     }
+    // bus 176 P4: before there is a guest actor the site asks who an address is — at the edge on every page (with the
+    // section being opened, which is logged), at sign-in, and once a guest's session is minted (the sign-in, logged).
+    // Signed as "auth:guest"; accepted on exactly these two routes. Unknown, revoked and expired answer the same 404.
+    if (auth.actor === "auth:guest") {
+      const gp = url.pathname;
+      if (req.method !== "POST" || (gp !== "/guests/lookup" && gp !== "/guests/signin")) return reply(res, 403, { error: "forbidden" });
+      if (!allow("guest:lookup", 20000, 3600_000)) return reply(res, 429, { error: "rate_limited" });
+      const b = json(body) ?? {};
+      const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+      const g = EMAIL_RE.test(email) ? await store.guestByEmail(email) : null;
+      if (!guestActive(g, localDate(clock()))) return reply(res, 404, { error: "not_found" });
+      const log = async (e) => { try { await store.logGuest({ guest_id: g.id, ...e }); return true; } catch { console.error("[os] guest log write failed"); reply(res, 503, { error: "log_unavailable" }); return false; } };
+      if (gp === "/guests/signin") return (await log({ action: "signin", section: null, route: "signin" })) && reply(res, 200, { ok: true });
+      // A session issued before «Завершить сеансы для всех» (or for this guest) has ended, as for a member.
+      if (b.sat !== undefined) {
+        const cut = await store.sessionCutoff(`guest:${g.id}`), sat = Number(b.sat);
+        if (cut && !(Number.isInteger(sat) && sat >= Math.ceil(cut.getTime() / 1000))) return reply(res, 401, { error: "session_ended" });
+      }
+      const section = GUEST_SECTIONS.includes(b.section) && g.sections.includes(b.section) ? b.section : null;
+      if (section && !(await log({ action: "read", section, route: "page" }))) return;
+      return reply(res, 200, { guest: guestView(g) });
+    }
     const who = parseActor(auth.actor);
     if (!who) return reply(res, 403, { error: "actor_required" });
     const writes = req.method !== "GET";
@@ -194,6 +217,47 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         return reply(res, 401, { error: "session_ended" });
       }
     }
+    // bus 176 P4: a guest reads only, only their sections, only while the grant is active — checked here, before any
+    // route runs. A guest is never `me` (no person has the "guest:<id>" key), so the handlers below see no person.
+    let guest = null;
+    if (who.role === "guest") {
+      guest = await store.guestById(who.id);
+      if (!guestActive(guest, localDate(clock()))) return reply(res, 401, { error: "guest_ended" });
+      if (req.method !== "GET") { console.warn("[os] guest write refused " + routeClass(path)); return reply(res, 403, { error: "read_only" }); }
+      if (path === "/me") return reply(res, 200, { me: null, admin: false, guest: guestView(guest) });
+      const section = guestSectionOf(req.method, path);
+      if (!section || !guest.sections.includes(section)) { console.warn("[os] guest section refused " + routeClass(path)); return reply(res, 403, { error: "section_closed" }); }
+      try { await store.logGuest({ guest_id: guest.id, action: "read", section, route: routeClass(path) }); }
+      catch { console.error("[os] guest log write failed"); return reply(res, 503, { error: "log_unavailable" }); }
+    }
+
+    // bus 176 P4 (owner): GET /guests · GET /guests/:id/log · POST /guests { email, label, sections, until } · POST /guests/:id/revoke
+    if (path === "/guests" || /^\/guests\/[^/]+\/(log|revoke)$/.test(path)) {
+      if (!admin) return reply(res, 403, { error: "admin_only" });
+      const today = localDate(clock());
+      if (req.method === "GET" && path === "/guests") {
+        const rows = await store.listGuests(), iso = (d) => (d ? new Date(d).toISOString() : null);
+        return reply(res, 200, { today, guests: rows.map((g) => ({ ...guestView(g), email: g.email, active: guestActive(g, today), created_at: iso(g.created_at), revoked_at: iso(g.revoked_at),
+          last_signin: iso(g.last_signin), last_read: iso(g.last_read), reads_30d: g.reads_30d ?? 0 })) });
+      }
+      if (req.method === "POST" && path === "/guests") {
+        const c = cleanGuestInvite(json(body), today);
+        if ("error" in c) return reply(res, 400, { error: c.error });
+        if (await store.findPersonByEmail(c.email)) return reply(res, 409, { error: "is_member" });
+        const id = randomUUID();
+        try { await store.createGuest({ id, ...c }, today, who.email); } catch (e) { if (e?.code === "23505") return reply(res, 409, { error: "exists" }); throw e; }
+        return reply(res, 201, { id });
+      }
+      const gid = path.split("/")[2];
+      if (!UUID_RE.test(gid)) return reply(res, 400, { error: "bad_id" });
+      if (req.method === "GET" && path.endsWith("/log")) {
+        if (!(await store.guestById(gid))) return reply(res, 404, { error: "not_found" });
+        return reply(res, 200, { log: (await store.guestLog(gid, 50)).map((x) => ({ ...x, at: new Date(x.at).toISOString() })) });
+      }
+      if (req.method === "POST" && path.endsWith("/revoke")) return (await store.revokeGuest(gid, who.email)) ? reply(res, 200, { ok: true }) : reply(res, 404, { error: "not_found" });
+      return reply(res, 404, { error: "not_found" });
+    }
+
     // POST /people/:id/end-sessions (owner) — that person's sessions; POST /sessions/end-all (owner) — everyone's.
     const esm = path.match(/^\/people\/([^/]+)\/end-sessions$/);
     if (req.method === "POST" && (esm || path === "/sessions/end-all")) {
@@ -900,7 +964,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /kodeks — the current text and its history (every member reads). POST /kodeks — a new version (a parent).
     if (path === "/kodeks" && (req.method === "GET" || req.method === "POST")) {
-      if (!me) return reply(res, 403, { error: "not_a_member" });
+      if (!me && !guest) return reply(res, 403, { error: "not_a_member" });
       const grants = await grantsNow();
       const canEdit = isParent(me, grants);
       if (req.method === "GET") {
@@ -909,7 +973,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
         const cur = versions[0];
         return reply(res, 200, { can: { edit: canEdit },
           current: cur ? { version: cur.version, status: cur.status, approved_on: cur.approved_on, body: cur.body } : null,
-          history: versions.map((v) => ({ version: v.version, status: v.status, approved_on: v.approved_on, at: v.created_at, by: byEmail.get(v.created_by) ?? null })) });
+          history: versions.map((v) => ({ version: v.version, status: v.status, approved_on: v.approved_on, at: v.created_at, by: guest ? null : byEmail.get(v.created_by) ?? null })) });
       }
       if (!canEdit) return reply(res, 403, { error: "forbidden", reason: "parent_only" });
       const b = json(body);
@@ -925,7 +989,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /principle?week= (default: this week) · PUT /principle/:monday { index } — a parent picks; this week or later
     if (req.method === "GET" && path === "/principle") {
-      if (!me) return reply(res, 403, { error: "not_a_member" });
+      if (!me && !guest) return reply(res, 403, { error: "not_a_member" });
       const q = url.searchParams.get("week");
       const week = q && DATE_RE.test(q) ? mondayOf(q) : mondayOf(localDate(clock()));
       return reply(res, 200, { ...(await principleView(week)), can: { pick: isParent(me, await grantsNow()) } });
@@ -1170,7 +1234,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
 
     // GET /calendar?days=1..92 — council, family events, birthdays this viewer may see
     if (req.method === "GET" && path === "/calendar") {
-      if (!me) return reply(res, 403, { error: "not_a_member" });
+      if (!me && !guest) return reply(res, 403, { error: "not_a_member" });
       const today = localDate(clock()), days = Math.min(92, Math.max(1, Number(url.searchParams.get("days") ?? 60) || 60)), to = addDays(today, days - 1);
       const [people, grants, events] = await Promise.all([store.listPeople(), grantsNow(), store.listEvents(today, to)]);
       const full = await Promise.all(people.map((p) => store.getPerson(p.id)));
@@ -1237,11 +1301,14 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     // progress (a joint task counts once), the approval stamp; a child's routine count only to the child and their
     // routines guardians; for parents also «Нужно решение», tomorrow's plan status and (from 21:00) carry-over.
     if (req.method === "GET" && path === "/board") {
-      if (!me) return reply(res, 403, { error: "not_a_member" });
+      if (!me && !guest) return reply(res, 403, { error: "not_a_member" });
       const lp = localParts(clock()), today = lp.date, q = url.searchParams.get("date"), date = q && DATE_RE.test(q) ? q : today;
       const grants = await grantsNow(), parent = isParent(me, grants), tomorrow = addDays(date, 1), week = weekStart(date);
-      const [people, rows, goals, weekRows, approval, approvalToday, ahead] = await Promise.all([store.listPeople(), store.boardTasks(date, tomorrow), store.sprintGoals(week),
+      const [everyone, allRows, goals, weekRows, approval, approvalToday, allAhead] = await Promise.all([store.listPeople(), store.boardTasks(date, tomorrow), store.sprintGoals(week),
         store.boardTasks(week, addDays(week, 6)), store.planApproval(tomorrow), store.planApproval(date), store.boardTasks(tomorrow, addDays(date, 7))]);
+      // bus 176 P4: a guest sees the adults' tasks only — no child, and no task a child takes part in.
+      const adults = new Set(everyone.filter((p) => p.kind === "adult").map((p) => p.id)), forGuest = (t) => participants(t).every((x) => adults.has(x));
+      const people = guest ? everyone.filter((p) => adults.has(p.id)) : everyone, rows = guest ? allRows.filter(forGuest) : allRows, ahead = guest ? allAhead.filter(forGuest) : allAhead;
       const personOf = (id) => people.find((x) => x.id === id);
       const day = rows.filter((t) => t.plan_date === date && ON_BOARD.includes(t.state)).sort(byMinute).map((t) => taskView(t, me, parent, people));
       const members = [];
@@ -1253,7 +1320,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
           const nx = ahead.filter((t) => ["approved", "accepted"].includes(t.state) && t.plan_date > date && participants(t).includes(p.id)).sort((a, b) => a.plan_date.localeCompare(b.plan_date) || byMinute(a, b))[0];
           if (nx) m.next = { date: nx.plan_date, title: openWith("task", nx, "title_ct", `task:${nx.id}`), due_time: nx.due_time, when_slot: nx.when_slot ?? null };
         }
-        if (p.kind === "child" && routineAccess(me, p, grants).read) {
+        if (me && p.kind === "child" && routineAccess(me, p, grants).read) {
           if (me.id !== p.id && !(await logged(res, { actor: who.email, subject: p.id, entity: "routines:summary", action: "read" }))) return;
           m.routines = await routineSummary(p, date);
         }
@@ -1262,7 +1329,7 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
       const proposedTomorrow = rows.filter((t) => t.plan_date === tomorrow && t.state === "proposed").length;
       const stamp = approvalToday ? { auto: Boolean(approvalToday.auto), by: approvalToday.auto ? "auto" : actorRef(people, approvalToday.approved_by), at: hhmmOf(approvalToday.at) } : null;
       return reply(res, 200, { date, today, now: lp.hhmm, members, tasks: day, progress: progress(day), approval: stamp, can: { approve: parent, sprint: canWriteCouncil(me) },
-        sprint: { week_start: week, goals: sprintProgress(goals, weekRows) },
+        sprint: { week_start: week, goals: sprintProgress(goals, guest ? weekRows.filter(forGuest) : weekRows) },
         ...(parent ? {
           needs_decision: rows.filter((t) => t.plan_date <= today && needsDecision(t, personOf(t.assignee_id), today, lp.hhmm))
             .map((t) => ({ ...taskView(t, me, true, people), why: t.state === "declined" ? "declined" : "not_accepted" })),
@@ -1500,12 +1567,15 @@ export function createApp({ store, secret, masterKey, filesDir = "/data/docs", c
     // Sprint: GET /sprint?week= · POST /sprint/goals { title, source_task_id? } · PATCH /sprint/goals/:id · POST /sprint/goals/:id/tasks
     const spm = path.match(/^\/sprint(?:\/goals(?:\/([^/]+)(\/tasks)?)?)?$/);
     if (spm) {
-      if (!me) return reply(res, 403, { error: "not_a_member" });
+      if (!me && !guest) return reply(res, 403, { error: "not_a_member" });
       const today = localDate(clock()), qw = url.searchParams.get("week");
       const week = weekStart(qw && DATE_RE.test(qw) ? qw : today);
       if (req.method === "GET" && path === "/sprint") {
-        const [goals, rows] = await Promise.all([store.sprintGoals(week), store.boardTasks(week, addDays(week, 6))]);
-        return reply(res, 200, { week_start: week, can: { write: canWriteCouncil(me) }, goals: sprintProgress(goals, rows) });
+        const [goals, rows, everyone] = await Promise.all([store.sprintGoals(week), store.boardTasks(week, addDays(week, 6)), guest ? store.listPeople() : []]);
+        // bus 176 P4 (acceptor): a guest's counts cover the adults' tasks only, as on /board.
+        const adults = new Set(everyone.filter((p) => p.kind === "adult").map((p) => p.id));
+        const seen = guest ? rows.filter((t) => participants(t).every((x) => adults.has(x))) : rows;
+        return reply(res, 200, { week_start: week, can: { write: canWriteCouncil(me) }, goals: sprintProgress(goals, seen) });
       }
       if (!canWriteCouncil(me)) return reply(res, 403, { error: "forbidden" });
       if (req.method === "POST" && path === "/sprint/goals") {
@@ -1594,6 +1664,8 @@ export function routeClass(url = "") {
   const p = url.split("?")[0];
   if (p === "/healthz" || p === "/me" || p === "/people" || p === "/grants") return p;
   if (/^\/grants\/[^/]+$/.test(p)) return "/grants/:id";
+  if (p === "/guests" || p === "/guests/lookup" || p === "/guests/signin") return p;
+  if (/^\/guests\/[^/]+\/(log|revoke)$/.test(p)) return "/guests/:id/" + p.split("/").pop();
   if (/^\/people\/[^/]+\/end-sessions$/.test(p)) return "/people/:id/end-sessions";
   if (p === "/sessions/end-all") return p;
   if (p === "/health" || p === "/health/prefs" || p === "/health/tick" || p === "/evening") return p;

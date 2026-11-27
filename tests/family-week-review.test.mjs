@@ -48,7 +48,10 @@ test("without needs_decision (an adult who is not a parent) a declined task stil
 
 test("the page: existing reads only, at most 12 Family OS calls, members only, a child goes home", () => {
   const p = src("app/[lang]/family/os/review/page.tsx");
-  assert.match(p, /if \(!state\.me\) notFound\(\);\n  childHome\(lang, state\.me\);/);
+  assert.match(p, /if \(!state\.me && !session\.guest\) notFound\(\);\n  childHome\(lang, state\.me\);/);
+  // bus 176 P4: a read-only guest only when «Обзор недели» is one of their sections; names from the (adults-only) boards
+  assert.match(p, /decision === "guest" && guestMay\(session, "review"\)/);
+  assert.match(p, /session\.guest \? todayBoard\.members\.map/);
   assert.match(p, /getSprint\(session, nextMonday\(today\)\)/);
   assert.match(p, /days\.slice\(0, -1\)\.map\(\(d\) => getBoard\(session, d\)\)/, "one board per earlier day; today's is the plain /board");
   // edge /me + /me + /people + /my-tasks (shell) + today's /board + ≤ 6 earlier boards + /sprint = 12
