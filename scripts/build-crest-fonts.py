@@ -50,6 +50,7 @@ build(P, "playfair-cyrillic-600-v2.woff2", 600, f"{CYRILLIC},{CORE}")
 build(P, "playfair-latin-700-v2.woff2", 700, COMMON)
 build(P, "playfair-cyrillic-700-v2.woff2", 700, f"{CYRILLIC},{CORE}")
 build(P, "playfair-mark-600-v2.woff2", 600, text="KARTELIVX")
+build(P, "playfair-roman-700-v2.woff2", 700, text="IVX")  # the explorer's bold numeral, both languages
 build(PI, "playfair-italic-mark-v2.woff2", 500, text="Virtus et Potestas")
 build(M, "manrope-latin-basic-v2.woff2", (300, 700), "U+0041-005A,U+0061-007A")  # /ru: the few Latin words (A–Z, a–z)
 build(M, "manrope-ru-mark-v2.woff2", (300, 700), text="Русский")  # /en: the language link

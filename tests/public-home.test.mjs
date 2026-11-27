@@ -146,14 +146,14 @@ describe("public home — the coat of arms only (EN + RU, prerendered)", () => {
   });
   test("fonts: Playfair Display 600/700 + italic 500 and variable Manrope, Latin + Cyrillic woff2 (+ the two marks), swap, per language", () => {
     const crestFontFaces = (lang) => read(`${lang}.html`).match(/<style>(@font-face[\s\S]*?)<\/style>/)[1];
-    const files = ["playfair-latin-600", "playfair-cyrillic-600", "playfair-latin-700", "playfair-cyrillic-700", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark"];
+    const files = ["playfair-latin-600", "playfair-cyrillic-600", "playfair-latin-700", "playfair-cyrillic-700", "playfair-italic-latin", "playfair-italic-cyrillic", "manrope-latin", "manrope-cyrillic", "playfair-italic-mark", "playfair-roman-700"];
     for (const lang of ["en", "ru"]) {
       const g = crestFontFaces(lang);
       for (const f of [...files, ...(lang === "ru" ? ["playfair-mark-600", "manrope-latin-basic"] : ["manrope-ru-mark"])]) {
         assert.match(g, new RegExp(`url\\("/fonts/${f}-v2\\.woff2"\\)`), f);
         assert.ok(readFileSync(`public/fonts/${f}-v2.woff2`).subarray(0, 4).toString() === "wOF2", f);
       }
-      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 11 : 10);
+      assert.equal((g.match(/font-display:swap/g) ?? []).length, lang === "ru" ? 12 : 11);
       // the marks are declared last (later rules win overlapping characters)
       assert.match(g, /playfair-italic-mark-v2\.woff2"\) format\("woff2"\);unicode-range:[^}]*\}$/);
       // /ru: the cyrillic file carries the space; /en: it does not
