@@ -58,10 +58,6 @@ const nextConfig: NextConfig = {
     // Unmatched URLs get app/global-not-found.tsx with a real 404 status. A catch-all page under
     // [lang] would render inside loading.tsx's Suspense and stream as a soft-404 (HTTP 200).
     globalNotFound: true,
-    // bus 176 P1b: the CSS arrives inside the HTML, so the crest home lays out and paints without waiting for a
-    // stylesheet round trip (the first frame must reach the screen before the page script runs — LCP). The crest
-    // home's CSS is ~12 KB gzip since the cabinet stylesheet moved to the family / core / registry layouts.
-    inlineCss: true,
   },
   images: {
     formats: ["image/avif", "image/webp"],
