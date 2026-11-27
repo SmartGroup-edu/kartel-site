@@ -216,7 +216,7 @@ describe("cycle 5 — 404 locale, titles, one name per page, one casing (2026-11
     const g = src("app/global-not-found.tsx");
     assert.match(g, /\.get\("x-kartel-locale"\) === "ru" \? "ru" : "en"/);
     assert.match(g, /<html lang=\{lang\}/);
-    assert.match(g, /<NotFoundView lang=\{lang\} \/>/);
+    assert.match(g, /<CrestNotFound lang=\{lang\} \/>/);
     assert.doesNotMatch(g, /lang="ru"|На главную|Return home/);
     // bus 176 P1: the public 404 is the crest page — «На главную» and «Войти», no registry link
     const v = src("app/components/NotFoundView.tsx");

@@ -100,7 +100,10 @@ test("D11: the family 404 keeps the family layout for a signed-in family viewer;
   const v = comp("NotFoundView.tsx");
   assert.match(v, /if \(family\) return \(\s*<FamilyChrome /);
   assert.match(v, /<SiteHeader /, "the global 404 still has the plain header");
-  assert.match(src("app/global-not-found.tsx"), /<NotFoundView lang=\{lang\} \/>/);
+  // bus 176 P1 QA: the public 404s render the crest page directly (no site header, no registry menu in the bundle).
+  assert.match(src("app/global-not-found.tsx"), /<CrestNotFound lang=\{lang\} \/>/);
+  assert.match(src("app/[lang]/not-found.tsx"), /<CrestNotFound lang=/);
+  assert.doesNotMatch(src("app/[lang]/not-found.tsx"), /import NotFoundView/);
 });
 
 test("L6: an H1 above the one line for the owner (Доска/Совет/Календарь) and an outsider (Сегодня/Люди)", () => {

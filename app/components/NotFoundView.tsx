@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import SiteHeader from "./SiteHeader";
-import FamilyChrome, { type FamilyChromeNav } from "./FamilyChrome";
+import dynamic from "next/dynamic";
+import type { FamilyChromeNav } from "./FamilyChrome";
 import CrestNotFound from "./crest/CrestNotFound";
 import { notFoundText, familyRefText, type NotFoundLang } from "../content/notFound";
 import { typographDict } from "../lib/typograph.mjs";
 
 const FAMILY_REF_RU = typographDict(familyRefText.ru); // QA-158 N5
+
+// bus 176 P1 QA: the site header and the family chrome (both carry the registry menu) load in their own chunks, only
+// when a family 404 renders — the public sign-in shares the /family segment's not-found and must not ship that menu.
+const SiteHeader = dynamic(() => import("./SiteHeader"));
+const FamilyChrome = dynamic(() => import("./FamilyChrome"));
 
 /** The 404 body + the site header (nav, theme toggle, language switch). The address itself does
  *  not exist in either language, so the language switch goes to the other language's home.

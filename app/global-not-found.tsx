@@ -2,11 +2,11 @@
 // layout, so it brings its own <html>, styles and fonts. It receives no route params: proxy.ts
 // passes the locale of the requested path in the `x-kartel-locale` request header, and the page
 // renders entirely in that language (cycle 5 #1). Status stays 404. bus 176 P1: the crest 404
-// (NotFoundView → CrestNotFound) — dark heraldic page with the home and sign-in buttons.
+// (CrestNotFound) — dark heraldic page with the home and sign-in buttons.
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Inter, Source_Serif_4 } from "next/font/google";
-import NotFoundView from "./components/NotFoundView";
+import CrestNotFound from "./components/crest/CrestNotFound";
 import { notFoundText, type NotFoundLang } from "./content/notFound";
 import "./globals.css";
 
@@ -37,7 +37,7 @@ export default async function GlobalNotFound() {
         />
       </head>
       <body className="flex min-h-full flex-col bg-[#0a0908] text-[var(--foreground)]">
-        <NotFoundView lang={lang} />
+        <CrestNotFound lang={lang} />
       </body>
     </html>
   );

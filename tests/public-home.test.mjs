@@ -141,6 +141,22 @@ describe("KARTEL Core and the registry are family-only (bus 176 P1)", () => {
     assert.deepEqual([...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]), ["https://kartel.org.uk/en", "https://kartel.org.uk/ru"]);
     assert.match(src("public/robots.txt"), /User-agent: \*\nAllow: \//);
   });
+  test("QA: llms.txt, llms-full.txt and robots.txt do not republish the closed registry or link to it", () => {
+    for (const f of ["public/llms.txt", "public/llms-full.txt", "public/robots.txt"]) {
+      const t = src(f);
+      assert.doesNotMatch(t, /KARTEL Core|Integration Gate|CPIF|federation|registry|RusJAz|MoyPolk|Community Group|community\.group/i, f);
+      assert.doesNotMatch(t, /kartel\.org\.uk\/(en|ru)\/(core|registry)/, f);
+    }
+  });
+  test("QA: the public pages' JS chunks carry no registry menu (the public 404s render the crest page directly)", () => {
+    const chunks = new Set();
+    for (const f of ["en.html", "ru.html", "ru/family/signin.html", "_not-found.html"]) {
+      let h = ""; try { h = read(f); } catch { continue; }
+      for (const m of h.matchAll(/\/_next\/static\/chunks\/([^"]+\.js)/g)) chunks.add(m[1]);
+    }
+    assert.ok(chunks.size > 0, "found the public chunks");
+    for (const c of chunks) assert.doesNotMatch(src(`.next/static/chunks/${c}`), /Разделы реестра|Registry sections|Карта федерации|Federation map/, c);
+  });
   test("they sit in the cabinet's «Бизнес» group as «Реестр и KARTEL Core»", () => {
     assert.match(src("app/lib/family-os-shell.mjs"), /business\.push\(item\("companies"\), \{ id: "registry", href: `\/\$\{lang === "EN" \? "en" : "ru"\}\$\{REGISTRY_PATH\}`, label: t\.registry \}\);/);
   });

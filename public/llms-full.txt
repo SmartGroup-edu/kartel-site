@@ -1,40 +1,6 @@
 # KARTEL — Full Site Content
 
-> This file contains the complete text content of kartel.org.uk for AI systems. kartel.org.uk is the public registry of the KARTEL federation of cultural and educational platforms, and the home of the Kartel family heritage and coat of arms. London, United Kingdom. Motto: Virtus et Potestas.
-
----
-
-# KARTEL CORE — The public registry of the KARTEL federation
-
-Cultural and educational platforms share one identity, one map of countries and regions and one organisation model. KARTEL Core keeps those shared layers and the rules every platform follows — this site is their public record. It is the official public registry, not a product. The registry observes the federation; it is never a source of truth or a runtime dependency.
-
-## Four canonical layers
-
-- **Identity (CPIF)** — One person, one identity across every platform. Status: live.
-- **Geography (ITL1)** — One canonical geography: countries (ISO 3166-1) and, within them, regions — ITL1 in the UK, ISO 3166-2 elsewhere. Platforms consume it; they never self-author codes. Status: live.
-- **Organisation Anchor** — One canonical organisation hierarchy: CEA → Foundation → School → Venue. Status: active.
-- **Campus Anchor** — Canonical accredited operating centres, identified by a readable `campusCode`, orthogonal to organisation identity. Status: active.
-
-## Federation Integration Gate
-
-No new project joining the federation may enter production unless it passes all eight items:
-1. Authentication — the project signs its own users in by a sound method; no shared sign-in service is required.
-2. Canonical geography — store CanonicalRegionCode (ITL1); consume the taxonomy API; never self-author regions.
-3. Organisation anchor — reference canonical organisations; do not author canonical orgs locally.
-4. Membership contract — conform membership edges to the shared shape.
-5. Permission pattern — local roles; delegation-grant pattern; no global role catalogue.
-6. Event geo-anchor — anchor events to a CanonicalRegionCode.
-7. Notification envelope — conform notifications to the shared envelope.
-8. Audit envelope — append-only audit conforming to the shared envelope.
-
-## Ecosystem projects
-
-- **MoyPolk** (moypolk.uk) — Immortal Regiment UK memorial platform. Produces + serves the canonical geography taxonomy. Role: Producer / Steward.
-- **RusJAz** (rusjaz.com) — Russian-language education marketplace + LMS. Consumes canonical geography, organisation + campus anchors. Role: Consumer.
-- **Community Group** (community.group) — Cultural funding & trust platform (CEA). First geography consumer. Role: Consumer.
-- **RusJAzz** — A separate future module. Builds against the Federation Integration Gate from day one. Role: Planned.
-
-The public registry carries status and architecture only — no operational detail, no internal identifiers, and no personal data. Those live in the access-controlled internal surface, never here.
+> This file contains the complete public text of kartel.org.uk for AI systems: the coat of arms of the Kartel family, its meaning, colours and motto. London, United Kingdom. Motto: Virtus et Potestas. The family area is members-only and is not published here.
 
 ---
 
@@ -140,4 +106,4 @@ The Kartel family is based in London, United Kingdom. Their website is kartel.or
 
 Source: https://kartel.org.uk
 Contact: gor@kartel.org.uk
-Last updated: 2026-11-24
+Last updated: 2026-11-27
