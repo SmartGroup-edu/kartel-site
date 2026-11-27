@@ -97,7 +97,9 @@
 .lead { color: #d9d1c4; font-size: 20px; line-height: 1.6; font-weight: 300; letter-spacing: .005em; max-width: 31em; margin: 26px 0 34px; }
 .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
 .crestbox { position: relative; justify-self: center; width: min(520px, 100%); perspective: 1100px; }
-.crestbox::before { content: ""; position: absolute; inset: 8% 10%; border-radius: 50%; background: radial-gradient(closest-side, rgba(224, 183, 110, .34), rgba(163, 33, 42, .10) 55%, transparent 75%); filter: blur(30px); animation: breathe 6s ease-in-out infinite; }
+/* The glow (bus 176 P1b): the mockup's radial gradient under filter: blur(30px), now drawn as the blurred result itself
+   (stops sampled from the blurred render; ≤ 4/255 per channel apart) — no blur filter to rasterise in the first frame. */
+.crestbox::before { content: ""; position: absolute; inset: 8% 10%; border-radius: 50%; background: radial-gradient(closest-side, rgba(163, 127, 79, 0.366) 0%, rgba(163, 122, 79, 0.353) 10%, rgba(163, 117, 75, 0.313) 20%, rgba(163, 112, 73, 0.261) 30%, rgba(163, 98, 67, 0.202) 40%, rgba(163, 79, 57, 0.144) 50%, rgba(163, 64, 52, 0.091) 60%, rgba(163, 53, 52, 0.046) 70%, rgba(163, 60, 59, 0.020) 80%, transparent 90%); animation: breathe 6s ease-in-out infinite; }
 @keyframes breathe { 0%, 100% { opacity: .65; transform: scale(.94); } 50% { opacity: 1; transform: scale(1.05); } }
 .tilt { position: relative; transform-style: preserve-3d; transition: transform .25s ease-out; will-change: transform; }
 .masked { -webkit-mask-image: radial-gradient(60% 58% at 50% 47%, #000 55%, transparent 100%); mask-image: radial-gradient(60% 58% at 50% 47%, #000 55%, transparent 100%); }
@@ -242,11 +244,14 @@
    a slow raster lets the page script run first (Lighthouse then counts all of it). Until the page has loaded
    (CrestHome sets html[data-crest-late]) the home leaves out three costly layers it does not need at the top of the
    page: the film grain (an SVG turbulence filter blended over the whole viewport), the header's backdrop blur (nothing
-   is behind the header before scrolling) and the crest's drop shadow (mostly inside its mask). They come in after
-   load; the sign-in, pending and 404 pages (no data-crest-js) have them from the start. */
+   is behind the header before scrolling), the crest's drop shadow (mostly inside its mask) and the layout of the
+   sections below the first screen. They come in after load; the sign-in, pending and 404 pages (no data-crest-js) have them from the start. */
 :global(html[data-crest-js]:not([data-crest-late])) .site::after { background-image: none; }
 :global(html[data-crest-js]:not([data-crest-late])) .header { backdrop-filter: none; -webkit-backdrop-filter: none; }
 :global(html[data-crest-js]:not([data-crest-late])) .crestimg { filter: none; }
+/* …and below the first screen nothing is styled or laid out until it nears the viewport (content-visibility). After
+   load it is switched off again, so the section links and the scroll length are exact. */
+:global(html[data-crest-js]:not([data-crest-late])) :is(.s, .mottos, .footer) { content-visibility: auto; contain-intrinsic-size: auto 900px; }
 @keyframes lift { from { transform: translateY(12px); } to { transform: none; } }
 @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
@@ -331,6 +336,7 @@
   .burger { display: grid; }
   .hgrid { grid-template-columns: 1fr; min-height: auto; padding: 24px 0 70px; text-align: center; }
   .crestbox { order: -1; width: min(340px, 86%); }
+  .crestbox::before { background: radial-gradient(closest-side, rgba(163, 120, 76, 0.307) 0%, rgba(163, 118, 76, 0.294) 10%, rgba(163, 117, 75, 0.268) 20%, rgba(163, 105, 74, 0.229) 30%, rgba(163, 102, 68, 0.183) 40%, rgba(163, 93, 69, 0.131) 50%, rgba(163, 75, 63, 0.091) 60%, rgba(163, 60, 59, 0.059) 70%, rgba(163, 70, 69, 0.033) 80%, rgba(163, 86, 85, 0.013) 90%, transparent 100%); }
   .lead { margin-left: auto; margin-right: auto; font-size: 18px; }
   .ctas { justify-content: center; }
   .ctas .btn { width: 100%; }
