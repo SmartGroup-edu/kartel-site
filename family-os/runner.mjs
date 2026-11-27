@@ -117,6 +117,10 @@ await pool.query("DELETE FROM passkey_attempt WHERE at < now() - interval '2 day
 await pool.query("DELETE FROM passkey WHERE revoked_at < now() - interval '90 days'");
 // bus 165: pending sign-ins, a day after they expire.
 await pool.query("DELETE FROM signin_pending WHERE expires_at < now() - interval '1 day'");
+// bus 176 P4: the guest log is kept 12 months; a grant that ended more than 12 months ago goes once its log has gone.
+await pool.query("DELETE FROM guest_access_log WHERE at < now() - interval '12 months'");
+await pool.query(`DELETE FROM guest_grant g WHERE least(coalesce(g.revoked_at::date, g.until), g.until) < (now() - interval '12 months')::date
+  AND NOT EXISTS (SELECT 1 FROM guest_access_log l WHERE l.guest_id = g.id)`);
 async function event(type, subject, ref) {
   await pool.query("INSERT INTO event (type, actor, subject_person_id, ref) VALUES ($1, 'system:runner', $2, $3)", [type.replace(/[^a-z_.]/g, "_"), subject, ref]);
 }

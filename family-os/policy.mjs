@@ -11,9 +11,16 @@
 export const NOTE_KINDS = ["health", "education"];
 export const SCOPES = ["routines", "health", "education", "documents"];
 
-/** "admin:a@b" → { role: "admin", email: "a@b" }; anything else → null */
+/**
+ * "admin:a@b" → { role: "admin", email: "a@b" }; anything else → null.
+ * bus 176 P4: "guest:<grant uuid>" → { role: "guest", id, email: "guest:<id>" }. The `email` is only a key (rate limits,
+ * the «Завершить сеансы для всех» cut-off); no person has it, so a guest is never `me`.
+ */
 export function parseActor(actor) {
-  const m = /^(admin|member):([^\s@:]+@[^\s@:]+)$/.exec(String(actor ?? ""));
+  const s = String(actor ?? "");
+  const g = /^guest:([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/.exec(s);
+  if (g) return { role: "guest", id: g[1], email: `guest:${g[1]}` };
+  const m = /^(admin|member):([^\s@:]+@[^\s@:]+)$/.exec(s);
   return m ? { role: m[1], email: m[2].toLowerCase() } : null;
 }
 

@@ -262,6 +262,38 @@ export function pgStore(pool) {
       await q("INSERT INTO session_cutoff (email, cut_at, cut_by) VALUES ($1, now(), $2) ON CONFLICT (email) DO UPDATE SET cut_at = now(), cut_by = $2", [email, actor]);
       await audit(actor, "sessions.end", email === "*" ? "family:*" : `email:${email}`);
     },
+    // ---- bus 176 P4: read-only guests. `until` is a date string; the server decides who is active.
+    async createGuest(g, today, actor) {
+      const c = await pool.connect();
+      try {
+        await c.query("BEGIN");
+        // An expired grant for this address is closed first, so the address can be invited again.
+        await c.query("UPDATE guest_grant SET revoked_at = now(), revoked_by = 'system:expired' WHERE email = $1 AND revoked_at IS NULL AND until < $2", [g.email, today]);
+        await c.query("INSERT INTO guest_grant (id, email, label, sections, until, created_by) VALUES ($1, $2, $3, $4, $5, $6)", [g.id, g.email, g.label, g.sections, g.until, actor]);
+        await c.query("INSERT INTO audit (actor, action, entity) VALUES ($1, 'guest.invite', $2)", [actor, `guest:${g.id}`]);
+        await c.query("COMMIT");
+      } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }
+    },
+    async guestById(id) { return (await q("SELECT id, email, label, sections, to_char(until, 'YYYY-MM-DD') AS until, created_at, revoked_at FROM guest_grant WHERE id = $1", [id])).rows[0] ?? null; },
+    async guestByEmail(email) { return (await q("SELECT id, email, label, sections, to_char(until, 'YYYY-MM-DD') AS until, created_at, revoked_at FROM guest_grant WHERE email = $1 AND revoked_at IS NULL", [email])).rows[0] ?? null; },
+    async listGuests() {
+      return (await q(`SELECT g.id, g.email, g.label, g.sections, to_char(g.until, 'YYYY-MM-DD') AS until, g.created_at, g.revoked_at,
+          (SELECT max(at) FROM guest_access_log l WHERE l.guest_id = g.id AND l.action = 'signin') AS last_signin,
+          (SELECT max(at) FROM guest_access_log l WHERE l.guest_id = g.id AND l.action = 'read') AS last_read,
+          (SELECT count(*)::int FROM guest_access_log l WHERE l.guest_id = g.id AND l.action = 'read' AND l.at > now() - interval '30 days') AS reads_30d
+        FROM guest_grant g ORDER BY g.revoked_at IS NOT NULL, g.created_at DESC`)).rows;
+    },
+    async revokeGuest(id, actor) {
+      const r = await q("UPDATE guest_grant SET revoked_at = now(), revoked_by = $2 WHERE id = $1 AND revoked_at IS NULL", [id, actor]);
+      if (r.rowCount) await audit(actor, "guest.revoke", `guest:${id}`);
+      return r.rowCount === 1;
+    },
+    async logGuest({ guest_id, action, section, route }) {
+      await q("INSERT INTO guest_access_log (guest_id, action, section, route) VALUES ($1, $2, $3, $4)", [guest_id, action, section ?? null, route]);
+    },
+    async guestLog(id, limit = 50) {
+      return (await q("SELECT at, action, section, route FROM guest_access_log WHERE guest_id = $1 ORDER BY at DESC, id DESC LIMIT $2", [id, limit])).rows;
+    },
     // ---- Stage 3e-2: an adult's own body log (sealed rows; the server decides who may call these)
     async bodyOn(personId) { return Boolean((await q("SELECT body_on FROM body_pref WHERE person_id = $1", [personId])).rows[0]?.body_on); },
     async setBodyOn(personId, on) { await q("INSERT INTO body_pref (person_id, body_on) VALUES ($1, $2) ON CONFLICT (person_id) DO UPDATE SET body_on = $2", [personId, on]); },
@@ -449,6 +481,7 @@ export function memoryStore({ clock = () => new Date() } = {}) {
   const seen = new Map(), invites = [], photos = [], cutoffs = new Map(), hprefs = new Map(), hticks = new Map(), evenings = new Map(), bprefs = new Map(), blogs = new Map(), bgoals = new Map(), bkeys = new Map();
   const pk = { users: new Map(), keys: [], challenges: new Map(), attempts: [], notices: [] };
   const signins = new Map();
+  const guests = new Map(), glog = [];
   const rules = new Map(["digest", "evening_checkin", "documents_in_digest", "missed_routine_parent_note", "council_reminder", "board_new_tasks", "plan_ready", "needs_decision"].map((id) => [id, { id, enabled: ["digest", "evening_checkin"].includes(id), dry_run: true }]));
   const now = () => clock().toISOString();
   return {
@@ -594,6 +627,23 @@ export function memoryStore({ clock = () => new Date() } = {}) {
     async onboardedOn(email) { const x = seen.get(email); return x ? { on: x.onboarded_on ?? null } : null; },
     async markOnboarded(email, date) { const x = seen.get(email); if (x?.onboarded_on) return false; seen.set(email, x ? { ...x, onboarded_on: date } : { email, first_on: date, last_on: date, onboarded_on: date }); return true; },
     async markInviteSent(id) { const i = invites.find((x) => x.id === id); if (i && !i.sent_at) i.sent_at = now(); },
+    // ---- bus 176 P4: read-only guests (same rules as Postgres: one open grant per address, an expired one is closed first)
+    async createGuest(g, today, actor) {
+      for (const x of guests.values()) if (x.email === g.email && !x.revoked_at && x.until < today) Object.assign(x, { revoked_at: now(), revoked_by: "system:expired" });
+      if ([...guests.values()].some((x) => x.email === g.email && !x.revoked_at)) throw Object.assign(new Error("duplicate"), { code: "23505" });
+      guests.set(g.id, { ...g, created_at: now(), created_by: actor, revoked_at: null, revoked_by: null }); auditLog.push({ actor, action: "guest.invite", entity: `guest:${g.id}` });
+    },
+    async guestById(id) { const g = guests.get(id); return g ? { ...g } : null; },
+    async guestByEmail(email) { const g = [...guests.values()].find((x) => x.email === email && !x.revoked_at); return g ? { ...g } : null; },
+    async listGuests() {
+      const since = Date.parse(now()) - 30 * 86400_000;
+      return [...guests.values()].map((g) => { const l = glog.filter((x) => x.guest_id === g.id), last = (a) => l.filter((x) => x.action === a).map((x) => x.at).sort().pop() ?? null;
+        return { ...g, last_signin: last("signin"), last_read: last("read"), reads_30d: l.filter((x) => x.action === "read" && Date.parse(x.at) > since).length }; })
+        .sort((a, b) => Number(Boolean(a.revoked_at)) - Number(Boolean(b.revoked_at)) || String(b.created_at).localeCompare(String(a.created_at)));
+    },
+    async revokeGuest(id, actor) { const g = guests.get(id); if (!g || g.revoked_at) return false; Object.assign(g, { revoked_at: now(), revoked_by: actor }); auditLog.push({ actor, action: "guest.revoke", entity: `guest:${id}` }); return true; },
+    async logGuest(e) { if (this.failLog) throw new Error("log unavailable"); glog.push({ id: glog.length + 1, at: now(), section: null, ...e }); },
+    async guestLog(id, limit = 50) { return glog.filter((x) => x.guest_id === id).slice(-limit).reverse().map(({ at, action, section, route }) => ({ at, action, section, route })); },
     // ---- Passkeys
     async pkUser(email) { return pk.users.get(email) ?? null; },
     async pkAddUser(email, handle) { if (!pk.users.has(email)) pk.users.set(email, { email, user_handle: handle }); return pk.users.get(email); },
@@ -679,6 +729,6 @@ export function memoryStore({ clock = () => new Date() } = {}) {
     async planApproval(date) { return approvals.get(date) ?? null; },
     async approvePlan(date, by, auto) { if (approvals.has(date)) return false; approvals.set(date, { approved_by: by, auto, at: now() }); return true; },
 
-    _raw: { pk, photos: () => photos, notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
+    _raw: { guests, glog, pk, photos: () => photos, notes, log, docs: () => docs, files: () => files, checks, events, rchecks, goals, meetings, ics, btasks, templates, approvals },
   };
 }

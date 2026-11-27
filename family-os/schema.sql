@@ -673,3 +673,36 @@ DO $$ BEGIN
     INSERT INTO schema_migration (name) VALUES ('2026-11-26-onboarded-backfill');
   END IF;
 END $$;
+
+-- ================= bus 176 P4: read-only guests (R0 27.11) =================
+-- A guest (for example an accountant) reads only the sections the owner opened, until an end date of one year at most.
+-- Never a person: no row in `person`, so no documents, health, notes, routines or children. The address is kept for
+-- sign-in only (the site's edge looks the guest up by it); the label is what the owner and the guest see.
+-- One open (unrevoked) grant per address; an expired one is closed (revoked_by 'system:expired') before a new invite.
+CREATE TABLE IF NOT EXISTS guest_grant (
+  id          uuid PRIMARY KEY,
+  email       text NOT NULL CHECK (email = lower(email) AND position(':' in email) = 0),
+  label       text NOT NULL CHECK (length(label) BETWEEN 1 AND 60),
+  sections    text[] NOT NULL CHECK (cardinality(sections) >= 1 AND sections <@ ARRAY['calendar', 'kodeks', 'companies', 'review']::text[]),
+  until       date NOT NULL,
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  created_by  text NOT NULL,
+  revoked_at  timestamptz,
+  revoked_by  text
+);
+CREATE UNIQUE INDEX IF NOT EXISTS guest_grant_one_open ON guest_grant (email) WHERE revoked_at IS NULL;
+-- Who (the grant), what (section + route class, never an id or a value), when. Sign-ins too. Append-only for the app
+-- (privilege: SELECT + INSERT only); the runner, as the owner, deletes rows older than 12 months.
+CREATE TABLE IF NOT EXISTS guest_access_log (
+  id        bigserial PRIMARY KEY,
+  guest_id  uuid NOT NULL REFERENCES guest_grant(id),
+  at        timestamptz NOT NULL DEFAULT now(),
+  action    text NOT NULL CHECK (action IN ('signin', 'read')),
+  section   text CHECK (section IS NULL OR section IN ('calendar', 'kodeks', 'companies', 'review')),
+  route     text NOT NULL CHECK (route ~ '^[a-z/:._-]{1,40}$')
+);
+CREATE INDEX IF NOT EXISTS guest_access_log_by_guest ON guest_access_log (guest_id, at DESC);
+CREATE OR REPLACE FUNCTION guest_access_log_no_update() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'guest_access_log is append-only'; END $$;
+DROP TRIGGER IF EXISTS guest_access_log_no_update ON guest_access_log;
+CREATE TRIGGER guest_access_log_no_update BEFORE UPDATE ON guest_access_log FOR EACH ROW EXECUTE FUNCTION guest_access_log_no_update();
