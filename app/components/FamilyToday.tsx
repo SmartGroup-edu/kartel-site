@@ -75,7 +75,7 @@ const T = {
 
 const CARD = "rounded-[var(--fos-radius)] border border-[var(--border)] bg-[var(--fos-panel)] p-5 shadow-[var(--fos-shadow)]";
 const CARD_H = "flex items-center gap-2 text-[15px] font-semibold text-[var(--foreground)]";
-const MORE = "ml-auto inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-medium text-[var(--ok)] hover:underline hover:underline-offset-4";
+const MORE = "ml-auto inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-medium text-[var(--accent)] hover:underline hover:underline-offset-4";
 const ROW = "flex items-center gap-3 border-t border-[var(--border)] px-1.5 py-2.5 first:border-t-0";
 const EMPTY = "px-1.5 py-5 text-center text-[14px] text-[var(--muted)]";
 const PILL = { g: "bg-[var(--ok-soft)] text-[var(--ok)]", a: "bg-[var(--warn-soft)] text-[var(--fos-amber)]", b: "bg-[var(--fos-blue-soft)] text-[var(--fos-blue)]" };
@@ -152,7 +152,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
             {decisionsN !== null && <li className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1"><Scale aria-hidden="true" className="h-3.5 w-3.5" />{decisionsN ? t.decisionsChip(decisionsN) : t.noDecisionsChip}</li>}
           </ul>
         </div>
-        {decisionsN ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 items-center justify-center gap-1.5 justify-self-start rounded-[10px] bg-white px-4 text-[14px] font-semibold text-[#1e4d35] hover:opacity-90">{t.toDecisions}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link> : null}
+        {decisionsN ? <Link prefetch={false} href={`${base}/council`} className="inline-flex min-h-11 items-center justify-center gap-1.5 justify-self-start rounded-[10px] bg-[var(--fos-accent-2)] px-4 text-[14px] font-semibold text-[var(--fos-on-accent-2)] hover:opacity-90">{t.toDecisions}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Link> : null}
       </section>
 
       {model.kpis.length > 0 && (
@@ -176,7 +176,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
           {items.length === 0 ? (
             <div className={EMPTY}>
               <p>{t.emptyMine}</p>
-              {model.child ? <p className="mt-1">{t.childHint}</p> : meId ? <Link prefetch={false} href={`${base}/people/${meId}#routines-h`} className="mt-1 inline-flex min-h-11 items-center text-[var(--ok)] underline underline-offset-4">{t.addOwn}</Link> : null}
+              {model.child ? <p className="mt-1">{t.childHint}</p> : meId ? <Link prefetch={false} href={`${base}/people/${meId}#routines-h`} className="mt-1 inline-flex min-h-11 items-center text-[var(--accent)] underline underline-offset-4">{t.addOwn}</Link> : null}
             </div>
           ) : (
             <ul>
@@ -184,7 +184,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
                 <li key={x.key} data-item={x.type} data-done={x.done ? "1" : "0"} className={ROW}>
                   <button type="button" role="checkbox" aria-checked={x.done} aria-label={t.check(x.title)} disabled={!x.checkable || (x.type === "task" && x.done)} onClick={() => tick(x)}
                     className="grid h-11 w-11 flex-none place-items-center rounded-[10px] disabled:cursor-default">
-                    <span aria-hidden="true" className={`grid h-[21px] w-[21px] place-items-center rounded-[7px] border-2 transition-colors ${x.done ? "border-[var(--fos-accent-2)] bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "border-[var(--fos-control)]"}`}>
+                    <span aria-hidden="true" className={`grid h-[21px] w-[21px] place-items-center rounded-[7px] border-2 transition-colors ${x.done ? "border-[var(--ok)] bg-[var(--ok)] text-[var(--fos-on-ok)]" : "border-[var(--fos-control)]"}`}>
                       {x.done && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
                     </span>
                   </button>
@@ -194,7 +194,7 @@ export default function FamilyToday({ lang, model, dateLine, myBoard, board, peo
                     {x.nudge && (
                       <div data-nudge="" className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
                         <span className="text-[var(--text-secondary)]">{t.stillDoing}</span>
-                        <button type="button" onClick={() => answer(x, "done")} className="min-h-9 rounded-[10px] bg-[var(--accent)] px-3 font-semibold text-[var(--on-accent)]">{t.finish}</button>
+                        <button type="button" onClick={() => answer(x, "done")} className="min-h-9 rounded-[10px] bg-[var(--fos-primary)] px-3 font-semibold text-[var(--fos-on-primary)]">{t.finish}</button>
                         <button type="button" onClick={() => answer(x, "continue")} className="min-h-9 rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] px-3 font-semibold">{t.goOn}</button>
                       </div>
                     )}
@@ -315,19 +315,19 @@ function ChildDay({ t, lang, model, items, done, tick, answer, err, when, dateLi
                 {items.map((x) => (
                   <li key={x.key} data-item={x.type} data-done={x.done ? "1" : "0"}>
                     <button type="button" role="checkbox" aria-checked={x.done} aria-label={t.check(x.title)} disabled={!x.checkable || (x.type === "task" && x.done)} onClick={() => tick(x)} data-kid-task=""
-                      className={`flex min-h-14 w-full items-center gap-3.5 rounded-2xl border-2 px-3.5 py-3 text-left text-[16px] font-semibold transition-colors disabled:cursor-default ${x.done ? "border-[var(--fos-accent-2)] bg-[var(--ok-soft)] text-[var(--muted)] line-through" : "border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] enabled:hover:border-[var(--fos-blue)]"}`}>
+                      className={`flex min-h-14 w-full items-center gap-3.5 rounded-2xl border-2 px-3.5 py-3 text-left text-[16px] font-semibold transition-colors disabled:cursor-default ${x.done ? "border-[var(--ok)] bg-[var(--ok-soft)] text-[var(--muted)] line-through" : "border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] enabled:hover:border-[var(--fos-blue)]"}`}>
                       <span className="min-w-0 flex-1">
                         <span className="block">{ty(x.title)}</span>
                         {(when(x) || x.state === "declined" || x.inProgress) && <span className="mt-0.5 block text-[13px] font-normal text-[var(--muted)] no-underline">{[when(x), x.state === "declined" ? t.waitParents : x.inProgress ? t.inProgress : ""].filter(Boolean).join(" · ")}</span>}
                       </span>
-                      <span aria-hidden="true" className={`grid h-8 w-8 flex-none place-items-center rounded-full border-2 ${x.done ? "border-[var(--fos-accent-2)] bg-[var(--fos-accent-2)] text-[var(--fos-on-accent-2)]" : "border-[var(--fos-control)]"}`}>
+                      <span aria-hidden="true" className={`grid h-8 w-8 flex-none place-items-center rounded-full border-2 ${x.done ? "border-[var(--ok)] bg-[var(--ok)] text-[var(--fos-on-ok)]" : "border-[var(--fos-control)]"}`}>
                         {x.done && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>}
                       </span>
                     </button>
                     {x.nudge && (
                       <div data-nudge="" className="mt-1.5 flex flex-wrap items-center gap-2 px-1 text-[13px]">
                         <span className="text-[var(--text-secondary)]">{t.stillDoing}</span>
-                        <button type="button" onClick={() => answer(x, "done")} className="min-h-11 rounded-[10px] bg-[var(--accent)] px-3 font-semibold text-[var(--on-accent)]">{t.finish}</button>
+                        <button type="button" onClick={() => answer(x, "done")} className="min-h-11 rounded-[10px] bg-[var(--fos-primary)] px-3 font-semibold text-[var(--fos-on-primary)]">{t.finish}</button>
                         <button type="button" onClick={() => answer(x, "continue")} className="min-h-11 rounded-[10px] border border-[var(--border)] bg-[var(--fos-panel)] px-3 font-semibold">{t.goOn}</button>
                       </div>
                     )}

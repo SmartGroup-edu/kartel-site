@@ -139,7 +139,7 @@ function Focus({ t, lang, sprint, nextFrom }: { t: Dict; lang: Lang; sprint: OsS
     router.refresh();
   };
   return (
-    <div data-review="focus" className={`${CARD} border-[var(--fos-accent-2)]`}>
+    <div data-review="focus" className={`${CARD} border-[var(--fos-gold-line)]`}>
       <h2 className={OS_H2}>{t.focus}</h2>
       <p className="mt-1 text-[13px] text-[var(--muted)]" suppressHydrationWarning>{t.focusWeek(range(week, addDays(week, 6), lang))} · {t.focusHint}</p>
       {!sprint ? <p role="status" className="mt-3 text-[14px] text-[var(--muted)]">{t.focusDown}</p> : sprint.can.write ? (

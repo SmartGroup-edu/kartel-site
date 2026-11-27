@@ -141,7 +141,7 @@ export default function HomeClient({ lang, office }: { lang: Lang; office: React
               <div className="mt-8 flex flex-wrap gap-3 sm:justify-center lg:justify-start print:hidden short-land:mt-4 short-land:justify-start">
                 <a
                   href="#explorer"
-                  className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  className="inline-flex min-h-11 items-center rounded-md bg-[var(--fos-primary)] px-5 text-[15px] font-medium text-[var(--fos-on-primary)] transition-colors hover:bg-[var(--fos-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 >
                   {lang === "EN" ? "Explore the coat of arms" : "Исследовать герб"}
                 </a>
@@ -275,7 +275,7 @@ export default function HomeClient({ lang, office }: { lang: Lang; office: React
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3 print:hidden">
               <a
                 href="#explorer"
-                className="inline-flex min-h-11 items-center rounded-md bg-[var(--accent)] px-5 text-[15px] font-medium text-[var(--on-accent)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                className="inline-flex min-h-11 items-center rounded-md bg-[var(--fos-primary)] px-5 text-[15px] font-medium text-[var(--fos-on-primary)] transition-colors hover:bg-[var(--fos-primary-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 {lang === "EN" ? "Explore the coat of arms" : "Исследовать герб"}
               </a>

@@ -132,7 +132,7 @@ async function uploadBlob(blob: Blob): Promise<string> {
 const field = "mt-1 w-full rounded-md border border-[var(--border)] bg-[var(--background)] px-3 py-2.5 text-[16px] text-[var(--foreground)]";
 const label = "block text-[14px] font-medium text-[var(--text-secondary)]";
 const btn = "inline-flex min-h-11 items-center justify-center rounded-md px-4 text-[15px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
-const btnPrimary = `${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`;
+const btnPrimary = `${btn} bg-[var(--fos-primary)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]`;
 const btnSecondary = `${btn} border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 const link = "underline decoration-[var(--border)] underline-offset-4 hover:decoration-[var(--accent)]";
 

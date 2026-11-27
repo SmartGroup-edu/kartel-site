@@ -88,7 +88,7 @@ test("the shell: every icon-only button has a name; the tab bar is a nav of link
   assert.match(s, /<nav aria-label=\{tabsLabel\} data-fos-tabbar=""/);
   assert.match(s, /<Link prefetch=\{false\} href=\{x\.href\} aria-current=\{on \? "page" : undefined\} data-tab=\{x\.id\}/);
   assert.doesNotMatch(s, /tabIndex=\{-1\}[^>]*data-tab|outline-none[^"]*focus-visible/, "no tab is taken out of the tab order");
-  assert.match(readFileSync("app/globals.css", "utf8"), /\[data-fos\] :is\(a, button, input, select, textarea, summary, \[tabindex\]\):focus-visible \{\s*outline-color: var\(--fos-accent-2\);/);
+  assert.match(readFileSync("app/globals.css", "utf8"), /\[data-fos\] :is\(a, button, input, select, textarea, summary, \[tabindex\]\):focus-visible \{\s*outline-color: var\(--fos-gold-line\);/);
 });
 
 const css = readFileSync("app/globals.css", "utf8");
@@ -107,8 +107,12 @@ for (const [sel, name] of [[":root:not(.hc) [data-fos]", "light"], [":root.dark:
     for (const fg of ["foreground", "text-body", "text-secondary", "muted", "accent", "ok", "fos-amber", "destructive", "fos-blue", "fos-plum"])
       for (const bg of ["fos-bg", "fos-panel", "fos-panel-2"]) need(fg, bg, 4.5);
     for (const [fg, bg] of [["on-accent", "accent"], ["fos-on-accent-2", "fos-accent-2"], ["fos-on-amber", "fos-amber"], ["accent", "accent-soft"], ["ok", "ok-soft"],
-      ["fos-amber", "warn-soft"], ["fos-blue", "fos-blue-soft"], ["fos-plum", "fos-plum-soft"], ["destructive", "fos-red-soft"], ["fos-brief-text", "fos-brief-from"], ["fos-brief-text", "fos-brief-to"]]) need(fg, bg, 4.5);
+      ["fos-amber", "warn-soft"], ["fos-blue", "fos-blue-soft"], ["fos-plum", "fos-plum-soft"], ["destructive", "fos-red-soft"], ["fos-brief-text", "fos-brief-from"], ["fos-brief-text", "fos-brief-to"],
+      ["fos-on-primary", "fos-primary"], ["fos-on-ok", "ok"], ["accent", "accent-soft"], ["foreground", "accent-soft"]]) need(fg, bg, 4.5);
     for (const bg of ["fos-panel", "fos-panel-2"]) need("fos-control", bg, 3);
+    // bus 174: the gold lines (focus ring, selected borders, bars, icons) and the hero ring are non-text UI → ≥ 3:1
+    for (const bg of ["fos-bg", "fos-panel", "fos-panel-2", "accent-soft"]) need("fos-gold-line", bg, 3);
+    for (const bg of ["fos-brief-from", "fos-brief-to"]) need("fos-brief-ring", bg, 3);
     assert.deepEqual(fails, []);
   });
 }

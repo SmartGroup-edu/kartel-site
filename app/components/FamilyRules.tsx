@@ -98,7 +98,7 @@ function RuleRow({ lang, r }: { lang: Lang; r: OsRule }) {
         <div className="inline-flex overflow-hidden rounded-md border border-[var(--border)]">
           {MODES.map((k, i) => (
             <label key={k} data-mode={k}
-              className={`inline-flex min-h-11 cursor-pointer items-center px-4 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-[var(--accent)] ${i > 0 ? "border-l border-[var(--border)]" : ""} ${mode === k ? "bg-[var(--accent)] font-medium text-[var(--on-accent)]" : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`}>
+              className={`inline-flex min-h-11 cursor-pointer items-center px-4 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-[var(--accent)] ${i > 0 ? "border-l border-[var(--border)]" : ""} ${mode === k ? "bg-[var(--fos-primary)] font-medium text-[var(--fos-on-primary)]" : "text-[var(--text-secondary)] hover:text-[var(--foreground)]"}`}>
               <input type="radio" name={group} value={k} className="sr-only" checked={mode === k} onChange={() => choose(k)} />
               {t.mode[k]}
             </label>

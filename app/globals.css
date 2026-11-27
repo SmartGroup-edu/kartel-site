@@ -42,8 +42,9 @@
   --radius: 0.5rem;
 
   /* Family board (bus 82): done / declined / sprint / rotation tags. Text on each soft fill ≥ 4.5:1. */
-  --ok: #2f6b4f;
-  --ok-soft: #eaf3ee;
+  /* Status «в норме» / done: muted olive (bus 174: no green in the brand system). */
+  --ok: #4a5d27;
+  --ok-soft: #eef0e2;
   --warn-soft: #fbf3e2;
   --warn-border: #e7cf9c;
   --accent-soft: #f6ecee;
@@ -88,8 +89,8 @@
   --band-bg: #2b2824;
   --band-accent: #c9964e;
   --band-text: rgba(255, 255, 255, 0.72);
-  --ok: #7fc3a0;
-  --ok-soft: #1f2e26;
+  --ok: #b5c27f;
+  --ok-soft: #23261a;
   --warn-soft: #2e2617;
   --warn-border: #6b5528;
   --accent-soft: #2e2519;
@@ -124,8 +125,8 @@
   --band-accent: #f3cdd3;
   --destructive: #8f1a14;
   --destructive-foreground: #ffffff;
-  --ok: #1d4a35;
-  --ok-soft: #eaf3ee;
+  --ok: #3b4a1e;
+  --ok-soft: #eef0e2;
   --warn-soft: #fbf3e2;
   --warn-border: #7a5a12;
   --accent-soft: #f6ecee;
@@ -160,8 +161,8 @@
   --band-accent: #f2c47e;
   --destructive: #ff9b93;
   --destructive-foreground: #000000;
-  --ok: #a6e3c4;
-  --ok-soft: #0f1f17;
+  --ok: #c8d49a;
+  --ok-soft: #171a0f;
   --warn-soft: #231a08;
   --warn-border: #b48a3c;
   --accent-soft: #1f170c;
@@ -177,101 +178,133 @@
   --band-text: #ffffff;
 }
 
-/* Family OS redesign (bus 171; mockup v5 approved by R0 26.11.2026). Scoped to the Family OS shell: [data-fos] sits on
-   the shell and, while a Family OS page is open, on <body> (dialogs render in a portal). The existing token names are
-   re-pointed, so every Family OS component picks the new palette up without a fork; the --fos-* names are the roles the
-   site palette has no slot for. Light and dark follow .dark; «Высокий контраст» keeps its AAA tokens (only the page,
-   panel and shadow roles are mapped onto them). Text tokens ≥ 4.5:1 on --fos-bg, --background and --surface; controls
-   ≥ 3:1 — guarded by tests/family-os-shell.test.mjs. */
+/* Family OS redesign (bus 171; mockup v5 approved by R0 26.11.2026), recoloured to the KARTEL brand in bus 174
+   (~/KARTEL-Vault/90-References/brand/kartel-brand-guide.md: gold #b08d57, ink #1a1a1a, warm background #f5f0ea,
+   muted #8a8278; R0 rejected the green). Scoped to the Family OS shell: [data-fos] sits on the shell, the public home,
+   the sign-in and, while a Family OS page is open, on <body> (dialogs render in a portal). The existing token names are
+   re-pointed, so every Family OS component picks the palette up without a fork; the --fos-* names are the roles the
+   site palette has no slot for. Roles: primary buttons and fills are ink (--fos-primary); text links and active nav
+   text are burgundy (--accent); gold (--fos-accent-2) is the accent for badges, rings, chips and the hero, with ink
+   text on it, and --fos-gold-line is the deeper gold for focus rings, selected borders and bars, which must reach
+   3:1 on the cream page (#b08d57 is 2.7:1 there, 3.1:1 on white). Gold is never body text on light surfaces. Olive
+   (--ok) is for done / «в норме» pills and checkmarks only. Light and dark follow .dark; «Высокий контраст» keeps its
+   AAA tokens (only the page, panel and shadow roles are mapped onto them). Text tokens ≥ 4.5:1 on --fos-bg,
+   --background and --surface; controls ≥ 3:1 — guarded by tests/family-os-shell.test.mjs. */
+:root {
+  /* Outside the Family OS the primary fill is the site accent (so shared components look as before). */
+  --fos-primary: var(--accent);
+  --fos-primary-hover: var(--accent-hover);
+  --fos-on-primary: var(--on-accent);
+}
 :root:not(.hc) [data-fos] {
-  --fos-bg: #f5f4f0;
+  --fos-bg: #f5f0ea;
   --fos-panel: #ffffff;
-  --fos-panel-2: #faf9f6;
+  --fos-panel-2: #faf7f2;
   --background: #ffffff;
-  --surface: #faf9f6;
-  --foreground: #141416;
-  --text-body: #3a3a40;
-  --text-secondary: #3a3a40;
-  --text-nav: #3a3a40;
-  --muted: #6b6b74;
-  --muted-light: #6b6b74;
-  --border: #e8e6e0;
+  --surface: #faf7f2;
+  --foreground: #1a1a1a;
+  --text-body: #3a3632;
+  --text-secondary: #3a3632;
+  --text-nav: #3a3632;
+  /* The brand muted #8a8278 is 3.3:1 on the cream page and 3.8:1 on white (fails AA for text); darkened along the
+     same hue to the nearest value with margin: #716a62 = 4.7:1 on #f5f0ea, 5.3:1 on white. */
+  --muted: #716a62;
+  --muted-light: #716a62;
+  --border: #e7e0d6;
   /* A checkbox or field edge: a control, so ≥ 3:1 on the panel. */
-  --fos-control: #8f8c84;
-  --accent: #1e4d35;
-  --accent-hover: #24603f;
+  --fos-control: #8a8173;
+  /* Burgundy: text links, active nav text, outline buttons. 9.0:1 on the cream page. */
+  --accent: #7b1e2d;
+  --accent-hover: #9e2a3b;
   --on-accent: #ffffff;
-  --accent-soft: #e6f1ea;
-  /* The brighter green of the mockup: badges, the progress ring, a done checkbox. --fos-on-accent-2 is the text on it. */
-  --fos-accent-2: #2e7d52;
-  --fos-on-accent-2: #ffffff;
-  --ok: #276b46;
-  --ok-soft: #e6f1ea;
+  /* A warm gold-cream: the active nav row, council chips. */
+  --accent-soft: #f3ebdf;
+  /* Primary buttons and fills: ink with white text. */
+  --fos-primary: #1a1a1a;
+  --fos-primary-hover: #3a3632;
+  --fos-on-primary: #ffffff;
+  /* Brand gold: badges, the calendar's today, avatars of the signed-in person; ink text on it (5.6:1). */
+  --fos-accent-2: #b08d57;
+  --fos-on-accent-2: #1a1a1a;
+  /* Deeper gold for lines and small marks: focus ring, selected borders, progress bars, icons. 3.5:1 on #f5f0ea. */
+  --fos-gold-line: #9a7a48;
+  /* Status — done / «в норме»: muted olive, pills and checkmarks only. */
+  --ok: #556b2f;
+  --ok-soft: #eef0e2;
+  --fos-on-ok: #ffffff;
+  /* «внимание» */
   --fos-amber: #8f5a12;
   --fos-on-amber: #ffffff;
   --warn-soft: #fbf0dc;
   --warn-border: #d9b567;
+  /* «просрочено» */
   --destructive: #b23a2e;
   --fos-red-soft: #fae5e2;
-  --fos-blue: #2b5c9e;
-  --fos-blue-soft: #e4ecf8;
+  /* info: slate blue */
+  --fos-blue: #3d5a80;
+  --fos-blue-soft: #e6ecf4;
   --fos-plum: #8e4570;
   --fos-plum-soft: #f4e6ef;
-  --selection-bg: rgba(46, 125, 82, 0.18);
+  --selection-bg: rgba(176, 141, 87, 0.25);
   --header-bg: #ffffff;
-  --drop-cap: #1e4d35;
-  --fos-shadow: 0 1px 2px rgba(20, 20, 30, 0.04), 0 6px 20px rgba(20, 20, 30, 0.05);
-  --fos-shadow-lg: 0 24px 60px rgba(10, 15, 12, 0.22);
-  /* The day banner: a deep green field; its text is light in both themes. */
-  --fos-brief-from: #24603f;
-  --fos-brief-to: #0f2a1d;
-  --fos-brief-text: #e3efe7;
-  --fos-brief-ring: #8fe0ae;
+  --drop-cap: #7b1e2d;
+  --fos-shadow: 0 1px 2px rgba(26, 20, 14, 0.04), 0 6px 20px rgba(26, 20, 14, 0.05);
+  --fos-shadow-lg: 0 24px 60px rgba(26, 16, 10, 0.22);
+  /* The day banner «Сводка дня»: ink into deep burgundy, with a gold ring and gold details; its text is light. */
+  --fos-brief-from: #1a1a1a;
+  --fos-brief-to: #3a1018;
+  --fos-brief-text: #f3ece2;
+  --fos-brief-ring: #b08d57;
 }
 
 :root.dark:not(.hc) [data-fos] {
-  --fos-bg: #0e1110;
-  --fos-panel: #161a18;
-  --fos-panel-2: #1b201d;
-  --background: #161a18;
-  --surface: #1b201d;
-  --foreground: #eef1ee;
-  --text-body: #c9cfcb;
-  --text-secondary: #c9cfcb;
-  --text-nav: #c9cfcb;
-  --muted: #8a938e;
-  --muted-light: #8a938e;
-  --border: #262d29;
-  --fos-control: #76817a;
-  /* The mockup's #3e9b68 cannot carry white text (3.4:1), so dark text sits on the green and links use the lighter green. */
-  --accent: #5dbb85;
-  --accent-hover: #74c896;
-  --on-accent: #0e1110;
-  --accent-soft: #18291f;
-  --fos-accent-2: #3e9b68;
-  --fos-on-accent-2: #0e1110;
-  --ok: #5dbb85;
-  --ok-soft: #18291f;
+  --fos-bg: #141210;
+  --fos-panel: #1c1916;
+  --fos-panel-2: #221e1a;
+  --background: #1c1916;
+  --surface: #221e1a;
+  --foreground: #efe9e1;
+  --text-body: #cfc7bc;
+  --text-secondary: #cfc7bc;
+  --text-nav: #cfc7bc;
+  --muted: #a39a8d;
+  --muted-light: #a39a8d;
+  --border: #2e2924;
+  --fos-control: #857b6e;
+  /* Gold: links, active nav, primary fills; text on a gold fill is dark (7.1:1). */
+  --accent: #c9964e;
+  --accent-hover: #daa85e;
+  --on-accent: #141210;
+  --accent-soft: #2a2218;
+  --fos-primary: #c9964e;
+  --fos-primary-hover: #daa85e;
+  --fos-on-primary: #141210;
+  --fos-accent-2: #c9964e;
+  --fos-on-accent-2: #141210;
+  --fos-gold-line: #c9964e;
+  --ok: #a3b46b;
+  --ok-soft: #262a1c;
+  --fos-on-ok: #141210;
   --fos-amber: #e0b062;
-  --fos-on-amber: #0e1110;
+  --fos-on-amber: #141210;
   --warn-soft: #2b2213;
   --warn-border: #6b5528;
   --destructive: #e88a7f;
-  --destructive-foreground: #0e1110;
+  --destructive-foreground: #141210;
   --fos-red-soft: #2e1a18;
-  --fos-blue: #9cb8e6;
-  --fos-blue-soft: #162233;
+  --fos-blue: #9fb3d1;
+  --fos-blue-soft: #1d2430;
   --fos-plum: #d99bc0;
   --fos-plum-soft: #2a1824;
-  --selection-bg: rgba(93, 187, 133, 0.25);
-  --header-bg: #161a18;
-  --drop-cap: #5dbb85;
+  --selection-bg: rgba(201, 150, 78, 0.3);
+  --header-bg: #1c1916;
+  --drop-cap: #c9964e;
   --fos-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   --fos-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
-  --fos-brief-from: #1d4d33;
-  --fos-brief-to: #0b1f15;
-  --fos-brief-text: #e3efe7;
-  --fos-brief-ring: #8fe0ae;
+  --fos-brief-from: #201c18;
+  --fos-brief-to: #3a1018;
+  --fos-brief-text: #f3ece2;
+  --fos-brief-ring: #daa85e;
 }
 
 /* High contrast: the AAA tokens above stay; only the shell's own roles are mapped onto them. */
@@ -282,6 +315,8 @@
   --fos-control: var(--border);
   --fos-accent-2: var(--accent);
   --fos-on-accent-2: var(--on-accent);
+  --fos-gold-line: var(--accent);
+  --fos-on-ok: var(--background);
   --fos-amber: var(--foreground);
   --fos-on-amber: var(--background);
   --fos-red-soft: var(--surface);
@@ -315,9 +350,9 @@ body[data-fos] {
 [data-fos] h1.font-serif {
   color: var(--foreground);
 }
-/* Focus ring: the brighter green, visible on panels and on the page in both themes. */
+/* Focus ring: the deeper gold, ≥ 3:1 on panels and on the page in both themes. */
 [data-fos] :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline-color: var(--fos-accent-2);
+  outline-color: var(--fos-gold-line);
 }
 
 @theme inline {

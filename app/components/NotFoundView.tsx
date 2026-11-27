@@ -43,7 +43,7 @@ function NotFoundBody({ lang, refCode, child = false, left = false }: { lang: No
       <p className="mt-3 max-w-md text-[17px] leading-[1.6] text-[var(--text-body)]">{refCode ? f.hint : t.hint}</p>
       {refCode && <RefCode label={f.code} code={refCode} />}
       <div className={`mt-8 flex flex-wrap gap-3 ${left ? "" : "justify-center"}`}>
-        <Link prefetch={false} href={refCode ? `/${lang}/family/os` : `/${lang}`} className={`${btn} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`}>
+        <Link prefetch={false} href={refCode ? `/${lang}/family/os` : `/${lang}`} className={`${btn} bg-[var(--fos-primary)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]`}>
           {refCode ? (child ? f.myDay : f.home) : t.home}
         </Link>
         {/* bus 173: no «Наследие» for a child — that address sends them back to «Мой день». */}

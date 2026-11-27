@@ -24,7 +24,7 @@ import { typographDict } from "../lib/typograph.mjs";
 
 /** The main action and the fallback (mockup v5 sign-in: one filled button, the rest outlined). */
 const BTN = "inline-flex h-12 items-center justify-center gap-2 rounded-[var(--radius)] px-6 text-base font-medium transition-colors disabled:cursor-wait disabled:opacity-60";
-const BTN_FIRST = `${BTN} bg-[var(--accent)] text-[var(--on-accent)] hover:bg-[var(--accent-hover)]`;
+const BTN_FIRST = `${BTN} bg-[var(--fos-primary)] text-[var(--fos-on-primary)] hover:bg-[var(--fos-primary-hover)]`;
 const BTN_SECOND = `${BTN} border border-[var(--border)] bg-[var(--fos-panel)] text-[var(--foreground)] hover:border-[var(--accent)]`;
 
 /** Hash the "different email" link carries back to the form, which then focuses the field. */
@@ -323,7 +323,7 @@ function SignInAside({ c }: { c: Copy }) {
       className="hidden flex-col rounded-[var(--fos-radius)] bg-gradient-to-br from-[var(--fos-brief-from)] to-[var(--fos-brief-to)] p-10 text-[var(--fos-brief-text)] min-[900px]:flex lg:p-12"
     >
       <p className="flex items-center gap-3">
-        <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-[10px] border border-current font-serif text-[17px] font-semibold">K</span>
+        <span aria-hidden="true" className="grid h-9 w-9 place-items-center rounded-[10px] bg-[#1a1a1a] font-serif text-[17px] font-semibold text-[#b08d57] ring-1 ring-[#b08d57]/50">K</span>
         <span className="flex flex-col leading-tight"><b className="tracking-[0.14em] text-[14px]">KARTEL</b><span className="text-[14px]">{c.asideBrand}</span></span>
       </p>
       <p className="mt-auto max-w-[30rem] pt-16 font-serif text-[40px] font-semibold leading-[1.05] tracking-[-0.015em] lg:text-[46px]">{c.asideTitle}</p>

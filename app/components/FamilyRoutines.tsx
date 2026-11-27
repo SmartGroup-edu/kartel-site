@@ -62,7 +62,7 @@ const btn = BTN_SECONDARY;
 
 export function Check({ checked }: { checked: boolean }) {
   return (
-    <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border-strong,var(--border))]"}`}>
+    <span aria-hidden="true" className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 ${checked ? "border-[var(--fos-primary)] bg-[var(--fos-primary)] text-[var(--fos-on-primary)]" : "border-[var(--border-strong,var(--border))]"}`}>
       {checked && <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2.5 7.5 5.5 10.5 11.5 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
     </span>
   );
@@ -243,7 +243,7 @@ export function AddRoutine({ lang, personId, today, routines = [] }: { lang: Lan
               <legend className={label}>{t.days}</legend>
               <div className="mt-1 flex flex-wrap gap-2">
                 {WEEKDAYS.map((d, i) => (
-                  <label key={d} className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${days.includes(d) ? "border-[var(--accent)] bg-[var(--accent)] text-[var(--on-accent)]" : "border-[var(--border)] text-[var(--foreground)]"}`}>
+                  <label key={d} className={`inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border px-3 text-[15px] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--accent)] ${days.includes(d) ? "border-[var(--fos-primary)] bg-[var(--fos-primary)] text-[var(--fos-on-primary)]" : "border-[var(--border)] text-[var(--foreground)]"}`}>
                     <input type="checkbox" className="sr-only" checked={days.includes(d)} onChange={() => setDays((x) => (x.includes(d) ? x.filter((y) => y !== d) : [...x, d]))} />
                     {t.weekdayNames[i]}
                   </label>
